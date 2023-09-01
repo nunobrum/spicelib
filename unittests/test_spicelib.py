@@ -75,6 +75,7 @@ class test_spicelib(unittest.TestCase):
         """
         @note   inits class
         """
+        print("Starting test_batch_test")
         # prepare
         self.sim_files = []
         self.measures = {}
@@ -136,6 +137,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
     def test_run_from_spice_editor(self):
         """Run command on SpiceEditor"""
+        print("Starting test_run_from_spice_editor")
         LTC = SimRunner(output_folder=test_dir + "temp/")
         # select spice model
         LTC.create_netlist(test_dir + "testfile.asc")
@@ -161,6 +163,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
     def test_sim_runner(self):
         """SimRunner and SpiceEditor singletons"""
+        print("Starting test_sim_runner")
         # Old legacy class that merged SpiceEditor and SimRunner
         def callback_function(raw_file, log_file):
             print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
@@ -190,6 +193,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(False, "Execute All")
     def test_ltsteps_measures(self):
         """LTSteps Measures from Batch_Test.asc"""
+        print("Starting test_ltsteps_measures")
         assert_data = {
             'vout1m'   : [
                 -0.0186257,
@@ -350,6 +354,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(False, "Execute All")
     def test_operating_point(self):
         """Operating Point Simulation Test"""
+        print("Starting test_operating_point")
         if has_ltspice:
             LTC = SimCommander(test_dir + "DC op point.asc")
             raw_file, log_file = LTC.run().wait_results()
@@ -364,6 +369,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(False, "Execute All")
     def test_operating_point_step(self):
         """Operating Point Simulation with Steps """
+        print("Starting test_operating_point_step")
         if has_ltspice:
             LTC = SimCommander(test_dir + "DC op point - STEP.asc")
             raw_file, log_file = LTC.run().wait_results()
@@ -380,6 +386,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(False, "Execute All")
     def test_transient(self):
         """Transient Simulation test """
+        print("Starting test_transient")
         if has_ltspice:
             LTC = SimCommander(test_dir + "TRAN.asc")
             raw_file, log_file = LTC.run().wait_results()
@@ -400,6 +407,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(False, "Execute All")
     def test_transient_steps(self):
         """Transient simulation with stepped data."""
+        print("Starting test_transient_steps")
         if has_ltspice:
             LTC = SimCommander(test_dir + "TRAN - STEP.asc")
             raw_file, log_file = LTC.run().wait_results()
@@ -423,6 +431,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(False, "Execute All")
     def test_ac_analysis(self):
         """AC Analysis Test"""
+        print("Starting test_ac_analysis")
         from numpy import pi, angle
         if has_ltspice:
             LTC = SimCommander(test_dir + "AC.asc")
@@ -452,6 +461,7 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(False, "Execute All")
     def test_ac_analysis_steps(self):
         """AC Analysis Test with steps"""
+        print("Starting test_ac_analysis_steps")
         from numpy import pi, angle
         if has_ltspice:
             LTC = SimCommander(test_dir + "AC - STEP.asc")
@@ -492,5 +502,7 @@ class test_spicelib(unittest.TestCase):
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
+    print("Starting tests on spicelib")
     unittest.main()
+    print("Tests completed on spicelib")
 # ------------------------------------------------------------------------------
