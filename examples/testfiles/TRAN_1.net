@@ -1,0 +1,12 @@
+* C:\sandbox\spicelib_main\examples\testfiles\TRAN.asc
+Vin in 0 PWL(0 0 10n 1)
+R1 in out 1k
+C1 out 0 1µ
+.tran 5m
+.meas TRAN t1 FIND V(out) AT 1m
+.meas TRAN t2 FIND V(out) AT 2m
+.meas TRAN t3 FIND V(out) AT 3m
+.meas TRAN t4 FIND V(out) AT 4m
+.meas TRAN t5 FIND V(out) AT 5m
+.backanno
+.end
