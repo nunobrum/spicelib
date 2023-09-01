@@ -1,0 +1,10 @@
+* C:\sandbox\spicelib_main\examples\testfiles\testfile.asc
+V1 in 0 AC 1 0
+R1 out in {res}
+C1 out 0 {cap}
+C2 out in {cap}
+.ac dec 40 1m 1G
+.param cap=1n res=1k
+.step dec param cap 1p 10u 1
+.backanno
+.end

@@ -1,0 +1,17 @@
+* C:\sandbox\spicelib_main\examples\testfiles\testfile.asc
+V1 in 0 PULSE(-1 1 1u 1n 1n 2m 1m 1)
+R1 out in {res}
+C1 out 0 {cap}
+C2 out in {cap}
+.tran 2
+.param cap=1n res=1k
+.step dec param cap 1p 10u 1
+.savebias ../examples/testfiles/sim_loadbias_2.txt internal time=2
+.loadbias ../examples/testfiles/sim_loadbias_2.txt
+.savebias ../examples/testfiles/sim_loadbias_5.txt internal time=3
+.loadbias ../examples/testfiles/sim_loadbias_5.txt
+.savebias ../examples/testfiles/sim_loadbias_8.txt internal time=3
+.loadbias ../examples/testfiles/sim_loadbias_8.txt
+.savebias ../examples/testfiles/sim_loadbias_10.txt internal time=2
+.backanno
+.end
