@@ -31,6 +31,7 @@ def all_loggers():
         "spicelib.SimStepper",
         "spicelib.SpiceEditor",
         "spicelib.XYCESimulator",
+        "spicelib.QSpiceSimulator",
         "spicelib.SimBatch",
         "spicelib.AscEditor",
         "spicelib.LTSpiceSimulator",

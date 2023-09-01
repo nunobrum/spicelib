@@ -455,5 +455,6 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
-* Version 0.1
+* Version 0.3
   * Cloning and renaming from PyLTSpice 4.1.2 
+  * Starting at 0.3 to align with the spicelib in PyPi
