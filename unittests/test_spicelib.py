@@ -50,7 +50,6 @@ from spicelib.sim.sim_batch import SimCommander
 from spicelib.raw.raw_read import RawRead
 from spicelib.editor.spice_editor import SpiceEditor
 from spicelib.sim.sim_runner import SimRunner
-from spicelib.sim.ltspice_simulator import LTspice
 
 def has_ltspice_detect():
     from spicelib.sim.ltspice_simulator import LTspice
@@ -66,9 +65,6 @@ test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unit
 # test_dir = os.path.abspath(test_dir)
 print("test_dir", test_dir)
 # ------------------------------------------------------------------------------
-
-# if has_ltspice:
-#    os.chdir(os.path.abspath((os.path.dirname(os.path.abspath(__file__)))))
 
 
 class test_spicelib(unittest.TestCase):
