@@ -3,7 +3,7 @@ Client Server
 
 Simulations take a huge computational power, and having the
 possibility of extending your own computer's capabilities can
-come as very handy. For this reason, PyLTspice has implemented
+come as very handy. For this reason, spicelib has implemented
 a client-server architecture, where the server is the one machine and
 the client is the other. The server is the one that will run the simulation.
 The client will send the commands to the server and will receive the
@@ -17,7 +17,7 @@ use the following command:
 
 .. code-block:: bash
 
-    python -m PyLTSpice.run_server --port 9000 --parallel 4 --output ./temp
+    python -m spicelib.run_server --port 9000 --parallel 4 --output ./temp
 
 Make sure that each machine is on the same network and that the port is open.
 If port is not specified, the default port is 9000.
@@ -28,13 +28,13 @@ On the client side, you can use the following code to run the simulation:
 
     import os.path
     import zipfile
-    from PyLTSpice.client_server.sim_client import SimClient
+    from spicelib.client_server.sim_client import SimClient
     import logging
 
     # In order for this, to work, you need to have a server running. To start a server, run the following command:
-    # python -m PyLTSpice.run_server --port 9000 --parallel 4 --output ./temp
+    # python -m spicelib.run_server --port 9000 --parallel 4 --output ./temp
 
-    _logger = logging.getLogger("PyLTSpice.SimClient")
+    _logger = logging.getLogger("spicelib.SimClient")
     _logger.setLevel(logging.DEBUG)
 
     server = SimClient('http://localhost', 9000)

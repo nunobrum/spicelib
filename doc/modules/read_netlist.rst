@@ -1,7 +1,7 @@
 Reading and Manipulating Netlists
 =================================
 
-PyLTSpice has the ability to read and manipulate netlist files using the :doc:`../classes/spice_editor` class.  
+spicelib has the ability to read and manipulate netlist files using the :doc:`../classes/spice_editor` class.
 
 The SpiceEditor class inherits almost all functions from :doc:`/classes/spice_circuit` class. The SpiceCircuit
 class allows manipulation of circuit elements such as resistors, capacitors, transistors and so on, as well as
@@ -25,8 +25,8 @@ Example 1: Setting parameters inside a flat netlist.
 .. code-block::
     
     #read netlist
-    import PyLTSpice
-    net = PyLTSpice.SpiceEditor("Batch_Test.net")  # Loading the Netlist
+    import spicelib
+    net = spicelib.SpiceEditor("Batch_Test.net")  # Loading the Netlist
 
     net.set_parameters(res=0, cap=100e-6)  # Updating parameters res and cap
     net.set_component_value('R2', '2k')    # Updating the value of R2 to 2k
@@ -47,8 +47,8 @@ Example 2: Updating components inside a subcircuit
 .. code-block::
     
     #read netlist
-    import PyLTSpice
-    net = PyLTSpice.SpiceEditor("Example2.net")
+    import spicelib
+    net = spicelib.SpiceEditor("Example2.net")
 
     net.set_component_value('R1', 1000)      # Sets the value of R1 to 1k
     net.set_component_value('XU1:Ra', '1k')  # Sets the value of Ra inside of XU1 to 1k
@@ -56,5 +56,5 @@ Example 2: Updating components inside a subcircuit
 
 See the class documentation for more details :
 
-* :py:class:`PyLTSpice.SpiceEditor`
-* :py:class:`PyLTSpice.SpiceCircuit`
+* :py:class:`spicelib.SpiceEditor`
+* :py:class:`spicelib.SpiceCircuit`

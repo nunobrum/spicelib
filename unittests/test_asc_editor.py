@@ -5,7 +5,7 @@ import unittest
 sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
 
-import PyLTSpice
+import spicelib
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
@@ -13,7 +13,7 @@ golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') els
 class ASC_Editor_Test(unittest.TestCase):
 
     def setUp(self):
-        self.edt = PyLTSpice.editor.asc_editor.AscEditor(test_dir + "DC sweep.asc")
+        self.edt = spicelib.editor.asc_editor.AscEditor(test_dir + "DC sweep.asc")
 
     def test_component_editing(self):
         self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here

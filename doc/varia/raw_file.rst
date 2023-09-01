@@ -121,4 +121,4 @@ contiguously as illustrated below.
 
 This can speed up the data reading. Note that this transformation is not done automatically. Transforming data to Fast
 Access must be requested by the user. If the transformation is done, it is registered in the Flags: line in the
-header. PyLTSpice supports both Normal and Fast Access formats
+header. spicelib supports both Normal and Fast Access formats

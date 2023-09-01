@@ -2,12 +2,13 @@
 # coding=utf-8
 
 # -------------------------------------------------------------------------------
-#    ____        _   _____ ____        _
-#   |  _ \ _   _| | |_   _/ ___| _ __ (_) ___ ___
-#   | |_) | | | | |   | | \___ \| '_ \| |/ __/ _ \
-#   |  __/| |_| | |___| |  ___) | |_) | | (_|  __/
-#   |_|    \__, |_____|_| |____/| .__/|_|\___\___|
-#          |___/                |_|
+#
+#  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
+#  ██╔════╝██╔══██╗██║██╔════╝██╔════╝██║     ██║██╔══██╗
+#  ███████╗██████╔╝██║██║     █████╗  ██║     ██║██████╔╝
+#  ╚════██║██╔═══╝ ██║██║     ██╔══╝  ██║     ██║██╔══██╗
+#  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
+#  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        sim_client.py
 # Purpose:     Tool used to launch LTSpice simulation in batch mode.
@@ -22,12 +23,12 @@ import zipfile
 import logging
 
 # In order for this, to work, you need to have a server running. To start a server, run the following command:
-# python -m PyLTSpice.run_server --port 9000 --parallel 4 --output ./temp
+# python -m spicelib.run_server --port 9000 --parallel 4 --output ./temp
 
-_logger = logging.getLogger("PyLTSpice.SimClient")
+_logger = logging.getLogger("spicelib.SimClient")
 _logger.setLevel(logging.DEBUG)
 
-from PyLTSpice.client_server.sim_client import SimClient
+from spicelib.client_server.sim_client import SimClient
 
 server = SimClient('http://localhost', 9000)
 print(server.session_id)

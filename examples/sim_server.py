@@ -2,12 +2,13 @@
 # coding=utf-8
 
 # -------------------------------------------------------------------------------
-#    ____        _   _____ ____        _
-#   |  _ \ _   _| | |_   _/ ___| _ __ (_) ___ ___
-#   | |_) | | | | |   | | \___ \| '_ \| |/ __/ _ \
-#   |  __/| |_| | |___| |  ___) | |_) | | (_|  __/
-#   |_|    \__, |_____|_| |____/| .__/|_|\___\___|
-#          |___/                |_|
+#
+#  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
+#  ██╔════╝██╔══██╗██║██╔════╝██╔════╝██║     ██║██╔══██╗
+#  ███████╗██████╔╝██║██║     █████╗  ██║     ██║██████╔╝
+#  ╚════██║██╔═══╝ ██║██║     ██╔══╝  ██║     ██║██╔══██╗
+#  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
+#  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        run_server.py
 # Purpose:     A Command Line Interface to run the LTSpice Server
@@ -19,11 +20,11 @@
 # -------------------------------------------------------------------------------
 import sys
 
-from PyLTSpice.client_server.sim_server import SimServer
+from spicelib.client_server.sim_server import SimServer
 import time
 import keyboard
 
-from PyLTSpice.sim.ltspice_simulator import LTspice
+from spicelib.sim.ltspice_simulator import LTspice
 simulator = LTspice
 
 print("Starting Server")

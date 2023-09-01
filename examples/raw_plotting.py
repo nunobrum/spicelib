@@ -5,7 +5,7 @@ from os.path import split as pathsplit
 from os.path import join as pathjoin
 import numpy as np
 from numpy import abs as mag, angle
-from PyLTSpice import RawRead
+from spicelib import RawRead
 
 
 def what_to_units(whattype):

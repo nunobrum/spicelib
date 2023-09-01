@@ -1,5 +1,5 @@
 import numpy as np
-from PyLTSpice import RawRead, Trace, RawWrite
+from spicelib import RawRead, Trace, RawWrite
 
 
 def test_readme_snippet():

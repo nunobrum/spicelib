@@ -1,4 +1,4 @@
-from PyLTSpice import SpiceEditor
+from spicelib import SpiceEditor
 
 se = SpiceEditor("./testfiles/Noise.asc")
 

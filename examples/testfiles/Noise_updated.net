@@ -1,4 +1,4 @@
-* C:\sandbox\PyLTSpice\examples\testfiles\Noise.asc
+* C:\sandbox\spicelib\examples\testfiles\Noise.asc
 V1 in 0 11
 R1 out in 11k
 C1 out 0 1.1u

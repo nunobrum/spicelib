@@ -26,7 +26,7 @@ directory as the raw file in order to obtain the STEP information.
 You can get a list of all trace names using the ``get_trace_names()`` method.
 
 Use method ``get_trace()`` to get the trace data, which consists of values for 1 or more simulation steps.
-It will return a :py:class:`PyLTSpice.raw_classes.Trace` object.  Use this object's ``get_wave()`` method to get
+It will return a :py:class:`spicelib.raw_classes.Trace` object.  Use this object's ``get_wave()`` method to get
 the actual data points for a step.
 
 Use the method ``get_axis()`` to get the 'time' data.  If there were multiple steps in the simulation, specify
@@ -38,8 +38,8 @@ Note that all the data will be returned as numpy arrays.
 
 See the class documentation for more details :
 
-- :py:class:`PyLTSpice.raw_read.RawRead`
-- :py:class:`PyLTSpice.raw_classes.Trace`
+- :py:class:`spicelib.raw_read.RawRead`
+- :py:class:`spicelib.raw_classes.Trace`
 
 Example
 -------
@@ -49,7 +49,7 @@ library to plot the results of two traces in a separate subplots.
 
 .. code-block::
 
-    from PyLTSpice import RawRead
+    from spicelib import RawRead
     import matplotlib.pyplot as plt         # use matplotlib for plotting the results
 
     raw = RawRead("some_random_file.raw")   # Read the RAW file contents from disk

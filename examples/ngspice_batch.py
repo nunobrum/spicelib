@@ -1,7 +1,7 @@
-from PyLTSpice.sim.sim_runner import SimRunner
-from PyLTSpice.editor.spice_editor import SpiceEditor
-from PyLTSpice.sim.ngspice_simulator import NGspiceSimulator
-from PyLTSpice.utils.sweep_iterators import sweep_log
+from spicelib.sim.sim_runner import SimRunner
+from spicelib.editor.spice_editor import SpiceEditor
+from spicelib.sim.ngspice_simulator import NGspiceSimulator
+from spicelib.utils.sweep_iterators import sweep_log
 
 
 def processing_data(raw_file, log_file):

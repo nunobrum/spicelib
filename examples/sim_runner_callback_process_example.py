@@ -1,9 +1,9 @@
 # coding=utf-8
 
 import sys
-sys.path.insert(0, '..')    # This is to allow the import from the PyLTSpice folder
-from PyLTSpice import SimRunner, SpiceEditor
-from PyLTSpice.sim.process_callback import ProcessCallback  # Importing the ProcessCallback class type
+sys.path.insert(0, '..')    # This is to allow the import from the spicelib folder
+from spicelib import SimRunner, SpiceEditor
+from spicelib.sim.process_callback import ProcessCallback  # Importing the ProcessCallback class type
 
 
 class CallbackProc(ProcessCallback):
@@ -17,7 +17,7 @@ class CallbackProc(ProcessCallback):
 
 
 if __name__ == "__main__":
-    from PyLTSpice.sim.ltspice_simulator import LTspice
+    from spicelib.sim.ltspice_simulator import LTspice
     runner = SimRunner(output_folder='./temp_batch4', simulator=LTspice)  # Configures the simulator to use and output
     # folder
 

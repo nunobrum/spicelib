@@ -1,7 +1,7 @@
 import os
 
-from PyLTSpice import SpiceEditor, SimRunner
-from PyLTSpice.sim.sim_stepping import SimStepper
+from spicelib import SpiceEditor, SimRunner
+from spicelib.sim.sim_stepping import SimStepper
 
 
 def processing_data(raw_file, log_file):

@@ -1,5 +1,5 @@
-from PyLTSpice import SimRunner
-from PyLTSpice import SpiceEditor
+from spicelib import SimRunner
+from spicelib import SpiceEditor
 
 # Force another simulatior
 simulator = r"C:\Program Files\LTC\LTspiceXVII\XVIIx64.exe"
