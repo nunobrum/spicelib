@@ -6,7 +6,6 @@ from .raw.raw_write import RawWrite, Trace
 from .editor.spice_editor import SpiceEditor, SpiceCircuit
 from .editor.asc_editor import AscEditor
 from .sim.sim_runner import SimRunner
-from .sim.sim_batch import SimCommander
 
 
 def all_loggers():
@@ -26,7 +25,7 @@ def all_loggers():
         "spicelib.RawRead",
         "spicelib.LTSpiceSimulator",
         "spicelib.NGSpiceSimulator",
-        "spicelib.SimBatch",
+        "spicelib.QspiceSimulator",
         "spicelib.SimRunner",
         "spicelib.SimStepper",
         "spicelib.SpiceEditor",
@@ -34,7 +33,6 @@ def all_loggers():
         "spicelib.QSpiceSimulator",
         "spicelib.SimBatch",
         "spicelib.AscEditor",
-        "spicelib.LTSpiceSimulator",
     ]
 
 

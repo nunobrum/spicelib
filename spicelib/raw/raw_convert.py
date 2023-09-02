@@ -43,7 +43,7 @@ will try to find the trace name with the I() qualifier.
 
 from optparse import OptionParser
 import clipboard
-from spicelib.raw.raw_read import LTSpiceRawRead
+from spicelib.raw.raw_read import RawRead
 
 
 def main():
@@ -78,7 +78,7 @@ def main():
 
     # Read the raw file
     if traces != '*':
-        raw_data = LTSpiceRawRead(rawfile, '*', header_only=True, verbose=False)
+        raw_data = RawRead(rawfile, '*', header_only=True, verbose=False)
         raw_traces = raw_data.get_trace_names()
         found_traces = []
         for trace in traces:
@@ -104,9 +104,9 @@ def main():
                 print("\t<" + trace + ">")
             exit(1)
         print("Reading traces: ", found_traces)
-        raw_data = LTSpiceRawRead(rawfile, found_traces, verbose=options.verbose)
+        raw_data = RawRead(rawfile, found_traces, verbose=options.verbose)
     else:
-        raw_data = LTSpiceRawRead(rawfile, traces, verbose=options.verbose)
+        raw_data = RawRead(rawfile, traces, verbose=options.verbose)
 
     # Output the file
     if options.output is None:

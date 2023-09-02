@@ -11,7 +11,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        sim_server.py
-# Purpose:     Tool used to launch LTSpice simulation in batch mode.
+# Purpose:     A simulation server that can execute simulations by request of a client located in a different machine.
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #

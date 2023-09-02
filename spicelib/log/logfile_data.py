@@ -127,7 +127,7 @@ class LogfileData:
         """
         Returns the steps that contain a given condition.
 
-        :param param: parameter identifier on LTSpice simulation
+        :param param: parameter identifier on a stepped simulation
         :type param: str
         :param value:
         :type value:
@@ -142,10 +142,10 @@ class LogfileData:
 
     def steps_with_conditions(self, **conditions) -> List[int]:
         """
-        Returns the steps that respect one more more equality conditions
+        Returns the steps that respect one or more equality conditions
 
-        :key conditions: parameters within the LTSpice simulation. Values are the matches to be found.
-        :return: List of steps that repect all the given conditions
+        :key conditions: parameters within the Spice simulation. Values are the matches to be found.
+        :return: List of steps that respect all the given conditions
         :rtype: List[int]
         """
         current_set = None

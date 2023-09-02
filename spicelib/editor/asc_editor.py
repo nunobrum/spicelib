@@ -10,7 +10,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        asc_editor.py
-# Purpose:     Class made to update directly the ltspice ASC files
+# Purpose:     Class made to update directly the LTspice ASC files
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
@@ -37,7 +37,7 @@ END_LINE_TERM = "\n"
 
 
 class AscEditor(BaseEditor):
-    """Class made to update directly the ltspice ASC files"""
+    """Class made to update directly the LTspice ASC files"""
 
     def __init__(self, asc_file: str):
         self._asc_file_path = Path(asc_file)

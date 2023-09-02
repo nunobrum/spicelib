@@ -10,18 +10,14 @@
 #  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
-# Name:        Histogram.py
-# Purpose:     Make an histogram plot based on the results of an LTSpice log file
+# Name:        rawplot.py
+# Purpose:     Make a plot of the data in the raw file
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
-# Created:     17-01-2017
+# Created:     02-09-2023
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
-from numpy import angle, arange
-
-
-from spicelib import RawRead
 
 
 def main():
@@ -29,10 +25,11 @@ def main():
     import sys
     import matplotlib
     import matplotlib.pyplot as plt
-    import os
-    from os.path import split as path_split
-    from os.path import join as path_join
+
     from numpy import abs as mag, angle as phase_np
+    from numpy import angle, arange
+
+    from spicelib import RawRead
 
     def what_to_units(whattype):
         """Determines the unit to display on the plot Y axis"""

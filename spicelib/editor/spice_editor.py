@@ -277,6 +277,7 @@ class SpiceCircuit(BaseEditor):
                 if os.path.exists(lib):
                     libs_list_full_path.append(lib)
                     continue
+                # TODO: This changes dependend of the simulator being used.
                 lib_filename = os.path.join(os.path.expanduser('~'), "Documents\\LTspiceXVII\\lib\\sub", lib)
                 if os.path.exists(lib_filename):
                     libs_list_full_path.append(lib)
@@ -679,9 +680,6 @@ class SpiceEditor(SpiceCircuit):
     def __init__(self, netlist_file: Union[str, Path], encoding='autodetect'):
         super().__init__()
         self.netlist_file = Path(netlist_file)
-        if self.netlist_file.suffix == '.asc':  # TODO: This will no longer needed when AscEditor will be finished.
-            from ..sim.ltspice_simulator import LTspice
-            self.netlist_file = LTspice.create_netlist(self.netlist_file)
         self.modified_subcircuits = {}
         if encoding == 'autodetect':
             self.encoding = detect_encoding(self.netlist_file, '*')  # Normally the file will start with a '*'

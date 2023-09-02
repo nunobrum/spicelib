@@ -25,20 +25,26 @@ LTSpice, update resistor values, or component models.
 The code snipped below will simulate a circuit with two different diode models, set the simulation
 temperature to 80 degrees, and update the values of R1 and R2 to 3.3k. ::
 
-    LTC = SimCommander("my_circuit.asc")
-    LTC.set_parameters(temp=80)  # Sets the simulation temperature to be 80 degrees
-    LTC.set_component_value('R2', '3.3k')  #  Updates the resistor R2 value to be 3.3k
+    from spicelib.sim.sim_runner import SimRunner
+    from spicelib.sim.sweep import sweep
+    from spicelib.editor.spice_editor import SpiceEditor
+    from spicelib.sim.ltspice_simulator import LTspice
+
+    runner = SimRunner(simulator=LTspice, parallel_sims=4)
+    editor = SpiceEditor("my_circuit.net")
+    editor.set_parameters(temp=80)  # Sets the simulation temperature to be 80 degrees
+    editor.set_component_value('R2', '3.3k')  #  Updates the resistor R2 value to be 3.3k
     for dmodel in ("BAT54", "BAT46WJ"):
-        LTC.set_element_model("D1", model)  # Sets the Diode D1 model
+        editor.set_element_model("D1", model)  # Sets the Diode D1 model
         for res_value in sweep(2.2, 2,4, 0.2):  # Steps from 2.2 to 2.4 with 0.2 increments
-            LTC.set_component_value('R1', res_value)  #  Updates the resistor R1 value to be 3.3k
-            LTC.run()
+            editor.set_component_value('R1', res_value)  #  Updates the resistor R1 value to be 3.3k
+            runner.run()
 
-    LTC.wait_completion()  # Waits for the LTSpice simulations to complete
+    runner.wait_completion()  # Waits for the LTSpice simulations to complete
 
-    print("Total Simulations: {}".format(LTC.runno))
-    print("Successful Simulations: {}".format(LTC.okSim))
-    print("Failed Simulations: {}".format(LTC.failSim))
+    print("Total Simulations: {}".format(runner.runno))
+    print("Successful Simulations: {}".format(runner.okSim))
+    print("Failed Simulations: {}".format(runner.failSim))
 
 The first line will create a python class instance that represents the LTSpice file or netlist that is to be
 simulated. This object implements methods that are used to manipulate the spice netlist. For example, the method
@@ -49,18 +55,18 @@ used to update existing component values or models.
 Multiprocessing
 ---------------
 
-For making better use of today's computer capabilities, the SimCommander spawns several LTSpice instances
+For making better use of today's computer capabilities, the SimRunner spawns several simulation processes
 each executing in parallel a simulation.
 
 By default, the number of parallel simulations is 4, however the user can override this in two ways. Either
 using the class constructor argument ``parallel_sims`` or by forcing the allocation of more processes in the
 run() call by setting ``wait_resource=False``. ::
 
-    LTC.run(wait_resource=False)
+    `runner.run(wait_resource=False)`
 
 The recommended way is to set the parameter ``parallel_sims`` in the class constructor. ::
 
-    LTC=SimCommander("my_circuit.asc", parallel_sims=8)
+    `runner = SimRunner(simulator=LTspice, parallel_sims=8)`
 
 The user then can launch a simulation with the updates done to the netlist by calling the run() method. Since the
 processes are not executed right away, but rather just scheduled for simulation, the wait_completion() function is
@@ -125,10 +131,8 @@ class AnyRunner(Protocol):
 
 class SimRunner(object):
     """
-    The SimCommander class implements all the methods required for launching batches of LTSpice simulations.
-    It takes a parameter the path to the LTSpice .asc file to be simulated, or directly the .net file.
-    If an .asc file is given, the class will try to generate the respective .net file by calling LTspice with
-    the --netlist option
+    The SimRunner class implements all the methods required for launching batches of Spice simulations.
+
     :raises FileNotFoundError: When the file is not found  /!\\ This will be changed
 
     :param parallel_sims: Defines the number of parallel simulations that can be executed at the same time. Ideally this
@@ -189,7 +193,7 @@ class SimRunner(object):
         """Class Destructor : Closes Everything"""
         _logger.debug("Waiting for all spawned sim_tasks to finish.")
         self.wait_completion(abort_all_on_timeout=True)  # Kill all pending simulations
-        _logger.debug("Exiting SimCommander")
+        _logger.debug("Exiting SimRunner")
 
     def set_run_command(self, spice_tool: Union[str, Type[Simulator]]) -> None:
         """
@@ -207,13 +211,6 @@ class SimRunner(object):
             self.simulator = spice_tool
         else:
             raise TypeError("Expecting str or Simulator objects")
-
-    def SetRunCommand(self, spice_tool: Union[str, Type[Simulator]]) -> None:
-        """
-        *(Deprecated)*
-        Use set_run_command() method.
-        """
-        self.set_run_command(spice_tool)
 
     def clear_command_line_switches(self):
         """Clear all the command line switches added previously"""
@@ -270,7 +267,7 @@ class SimRunner(object):
         """Creates a .net from an .asc using the LTSpice -netlist command line"""
         if not isinstance(asc_file, Path):
             asc_file = Path(asc_file)
-        if asc_file.suffix == '.asc':
+        if asc_file.suffix == '.asc' and hasattr(self.simulator, 'create_netlist'):
             if self.verbose:
                 _logger.info("Creating Netlist")
             return self.simulator.create_netlist(asc_file)
@@ -316,7 +313,7 @@ class SimRunner(object):
         :param wait_resource:
             Setting this parameter to False will force the simulation to start immediately, irrespective of the number
             of simulations already active.
-            By default, the SimCommander class uses only four processors. This number can be overridden by setting
+            By default, the SimRunner class uses only four processors. This number can be overridden by setting
             the parameter ´parallel_sims´ to a different number.
             If there are more than ´parallel_sims´ simulations being done, the new one will be placed on hold till one
             of the other simulations are finished.
@@ -396,6 +393,8 @@ class SimRunner(object):
 
         t = RunTask(self.simulator, self.runno, run_netlist_file, dummy_callback, cmdline_switches,
                     timeout=timeout, verbose=self.verbose)
+        t.start()
+        sleep(0.01)  # Give slack for the thread to start
         t.join(timeout + 1)  # Give one second slack in relation to the task timeout
 
         return t.raw_file, t.log_file  # Returns the raw and log file

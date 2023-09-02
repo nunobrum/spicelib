@@ -11,7 +11,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        sim_client.py
-# Purpose:     Tool used to launch LTSpice simulation in batch mode.
+# Purpose:     Example of a client to the SimServer
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #

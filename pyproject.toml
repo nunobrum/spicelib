@@ -5,12 +5,12 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 [project]
-name = "PyLTSpice"
+name = "spicelib"
 version = "0.3"
 authors = [
   { name="Nuno Brum", email="me@nunobrum.com" },
 ]
-description = "A set of tools to Automate LTSpice simulations"
+description = "A set of tools to Automate Spice simulations"
 readme = "README.md"
 license = { file="LICENSE" }
 requires-python = ">=3.8"
@@ -37,12 +37,12 @@ namespaces = true  # true by default
 
 
 [project.scripts]
-ltsteps = "PyLTSpice.LTSteps:main"
-histogram = "PyLTSpice.Histogram:main"
-rawplot = "PyLTSpice.rawplot:main"
-rawconvert = "PyLTSpice.raw.raw_convert:main"
-run_server = "PyLTSpice.run_server:main"
+ltsteps = "spicelib.LTSteps:main"
+histogram = "spicelib.Histogram:main"
+rawplot = "spicelib.rawplot:main"
+rawconvert = "spicelib.raw.raw_convert:main"
+run_server = "spicelib.run_server:main"
 
 [project.urls]
-"Homepage" = "https://github.com/nunobrum/PyLTSpice"
-"Bug Tracker" = "https://github.com/nunobrum/PyLTSpice/issues"
+"Homepage" = "https://github.com/nunobrum/spicelib"
+"Bug Tracker" = "https://github.com/nunobrum/spicelib/issues"

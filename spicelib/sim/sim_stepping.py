@@ -65,7 +65,7 @@ class SimStepper(object):
                     netlist.set_component_value('R2', res_value2)  # Updates the resistor R2 value to be 3.3k
                     runner.run(netlist)
 
-    runner.wait_completion()  # Waits for the LTSpice simulations to complete
+    runner.wait_completion()  # Waits for the Spice simulations to complete
     ```
 
     With SimStepper the same thing can be done as follows, resulting in a cleaner code.

@@ -11,7 +11,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        Histogram.py
-# Purpose:     Make an histogram plot based on the results of an LTSpice log file
+# Purpose:     Make an histogram plot based on data provided by the user
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
@@ -19,9 +19,9 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 """
-This module uses matplotlib to plot an histogram of a gaussian distribution and calculates the project n-sigma interval.
+This module uses matplotlib to plot a histogram of a gaussian distribution and calculates the project n-sigma interval.
 
-The data can either collected from the clipboard or from a text file. Use the following command line text to call
+The data can either be retrieved from the clipboard or from a text file. Use the following command line text to call
 this module.
 
 .. code-block:: text

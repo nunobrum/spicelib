@@ -53,7 +53,7 @@ class Simulator(ABC):
     .. code-block:: python
 
         class MySpiceWindowsInstallation(Simulator):
-            spice_exe = ['<path to your own ltspice installation>']
+            spice_exe = ['<path to the spice executable>']
             process_name = "<name of the process on Windows Task Manager>"
 
 
@@ -62,8 +62,8 @@ class Simulator(ABC):
     .. code-block:: python
 
         class MySpiceLinuxInstallation(Simulator):
-            spice_exe = ['<wine_command', '<path to your own ltspice installation>']
-            process_name = "<name of the process>"
+            spice_exe = ['<wine_command', '<path to the spice executable>']
+            process_name = "<name of the process within the system>"
 
 
     The subclasses should then implement at least the run() function as a classmethod.

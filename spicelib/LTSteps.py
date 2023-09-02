@@ -11,8 +11,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        LTSteps.py
-# Purpose:     Process LTSpice output files and align data for usage in a spread-
-#              sheet tool such as Excel, or Calc.
+# Purpose:     Process LTSpice log files and align data for usage in a spreadsheet tool such as Excel, or Calc.
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #

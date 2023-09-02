@@ -90,7 +90,8 @@ class Axis(DataSet):
     To access data inside this class, the get_wave() should be used, which implements the support for the STEPed data.
     IF Numpy is available, get_wave() will return a numpy array.
 
-    In Transient Analysis and in DC transfer characteristic, LTSpice uses doubles to store the axis values.
+    In Transient Analysis and in DC transfer characteristic, LTSpice uses doubles to store the axis values. QSpice
+    uses doubles for all variables.
     """
 
     def __init__(self, name: str, whattype: str, datalen: int, numerical_type: str = 'double'):

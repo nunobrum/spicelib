@@ -11,7 +11,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        test_spicelib.py
-# Purpose:     Tool used to launch LTSpice simulation in batch mode. Netlsts can
+# Purpose:     Tool used to launch Spice simulation in batch mode. Netlsts can
 #              be updated by user instructions
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
@@ -46,7 +46,6 @@ import unittest  # performs test
 sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
 from spicelib.log.ltsteps import LTSpiceLogReader
-from spicelib.sim.sim_batch import SimCommander
 from spicelib.raw.raw_read import RawRead
 from spicelib.editor.spice_editor import SpiceEditor
 from spicelib.sim.sim_runner import SimRunner
@@ -76,6 +75,7 @@ class test_spicelib(unittest.TestCase):
         @note   inits class
         """
         print("Starting test_batch_test")
+        from spicelib.sim.ltspice_simulator import LTspice
         # prepare
         self.sim_files = []
         self.measures = {}
@@ -85,47 +85,48 @@ class test_spicelib(unittest.TestCase):
             self.sim_files.append((raw_file, log_file))
 
         # select spice model
-        LTC = SimCommander(test_dir + "Batch_Test.asc")
-        LTC.set_parameters(res=0, cap=100e-6)
-        LTC.set_component_value('R2', '2k')  # Modifying the value of a resistor
-        LTC.set_component_value('R1', '4k')
-        LTC.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
-        LTC.set_component_value('XU1:C2', 20e-12)  # modifying a
+        LTspice.create_netlist(test_dir + "Batch_Test.asc")
+        editor = SpiceEditor(test_dir + "Batch_Test.net")
+        runner = SimRunner(parallel_sims=4, output_folder="./output")
+        editor.set_parameters(res=0, cap=100e-6)
+        editor.set_component_value('R2', '2k')  # Modifying the value of a resistor
+        editor.set_component_value('R1', '4k')
+        editor.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
+        editor.set_component_value('XU1:C2', 20e-12)  # modifying a
         # define simulation
-        LTC.add_instructions(
+        editor.add_instructions(
                 "; Simulation settings",
                 # ".step dec param freq 10k 1Meg 10",
         )
-        LTC.set_parameter("run", "0")
+        editor.set_parameter("run", "0")
 
         for opamp in ('AD712', 'AD820'):
-            LTC.set_element_model('XU1', opamp)
+            editor.set_element_model('XU1', opamp)
             for supply_voltage in (5, 10, 15):
-                LTC.set_component_value('V1', supply_voltage)
-                LTC.set_component_value('V2', -supply_voltage)
+                editor.set_component_value('V1', supply_voltage)
+                editor.set_component_value('V2', -supply_voltage)
                 # overriding the automatic netlist naming
-                run_netlist_file = "{}_{}_{}.net".format(LTC.circuit_file.name, opamp, supply_voltage)
-                LTC.run(run_filename=run_netlist_file, callback=processing_data)
+                run_netlist_file = "{}_{}_{}.net".format(editor.circuit_file.name, opamp, supply_voltage)
+                runner.run(editor, run_filename=run_netlist_file, callback=processing_data)
 
-        LTC.wait_completion()
+        runner.wait_completion()
 
         # Sim Statistics
-        print('Successful/Total Simulations: ' + str(LTC.okSim) + '/' + str(LTC.runno))
-        self.assertEqual(LTC.okSim, 6)
-        self.assertEqual(LTC.runno, 6)
+        print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+        self.assertEqual(runner.okSim, 6)
+        self.assertEqual(runner.runno, 6)
 
         # check
-        LTC.reset_netlist()
-        LTC.set_element_model('V3', "AC 1 0")
-        LTC.add_instructions(
+        editor.reset_netlist()
+        editor.set_element_model('V3', "AC 1 0")
+        editor.add_instructions(
                 "; Simulation settings",
                 ".ac dec 30 1 10Meg",
                 ".meas AC GainAC MAX mag(V(out)) ; find the peak response and call it ""Gain""",
                 ".meas AC FcutAC TRIG mag(V(out))=GainAC/sqrt(2) FALL=last"
         )
 
-        raw_file, log_file = LTC.run(run_filename="no_callback.net").wait_results()
-        LTC.wait_completion()
+        raw_file, log_file = runner.run_now(editor, run_filename="no_callback.net")
         print("no_callback", raw_file, log_file)
         log = LTSpiceLogReader(log_file)
         for measure in log.get_measure_names():
@@ -337,8 +338,8 @@ class test_spicelib(unittest.TestCase):
             ]
         }
         if has_ltspice:
-            LTC = SimCommander(test_dir + "Batch_Test.asc")
-            raw_file, log_file = LTC.run().wait_results()
+            runner = SimRunner(output_folder=test_dir)
+            raw_file, log_file = runner.run_now(test_dir + "Batch_Test.asc")
             print(raw_file, log_file)
         else:
             log_file = test_dir + "Batch_Test_1.log"
@@ -356,8 +357,8 @@ class test_spicelib(unittest.TestCase):
         """Operating Point Simulation Test"""
         print("Starting test_operating_point")
         if has_ltspice:
-            LTC = SimCommander(test_dir + "DC op point.asc")
-            raw_file, log_file = LTC.run().wait_results()
+            runner = SimRunner(output_folder=test_dir)
+            raw_file, log_file = runner.run_now(test_dir + "DC op point.asc")
         else:
             raw_file = test_dir + "DC op point_1.raw"
             # log_file = test_dir + "DC op point_1.log"
@@ -371,8 +372,8 @@ class test_spicelib(unittest.TestCase):
         """Operating Point Simulation with Steps """
         print("Starting test_operating_point_step")
         if has_ltspice:
-            LTC = SimCommander(test_dir + "DC op point - STEP.asc")
-            raw_file, log_file = LTC.run().wait_results()
+            runner = SimRunner(output_folder=test_dir)
+            raw_file, log_file = runner.run_now(test_dir + "DC op point - STEP.asc")
         else:
             raw_file = test_dir + "DC op point - STEP_1.raw"
         raw = RawRead(raw_file)
@@ -388,8 +389,8 @@ class test_spicelib(unittest.TestCase):
         """Transient Simulation test """
         print("Starting test_transient")
         if has_ltspice:
-            LTC = SimCommander(test_dir + "TRAN.asc")
-            raw_file, log_file = LTC.run().wait_results()
+            runner = SimRunner(output_folder=test_dir)
+            raw_file, log_file = runner.run_now(test_dir + "TRAN.asc")
         else:
             raw_file = test_dir + "TRAN_1.raw"
             log_file = test_dir + "TRAN_1.log"
@@ -409,8 +410,8 @@ class test_spicelib(unittest.TestCase):
         """Transient simulation with stepped data."""
         print("Starting test_transient_steps")
         if has_ltspice:
-            LTC = SimCommander(test_dir + "TRAN - STEP.asc")
-            raw_file, log_file = LTC.run().wait_results()
+            runner = SimRunner(output_folder=test_dir)
+            raw_file, log_file = runner.run_now(test_dir + "TRAN - STEP.asc")
         else:
             raw_file = test_dir + "TRAN - STEP_1.raw"
             log_file = test_dir + "TRAN - STEP_1.log"
@@ -434,10 +435,13 @@ class test_spicelib(unittest.TestCase):
         print("Starting test_ac_analysis")
         from numpy import pi, angle
         if has_ltspice:
-            LTC = SimCommander(test_dir + "AC.asc")
-            raw_file, log_file = LTC.run().wait_results()
-            R1 = LTC.get_component_floatvalue('R1')
-            C1 = LTC.get_component_floatvalue('C1')
+            from spicelib.editor.asc_editor import AscEditor
+            editor = AscEditor(test_dir + "AC.asc")
+            runner = SimRunner(output_folder=test_dir)
+            raw_file, log_file = runner.run_now(editor)
+
+            R1 = editor.get_component_floatvalue('R1')
+            C1 = editor.get_component_floatvalue('C1')
         else:
             raw_file = test_dir + "AC_1.raw"
             log_file = test_dir + "AC_1.log"
@@ -464,9 +468,11 @@ class test_spicelib(unittest.TestCase):
         print("Starting test_ac_analysis_steps")
         from numpy import pi, angle
         if has_ltspice:
-            LTC = SimCommander(test_dir + "AC - STEP.asc")
-            raw_file, log_file = LTC.run().wait_results()
-            C1 = LTC.get_component_floatvalue('C1')
+            from spicelib.editor.asc_editor import AscEditor
+            editor = AscEditor(test_dir + "AC - STEP.asc")
+            runner = SimRunner(output_folder=test_dir)
+            raw_file, log_file = runner.run_now(editor)
+            C1 = editor.get_component_floatvalue('C1')
         else:
             raw_file = test_dir + "AC - STEP_1.raw"
             log_file = test_dir + "AC - STEP_1.log"

@@ -10,7 +10,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        raw_read.py
-# Purpose:     Process LTSpice output files and align data for usage in a spreadsheet
+# Purpose:     Process Spice output files and align data for usage in a spreadsheet
 #              tool such as Excel, or Calc.
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
@@ -19,7 +19,7 @@
 # -------------------------------------------------------------------------------
 
 """
-This module reads data from an LTSpice RAW file.
+This module reads data from an Spice RAW file.
 The main class object is the RawRead which is initialized with the filename of the RAW file to be processed.
 The object wil read the file and construct a structure of objects which can be used to access the data inside the
 RAW file.
@@ -111,7 +111,7 @@ Binary Section
 --------------
 The binary section of .RAW file is where the data is usually written, unless the user had explicitly specified an ASCII
 representation. In this case this section is replaced with a "Values" section.
-LTSpice stores data directly onto the disk during simulation, writing per each time or frequency step the list of
+Spice stores data directly onto the disk during simulation, writing per each time or frequency step the list of
 values, as exemplified below for a .TRAN simulation.
 
      <timestamp 0><trace1 0><trace2 0><trace3 0>...<traceN 0>
@@ -324,7 +324,7 @@ def consume16bytes(f):
 
 
 class RawRead(object):
-    """Class for reading LTSpice wave Files. It can read all types of Files. If stepped data is detected,
+    """Class for reading Spice wave Files. It can read all types of Files. If stepped data is detected,
     it will also try to read the corresponding LOG file so to retrieve the stepped data.
 
     :param raw_filename: The file containing the RAW data to be read
@@ -871,7 +871,3 @@ class RawRead(object):
                               "Use 'pip install pandas' to install it.")
         df = self.to_dataframe(columns=columns, step=step)
         df.to_excel(filename, **kwargs)
-
-
-# Backward compatibility naming
-LTSpiceRawRead = RawRead
