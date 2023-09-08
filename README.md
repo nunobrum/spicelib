@@ -137,9 +137,10 @@ Here follows an example of operation.
 ```python
 from spicelib import SimRunner
 from spicelib import SpiceEditor
+from spicelib.simulators.ltspice_simulator import LTspice 
 
 # select spice model
-LTC = SimRunner(output_folder='./temp')
+LTC = SimRunner(output_folder='./temp', simulator=LTspice)
 netlist = SpiceEditor('Batch_Test.net')
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6, run=-1)

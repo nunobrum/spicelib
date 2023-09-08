@@ -104,9 +104,9 @@ __copyright__ = "Copyright 2020, Fribourg Switzerland"
 __all__ = ['SimRunner']
 
 import shutil
+import inspect  # Library used to get the arguments of the callback function
 from pathlib import Path
 from time import sleep, thread_time as clock
-
 from typing import Callable, Union, Any, Type, Protocol
 import logging
 _logger = logging.getLogger("spicelib.SimRunner")
@@ -284,8 +284,44 @@ class SimRunner(object):
 
         return run_netlist_file
 
+    @staticmethod
+    def validate_callback_args(callback: Callable, callback_args: Union[tuple, dict]) -> Union[dict, None]:
+        """
+        It validates that the callback_args are matching the callback function.
+        Note that the first two parameters of the callback functions need to be the raw and log files.
+
+        """
+        if callback is None:
+            return None  # No callback function, hence callback_args have no effect
+        if inspect.isclass(callback) and issubclass(callback, ProcessCallback):
+            args = inspect.signature(callback.callback).parameters
+        else:
+            args = inspect.signature(callback).parameters
+        if len(args) < 2:
+            raise ValueError("Callback function must have at least two arguments")
+        if len(args) > 2:
+            if callback_args is None:
+                raise ValueError("Callback function has more than two arguments, but no callback_args are given")
+            if isinstance(callback_args, dict):
+                for pos, param in enumerate(args):
+                    if pos > 1:
+                        if param not in callback_args:
+                            raise ValueError("Callback argument '%s' not found in callback_args" % param)
+
+            if len(args) - 2 != len(callback_args):
+                raise ValueError("Callback function has %d arguments, but %d callback_args are given" %
+                                 (len(args), len(callback_args))
+                                 )
+            if isinstance(callback_args, tuple):
+                # Convert into a dictionary
+                return {param : callback_args[pos - 2] for pos, param in enumerate(args) if pos > 1}
+            else:
+                return callback_args
+
     def run(self, netlist: Union[str, Path, BaseEditor], *, wait_resource: bool = True,
-            callback: Union[Type[ProcessCallback], Callable[[Path, Path], Any]] = None, switches=None,
+            callback: Union[Type[ProcessCallback], Callable] = None,
+            callback_args: Union[tuple, dict] = None,
+            switches=None,
             timeout: float = None, run_filename: str = None) -> Union[RunTask, None]:
         """
         Executes a simulation run with the conditions set by the user.
@@ -305,18 +341,29 @@ class SimRunner(object):
         :type wait_resource: bool, optional
         :param callback:
             The user can optionally give a callback function for when the simulation finishes so that processing can
-            be done immediately. The callback function must receive two input parameters that correspond the raw and
-            log files created by the simulation. The argument type is of the type pathlib.Path
-        :type: callback: function(raw_file: Path, log_file: Path), optional
+            be done immediately. The callback can either be a function or a class derived from ProcessCallback.
+            A callback function must receive two at least input parameters that correspond the
+            raw and log files created by the simulation. These need to be the first two parameters of the callback
+            function. The other parameters are passed as a dictionary or a tuple in the callback_args parameter.
+            If the callback is a class derived from ProcessCallback, then the callback is executed in a separate
+            process. The callback function must be defined in the callback() method of the class. As for the callback
+            function, the first two parameters are the raw and log files. The other parameters are passed as dictionary
+            in the callback_args parameter.
+
+        :type: callback: function(raw_file: Path, log_file: Path, ...), optional
+        :param callback_args:
+            The callback function arguments. This parameter is passed as keyword arguments to the callback function.
+        :type callback_args: dict or tuple, optional
         :param switches: Command line switches override
         :type switches: list
-        :param timeout: Timeout to be used in waiting for resources. Default time is value defined in this class
-            constructor.
+        :param timeout:
+            Timeout to be used in waiting for resources. Default time is value defined in this class constructor.
         :type timeout: float, optional
         :param run_filename: Name to be used for the log and raw file.
         :type run_filename: str or Path
         :returns: The task object of type RunTask
         """
+        callback_kwargs = self.validate_callback_args(callback, callback_args)
         if switches is None:
             switches = []
         run_netlist_file = self._prepare_sim(netlist, run_filename)
@@ -330,8 +377,8 @@ class SimRunner(object):
             # inside the class.
 
             if (wait_resource is False) or (self.active_threads() < self.parallel_sims):
-                t = RunTask(self.simulator, self.runno, run_netlist_file, callback, cmdline_switches,
-                            timeout=self.timeout, verbose=self.verbose)
+                t = RunTask(self.simulator, self.runno, run_netlist_file, callback, callback_kwargs,
+                            cmdline_switches, timeout=self.timeout, verbose=self.verbose)
                 self.active_tasks.append(t)
                 t.start()
                 sleep(0.01)  # Give slack for the thread to start
@@ -376,12 +423,20 @@ class SimRunner(object):
             """Dummy call back that does nothing"""
             return None
 
-        t = RunTask(self.simulator, self.runno, run_netlist_file, dummy_callback, cmdline_switches,
-                    timeout=timeout, verbose=self.verbose)
+        t = RunTask(
+            simulator=self.simulator, runno=self.runno, netlist_file=run_netlist_file,
+            callback=dummy_callback, callback_args=None,
+            switches=cmdline_switches, timeout=timeout, verbose=self.verbose
+        )
         t.start()
         sleep(0.01)  # Give slack for the thread to start
         t.join(timeout + 1)  # Give one second slack in relation to the task timeout
-
+        self.completed_tasks.append(t)
+        if t.retcode == 0:
+            self.okSim += 1
+        else:
+            # simulation failed
+            self.failSim += 1
         return t.raw_file, t.log_file  # Returns the raw and log file
 
     def active_threads(self):

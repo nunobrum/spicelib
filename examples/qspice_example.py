@@ -1,7 +1,7 @@
 from spicelib import RawRead
 from spicelib.sim.sim_runner import SimRunner
 from spicelib.editor.spice_editor import SpiceEditor
-from spicelib.sim.qspice_simulator import Qspice
+from spicelib.simulators.qspice_simulator import Qspice
 from spicelib.utils.sweep_iterators import sweep_log
 
 

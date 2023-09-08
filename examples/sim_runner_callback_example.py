@@ -4,25 +4,29 @@ from rich.logging import RichHandler
 import spicelib
 
 from spicelib import SimRunner, SpiceEditor
-spicelib.set_log_level(logging.DEBUG)
-spicelib.add_log_handler(RichHandler())
-
 from time import sleep
 from random import random
 
+spicelib.set_log_level(logging.DEBUG)
+spicelib.add_log_handler(RichHandler())
 
-def processing_data(raw_file, log_file):
+
+from spicelib.simulators.ltspice_simulator import LTspice
+
+
+def processing_data(raw_file, log_file, supply_voltage, opamp):
     print("Handling the simulation data of ""%s"", log file ""%s""" % (raw_file, log_file))
+    print("Supply Voltage: %s, OpAmp: %s" % (supply_voltage, opamp))
     time_to_sleep = random() * 5
     print(f"Sleeping for {time_to_sleep} seconds")
     sleep(time_to_sleep)
     return "This is the result passed to the iterator"
 
 
-runner = SimRunner(output_folder='./temp_batch3')  # Configures the simulator to use and output
+runner = SimRunner(simulator=LTspice, output_folder='./temp_batch3')  # Configures the simulator to use and output
 # folder
 
-netlist = SpiceEditor("./testfiles/Batch_Test.asc")  # Open the Spice Model, and creates the .net
+netlist = SpiceEditor("./testfiles/Batch_Test.net")  # Open the Spice Model, and creates the .net
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6)
 netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
@@ -48,7 +52,8 @@ for opamp in ('AD712', 'AD820'):
         if use_run_now:
             runner.run_now(netlist, run_filename=run_netlist_file)
         else:
-            runner.run(netlist, run_filename=run_netlist_file, callback=processing_data)
+            runner.run(netlist, run_filename=run_netlist_file, callback=processing_data,
+                       callback_args=(supply_voltage, opamp))
 
 for results in runner:
     print(results)
@@ -62,7 +67,7 @@ netlist.add_instructions(   # Adding additional instructions
 )
 
 raw, log = runner.run(netlist, run_filename="no_callback.net").wait_results()
-processing_data(raw, log)
+processing_data(raw, log, 0, 0)
 
 if use_run_now is False:
     results = runner.wait_completion(1, abort_all_on_timeout=True)

@@ -1,7 +1,7 @@
 from spicelib import SimRunner
 from spicelib import SpiceEditor
-from spicelib.sim.ltspice_simulator import LTspice
 
+from spicelib.simulators.ltspice_simulator import LTspice
 
 # select spice model
 LTC = SimRunner(simulator=LTspice, output_folder='./temp')
