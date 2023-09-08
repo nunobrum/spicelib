@@ -1,11 +1,12 @@
 from spicelib import SimRunner
 from spicelib import AscEditor
+from spicelib.simulators.ltspice_simulator import LTspice
 
 # Force another simulatior
 simulator = r"C:\Program Files\LTC\LTspiceXVII\XVIIx64.exe"
 
 # select spice model
-LTC = SimRunner(output_folder='./temp')
+LTC = SimRunner(output_folder='./temp', simulator=LTspice.create_from(simulator))
 
 netlist = AscEditor('./testfiles/Batch_Test.asc')
 # set default arguments

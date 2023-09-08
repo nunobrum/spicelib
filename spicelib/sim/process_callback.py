@@ -31,19 +31,21 @@ class ProcessCallback(Process):
     """
     Wrapper for the callback function
     """
-    def __init__(self, raw, log, group=None, name=None, *, daemon: bool | None = ...) -> None:
+    def __init__(self, raw, log, group=None, name=None, *, daemon: bool | None = ...,
+                 **kwargs) -> None:
         super().__init__(group=group, name=name, daemon=daemon)
         self.queue = Queue()
         self.raw_file = raw
         self.log_file = log
+        self.kwargs = kwargs
 
     def run(self):
-        ret = self.callback(self.raw_file, self.log_file)
+        ret = self.callback(self.raw_file, self.log_file, **self.kwargs)
         if ret is None:
             ret = "Callback doesn't return anything"
         self.queue.put(ret)
 
     @staticmethod
-    def callback(raw_file, log_file) -> Any:
+    def callback(raw_file, log_file, **kwargs) -> Any:
         """This function needs to be overriden"""
         ...
