@@ -51,7 +51,7 @@ from spicelib.editor.spice_editor import SpiceEditor
 from spicelib.sim.sim_runner import SimRunner
 
 def has_ltspice_detect():
-    from spicelib.sim.ltspice_simulator import LTspice
+    from spicelib.simulators.ltspice_simulator import LTspice
     ltspice = LTspice
     return isinstance(ltspice.spice_exe, list) and os.path.exists(ltspice.spice_exe[0])
 
@@ -75,7 +75,7 @@ class test_spicelib(unittest.TestCase):
         @note   inits class
         """
         print("Starting test_batch_test")
-        from spicelib.sim.ltspice_simulator import LTspice
+        from spicelib.simulators.ltspice_simulator import LTspice
         # prepare
         self.sim_files = []
         self.measures = {}
@@ -141,7 +141,6 @@ class test_spicelib(unittest.TestCase):
         print("Starting test_run_from_spice_editor")
         LTC = SimRunner(output_folder=test_dir + "temp/")
         # select spice model
-        LTC.create_netlist(test_dir + "testfile.asc")
         netlist = SpiceEditor(test_dir + "testfile.net")
         # set default arguments
         netlist.set_parameters(res=0.001, cap=100e-6)

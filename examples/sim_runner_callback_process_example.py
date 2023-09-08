@@ -17,7 +17,7 @@ class CallbackProc(ProcessCallback):
 
 
 if __name__ == "__main__":
-    from spicelib.sim.ltspice_simulator import LTspice
+    from spicelib.simulators.ltspice_simulator import LTspice
     runner = SimRunner(output_folder='./temp_batch4', simulator=LTspice)  # Configures the simulator to use and output
     # folder
 

@@ -1,6 +1,6 @@
 from spicelib.sim.sim_runner import SimRunner
 from spicelib.editor.spice_editor import SpiceEditor
-from spicelib.sim.ngspice_simulator import NGspiceSimulator
+from spicelib.simulators.ngspice_simulator import NGspiceSimulator
 from spicelib.utils.sweep_iterators import sweep_log
 
 

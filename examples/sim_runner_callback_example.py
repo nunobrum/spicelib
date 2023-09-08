@@ -10,6 +10,7 @@ spicelib.add_log_handler(RichHandler())
 from time import sleep
 from random import random
 
+from spicelib.simulators.ltspice_simulator import LTspice
 
 def processing_data(raw_file, log_file):
     print("Handling the simulation data of ""%s"", log file ""%s""" % (raw_file, log_file))
@@ -19,7 +20,7 @@ def processing_data(raw_file, log_file):
     return "This is the result passed to the iterator"
 
 
-runner = SimRunner(output_folder='./temp_batch3')  # Configures the simulator to use and output
+runner = SimRunner(simulator=LTspice, output_folder='./temp_batch3')  # Configures the simulator to use and output
 # folder
 
 netlist = SpiceEditor("./testfiles/Batch_Test.asc")  # Open the Spice Model, and creates the .net

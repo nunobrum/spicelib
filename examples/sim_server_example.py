@@ -25,7 +25,7 @@ import keyboard
 import logging
 
 from spicelib.client_server.sim_server import SimServer
-from spicelib.sim.ltspice_simulator import LTspice
+from spicelib.simulators.ltspice_simulator import LTspice
 simulator = LTspice
 
 _logger = logging.getLogger("spicelib.SimServer")
