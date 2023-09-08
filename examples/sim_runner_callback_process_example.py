@@ -17,11 +17,11 @@ class CallbackProc(ProcessCallback):
 
 
 if __name__ == "__main__":
-    from spicelib.sim.ltspice_simulator import LTspice
+    from spicelib.simulators.ltspice_simulator import LTspice
     runner = SimRunner(output_folder='./temp_batch4', simulator=LTspice)  # Configures the simulator to use and output
     # folder
 
-    netlist = SpiceEditor("./testfiles/Batch_Test.asc")  # Open the Spice Model, and creates the .net
+    netlist = SpiceEditor("./testfiles/Batch_Test.net")  # Open the Spice Model, and creates the .net
     # set default arguments
     netlist.set_parameters(res=0, cap=100e-6)
     netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         ".meas AC Fcut TRIG mag(V(out))=Gain/sqrt(2) FALL=last"
     )
 
-    raw, log = runner.run(netlist, run_filename="no_callback.net").wait_results()
+    raw, log = runner.run_now(netlist, run_filename="no_callback.net")
     CallbackProc.callback(raw, log)
 
     results = runner.wait_completion(1, abort_all_on_timeout=True)

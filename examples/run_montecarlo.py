@@ -1,8 +1,9 @@
 from spicelib import AscEditor, SimRunner  # Imports the class that manipulates the asc file
 from spicelib.sim.tookit.montecarlo import Montecarlo  # Imports the Montecarlo toolkit class
+from spicelib.simulators.ltspice_simulator import LTspice
 
 sallenkey = AscEditor("./testfiles/sallenkey.asc")  # Reads the asc file into memory
-runner = SimRunner(output_folder='./temp_mc')  # Instantiates the runner class, with the output folder already set
+runner = SimRunner(simulator=LTspice, output_folder='./temp_mc')  # Instantiates the runner with a temp folder set
 mc = Montecarlo(sallenkey, runner)  # Instantiates the Montecarlo class, with the asc file already in memory
 
 # The following lines set the default tolerances for the components

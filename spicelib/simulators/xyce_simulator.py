@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Union
 import logging
 _logger = logging.getLogger("spicelib.XYCESimulator")
-from .simulator import Simulator, run_function
+from spicelib.sim.simulator import Simulator, run_function
 
 
 class XyceSimulator(Simulator):
