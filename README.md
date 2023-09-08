@@ -454,6 +454,10 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 0.4
+  * Implementing the callback argument in the SimRunner class.
+  * Moved simulator classes into a separate package.
 * Version 0.3
   * Cloning and renaming from PyLTSpice 4.1.2 
   * Starting at 0.3 to align with the spicelib in PyPi
+
