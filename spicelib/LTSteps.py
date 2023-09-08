@@ -104,6 +104,8 @@ def main():
         filename = sys.argv[1]
         print("Using filename:", filename)
     else:
+        # TODO: This should be changed to use the argparse module. The --last option should be added to indicate
+        # that the last file should be used.
         filename = None
         newer_date = 0
         for f in os.listdir():

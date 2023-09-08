@@ -146,9 +146,9 @@ class SimRunner(object):
     :param output_folder: specifying which directory shall be used for simulation files (raw and log files).
     :param output_folder: str
     :param simulator: Forcing a given simulator executable.
-    :type simulator: str or Simulator, optional
-
+    :type simulator: Simulator, optional
     """
+    default_simulator = None
 
     def __init__(self, *, simulator=None, parallel_sims: int = 4, timeout: float = 600.0, verbose=True,
                  output_folder: str = None):
@@ -180,10 +180,9 @@ class SimRunner(object):
 
         # Gets a simulator.
         if simulator is None:
-            from ..sim.ltspice_simulator import LTspice  # Used for defaults
-            self.simulator = LTspice
-        elif isinstance(simulator, (str, Path)):
-            self.simulator = Simulator.create_from(simulator)
+            if SimRunner.default_simulator is None:
+                raise ValueError("No default simulator defined, please specify a simulator")
+            self.simulator = SimRunner.default_simulator
         elif issubclass(simulator, Simulator):
             self.simulator = simulator
         else:
@@ -195,19 +194,17 @@ class SimRunner(object):
         self.wait_completion(abort_all_on_timeout=True)  # Kill all pending simulations
         _logger.debug("Exiting SimRunner")
 
-    def set_run_command(self, spice_tool: Union[str, Type[Simulator]]) -> None:
+    def set_simulator(self, spice_tool: Type[Simulator]) -> None:
         """
-        Manually setting the LTSpice run command
+        Manually overriding the simulator to be used.
 
         :param spice_tool: String containing the path to the spice tool to be used, or alternatively the Simulator
             object.
-        :type spice_tool: str or Simulator
+        :type spice_tool: Simulator type
         :return: Nothing
         :rtype: None
         """
-        if isinstance(spice_tool, str):
-            self.simulator = Simulator.create_from(spice_tool)
-        elif issubclass(spice_tool, Simulator):
+        if issubclass(spice_tool, Simulator):
             self.simulator = spice_tool
         else:
             raise TypeError("Expecting str or Simulator objects")
@@ -262,18 +259,6 @@ class SimRunner(object):
         if not isinstance(netlist, Path):
             netlist = Path(netlist)
         return "%s_%i%s" % (netlist.stem, self.runno, netlist.suffix)
-
-    def create_netlist(self, asc_file: Union[str, Path]):
-        """Creates a .net from an .asc using the LTSpice -netlist command line"""
-        if not isinstance(asc_file, Path):
-            asc_file = Path(asc_file)
-        if asc_file.suffix == '.asc' and hasattr(self.simulator, 'create_netlist'):
-            if self.verbose:
-                _logger.info("Creating Netlist")
-            return self.simulator.create_netlist(asc_file)
-        else:
-            _logger.warning("Unable to create the Netlist from %s" % asc_file)
-            return None
 
     def _prepare_sim(self, netlist: Union[str, Path, BaseEditor], run_filename: str):
         """Internal function"""

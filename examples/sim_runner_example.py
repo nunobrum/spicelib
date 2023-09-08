@@ -1,12 +1,10 @@
 from spicelib import SimRunner
 from spicelib import SpiceEditor
+from spicelib.sim.ltspice_simulator import LTspice
 
-# Force another simulatior
-simulator = r"C:\Program Files\LTC\LTspiceXVII\XVIIx64.exe"
 
 # select spice model
-LTC = SimRunner(output_folder='./temp')
-LTC.create_netlist('./testfiles/Batch_Test.asc')
+LTC = SimRunner(simulator=LTspice, output_folder='./temp')
 netlist = SpiceEditor('./testfiles/Batch_Test.net')
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6)

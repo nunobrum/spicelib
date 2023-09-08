@@ -46,7 +46,7 @@ else:
 
 
 def format_time_difference(time_diff):
-    """Formats the time difference in a human readable format, stripping the hours or minutes if they are zero"""
+    """Formats the time difference in a human-readable format, stripping the hours or minutes if they are zero"""
     seconds_difference = int(time_diff)
     milliseconds = int((time_diff - seconds_difference) * 1000)
     hours, remainder = divmod(seconds_difference, 3600)

@@ -141,7 +141,6 @@ class test_spicelib(unittest.TestCase):
         print("Starting test_run_from_spice_editor")
         LTC = SimRunner(output_folder=test_dir + "temp/")
         # select spice model
-        LTC.create_netlist(test_dir + "testfile.asc")
         netlist = SpiceEditor(test_dir + "testfile.net")
         # set default arguments
         netlist.set_parameters(res=0.001, cap=100e-6)
