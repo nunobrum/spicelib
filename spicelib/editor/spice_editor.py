@@ -825,7 +825,7 @@ class SpiceEditor(SpiceCircuit):
                 #     for _ in lines:  # Consuming the rest of the file.
                 #         pass  # print("Ignoring %s" % _)
         else:
-            _logger.error("Netlist file not found")
+            _logger.error("Netlist file not found: {}".format(self.netlist_file))
 
     @staticmethod
     def find_subckt_in_lib(library, subckt_name) -> Union['SpiceCircuit', None]:

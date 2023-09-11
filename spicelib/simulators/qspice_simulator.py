@@ -25,7 +25,7 @@ from pathlib import Path
 import logging
 _logger = logging.getLogger("spicelib.QSpiceSimulator")
 
-from .simulator import Simulator, run_function
+from spicelib.sim.simulator import Simulator, run_function
 
 
 class Qspice(Simulator):

@@ -51,13 +51,13 @@ def main():
         args.parallel = 1
 
     if args.simulator == "LTSpice":
-        from spicelib.sim.ltspice_simulator import LTspice
+        from spicelib.simulators.ltspice_simulator import LTspice
         simulator = LTspice
     elif args.simulator == "NGSpice":
-        from spicelib.sim.ngspice_simulator import NGSpice
+        from spicelib.simulators.ngspice_simulator import NGSpice
         simulator = NGSpice
     elif args.simulator == "XYCE":
-        from spicelib.sim.xyce_simulator import Xyce
+        from spicelib.simulators.xyce_simulator import Xyce
         simulator = Xyce
     else:
         raise ValueError(f"Simulator {args.simulator} is not supported")

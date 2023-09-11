@@ -51,9 +51,10 @@ from spicelib.editor.spice_editor import SpiceEditor
 from spicelib.sim.sim_runner import SimRunner
 
 def has_ltspice_detect():
-    from spicelib.sim.ltspice_simulator import LTspice
-    ltspice = LTspice
-    return isinstance(ltspice.spice_exe, list) and os.path.exists(ltspice.spice_exe[0])
+    from spicelib.simulators.ltspice_simulator import LTspice
+    global ltspice_simulator
+    ltspice_simulator = LTspice
+    return isinstance(LTspice.spice_exe, list) and os.path.exists(LTspice.spice_exe[0])
 
 
 # ------------------------------------------------------------------------------
@@ -75,7 +76,7 @@ class test_spicelib(unittest.TestCase):
         @note   inits class
         """
         print("Starting test_batch_test")
-        from spicelib.sim.ltspice_simulator import LTspice
+        from spicelib.simulators.ltspice_simulator import LTspice
         # prepare
         self.sim_files = []
         self.measures = {}
@@ -87,7 +88,7 @@ class test_spicelib(unittest.TestCase):
         # select spice model
         LTspice.create_netlist(test_dir + "Batch_Test.asc")
         editor = SpiceEditor(test_dir + "Batch_Test.net")
-        runner = SimRunner(parallel_sims=4, output_folder="./output")
+        runner = SimRunner(parallel_sims=4, output_folder="./output", simulator=LTspice)
         editor.set_parameters(res=0, cap=100e-6)
         editor.set_component_value('R2', '2k')  # Modifying the value of a resistor
         editor.set_component_value('R1', '4k')
@@ -139,9 +140,8 @@ class test_spicelib(unittest.TestCase):
     def test_run_from_spice_editor(self):
         """Run command on SpiceEditor"""
         print("Starting test_run_from_spice_editor")
-        LTC = SimRunner(output_folder=test_dir + "temp/")
+        LTC = SimRunner(output_folder=test_dir + "temp/", simulator=ltspice_simulator)
         # select spice model
-        LTC.create_netlist(test_dir + "testfile.asc")
         netlist = SpiceEditor(test_dir + "testfile.net")
         # set default arguments
         netlist.set_parameters(res=0.001, cap=100e-6)
@@ -169,7 +169,7 @@ class test_spicelib(unittest.TestCase):
         def callback_function(raw_file, log_file):
             print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
 
-        LTC = SimRunner(output_folder=test_dir + "temp/")
+        LTC = SimRunner(output_folder=test_dir + "temp/", simulator=ltspice_simulator)
         SE = SpiceEditor(test_dir + "testfile.net")
         #, parallel_sims=1)
         tstart = 0
@@ -338,7 +338,7 @@ class test_spicelib(unittest.TestCase):
             ]
         }
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir)
+            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "Batch_Test.asc")
             print(raw_file, log_file)
         else:
@@ -357,7 +357,7 @@ class test_spicelib(unittest.TestCase):
         """Operating Point Simulation Test"""
         print("Starting test_operating_point")
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir)
+            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point.asc")
         else:
             raw_file = test_dir + "DC op point_1.raw"
@@ -372,7 +372,7 @@ class test_spicelib(unittest.TestCase):
         """Operating Point Simulation with Steps """
         print("Starting test_operating_point_step")
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir)
+            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point - STEP.asc")
         else:
             raw_file = test_dir + "DC op point - STEP_1.raw"
@@ -389,7 +389,7 @@ class test_spicelib(unittest.TestCase):
         """Transient Simulation test """
         print("Starting test_transient")
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir)
+            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "TRAN.asc")
         else:
             raw_file = test_dir + "TRAN_1.raw"
@@ -410,7 +410,7 @@ class test_spicelib(unittest.TestCase):
         """Transient simulation with stepped data."""
         print("Starting test_transient_steps")
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir)
+            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "TRAN - STEP.asc")
         else:
             raw_file = test_dir + "TRAN - STEP_1.raw"
@@ -437,7 +437,7 @@ class test_spicelib(unittest.TestCase):
         if has_ltspice:
             from spicelib.editor.asc_editor import AscEditor
             editor = AscEditor(test_dir + "AC.asc")
-            runner = SimRunner(output_folder=test_dir)
+            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(editor)
 
             R1 = editor.get_component_floatvalue('R1')
@@ -470,7 +470,7 @@ class test_spicelib(unittest.TestCase):
         if has_ltspice:
             from spicelib.editor.asc_editor import AscEditor
             editor = AscEditor(test_dir + "AC - STEP.asc")
-            runner = SimRunner(output_folder=test_dir)
+            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(editor)
             C1 = editor.get_component_floatvalue('C1')
         else:

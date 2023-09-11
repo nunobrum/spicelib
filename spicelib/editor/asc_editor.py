@@ -257,5 +257,6 @@ class AscEditor(BaseEditor):
                 return  # Job done, can exit this method
             i += 1
 
-        _logger.error(f'Instruction "{instruction}" not found')
-        raise RuntimeError(f'Instruction "{instruction}" not found')
+        msg = f'Instruction "{instruction}" not found'
+        _logger.error(msg)
+        raise RuntimeError(msg)

@@ -46,7 +46,7 @@ else:
 
 
 def format_time_difference(time_diff):
-    """Formats the time difference in a human readable format, stripping the hours or minutes if they are zero"""
+    """Formats the time difference in a human-readable format, stripping the hours or minutes if they are zero"""
     seconds_difference = int(time_diff)
     milliseconds = int((time_diff - seconds_difference) * 1000)
     hours, remainder = divmod(seconds_difference, 3600)
@@ -66,7 +66,9 @@ class RunTask(threading.Thread):
 
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
                  callback: Union[Type[ProcessCallback], Callable[[Path, Path], Any]],
-                 switches, timeout: float = None, verbose=True):
+                 callback_args: dict = None,
+                 switches: Any = None, timeout: float = None, verbose=True):
+
         super().__init__(name=f"RunTask#{runno}")
         self.start_time = None
         self.stop_time = None
@@ -77,6 +79,7 @@ class RunTask(threading.Thread):
         self.runno = runno
         self.netlist_file = netlist_file
         self.callback = callback
+        self.callback_args = callback_args
         self.retcode = -1  # Signals an error by default
         self.raw_file = None
         self.log_file = None
@@ -112,10 +115,17 @@ class RunTask(threading.Thread):
 
             if self.raw_file.exists() and self.log_file.exists():
                 if self.callback:
-                    self.print_info(_logger.info, "Simulation Finished. Calling...{}(rawfile, logfile)".format(
-                            self.callback.__name__))
+                    if self.callback_args is not None:
+                        callback_print = ', '.join([f"{key}={value}" for key, value in self.callback_args.items()])
+                    else:
+                        callback_print = ''
+                    self.print_info(_logger.info, "Simulation Finished. Calling...{}(rawfile, logfile{})".format(
+                            self.callback.__name__, callback_print))
                     try:
-                        return_or_process = self.callback(self.raw_file, self.log_file)
+                        if self.callback_args is not None:
+                            return_or_process = self.callback(self.raw_file, self.log_file, **self.callback_args)
+                        else:
+                            return_or_process = self.callback(self.raw_file, self.log_file)
                     except Exception as err:
                         error = traceback.format_tb(err.__traceback__)
                         self.print_info(_logger.error, error)
