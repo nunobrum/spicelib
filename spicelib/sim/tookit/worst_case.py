@@ -27,8 +27,12 @@ from .tolerance_deviations import ToleranceDeviations, DeviationType
 class WorstCaseAnalysis(ToleranceDeviations):
     """Class to automate Monte-Carlo simulations"""
 
-    def set_component_deviation(self, ref: str, index):
+    def set_component_deviation(self, ref: str, index) -> bool:
+        """Sets the deviation of a component. Returns True if the component is valid and the deviation was set.
+        Otherwise, returns False"""
         val, dev = self.get_component_value_deviation_type(ref)  # get there present value
+        if dev.min_val == dev.max_val:
+            return False  # no need to set the deviation
         new_val = val
         if dev.typ == DeviationType.tolerance:
             new_val = "{wc(%s,%g,%d)}" % (val, dev.max_val, index)  # calculate expression for new value
@@ -37,13 +41,14 @@ class WorstCaseAnalysis(ToleranceDeviations):
 
         if new_val != val:
             self.set_component_value(ref, new_val)  # update the value
+        return True
 
     def prepare_testbench(self, *args, **kwargs):
         """Prepares the simulation by setting the tolerances for the components"""
         index = 0
         for ref in self.device_deviations:
-            self.set_component_deviation(ref, index)
-            index += 1
+            if self.set_component_deviation(ref, index):
+                index += 1
         for ref in self.parameter_deviations:
             val, dev = self.get_parameter_value_deviation_type(ref)
             new_val = val
@@ -58,8 +63,8 @@ class WorstCaseAnalysis(ToleranceDeviations):
         for prefix in self.default_tolerance:
             for ref in self.get_components(prefix):
                 if ref not in self.device_deviations:
-                    self.set_component_deviation(ref, index)
-                    index += 1
+                    if self.set_component_deviation(ref, index):
+                        index += 1
 
         self.editor.add_instruction(".function binary(run,idx) floor(run/(2**idx))-2*floor(run/(2**(idx+1)))")
         self.editor.add_instruction(".function wc(nom,tol,idx) {nom*if(binary(run,idx),1-tol,1+tol)}")
