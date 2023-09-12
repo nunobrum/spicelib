@@ -21,6 +21,7 @@
 import math
 from typing import Union, Optional, Iterable
 
+__all__ = ['sweep', 'sweep_n', 'sweep_log', 'sweep_log_n']
 
 class BaseIterator(object):
     """Common implementation to all Iterator classes"""
