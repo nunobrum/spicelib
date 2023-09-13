@@ -120,7 +120,7 @@ def scan_eng(value: str) -> float:
         if value[x - 1] in "0123456789":
             break
         x -= 1
-    suffix = value[x:]  # this is the non numeric part at the end
+    suffix = value[x:]  # this is the non-numeric part at the end
     f = float(value[:x])  # this is the numeric part. Can raise ValueError.
     if suffix:
         if suffix[0] in "fpnuµmk":

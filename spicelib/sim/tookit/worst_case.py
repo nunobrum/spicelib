@@ -66,9 +66,9 @@ class WorstCaseAnalysis(ToleranceDeviations):
                     if self.set_component_deviation(ref, index):
                         index += 1
 
-        self.editor.add_instruction(".function binary(run,idx) floor(run/(2**idx))-2*floor(run/(2**(idx+1)))")
-        self.editor.add_instruction(".function wc(nom,tol,idx) {nom*if(binary(run,idx),1-tol,1+tol)}")
-        self.editor.add_instruction(".function wc1(nom,min,max,idx) {nom*if(binary(run,idx),min,max)}")
+        self.editor.add_instruction(".func binary(run,idx) floor(run/(2**idx))-2*floor(run/(2**(idx+1)))")
+        self.editor.add_instruction(".func wc(nom,tol,idx) {nom*if(binary(run,idx),1-tol,1+tol)}")
+        self.editor.add_instruction(".func wc1(nom,min,max,idx) {nom*if(binary(run,idx),min,max)}")
         self.num_runs = 2**index - 1
         self.editor.add_instruction(".step param run -1 %d 1" % self.num_runs)
         self.editor.set_parameter('run', -1)  # in case the step is commented.

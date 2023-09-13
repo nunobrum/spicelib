@@ -20,7 +20,7 @@
 from dataclasses import dataclass
 from typing import Union, Optional, Dict
 
-from ...editor.base_editor import BaseEditor
+from ...editor.base_editor import BaseEditor, scan_eng
 from .sim_analysis import SimAnalysis, AnyRunner
 from enum import Enum
 
@@ -29,6 +29,7 @@ class DeviationType(Enum):
     """Enum to define the type of deviation"""
     tolerance = 'tolerance'
     minmax = 'minmax'
+    none = 'none'
 
 
 @dataclass
@@ -47,6 +48,9 @@ class ComponentDeviation:
     def from_min_max(cls, min_val: float, max_val: float, distribution: str = 'uniform'):
         return cls(min_val, max_val, DeviationType.minmax, distribution)
 
+    @classmethod
+    def none(cls):
+        return cls(0.0, 0.0, DeviationType.none)
 
 class ToleranceDeviations(SimAnalysis):
     """Class to automate Monte-Carlo simulations"""
@@ -54,7 +58,7 @@ class ToleranceDeviations(SimAnalysis):
 
     def __init__(self, circuit_file: Union[str, BaseEditor], runner: Optional[AnyRunner] = None):
         super().__init__(circuit_file, runner)
-        self.default_tolerance = {prefix: ComponentDeviation(0) for prefix in self.devices_with_deviation_allowed}
+        self.default_tolerance = {prefix: ComponentDeviation.none() for prefix in self.devices_with_deviation_allowed}
         self.device_deviations: Dict[str, ComponentDeviation] = {}
         self.parameter_deviations: Dict[str, ComponentDeviation] = {}
         self.testbench_prepared = False
@@ -65,7 +69,7 @@ class ToleranceDeviations(SimAnalysis):
         Sets the tolerance for a given component. If only the prefix is given, the tolerance is set for all.
         The valid prefixes that can be used are: R, C, L, V, I
         """
-        if ref in self.devices_with_deviation_allowed:
+        if ref in self.devices_with_deviation_allowed:  # Only the prefix is given
             self.default_tolerance[ref] = ComponentDeviation.from_tolerance(new_tolerance, distribution)
         else:
             if ref in self.editor.get_components(ref[0]):
@@ -97,13 +101,23 @@ class ToleranceDeviations(SimAnalysis):
             raise ValueError("The reference must be a valid component type")
         value = self.editor.get_component_value(ref)
         if len(value) == 0:  # This covers empty strings
-            return value, ComponentDeviation.from_tolerance(0.0)
+            return value, ComponentDeviation.none()
+        # The value needs to be able to be computed, otherwise it can't be used
+        try:
+            scan_eng(value)
+        except ValueError:
+            if value.startswith('{') and value.endswith('}'):
+                # This is still acceptable as the value could be computed.
+                # but we need to get rid of the outer {}
+                value = value[1:-1]
+            else:
+                return value, ComponentDeviation.none()
         if ref in self.device_deviations:
             return value, self.device_deviations[ref]
         elif ref[0] in self.default_tolerance:
             return value, self.default_tolerance[ref[0]]
         else:
-            return value, ComponentDeviation.from_tolerance(0.0)
+            return value, ComponentDeviation.none()
 
     def set_component_value(self, ref: str, new_value: str):
         self.editor.set_component_value(ref, new_value)

@@ -78,16 +78,16 @@ class Montecarlo(ToleranceDeviations):
             self.editor.set_parameter(param, new_val)
 
         if tol_uni_func:
-            self.editor.add_instruction(".function utol(nom,tol) if(run<0, nom, mc(nom,tol))")
+            self.editor.add_instruction(".func utol(nom,tol) if(run<0, nom, mc(nom,tol))")
 
         if tol_norm_func:
-            self.editor.add_instruction(".function ntol(nom,tol) if(run<0, nom, nom*(1+gauss(tol/3)))")
+            self.editor.add_instruction(".func ntol(nom,tol) if(run<0, nom, nom*(1+gauss(tol/3)))")
 
         if min_max_uni_func:
-            self.editor.add_instruction(".function urng(nom,mean,df2) if(run<0, nom, mean*flat(df2))")
+            self.editor.add_instruction(".func urng(nom,mean,df2) if(run<0, nom, mean*flat(df2))")
 
         if min_max_norm_func:
-            self.editor.add_instruction(".function nrng(nom,mean,df23) if(run<0, nom, mean*(1+gauss(df2)))")
+            self.editor.add_instruction(".func nrng(nom,mean,df23) if(run<0, nom, mean*(1+gauss(df2)))")
 
         self.num_runs = kwargs.get('num_runs', 1000)
         self.editor.add_instruction(".step param run -1 %d 1" % self.num_runs)
