@@ -410,7 +410,7 @@ class RawRead(object):
         self.nVariables = int(self.raw_params['No. Variables'], 10)
 
         has_axis = self.raw_params['Plotname'] not in ('Operating Point', 'Transfer Function',)
-
+        reading_qspice = 'QSPICE' in self.raw_params['Command']
         self._traces = []
         self.steps = None
         self.axis = None  # Creating the axis
@@ -418,7 +418,7 @@ class RawRead(object):
         if 'complex' in self.raw_params['Flags'] or self.raw_params['Plotname'] == 'AC Analysis':
             numerical_type = 'complex'
         else:
-            if 'QSPICE' in self.raw_params['Command']:  # QSPICE uses doubles for everything
+            if reading_qspice:  # QSPICE uses doubles for everything
                 numerical_type = 'double'
             else:
                 numerical_type = 'real'
@@ -426,11 +426,14 @@ class RawRead(object):
         ivar = 0
         for line in header[i + 1:-1]:  # Parse the variable names
             idx, name, var_type = line.lstrip().split('\t')
-            if has_axis and ivar == 0:  # If it has an axis, it should be always read
+            if ivar == 0:  # If it has an axis, it should be always read
                 if numerical_type == 'real':
-                    axis_numerical_type = 'double'
+                    axis_numerical_type = 'double'  # It's weird, but LTSpice uses double for the first variable in .OP
                 else:
-                    axis_numerical_type = numerical_type
+                    if reading_qspice:
+                        axis_numerical_type = 'double'  # QSPICE uses doubles for axis while reading .AC files
+                    else:
+                        axis_numerical_type = numerical_type
                 self.axis = Axis(name, var_type, self.nPoints, axis_numerical_type)
                 trace = self.axis
             elif (traces_to_read == "*") or (name in traces_to_read):
@@ -463,29 +466,37 @@ class RawRead(object):
             # Will start the reading of binary values
             # But first check whether how data is stored.
             self.block_size = (raw_file_size - binary_start) // self.nPoints
-            self.data_size = self.block_size // self.nVariables
 
             scan_functions = []
+            calc_block_size = 0
             for trace in self._traces:
-                if self.data_size == 8:
+                if trace.numerical_type == 'double':
+                    calc_block_size += 8
                     if isinstance(trace, DummyTrace):
                         fun = consume8bytes
                     else:
                         fun = read_float64
-                elif self.data_size == 16:
+                elif trace.numerical_type == 'complex':
+                    calc_block_size += 16
                     if isinstance(trace, DummyTrace):
                         fun = consume16bytes
                     else:
                         fun = read_complex
-                else:  # data size is only 4 bytes
-                    if len(scan_functions) == 0:  # This is the axis
-                        fun = read_float64
+                elif trace.numerical_type == 'real':  # data size is only 4 bytes
+                    calc_block_size += 4
+                    if isinstance(trace, DummyTrace):
+                        fun = consume4bytes
                     else:
-                        if isinstance(trace, DummyTrace):
-                            fun = consume4bytes
-                        else:
-                            fun = read_float32
+                        fun = read_float32
+
+                else:
+                    raise RuntimeError(
+                        "Invalid data type {} for trace {}".format(trace.numerical_type, trace.name))
                 scan_functions.append(fun)
+            if calc_block_size != self.block_size:
+                raise RuntimeError(
+                    "Error in calculating the block size. Expected {} bytes, but found {} bytes".format(
+                        self.block_size, calc_block_size))
 
             if "fastaccess" in self.raw_params["Flags"]:
                 if self.verbose:
@@ -496,19 +507,18 @@ class RawRead(object):
                         # TODO: replace this by a seek
                         raw_file.read(self.nPoints * self.data_size)
                     else:
-                        if self.data_size == 8:
+                        if var.numerical_type == 'double':
                             s = raw_file.read(self.nPoints * 8)
                             var.data = frombuffer(s, dtype=float64)
-                        elif self.data_size == 16:
+                        elif var.numerical_type == 'complex':
                             s = raw_file.read(self.nPoints * 16)
                             var.data = frombuffer(s, dtype=complex)
+                        elif var.numerical_type == 'real':
+                            s = raw_file.read(self.nPoints * 4)
+                            var.data = frombuffer(s, dtype=float32)
                         else:
-                            if i == 0:
-                                s = raw_file.read(self.nPoints * 8)
-                                var.data = frombuffer(s, dtype=float64)
-                            else:
-                                s = raw_file.read(self.nPoints * 4)
-                                var.data = frombuffer(s, dtype=float32)
+                            raise RuntimeError(
+                                "Invalid data type {} for trace {}".format(var.numerical_type, var.name))
 
             else:
                 if self.verbose:
