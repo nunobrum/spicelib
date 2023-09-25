@@ -1,0 +1,6 @@
+* C:\sandbox\spicelib\examples\testfiles\DC op point.qsch
+V1 in N01 1
+R1 in out 10K
+R2 out N01 10K
+.op
+.end

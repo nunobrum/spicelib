@@ -1,0 +1,16 @@
+* C:\sandbox\spicelib\examples\testfiles\DC op point - STEP.qsch
+R1 in b4 {R}
+R2 b4 0 {2*R}
+Vin in 0 {Vin}
+R3 b4 b3 {R}
+R4 b3 0 {2*R}
+R5 b3 b2 {R}
+R6 b2 0 {2*R}
+R7 b2 b1 {R}
+R8 b1 0 {2*R}
+R9 b1 b0 {R}
+R10 b0 0 {R}
+.param R=1K
+.step param Vin 1 10 1
+.op
+.end
