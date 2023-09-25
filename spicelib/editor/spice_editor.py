@@ -81,6 +81,7 @@ REPLACE_REGXES = {
     # Frequency Noise Analysis (FRA) wiggler
     # pattern = r'^@(\d+)\s+(\w+)\s+(\w+)(?:\s+delay=(\d+\w+))?(?:\s+fstart=(\d+\w+))?(?:\s+fend=(\d+\w+))?(?:\s+oct=(\d+))?(?:\s+fcoarse=(\d+\w+))?(?:\s+nmax=(\d+\w+))?\s+(\d+)\s+(\d+\w+)\s+(\d+)(?:\s+pp0=(\d+\.\d+))?(?:\s+pp1=(\d+\.\d+))?(?:\s+f0=(\d+\w+))?(?:\s+f1=(\d+\w+))?(?:\s+tavgmin=(\d+\w+))?(?:\s+tsettle=(\d+\w+))?(?:\s+acmag=(\d+))?$'
     'Ã': r"^(?P<designator>Ã§?\w+)(?P<nodes>(\s+\S+){16})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # Voltage Source
+    #TODO: Add remaining unique QSPICE components
 }
 
 SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
@@ -687,11 +688,11 @@ class SpiceEditor(SpiceCircuit):
         if encoding == 'autodetect':
             try:
                 self.encoding = detect_encoding(self.netlist_file, '*')  # Normally the file will start with a '*'
-            except EncodingDetectError:
+            except EncodingDetectError as err:
                 if self.create_blank:
                     self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
                 else:
-                    raise
+                    raise err
         else:
             self.encoding = encoding
         self.reset_netlist()

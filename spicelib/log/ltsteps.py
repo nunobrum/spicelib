@@ -2,6 +2,14 @@
 # coding=utf-8
 
 # -------------------------------------------------------------------------------
+#
+#  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
+#  ██╔════╝██╔══██╗██║██╔════╝██╔════╝██║     ██║██╔══██╗
+#  ███████╗██████╔╝██║██║     █████╗  ██║     ██║██████╔╝
+#  ╚════██║██╔═══╝ ██║██║     ██╔══╝  ██║     ██║██╔══██╗
+#  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
+#  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
+#
 # Name:        ltsteps.py
 # Purpose:     Process LTSpice output files and align data for usage in a spread-
 #              sheet tool such as Excel, or Calc.
@@ -224,7 +232,7 @@ class LTSpiceLogReader(LogfileData):
     """
     Reads an LTSpice log file and retrieves the step information if it exists. The step information is then accessible
     by using the 'stepset' property of this class.
-    This class is intended to be used together with the LTSpice_RawRead to retrieve the runs that are associated with a
+    This class is intended to be used together with the RawRead to retrieve the runs that are associated with a
     given parameter setting.
 
     This class constructor only reads the step information of the log file. If the measures are needed, then the user
@@ -236,7 +244,7 @@ class LTSpiceLogReader(LogfileData):
     :property headers: list containing the headers on the exported data. This is only populated when the *read_measures*
         optional parameter is set to False.
 
-    :property dataset: dictionary in which the keys are the the headers and the export file and the values are
+    :property dataset: dictionary in which the keys are the headers and the export file and the values are
          lists. This is information is only populated when the *read_measures* optional parameter is set to False.
 
     :param log_filename: path to the Export file.

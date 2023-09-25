@@ -214,12 +214,15 @@ from struct import unpack
 from typing import Union, List, Tuple, Dict
 from pathlib import Path
 
+from spicelib.log.logfile_data import try_convert_value
+
 from .raw_classes import Axis, TraceRead, DummyTrace, SpiceReadException
 from ..utils.detect_encoding import detect_encoding
 
 import numpy as np
 from numpy import zeros, complex128, float32, float64, frombuffer, angle
 import logging
+import re
 _logger = logging.getLogger("spicelib.RawRead")
 
 
@@ -431,7 +434,7 @@ class RawRead(object):
                     axis_numerical_type = 'double'  # It's weird, but LTSpice uses double for the first variable in .OP
                 else:
                     if reading_qspice:
-                        axis_numerical_type = 'double'  # QSPICE uses doubles for axis while reading .AC files
+                        axis_numerical_type = 'double'  # QSPICE uses double for frequency while reading .AC files
                     else:
                         axis_numerical_type = numerical_type
                 self.axis = Axis(name, var_type, self.nPoints, axis_numerical_type)
@@ -441,7 +444,7 @@ class RawRead(object):
                     trace = TraceRead(name, var_type, self.nPoints, self.axis, numerical_type)
                 else:
                     # If an Operation Point or Transfer Function, only one point per step
-                    trace = TraceRead(name, var_type, self.nPoints, None, 'real')
+                    trace = TraceRead(name, var_type, self.nPoints, None, numerical_type)
             else:
                 trace = DummyTrace(name, var_type)
 
@@ -496,7 +499,7 @@ class RawRead(object):
             if calc_block_size != self.block_size:
                 raise RuntimeError(
                     "Error in calculating the block size. Expected {} bytes, but found {} bytes".format(
-                        self.block_size, calc_block_size))
+                        calc_block_size, self.block_size))
 
             if "fastaccess" in self.raw_params["Flags"]:
                 if self.verbose:
@@ -705,51 +708,44 @@ class RawRead(object):
                     step_dict = {}
                     for tok in line[6:-1].split(' '):
                         key, value = tok.split('=')
-                        try:
-                            # Tries to convert to float for backward compatibility
-                            value = float(value)
-                        except ValueError:
-                            pass
-                            # Leave value as a string to accommodate cases like temperature steps.
-                            # Temperature steps have the form '.step temp=25°C'
-                        step_dict[key] = value
+                        step_dict[key] = try_convert_value(value)
                     if self.steps is None:
                         self.steps = [step_dict]
                     else:
                         self.steps.append(step_dict)
             log.close()
 
-            expected_log_line = "Ciruit:"
         elif 'QSPICE' in self.raw_params['Command']:
             if filename.suffix != '.qraw':
                 raise SpiceReadException("Invalid Filename. The file should end with '.qraw'")
             logfile = filename.with_suffix(".log")
             try:
-                encoding = detect_encoding(logfile)
-                log = open(logfile, 'r', errors='replace', encoding=encoding)
+                log = open(logfile, 'r', errors='replace', encoding='utf-8')
             except OSError:
                 raise SpiceReadException("Log file '%s' not found" % logfile)
             except UnicodeError:
                 raise SpiceReadException("Unable to parse log file '%s'" % logfile)
 
+            step_regex = re.compile(r"^(\d+) of \d+ steps:\s+\.step (.*)$")
+
             for line in log:
-                if '.step' in line:
+                match = step_regex.match(line)
+                if match:
                     step_dict = {}
-                    p_step = line.split('.step ')[1]
-                    for tok in p_step.split(' '):
-                        key, value = tok.split('=')
-                        try:
-                            # Tries to convert to float for backward compatibility
-                            value = float(value)
-                        except ValueError:
-                            pass
-                            # Leave value as a string to accommodate cases like temperature steps.
-                            # Temperature steps have the form '.step temp=25°C'
-                        step_dict[key] = value
+                    step = int(match.group(1))
+                    stepset = match.group(2)
+                    _logger.debug(f"Found step {step} with stepset {stepset}")
+
+                    tokens = stepset.strip('\r\n').split(' ')
+                    for tok in tokens:
+                        key, value = tok.split("=")
+                        # Try to convert to int or float
+                        step_dict[key] = try_convert_value(value)
                     if self.steps is None:
                         self.steps = [step_dict]
                     else:
                         self.steps.append(step_dict)
+            log.close()
 
         else:
             raise SpiceReadException("Unsupported simulator. Only LTspice and QSPICE are supported.")

@@ -455,6 +455,9 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 0.5
+  * Reading QSPICE .AC and .OP simulation results
+  * Parsing of QSPICE log and measure files
 * Version 0.4
   * Implementing the callback argument in the SimRunner class.
   * Moved simulator classes into a separate package.
