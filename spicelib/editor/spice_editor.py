@@ -26,7 +26,7 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 from typing import Union, List, Callable, Any, Tuple
-from ..utils.detect_encoding import detect_encoding
+from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
@@ -675,15 +675,23 @@ class SpiceEditor(SpiceCircuit):
     :type netlist_file: str or Path
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This however is not 100% fool proof.
+    :param create_blank: Create a blank '.net' file when 'netlist_file' not exist.
     :type encoding: str, optional
     """
 
-    def __init__(self, netlist_file: Union[str, Path], encoding='autodetect'):
+    def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
         super().__init__()
         self.netlist_file = Path(netlist_file)
         self.modified_subcircuits = {}
+        self.create_blank = create_blank
         if encoding == 'autodetect':
-            self.encoding = detect_encoding(self.netlist_file, '*')  # Normally the file will start with a '*'
+            try:
+                self.encoding = detect_encoding(self.netlist_file, '*')  # Normally the file will start with a '*'
+            except EncodingDetectError:
+                if self.create_blank:
+                    self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
+                else:
+                    raise
         else:
             self.encoding = encoding
         self.reset_netlist()
@@ -825,6 +833,11 @@ class SpiceEditor(SpiceCircuit):
                 # else:
                 #     for _ in lines:  # Consuming the rest of the file.
                 #         pass  # print("Ignoring %s" % _)
+        elif self.create_blank:
+            lines = ['* netlist generated from spicelib', '.end']
+            finished = self._add_lines(lines)
+            if not finished:
+                raise SyntaxError("Netlist with missing .END or .ENDS statements")
         else:
             _logger.error("Netlist file not found: {}".format(self.netlist_file))
 
