@@ -26,7 +26,7 @@ from typing import Union
 import logging
 _logger = logging.getLogger("spicelib.LTSpiceSimulator")
 
-from spicelib.sim.simulator import Simulator, run_function
+from ..sim.simulator import Simulator, run_function
 
 
 class LTspice(Simulator):

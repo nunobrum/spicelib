@@ -87,7 +87,7 @@ __copyright__ = "Copyright 2023, Fribourg Switzerland"
 import os
 import sys
 
-from spicelib.log.ltsteps import *
+from .log.ltsteps import *
 import logging
 _logger = logging.getLogger("spicelib.LTSteps")
 

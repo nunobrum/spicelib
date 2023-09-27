@@ -6,6 +6,7 @@ from .raw.raw_write import RawWrite, Trace
 from .editor.spice_editor import SpiceEditor, SpiceCircuit
 from .editor.asc_editor import AscEditor
 from .sim.sim_runner import SimRunner
+from .simulators import LTspice, NGspice, Qspice, Xyce
 
 
 def all_loggers():
