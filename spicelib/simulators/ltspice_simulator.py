@@ -58,7 +58,7 @@ class LTspice(Simulator):
             process_name = "XVIIx64.exe"
     elif sys.platform == "darwin":
         spice_exe = ['/Applications/LTspice.app/Contents/MacOS/LTspice']
-        process_name = "XVIIx64"
+        process_name = "LTspice"
     else:  # Windows
         for exe in (  # Placed in order of preference. The first to be found will be used.
                 os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\LTspice.exe"),
