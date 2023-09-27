@@ -107,7 +107,7 @@ import shutil
 import inspect  # Library used to get the arguments of the callback function
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Union, Any, Type, Protocol
+from typing import Callable, Union, Any, Type, Protocol, Optional
 import logging
 _logger = logging.getLogger("spicelib.SimRunner")
 
@@ -255,10 +255,20 @@ class SimRunner(object):
             else:
                 return afile
 
-    def _run_file_name(self, netlist):
-        if not isinstance(netlist, Path):
-            netlist = Path(netlist)
-        return "%s_%i%s" % (netlist.stem, self.runno, netlist.suffix)
+    def _run_file_name(self, netlist, run_filename):
+        if run_filename is None:
+            if not isinstance(netlist, Path):
+                netlist = Path(netlist) if isinstance(netlist, str) else netlist.circuit_file
+            if netlist.suffix != '.net':
+                _logger.warning(f"Netlist file with wrong suffix {netlist.suffix}, reset to '.net'")
+                netlist.with_suffix('.net')
+            return "%s_%i%s" % (netlist.stem, self.runno, netlist.suffix)
+        else:
+            run_path = Path(run_filename)
+            if run_path.suffix != '.net':
+                _logger.warning(f"Netlist file with wrong suffix {run_path.suffix}, reset to '.net'")
+                run_path.with_suffix('.net')
+            return run_path
 
     def _prepare_sim(self, netlist: Union[str, Path, BaseEditor], run_filename: str):
         """Internal function"""
@@ -266,21 +276,23 @@ class SimRunner(object):
         self.runno += 1  # Incrementing internal simulation number
         # Harmonize the netlist into a Path object pointing to a netlist file on the right output folder
         if isinstance(netlist, BaseEditor):
-            if run_filename is None:
-                run_filename = self._run_file_name(netlist.circuit_file)
+            run_filename = self._run_file_name(netlist, run_filename)
 
             # Calculates the path where to store the new netlist.
             run_netlist_file = self._on_output_folder(run_filename)
             netlist.write_netlist(run_netlist_file)
 
         elif isinstance(netlist, (Path, str)):
-            if run_filename is None:
-                run_filename = self._run_file_name(netlist)
+            run_filename = self._run_file_name(netlist, run_filename)
             if isinstance(netlist, str):
                 netlist = Path(netlist)
             run_netlist_file = self._to_output_folder(netlist, copy=True, new_name=run_filename)
         else:
             raise TypeError("'netlist' parameter shall be a SpiceEditor, pathlib.Path or a plain str")
+
+        # Check netlist file existing.
+        if not Path(run_netlist_file).exists():
+            _logger.error(f"Netlist file {run_netlist_file} to be simulated does not exist.")
 
         return run_netlist_file
 
@@ -390,7 +402,7 @@ class SimRunner(object):
                 _logger.warning("Timeout on launching simulation %d." % self.runno)
             return None
 
-    def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: str = None,
+    def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: Optional[str] = None,
                 timeout: float = None) -> (str, str):
         """
         Executes a simulation run with the conditions set by the user.
@@ -402,8 +414,8 @@ class SimRunner(object):
         :type netlist: SpiceEditor or a path to the file
         :param switches: Command line switches override
         :type switches: list
-        :param run_filename: Name to be used for the log and raw file.
-        :type run_filename: str or Path
+        :param run_filename: Name for output files. It should have '.net' suffix.
+        :type run_filename: str, optional
         :param timeout: Timeout to be used in waiting for resources. Default time is value defined in this class
             constructor.
         :type timeout: float, optional

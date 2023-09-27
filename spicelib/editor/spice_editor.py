@@ -681,6 +681,8 @@ class SpiceEditor(SpiceCircuit):
     def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
         super().__init__()
         self.netlist_file = Path(netlist_file)
+        if self.circuit_file.suffix != '.net':
+            _logger.warning(f"Netlist file with wrong suffix {self.netlist_file.suffix}")
         self.modified_subcircuits = {}
         self.create_blank = create_blank
         if encoding == 'autodetect':
