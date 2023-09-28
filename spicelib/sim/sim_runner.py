@@ -334,7 +334,7 @@ class SimRunner(object):
             callback: Union[Type[ProcessCallback], Callable] = None,
             callback_args: Union[tuple, dict] = None,
             switches=None,
-            timeout: float = None, run_filename: str = None) -> Union[RunTask, None]:
+            timeout: float = None, run_filename: str = None) -> (str, str):
         """
         Executes a simulation run with the conditions set by the user.
         Conditions are set by the set_parameter, set_component_value or add_instruction functions.
@@ -371,9 +371,9 @@ class SimRunner(object):
         :param timeout:
             Timeout to be used in waiting for resources. Default time is value defined in this class constructor.
         :type timeout: float, optional
-        :param run_filename: Name to be used for the log and raw file.
-        :type run_filename: str or Path
-        :returns: The task object of type RunTask
+        :param run_filename: Name for output files. It should have '.net' suffix.
+        :type run_filename: str, optional
+        :returns: the raw and log filenames
         """
         callback_kwargs = self.validate_callback_args(callback, callback_args)
         if switches is None:
@@ -394,7 +394,7 @@ class SimRunner(object):
                 self.active_tasks.append(t)
                 t.start()
                 sleep(0.01)  # Give slack for the thread to start
-                return t  # Returns the task object
+                return t.raw_file, t.log_file  # Returns the raw and log file
             sleep(0.1)  # Give Time for other simulations to end
         else:
             _logger.error("Timeout waiting for resources for simulation %d" % self.runno)

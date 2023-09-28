@@ -18,15 +18,22 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 
+tests = {}
+
 for opamp in ('AD712', 'AD820'):
     netlist.set_element_model('XU1', opamp)
     for supply_voltage in (5, 10, 15):
         netlist.set_component_value('V1', supply_voltage)
         netlist.set_component_value('V2', -supply_voltage)
         print("simulating OpAmp", opamp, "Voltage", supply_voltage)
-        LTC.run(netlist)
+        testName = f"{opamp}_{supply_voltage}V"
+        tests[testName] = LTC.run(netlist)
 
-for raw, log in LTC:
+LTC.wait_completion()
+
+for test in tests.keys():
+    raw, log = tests[test]
+    print("Test conditions %s" % test)
     print("Raw file: %s, Log file: %s" % (raw, log))
     # do something with the data
     # raw_data = RawRead(raw)
