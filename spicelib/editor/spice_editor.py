@@ -758,7 +758,8 @@ class SpiceEditor(SpiceCircuit):
                 else:
                     i += 1
         elif get_line_command(instruction) == '.PARAM':
-            raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
+            # raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
+            _logger.warning('The .PARAM instruction should be added using the "set_parameter" method')
 
         # check whether the instruction is already there (dummy proofing)
         # TODO: if adding a .MODEL or .SUBCKT it should verify if it already exists and update it.
