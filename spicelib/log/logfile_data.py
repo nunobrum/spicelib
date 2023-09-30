@@ -297,7 +297,7 @@ class LogfileData:
         TODO: Delete the old data and insert new ones the the right position
         """
         for param in list(self.dataset.keys()):
-            if len(self.dataset[param]) > 0 and isinstance(self.dataset[param][0], LTComplex):
+            if (isinstance(self.dataset[param], list) and len(self.dataset[param]) > 0 and isinstance(self.dataset[param][0], LTComplex)):
                 self.dataset[param + '_mag'] = [v.mag for v in self.dataset[param]]
                 self.dataset[param + '_ph'] = [v.ph for v in self.dataset[param]]
 
@@ -336,14 +336,16 @@ class LogfileData:
         if append_with_line_prefix is not None:  # if appending a file, it must write the column title
             fout.write('user info\t')
 
-        fout.write("step\t%s\t%s\n" % ("\t".join(self.stepset.keys()), "\t".join(self.dataset)))
-        first_parameter = next(iter(self.dataset))
+        dataset_keys = [key for key, value in self.dataset.items() if isinstance(value, list)]
+
+        fout.write("step\t%s\t%s\n" % ("\t".join(self.stepset.keys()), "\t".join(dataset_keys)))
+        first_parameter = dataset_keys[0]
         for index in range(len(self.dataset[first_parameter])):
             if self.step_count == 0:
                 step_data = []  # Empty step
             else:
                 step_data = [self.stepset[param][index] for param in self.stepset.keys()]
-            meas_data = [self.dataset[param][index] for param in self.dataset]
+            meas_data = [self.dataset[param][index] for param in dataset_keys]
 
             if append_with_line_prefix is not None:  # if appending a file it must write the user info
                 fout.write(append_with_line_prefix + '\t')
