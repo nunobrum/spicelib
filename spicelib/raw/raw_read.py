@@ -327,6 +327,15 @@ def consume16bytes(f):
     f.read(16)
 
 
+def namify(spice_ref: str):
+    """Translate from V(0,n01) to V__n01__ and I(R1) to I__R1__"""
+    matchobj = re.match(r'(V|I|P)\((\w+)\)', spice_ref)
+    if matchobj:
+        return f'{matchobj.group(1)}__{matchobj.group(2)}__'
+    else:
+        raise NotImplementedError(f'Unrecognized alias type for alias : "{spice_ref}"')
+
+
 class RawRead(object):
     """Class for reading Spice wave Files. It can read all types of Files. If stepped data is detected,
     it will also try to read the corresponding LOG file so to retrieve the stepped data.
@@ -404,11 +413,26 @@ class RawRead(object):
                 line = ""
             else:
                 line += ch
+        self.aliases = {}  # QSpice defines aliases for some of the traces that can be computed from other traces.
+        self.spice_params = {}  # QSpice stores param values in the .raw file. They may have some usage later for
+        # computing the aliases.
         for line in header:
-            k, _, v = line.partition(':')
-            if k == 'Variables':
-                break
-            self.raw_params[k] = v.strip()
+            if line.startswith('.'):  # This is either a .param or a .alias
+                if line.startswith('.param'):
+                    # This is a .param line which format as the following pattern ".param temp=27"
+                    _, _, line = line.partition('.param')
+                    k, _, v = line.partition('=')
+                    self.spice_params[k.strip()] = v.strip()
+                elif line.startswith('.alias'):
+                    # This is a .param line which format as the following pattern ".alias I(R2) (0.0001mho*V(n01,out))"
+                    _, alias, formula = line.split(' ', 3)
+                    self.aliases[alias.strip()] = formula.strip()
+            else:
+                # This is the typical RAW style parameter format <param>: <value>
+                k, _, v = line.partition(':')
+                if k == 'Variables':
+                    break
+                self.raw_params[k] = v.strip()
         self.nPoints = int(self.raw_params['No. Points'], 10)
         self.nVariables = int(self.raw_params['No. Variables'], 10)
 
@@ -462,8 +486,8 @@ class RawRead(object):
 
         if self.verbose:
             _logger.info("File contains {} traces, reading {}".format(ivar,
-                                                               len([trace for trace in self._traces
-                                                                    if not isinstance(trace, DummyTrace)])))
+                                                                      len([trace for trace in self._traces
+                                                                           if not isinstance(trace, DummyTrace)])))
 
         if self.raw_type == "Binary:":
             # Will start the reading of binary values
@@ -616,7 +640,39 @@ class RawRead(object):
         :return: trace names
         :rtype: list[str]
         """
-        return [trace.name for trace in self._traces]
+        # parsing the aliases needs to be done before implementing this.
+        return [trace.name for trace in self._traces] + list(self.aliases.keys())
+
+    def _compute_alias(self, alias: str):
+        """
+        Constants like mho need to be replaced and  V(ref1,ref2) need to be replaced by (V(ref1)-V(ref2)) and after
+        that the aliases can be computed, using the eval() function.
+        """
+        formula = self.aliases[alias]
+        # converting V(ref1, ref2) to (V(ref1)-V(ref2))
+        formula = re.sub(r'V\((\w+),0\)', r'V(\1)', formula)
+        formula = re.sub(r'V\(0,(\w+)\)', r'(-V(\1))', formula)
+        formula = re.sub(r'V\((\w+),(\w+)\)', r'(V(\1)-V(\2))', formula)
+        # converting V(ref1) to V__ref1__ and I(ref1) to I__ref1__
+        formula = re.sub(r'(V|I|P)\((\w+)\)', r'\1__\2__', formula)
+
+        # removing the mho or other constants ex:  (0.0001mho*V(0,n01)) -> (0.0001*V(0,n01))
+        formula = re.sub(r'(\d+)((mho)|(ohm))', r'\1', formula)
+        if alias.startswith('I('):
+            whattype = 'current'
+        elif alias.startswith('V('):
+            whattype = 'voltage'
+        else:
+            raise NotImplementedError(f'Unrecognized alias type for alias : "{alias}"')
+        trace = TraceRead(alias, whattype, self.nPoints, self.axis, 'double')
+        local_vars = {'pi': 3.1415926536, 'e': 2.7182818285}  # This is the dictionary that will be used to compute the alias
+        local_vars.update({name: float(value) for name, value in self.spice_params.items()})
+        local_vars.update({namify(trace.name): trace.data for trace in self._traces})
+        try:
+            trace.data = eval(formula, local_vars)
+        except Exception as err:
+            raise RuntimeError(f'Error computing alias "{alias}" with formula "{formula}"') from err
+        return trace
 
     def get_trace(self, trace_ref: Union[str, int]):
         """
@@ -630,9 +686,12 @@ class RawRead(object):
         """
         if isinstance(trace_ref, str):
             for trace in self._traces:
-                if trace_ref.upper() == trace.name.upper():  # The trace names are case-insensitive
+                if trace_ref.casefold() == trace.name.casefold():  # The trace names are case-insensitive
                     # assert isinstance(trace, DataSet)
                     return trace
+            for alias in self.aliases:
+                if alias.casefold() == alias.casefold():
+                    return self._compute_alias(alias)
             raise IndexError(f"{self} doesn't contain trace \"{trace_ref}\"\n"
                              f"Valid traces are {[trc.name for trc in self._traces]}")
         else:
