@@ -20,6 +20,8 @@
 # -------------------------------------------------------------------------------
 import re
 import logging
+from pathlib import Path
+
 from .logfile_data import LogfileData, try_convert_value
 from ..sim.simulator import run_function
 from ..simulators.qspice_simulator import Qspice
@@ -56,7 +58,7 @@ class QspiceLogReader(LogfileData):
 
     def __init__(self, log_filename: str, read_measures=True, step_set: dict = None, encoding=None):
         super().__init__(step_set)
-        self.logname = log_filename
+        self.logname = Path(log_filename)
         if encoding is None:
             self.encoding = 'utf-8'
         else:
@@ -117,11 +119,15 @@ class QspiceLogReader(LogfileData):
         Parses the .meas file and populates the dataset and headers properties.
         """
         meas_regex = re.compile(r"^\.meas (\w+) (\w+) (.*)$")
+        meas_name = None
+        headers = None
+
         with open(meas_filename, 'r', encoding=self.encoding) as fin:
             line = fin.readline()
             while line:
                 match = meas_regex.match(line)
                 if match:
+                    headers = None
                     token1 = match.group(1)
                     token2 = match.group(2)
                     if token1 in ('tran', 'ac', 'dc', 'op'):
@@ -132,16 +138,25 @@ class QspiceLogReader(LogfileData):
                         meas_name = token1
                     meas_expr = match.group(3)
                     _logger.debug(f"Found measure {meas_name} of type {sim_type} with expression {meas_expr}")
-                    line = fin.readline().strip()  # values are found in the next line
-                    if line.startswith('(') and line.endswith(')'):
-                        line = line[1:-1]  # remove the parenthesis
-                        values = line.strip().split(',')
-                    else:
-                        values = line.strip().split(' ')
-                    headers = [meas_name + "_" + str(i) for i in range(len(values))]
-                    headers[0] = meas_name  # first column is the measure name without _0
-                    self.measure_count += 1
-                    for k, title in enumerate(headers):
-                        self.dataset[title] = [
-                            try_convert_value(values[k])]  # need to be a list for compatibility
+                else:
+                    line = line.strip()
+                    if meas_name:
+                        if line.startswith('(') and line.endswith(')'):
+                            line = line[1:-1]  # remove the parenthesis
+                            values = line.strip().split(',')
+                        else:
+                            values = line.strip().split()  # split by spaces and tabs and repeated spaces are ignored
+                        if headers is None:
+                            if self.has_steps():
+                                headers = ['step'] + [meas_name + "_" + str(i) for i in range(len(values) - 1)]
+                                headers[1] = meas_name  # first column is the measure name without _0
+                            else:
+                                headers = [meas_name + "_" + str(i) for i in range(len(values))]
+                                headers[0] = meas_name  # first column is the measure name without _0
+
+                            for title in headers:
+                                self.dataset[title] = []
+                        self.measure_count += 1
+                        for k, title in enumerate(headers):
+                            self.dataset[title].append(try_convert_value(values[k]))
                 line = fin.readline()

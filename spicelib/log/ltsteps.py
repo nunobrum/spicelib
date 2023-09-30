@@ -412,7 +412,7 @@ class LTSpiceLogReader(LogfileData):
                             _logger.debug("Storing Measurement %s (count %d)" % (dataname, len(measurements)))
                             self.measure_count += len(measurements)
                             for k, title in enumerate(headers):
-                                self.dataset[title] = [line[k] for line in measurements]
+                                self.dataset[title] = [measure[k] for measure in measurements]
                         headers = []
                         measurements = []
                     dataname = line[13:]  # text which is after "Measurement: ". len("Measurement: ") -> 13

@@ -68,7 +68,7 @@ def try_convert_value(value: Union[str, int, float]) -> Union[int, float, str]:
             try:
                 ans = LTComplex(value)
             except ValueError:
-                ans = value
+                ans = value.strip()  # Removes the leading trailing spaces
     return ans
 
 
@@ -122,6 +122,14 @@ class LogfileData:
         if key in self.dataset:
             return self.dataset[key]  # This will raise an Index Error if not found here.
         raise IndexError("'%s' is not a valid step variable or measurement name" % key)
+
+    def has_steps(self):
+        """
+        Returns true if the simulation has steps
+        :return: True if the simulation has steps
+        :rtype: bool
+        """
+        return self.step_count > 0
 
     def steps_with_parameter_equal_to(self, param: str, value: Union[str, int, float]) -> List[int]:
         """
