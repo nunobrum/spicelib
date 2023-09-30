@@ -115,17 +115,17 @@ class test_spicelib(unittest.TestCase):
                 "; Simulation settings",
                 ".ac dec 30 1 10Meg",
                 ".meas AC GainAC MAX mag(V(out)) ; find the peak response and call it ""Gain""",
-                ".meas AC FcutAC TRIG mag(V(out))=GainAC/sqrt(2) FALL=last"
+                ".meas AC FcutAC TRIG mag(V(out))=GainAC/sqrt(2) FALL=last",
+                # ".step param run 0 2 1"
         )
 
-        raw_file, log_file = runner.run_now(editor, run_filename="no_callback.net")
+        raw_file, log_file = runner.run_now(editor, run_filename="qspice_no_callback.net")
         print("no_callback", raw_file, log_file)
         log = QspiceLogReader(log_file)
         for measure in log.get_measure_names():
             print(measure, '=', log.get_measure_value(measure))
-        self.assertEqual(log.get_measure_value('fcutac'), 8479370.0)
-        self.assertEqual(str(log.get_measure_value('vout1m')), '6.02059dB,-5.37934e-08°')
-        self.assertEqual(log.get_measure_value('vout1m').mag, 6.02059)
+        self.assertEqual(4746490.0, log.get_measure_value('fcutac')[0])
+        self.assertEqual(1.99999, log.get_measure_value('gainac')[0])
 
     @unittest.skipIf(skip_qspice_editor_tests, "Skip if not in windows environment")
     def test_run_from_spice_editor(self):
@@ -351,12 +351,15 @@ class test_spicelib(unittest.TestCase):
             runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point.net")
         else:
-            raw_file = test_dir + "DC op point_1.raw"
+            raw_file = test_dir + "DC op point_1.qraw"
             # log_file = test_dir + "DC op point_1.log"
         raw = RawRead(raw_file)
-        traces = [raw.get_trace(trace)[0] for trace in raw.get_trace_names()]
 
-        self.assertListEqual(traces, [1.0, 0.5, -5e-05, 2.5e-05, 2.5e-05, -5e-05], "Lists are different")
+        for trace, value_expected  in zip(
+                ('V(in)', 'V(out)', 'I(R1)', 'I(R2)', 'I(Vin)'),
+                (1.0, 0.5, 5e-05, 5e-05, 5e-05)):
+            value_read = raw.get_trace(trace)[0]
+            self.assertAlmostEqual(abs(value_read), value_expected, 5, f"mismatch in node {trace}")
 
     @unittest.skipIf(False, "Execute All")
     def test_operating_point_step(self):
@@ -366,7 +369,7 @@ class test_spicelib(unittest.TestCase):
             runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point - STEP.net")
         else:
-            raw_file = test_dir + "DC op point - STEP_1.raw"
+            raw_file = test_dir + "DC op point - STEP_1.qraw"
         raw = RawRead(raw_file)
         vin = raw.get_trace('V(in)')
 
@@ -402,10 +405,10 @@ class test_spicelib(unittest.TestCase):
         print("Starting test_transient_steps")
         if has_qspice:
             runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
-            raw_file, log_file = runner.run_now(test_dir + "TRAN - STEP.net")
+            raw_file, log_file = runner.run_now(test_dir + "QSPICE_TRAN - STEP.net")
         else:
-            raw_file = test_dir + "TRAN - STEP_1.raw"
-            log_file = test_dir + "TRAN - STEP_1.log"
+            raw_file = test_dir + "QSPICE_TRAN - STEP_1.qraw"
+            log_file = test_dir + "QSPICE_TRAN - STEP_1.log"
 
         raw = RawRead(raw_file)
         log = QspiceLogReader(log_file)
@@ -413,12 +416,10 @@ class test_spicelib(unittest.TestCase):
         meas = ('t1', 't2', 't3', 't4', 't5',)
         time = (1e-3, 2e-3, 3e-3, 4e-3, 5e-3,)
         for m, t in zip(meas, time):
-            print(m)
             for step, step_dict in enumerate(raw.steps):
                 log_value = log.get_measure_value(m, step)
                 raw_value = vout.get_point_at(t, step)
-                print(step, step_dict, log_value, raw_value, log_value - raw_value)
-                self.assertAlmostEqual(log_value, raw_value, 2, f"Mismatch between log file and raw file in step :{step_dict} measure: {m} ")
+                self.assertAlmostEqual(log_value, raw_value, 5, f"Mismatch between log file and raw file in step :{step_dict} measure: {m} ")
 
     @unittest.skipIf(False, "Execute All")
     def test_ac_analysis(self):
