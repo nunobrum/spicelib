@@ -1,4 +1,4 @@
-* C:\sandbox\PyLTSpice_dev\examples\testfiles\TRAN.asc
+* C:\sandbox\spicelib\examples\testfiles\TRAN_1.asc
 Vin in 0 PWL(0 0 10n 1)
 R1 in out 1k
 C1 out 0 1µ

@@ -47,7 +47,7 @@ class LTComplex(object):
         return f"{self.mag}{self.unit},{self.ph}°"
 
 
-def try_convert_value(value: Union[str, int, float]) -> Union[int, float, str]:
+def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list]:
     """
     Tries to convert the string into an integer and if it fails, tries to convert to a float, if it fails, then returns the
     value as string.
@@ -59,6 +59,8 @@ def try_convert_value(value: Union[str, int, float]) -> Union[int, float, str]:
     """
     if isinstance(value, (int, float)):
         return value
+    elif isinstance(value, list):
+        return [try_convert_value(v) for v in value]
     try:
         ans = int(value)
     except ValueError:
@@ -72,19 +74,46 @@ def try_convert_value(value: Union[str, int, float]) -> Union[int, float, str]:
     return ans
 
 
-def try_convert_values(values: Iterable[str]) -> List[Union[int, float, str]]:
+def split_line_into_values(line: str) -> List[Union[int, float, str]]:
     """
-    Same as try_convert_values but applicable to an iterable
-
-    :param values: Iterable that returns strings
-    :type values:
-    :return: list with the values converted to either integer (int) or floating point (float)
-    :rtype: List[str]
+    Splits a line into values. The values are separated by tabs or spaces. If a value starts with ( and ends with ),
+    then it is considered a complex value, and it is returned as a single value. If converting values within () fails,
+    then the value is returned as a tuple with the values inside the ().
     """
-    answer = []
-    for value in values:
-        answer.append(try_convert_value(value))
-    return answer
+    parenthesis = []
+    i = 0
+    value_start = 0
+    values = []
+    for i, c in enumerate(line):
+        if c == '(':  # By checking the parenthesis first, we can support nested parenthesis
+            parenthesis.insert(0, ')')
+        elif c == '[':
+            parenthesis.insert(0, ']')
+        elif c == '{':
+            parenthesis.insert(0, '}')
+        elif len(parenthesis) > 0:
+            if c == parenthesis[0]:
+                parenthesis.pop(0)
+                if len(parenthesis) == 0:
+                    value_list = split_line_into_values(line[value_start+1:i])  # Excludes the parenthesis
+                    values.append(value_list)
+                    value_start = i + 1
+        elif c in (' ', '\t', '\r', '\n'):
+            if value_start < i:
+                values.append(try_convert_value(line[value_start:i]))
+            value_start = i + 1
+        elif c in (',', ';'):
+            if value_start < i:
+                values.append(try_convert_value(line[value_start:i]))
+            else:
+                values.append(None)
+            value_start = i + 1
+    if value_start < i + 1:
+        values.append(try_convert_value(line[value_start:i + 1]))
+    parenthesis_balanced = len(parenthesis) == 0
+    if not parenthesis_balanced:
+        raise ValueError("Parenthesis are not balanced")
+    return values
 
 
 class LogfileData:

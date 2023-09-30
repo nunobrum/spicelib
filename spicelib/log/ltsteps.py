@@ -88,7 +88,7 @@ __copyright__ = "Copyright 2023, Fribourg Switzerland"
 
 
 import re
-from .logfile_data import LogfileData, try_convert_value, try_convert_values
+from .logfile_data import LogfileData, try_convert_value
 from ..utils.detect_encoding import detect_encoding
 import logging
 _logger = logging.getLogger("spicelib.LTSteps")
@@ -422,8 +422,8 @@ class LTSpiceLogReader(LogfileData):
                     if len(tokens) >= 2:
                         try:
                             int(tokens[0])  # This instruction only serves to trigger the exception
-                            meas = tokens[1:]  # [float(x) for x in tokens[1:]]
-                            measurements.append(try_convert_values(meas))
+                            meas = tokens[1:]  # remove the first token
+                            measurements.append(try_convert_value(meas))
                             self.measure_count += 1
                         except ValueError:
                             if len(tokens) >= 3 and (tokens[2] == "FROM" or tokens[2] == 'at'):
@@ -443,7 +443,7 @@ class LTSpiceLogReader(LogfileData):
             if len(measurements):
                 self.measure_count += len(measurements)
                 for k, title in enumerate(headers):
-                    self.dataset[title] = [line[k] for line in measurements]
+                    self.dataset[title] = [measure[k] for measure in measurements]
 
             _logger.debug("%d measurements" % len(self.dataset))
             _logger.info("Identified %d steps, read %d measurements" % (self.step_count, self.measure_count))

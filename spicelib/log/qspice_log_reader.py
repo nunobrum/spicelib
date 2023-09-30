@@ -22,7 +22,7 @@ import re
 import logging
 from pathlib import Path
 
-from .logfile_data import LogfileData, try_convert_value
+from .logfile_data import LogfileData, try_convert_value, split_line_into_values
 from ..sim.simulator import run_function
 from ..simulators.qspice_simulator import Qspice
 
@@ -139,13 +139,8 @@ class QspiceLogReader(LogfileData):
                     meas_expr = match.group(3)
                     _logger.debug(f"Found measure {meas_name} of type {sim_type} with expression {meas_expr}")
                 else:
-                    line = line.strip()
                     if meas_name:
-                        if line.startswith('(') and line.endswith(')'):
-                            line = line[1:-1]  # remove the parenthesis
-                            values = line.strip().split(',')
-                        else:
-                            values = line.strip().split()  # split by spaces and tabs and repeated spaces are ignored
+                        values = split_line_into_values(line)
                         if headers is None:
                             if self.has_steps():
                                 headers = ['step'] + [meas_name + "_" + str(i) for i in range(len(values) - 1)]
@@ -158,5 +153,5 @@ class QspiceLogReader(LogfileData):
                                 self.dataset[title] = []
                         self.measure_count += 1
                         for k, title in enumerate(headers):
-                            self.dataset[title].append(try_convert_value(values[k]))
+                            self.dataset[title].append(values[k])
                 line = fin.readline()
