@@ -456,11 +456,13 @@ _Make sure to initialize the root logger before importing the library to be able
 
 ## History ##
 * Version 0.5
-  * Reading QSPICE .AC and .OP simulation results
+  * Reading QSPICE .AC and .OP simulation results from qraw files
   * Parsing of QSPICE log and measure files
   * Enabling the Histogram.py to read log files directly (only for LTSpice)
   * Fixing a bug on the LTSpiceLogReader class that was not correctly exporting 
   the data when there fourier data was present.
+  * Enabling the creation of blank netlists (Thanks to @xgzi)
+  * Correction on the Mac OSX process name for LTSpice (Thanks to Wynand M.)
 * Version 0.4
   * Implementing the callback argument in the SimRunner class.
   * Moved simulator classes into a separate package.
