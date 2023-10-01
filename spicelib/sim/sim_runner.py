@@ -600,4 +600,3 @@ class SimRunner(object):
 
             # Wait for the active tasks to finish with a timeout
             sleep(0.2)  # Go asleep for a while
-

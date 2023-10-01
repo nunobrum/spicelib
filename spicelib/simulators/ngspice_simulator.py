@@ -103,5 +103,3 @@ class NGspiceSimulator(Simulator):
         cmd_run = cls.spice_exe + cmd_line_switches + ['-b'] + ['-o'] + [logfile] + ['-r'] + [rawfile] + [netlist_file]
         # start execution
         return run_function(cmd_run, timeout=timeout)
-
-
