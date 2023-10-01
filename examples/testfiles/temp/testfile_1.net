@@ -6,6 +6,6 @@ C2 out in {cap}
 .tran 2
 .param cap=1n res=1k
 .step dec param cap 1p 10u 1
-.savebias ../examples/testfiles/sim_loadbias_2.txt internal time=2
+.savebias sim_loadbias_2.txt internal time=2
 .backanno
 .end

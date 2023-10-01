@@ -169,18 +169,22 @@ class test_spicelib(unittest.TestCase):
         def callback_function(raw_file, log_file):
             print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
 
-        LTC = SimRunner(output_folder=test_dir + "temp/", simulator=ltspice_simulator)
+        # Forcing to use only one simulation at a time so that the bias file is created before
+        # the next simulation is called. Alternatively, wait_completion() can be called after each run
+        # or use run_now and call the callback_function manually.
+        LTC = SimRunner(output_folder=test_dir + "temp/", simulator=ltspice_simulator, parallel_sims=1)
+        # select spice model
         SE = SpiceEditor(test_dir + "testfile.net")
-        #, parallel_sims=1)
         tstart = 0
         for tstop in (2, 5, 8, 10):
+            SE.reset_netlist()  # Reset the netlist to the original status
             tduration = tstop - tstart
             SE.add_instruction(".tran {}".format(tduration), )
             if tstart != 0:
                 SE.add_instruction(".loadbias {}".format(bias_file))
                 # Put here your parameter modifications
                 # LTC.set_parameters(param1=1, param2=2, param3=3)
-            bias_file = test_dir + "sim_loadbias_%d.txt" % tstop
+            bias_file = "sim_loadbias_%d.txt" % tstop
             SE.add_instruction(".savebias {} internal time={}".format(bias_file, tduration))
             tstart = tstop
             LTC.run(SE, callback=callback_function)
