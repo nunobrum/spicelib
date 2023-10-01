@@ -182,6 +182,7 @@ class LogfileData:
         Returns the steps that respect one or more equality conditions
 
         :key conditions: parameters within the Spice simulation. Values are the matches to be found.
+        :type conditions: dict
         :return: List of steps that respect all the given conditions
         :rtype: List[int]
         """
@@ -198,7 +199,7 @@ class LogfileData:
 
     def get_step_vars(self) -> List[str]:
         """
-        Returns the stepped variable names of .
+        Returns the stepped variable names on the log file.
         :return: List of step variables.
         :rtype: list of str
         """

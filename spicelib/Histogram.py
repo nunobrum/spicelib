@@ -62,6 +62,9 @@ The help can be obtained by calling the script without arguments
 __author__ = "Nuno Canto Brum <me@nunobrum.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
+from spicelib.utils.detect_encoding import EncodingDetectError, detect_encoding
+
+
 def main():
     import numpy as np
     from scipy.stats import norm
@@ -79,7 +82,9 @@ def main():
     opts.add_option('-c', "--condition", action="append", type="string", dest="filters",
                     help="Filter condition writen in python. More than one expression can be added but each expression "
                          "should be preceded by -c.\n" +
-                         "EXAMPLE: -c V(N001)>4 -c parameter==1 -c  I(V1)<0.5" )
+                         "EXAMPLE: -c V(N001)>4 -c parameter==1 -c I(V1)<0.5"
+                          "Note: whe parsing log files, the > and < operators are not supported."
+                    )
     opts.add_option('-f', "--format", action="store", type="string", dest="format",
                     help="Format string for the X axis. Example: -f %3.4f")
     # opts.add_option('-p', "--scaling",action="store", type="string", dest="prescaling",
@@ -133,39 +138,66 @@ def main():
         else:
             print("No filters defined")
 
-        log = open(logfile,'r')
-        header = log.readline().rstrip('\r\n')
-        vars = header.split('\t')
-        try:
-            sav_col = vars.index(TRACE)
-        except ValueError:
-            log.close()
-            print("File '%s' doesn't have trace '%s'" % (logfile, TRACE))
-            print("LOG FILE contains %s" % vars)
-            exit(-1)
-
-        if (options.filters is None) or (len(options.filters) == 0):
-            for line in log:
-                #print(line)
-                vs = line.split('\t')
-                values.append(float(vs[sav_col]))
-        else:
-            for line in log:
-                vs = map(float,line.split('\t'))
-                env = dict(zip(vars,vs))
-
-                for expression in options.filters:
-                    test = eval(expression, None, env)
-                    if test == False:
-                        break
+        if logfile.endswith(".log"):
+            # Maybe it is a LTSpice log file
+            from spicelib.log.ltsteps import LTSpiceLogReader
+            try:
+                log = LTSpiceLogReader(logfile)
+            except EncodingDetectError:
+                print("Failed to load file '%s'. Use LTSteps first to convert to tlog format" % logfile)
+                exit(-1)
+            else:
+                if options.filters is None:
+                    values = log.get_measure_values_at_steps(TRACE, None)
                 else:
-                    values.append(float(env[TRACE]))
-        log.close()
+                    # This implementation only allows equal operators
+                    filters = {}
+                    for expression in options.filters:
+                        lhs_rhs = expression.split("==")
+                        if len(lhs_rhs) == 2:
+                            filters[lhs_rhs[0]] = float(lhs_rhs[1])
+                        else:
+                            print("Unsupported comparison operator in reading .log files.")
+                            print("For enhanced comparators convert the file to tlog using LTsteps script")
+                    log.steps_with_conditions(**filters)
+                    values = log.get_measure_values_at_steps(TRACE, options.filters)
+
+        if len(values) == 0:
+            encoding = detect_encoding(logfile)
+            print("Loading file '%s' with encoding '%s'" % (logfile, encoding))
+            log = open(logfile, 'r', encoding=encoding)
+            header = log.readline().rstrip('\r\n')
+            vars = header.split('\t')
+            try:
+                sav_col = vars.index(TRACE)
+            except ValueError:
+                log.close()
+                print("File '%s' doesn't have trace '%s'" % (logfile, TRACE))
+                print("LOG FILE contains %s" % vars)
+                exit(-1)
+
+            if (options.filters is None) or (len(options.filters) == 0):
+                for line in log:
+                    vs = line.split('\t')
+                    values.append(float(vs[sav_col]))
+            else:
+                for line in log:
+                    vs = map(float, line.split('\t'))
+                    env = dict(zip(vars,vs))
+
+                    for expression in options.filters:
+                        test = eval(expression, None, env)
+                        if test == False:
+                            break
+                    else:
+                        values.append(float(env[TRACE]))
+            log.close()
 
     if len(values) == 0:
         print("No elements found")
     elif len(values) < options.nbins:
-        print("Not enough elements for an histogram")
+        print("Not enough elements for an histogram."
+              f"Only found {len(values)} elements. Histogram is specified for {options.nbins} bins")
     else:
         x = np.array(values, dtype=float)
         mu = x.mean()
