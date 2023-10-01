@@ -214,12 +214,15 @@ from struct import unpack
 from typing import Union, List, Tuple, Dict
 from pathlib import Path
 
+from spicelib.log.logfile_data import try_convert_value
+
 from .raw_classes import Axis, TraceRead, DummyTrace, SpiceReadException
 from ..utils.detect_encoding import detect_encoding
 
 import numpy as np
 from numpy import zeros, complex128, float32, float64, frombuffer, angle
 import logging
+import re
 _logger = logging.getLogger("spicelib.RawRead")
 
 
@@ -324,6 +327,15 @@ def consume16bytes(f):
     f.read(16)
 
 
+def namify(spice_ref: str):
+    """Translate from V(0,n01) to V__n01__ and I(R1) to I__R1__"""
+    matchobj = re.match(r'(V|I|P)\((\w+)\)', spice_ref)
+    if matchobj:
+        return f'{matchobj.group(1)}__{matchobj.group(2)}__'
+    else:
+        raise NotImplementedError(f'Unrecognized alias type for alias : "{spice_ref}"')
+
+
 class RawRead(object):
     """Class for reading Spice wave Files. It can read all types of Files. If stepped data is detected,
     it will also try to read the corresponding LOG file so to retrieve the stepped data.
@@ -401,16 +413,31 @@ class RawRead(object):
                 line = ""
             else:
                 line += ch
+        self.aliases = {}  # QSpice defines aliases for some of the traces that can be computed from other traces.
+        self.spice_params = {}  # QSpice stores param values in the .raw file. They may have some usage later for
+        # computing the aliases.
         for line in header:
-            k, _, v = line.partition(':')
-            if k == 'Variables':
-                break
-            self.raw_params[k] = v.strip()
+            if line.startswith('.'):  # This is either a .param or a .alias
+                if line.startswith('.param'):
+                    # This is a .param line which format as the following pattern ".param temp=27"
+                    _, _, line = line.partition('.param')
+                    k, _, v = line.partition('=')
+                    self.spice_params[k.strip()] = v.strip()
+                elif line.startswith('.alias'):
+                    # This is a .param line which format as the following pattern ".alias I(R2) (0.0001mho*V(n01,out))"
+                    _, alias, formula = line.split(' ', 3)
+                    self.aliases[alias.strip()] = formula.strip()
+            else:
+                # This is the typical RAW style parameter format <param>: <value>
+                k, _, v = line.partition(':')
+                if k == 'Variables':
+                    break
+                self.raw_params[k] = v.strip()
         self.nPoints = int(self.raw_params['No. Points'], 10)
         self.nVariables = int(self.raw_params['No. Variables'], 10)
 
         has_axis = self.raw_params['Plotname'] not in ('Operating Point', 'Transfer Function',)
-
+        reading_qspice = 'QSPICE' in self.raw_params['Command']
         self._traces = []
         self.steps = None
         self.axis = None  # Creating the axis
@@ -418,7 +445,7 @@ class RawRead(object):
         if 'complex' in self.raw_params['Flags'] or self.raw_params['Plotname'] == 'AC Analysis':
             numerical_type = 'complex'
         else:
-            if 'QSPICE' in self.raw_params['Command']:  # QSPICE uses doubles for everything
+            if reading_qspice:  # QSPICE uses doubles for everything
                 numerical_type = 'double'
             else:
                 numerical_type = 'real'
@@ -426,11 +453,14 @@ class RawRead(object):
         ivar = 0
         for line in header[i + 1:-1]:  # Parse the variable names
             idx, name, var_type = line.lstrip().split('\t')
-            if has_axis and ivar == 0:  # If it has an axis, it should be always read
+            if ivar == 0:  # If it has an axis, it should be always read
                 if numerical_type == 'real':
-                    axis_numerical_type = 'double'
+                    axis_numerical_type = 'double'  # It's weird, but LTSpice uses double for the first variable in .OP
                 else:
-                    axis_numerical_type = numerical_type
+                    if reading_qspice:
+                        axis_numerical_type = 'double'  # QSPICE uses double for frequency while reading .AC files
+                    else:
+                        axis_numerical_type = numerical_type
                 self.axis = Axis(name, var_type, self.nPoints, axis_numerical_type)
                 trace = self.axis
             elif (traces_to_read == "*") or (name in traces_to_read):
@@ -438,7 +468,7 @@ class RawRead(object):
                     trace = TraceRead(name, var_type, self.nPoints, self.axis, numerical_type)
                 else:
                     # If an Operation Point or Transfer Function, only one point per step
-                    trace = TraceRead(name, var_type, self.nPoints, None, 'real')
+                    trace = TraceRead(name, var_type, self.nPoints, None, numerical_type)
             else:
                 trace = DummyTrace(name, var_type)
 
@@ -456,36 +486,44 @@ class RawRead(object):
 
         if self.verbose:
             _logger.info("File contains {} traces, reading {}".format(ivar,
-                                                               len([trace for trace in self._traces
-                                                                    if not isinstance(trace, DummyTrace)])))
+                                                                      len([trace for trace in self._traces
+                                                                           if not isinstance(trace, DummyTrace)])))
 
         if self.raw_type == "Binary:":
             # Will start the reading of binary values
             # But first check whether how data is stored.
             self.block_size = (raw_file_size - binary_start) // self.nPoints
-            self.data_size = self.block_size // self.nVariables
 
             scan_functions = []
+            calc_block_size = 0
             for trace in self._traces:
-                if self.data_size == 8:
+                if trace.numerical_type == 'double':
+                    calc_block_size += 8
                     if isinstance(trace, DummyTrace):
                         fun = consume8bytes
                     else:
                         fun = read_float64
-                elif self.data_size == 16:
+                elif trace.numerical_type == 'complex':
+                    calc_block_size += 16
                     if isinstance(trace, DummyTrace):
                         fun = consume16bytes
                     else:
                         fun = read_complex
-                else:  # data size is only 4 bytes
-                    if len(scan_functions) == 0:  # This is the axis
-                        fun = read_float64
+                elif trace.numerical_type == 'real':  # data size is only 4 bytes
+                    calc_block_size += 4
+                    if isinstance(trace, DummyTrace):
+                        fun = consume4bytes
                     else:
-                        if isinstance(trace, DummyTrace):
-                            fun = consume4bytes
-                        else:
-                            fun = read_float32
+                        fun = read_float32
+
+                else:
+                    raise RuntimeError(
+                        "Invalid data type {} for trace {}".format(trace.numerical_type, trace.name))
                 scan_functions.append(fun)
+            if calc_block_size != self.block_size:
+                raise RuntimeError(
+                    "Error in calculating the block size. Expected {} bytes, but found {} bytes".format(
+                        calc_block_size, self.block_size))
 
             if "fastaccess" in self.raw_params["Flags"]:
                 if self.verbose:
@@ -496,19 +534,18 @@ class RawRead(object):
                         # TODO: replace this by a seek
                         raw_file.read(self.nPoints * self.data_size)
                     else:
-                        if self.data_size == 8:
+                        if var.numerical_type == 'double':
                             s = raw_file.read(self.nPoints * 8)
                             var.data = frombuffer(s, dtype=float64)
-                        elif self.data_size == 16:
+                        elif var.numerical_type == 'complex':
                             s = raw_file.read(self.nPoints * 16)
                             var.data = frombuffer(s, dtype=complex)
+                        elif var.numerical_type == 'real':
+                            s = raw_file.read(self.nPoints * 4)
+                            var.data = frombuffer(s, dtype=float32)
                         else:
-                            if i == 0:
-                                s = raw_file.read(self.nPoints * 8)
-                                var.data = frombuffer(s, dtype=float64)
-                            else:
-                                s = raw_file.read(self.nPoints * 4)
-                                var.data = frombuffer(s, dtype=float32)
+                            raise RuntimeError(
+                                "Invalid data type {} for trace {}".format(var.numerical_type, var.name))
 
             else:
                 if self.verbose:
@@ -603,7 +640,39 @@ class RawRead(object):
         :return: trace names
         :rtype: list[str]
         """
-        return [trace.name for trace in self._traces]
+        # parsing the aliases needs to be done before implementing this.
+        return [trace.name for trace in self._traces] + list(self.aliases.keys())
+
+    def _compute_alias(self, alias: str):
+        """
+        Constants like mho need to be replaced and  V(ref1,ref2) need to be replaced by (V(ref1)-V(ref2)) and after
+        that the aliases can be computed, using the eval() function.
+        """
+        formula = self.aliases[alias]
+        # converting V(ref1, ref2) to (V(ref1)-V(ref2))
+        formula = re.sub(r'V\((\w+),0\)', r'V(\1)', formula)
+        formula = re.sub(r'V\(0,(\w+)\)', r'(-V(\1))', formula)
+        formula = re.sub(r'V\((\w+),(\w+)\)', r'(V(\1)-V(\2))', formula)
+        # converting V(ref1) to V__ref1__ and I(ref1) to I__ref1__
+        formula = re.sub(r'(V|I|P)\((\w+)\)', r'\1__\2__', formula)
+
+        # removing the mho or other constants ex:  (0.0001mho*V(0,n01)) -> (0.0001*V(0,n01))
+        formula = re.sub(r'(\d+)((mho)|(ohm))', r'\1', formula)
+        if alias.startswith('I('):
+            whattype = 'current'
+        elif alias.startswith('V('):
+            whattype = 'voltage'
+        else:
+            raise NotImplementedError(f'Unrecognized alias type for alias : "{alias}"')
+        trace = TraceRead(alias, whattype, self.nPoints, self.axis, 'double')
+        local_vars = {'pi': 3.1415926536, 'e': 2.7182818285}  # This is the dictionary that will be used to compute the alias
+        local_vars.update({name: float(value) for name, value in self.spice_params.items()})
+        local_vars.update({namify(trace.name): trace.data for trace in self._traces})
+        try:
+            trace.data = eval(formula, local_vars)
+        except Exception as err:
+            raise RuntimeError(f'Error computing alias "{alias}" with formula "{formula}"') from err
+        return trace
 
     def get_trace(self, trace_ref: Union[str, int]):
         """
@@ -617,9 +686,12 @@ class RawRead(object):
         """
         if isinstance(trace_ref, str):
             for trace in self._traces:
-                if trace_ref.upper() == trace.name.upper():  # The trace names are case-insensitive
+                if trace_ref.casefold() == trace.name.casefold():  # The trace names are case-insensitive
                     # assert isinstance(trace, DataSet)
                     return trace
+            for alias in self.aliases:
+                if alias.casefold() == alias.casefold():
+                    return self._compute_alias(alias)
             raise IndexError(f"{self} doesn't contain trace \"{trace_ref}\"\n"
                              f"Valid traces are {[trc.name for trc in self._traces]}")
         else:
@@ -695,51 +767,44 @@ class RawRead(object):
                     step_dict = {}
                     for tok in line[6:-1].split(' '):
                         key, value = tok.split('=')
-                        try:
-                            # Tries to convert to float for backward compatibility
-                            value = float(value)
-                        except ValueError:
-                            pass
-                            # Leave value as a string to accommodate cases like temperature steps.
-                            # Temperature steps have the form '.step temp=25°C'
-                        step_dict[key] = value
+                        step_dict[key] = try_convert_value(value)
                     if self.steps is None:
                         self.steps = [step_dict]
                     else:
                         self.steps.append(step_dict)
             log.close()
 
-            expected_log_line = "Ciruit:"
         elif 'QSPICE' in self.raw_params['Command']:
             if filename.suffix != '.qraw':
                 raise SpiceReadException("Invalid Filename. The file should end with '.qraw'")
             logfile = filename.with_suffix(".log")
             try:
-                encoding = detect_encoding(logfile)
-                log = open(logfile, 'r', errors='replace', encoding=encoding)
+                log = open(logfile, 'r', errors='replace', encoding='utf-8')
             except OSError:
                 raise SpiceReadException("Log file '%s' not found" % logfile)
             except UnicodeError:
                 raise SpiceReadException("Unable to parse log file '%s'" % logfile)
 
+            step_regex = re.compile(r"^(\d+) of \d+ steps:\s+\.step (.*)$")
+
             for line in log:
-                if '.step' in line:
+                match = step_regex.match(line)
+                if match:
                     step_dict = {}
-                    p_step = line.split('.step ')[1]
-                    for tok in p_step.split(' '):
-                        key, value = tok.split('=')
-                        try:
-                            # Tries to convert to float for backward compatibility
-                            value = float(value)
-                        except ValueError:
-                            pass
-                            # Leave value as a string to accommodate cases like temperature steps.
-                            # Temperature steps have the form '.step temp=25°C'
-                        step_dict[key] = value
+                    step = int(match.group(1))
+                    stepset = match.group(2)
+                    _logger.debug(f"Found step {step} with stepset {stepset}")
+
+                    tokens = stepset.strip('\r\n').split(' ')
+                    for tok in tokens:
+                        key, value = tok.split("=")
+                        # Try to convert to int or float
+                        step_dict[key] = try_convert_value(value)
                     if self.steps is None:
                         self.steps = [step_dict]
                     else:
                         self.steps.append(step_dict)
+            log.close()
 
         else:
             raise SpiceReadException("Unsupported simulator. Only LTspice and QSPICE are supported.")

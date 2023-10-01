@@ -1,11 +1,11 @@
-Circuit: * C:\sandbox\spicelib_main\examples\testfiles\AC - STEP_1.asc
+Circuit: * C:\sandbox\spicelib\examples\testfiles\AC - STEP_1.asc
 
 .OP point found by inspection.
 .step r1=1000
 .step r1=10000
 
-Date: Fri Sep  8 11:08:00 2023
-Total elapsed time: 0.025 seconds.
+Date: Sat Sep 30 11:00:15 2023
+Total elapsed time: 0.036 seconds.
 
 tnom = 27
 temp = 27

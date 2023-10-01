@@ -455,6 +455,12 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 0.5
+  * Reading QSPICE .AC and .OP simulation results
+  * Parsing of QSPICE log and measure files
+  * Enabling the Histogram.py to read log files directly (only for LTSpice)
+  * Fixing a bug on the LTSpiceLogReader class that was not correctly exporting 
+  the data when there fourier data was present.
 * Version 0.4
   * Implementing the callback argument in the SimRunner class.
   * Moved simulator classes into a separate package.

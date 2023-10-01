@@ -132,5 +132,3 @@ class XyceSimulator(Simulator):
         cmd_run = cls.spice_exe + cmd_line_switches + [netlist_file]
         # start execution
         return run_function(cmd_run, timeout=timeout)
-
-

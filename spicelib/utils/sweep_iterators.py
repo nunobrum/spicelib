@@ -191,5 +191,3 @@ if __name__ == "__main__":
     print("list(sweep_log(1000, 1, 2))", list(sweep_log(1000, 1, 2)))
     print("list(sweep_log_n(1, 10, 6))", list(sweep_log_n(1, 10, 6)))
     print("list(sweep_log_(10, 1, 5))", list(sweep_log_n(10, 1, 5)))
-
-

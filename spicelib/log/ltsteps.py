@@ -2,6 +2,14 @@
 # coding=utf-8
 
 # -------------------------------------------------------------------------------
+#
+#  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
+#  ██╔════╝██╔══██╗██║██╔════╝██╔════╝██║     ██║██╔══██╗
+#  ███████╗██████╔╝██║██║     █████╗  ██║     ██║██████╔╝
+#  ╚════██║██╔═══╝ ██║██║     ██╔══╝  ██║     ██║██╔══██╗
+#  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
+#  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
+#
 # Name:        ltsteps.py
 # Purpose:     Process LTSpice output files and align data for usage in a spread-
 #              sheet tool such as Excel, or Calc.
@@ -80,7 +88,7 @@ __copyright__ = "Copyright 2023, Fribourg Switzerland"
 
 
 import re
-from .logfile_data import LogfileData, try_convert_value, try_convert_values
+from .logfile_data import LogfileData, try_convert_value
 from ..utils.detect_encoding import detect_encoding
 import logging
 _logger = logging.getLogger("spicelib.LTSteps")
@@ -224,7 +232,7 @@ class LTSpiceLogReader(LogfileData):
     """
     Reads an LTSpice log file and retrieves the step information if it exists. The step information is then accessible
     by using the 'stepset' property of this class.
-    This class is intended to be used together with the LTSpice_RawRead to retrieve the runs that are associated with a
+    This class is intended to be used together with the RawRead to retrieve the runs that are associated with a
     given parameter setting.
 
     This class constructor only reads the step information of the log file. If the measures are needed, then the user
@@ -236,7 +244,7 @@ class LTSpiceLogReader(LogfileData):
     :property headers: list containing the headers on the exported data. This is only populated when the *read_measures*
         optional parameter is set to False.
 
-    :property dataset: dictionary in which the keys are the the headers and the export file and the values are
+    :property dataset: dictionary in which the keys are the headers and the export file and the values are
          lists. This is information is only populated when the *read_measures* optional parameter is set to False.
 
     :param log_filename: path to the Export file.
@@ -404,7 +412,7 @@ class LTSpiceLogReader(LogfileData):
                             _logger.debug("Storing Measurement %s (count %d)" % (dataname, len(measurements)))
                             self.measure_count += len(measurements)
                             for k, title in enumerate(headers):
-                                self.dataset[title] = [line[k] for line in measurements]
+                                self.dataset[title] = [measure[k] for measure in measurements]
                         headers = []
                         measurements = []
                     dataname = line[13:]  # text which is after "Measurement: ". len("Measurement: ") -> 13
@@ -414,8 +422,8 @@ class LTSpiceLogReader(LogfileData):
                     if len(tokens) >= 2:
                         try:
                             int(tokens[0])  # This instruction only serves to trigger the exception
-                            meas = tokens[1:]  # [float(x) for x in tokens[1:]]
-                            measurements.append(try_convert_values(meas))
+                            meas = tokens[1:]  # remove the first token
+                            measurements.append(try_convert_value(meas))
                             self.measure_count += 1
                         except ValueError:
                             if len(tokens) >= 3 and (tokens[2] == "FROM" or tokens[2] == 'at'):
@@ -435,7 +443,7 @@ class LTSpiceLogReader(LogfileData):
             if len(measurements):
                 self.measure_count += len(measurements)
                 for k, title in enumerate(headers):
-                    self.dataset[title] = [line[k] for line in measurements]
+                    self.dataset[title] = [measure[k] for measure in measurements]
 
             _logger.debug("%d measurements" % len(self.dataset))
             _logger.info("Identified %d steps, read %d measurements" % (self.step_count, self.measure_count))

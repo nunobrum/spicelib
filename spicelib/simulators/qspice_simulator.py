@@ -112,4 +112,3 @@ class Qspice(Simulator):
         cmd_run = cls.spice_exe + ['-o', log_file] + [netlist_file] + cmd_line_switches
         # start execution
         return run_function(cmd_run, timeout=timeout)
-

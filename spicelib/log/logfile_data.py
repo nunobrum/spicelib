@@ -47,7 +47,7 @@ class LTComplex(object):
         return f"{self.mag}{self.unit},{self.ph}°"
 
 
-def try_convert_value(value: Union[str, int, float]) -> Union[int, float, str]:
+def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list]:
     """
     Tries to convert the string into an integer and if it fails, tries to convert to a float, if it fails, then returns the
     value as string.
@@ -59,6 +59,8 @@ def try_convert_value(value: Union[str, int, float]) -> Union[int, float, str]:
     """
     if isinstance(value, (int, float)):
         return value
+    elif isinstance(value, list):
+        return [try_convert_value(v) for v in value]
     try:
         ans = int(value)
     except ValueError:
@@ -68,23 +70,50 @@ def try_convert_value(value: Union[str, int, float]) -> Union[int, float, str]:
             try:
                 ans = LTComplex(value)
             except ValueError:
-                ans = value
+                ans = value.strip()  # Removes the leading trailing spaces
     return ans
 
 
-def try_convert_values(values: Iterable[str]) -> List[Union[int, float, str]]:
+def split_line_into_values(line: str) -> List[Union[int, float, str]]:
     """
-    Same as try_convert_values but applicable to an iterable
-
-    :param values: Iterable that returns strings
-    :type values:
-    :return: list with the values converted to either integer (int) or floating point (float)
-    :rtype: List[str]
+    Splits a line into values. The values are separated by tabs or spaces. If a value starts with ( and ends with ),
+    then it is considered a complex value, and it is returned as a single value. If converting values within () fails,
+    then the value is returned as a tuple with the values inside the ().
     """
-    answer = []
-    for value in values:
-        answer.append(try_convert_value(value))
-    return answer
+    parenthesis = []
+    i = 0
+    value_start = 0
+    values = []
+    for i, c in enumerate(line):
+        if c == '(':  # By checking the parenthesis first, we can support nested parenthesis
+            parenthesis.insert(0, ')')
+        elif c == '[':
+            parenthesis.insert(0, ']')
+        elif c == '{':
+            parenthesis.insert(0, '}')
+        elif len(parenthesis) > 0:
+            if c == parenthesis[0]:
+                parenthesis.pop(0)
+                if len(parenthesis) == 0:
+                    value_list = split_line_into_values(line[value_start+1:i])  # Excludes the parenthesis
+                    values.append(value_list)
+                    value_start = i + 1
+        elif c in (' ', '\t', '\r', '\n'):
+            if value_start < i:
+                values.append(try_convert_value(line[value_start:i]))
+            value_start = i + 1
+        elif c in (',', ';'):
+            if value_start < i:
+                values.append(try_convert_value(line[value_start:i]))
+            else:
+                values.append(None)
+            value_start = i + 1
+    if value_start < i + 1:
+        values.append(try_convert_value(line[value_start:i + 1]))
+    parenthesis_balanced = len(parenthesis) == 0
+    if not parenthesis_balanced:
+        raise ValueError("Parenthesis are not balanced")
+    return values
 
 
 class LogfileData:
@@ -123,6 +152,14 @@ class LogfileData:
             return self.dataset[key]  # This will raise an Index Error if not found here.
         raise IndexError("'%s' is not a valid step variable or measurement name" % key)
 
+    def has_steps(self):
+        """
+        Returns true if the simulation has steps
+        :return: True if the simulation has steps
+        :rtype: bool
+        """
+        return self.step_count > 0
+
     def steps_with_parameter_equal_to(self, param: str, value: Union[str, int, float]) -> List[int]:
         """
         Returns the steps that contain a given condition.
@@ -145,6 +182,7 @@ class LogfileData:
         Returns the steps that respect one or more equality conditions
 
         :key conditions: parameters within the Spice simulation. Values are the matches to be found.
+        :type conditions: dict
         :return: List of steps that respect all the given conditions
         :rtype: List[int]
         """
@@ -161,7 +199,7 @@ class LogfileData:
 
     def get_step_vars(self) -> List[str]:
         """
-        Returns the stepped variable names of .
+        Returns the stepped variable names on the log file.
         :return: List of step variables.
         :rtype: list of str
         """
@@ -260,7 +298,7 @@ class LogfileData:
         TODO: Delete the old data and insert new ones the the right position
         """
         for param in list(self.dataset.keys()):
-            if len(self.dataset[param]) > 0 and isinstance(self.dataset[param][0], LTComplex):
+            if (isinstance(self.dataset[param], list) and len(self.dataset[param]) > 0 and isinstance(self.dataset[param][0], LTComplex)):
                 self.dataset[param + '_mag'] = [v.mag for v in self.dataset[param]]
                 self.dataset[param + '_ph'] = [v.ph for v in self.dataset[param]]
 
@@ -299,14 +337,16 @@ class LogfileData:
         if append_with_line_prefix is not None:  # if appending a file, it must write the column title
             fout.write('user info\t')
 
-        fout.write("step\t%s\t%s\n" % ("\t".join(self.stepset.keys()), "\t".join(self.dataset)))
-        first_parameter = next(iter(self.dataset))
+        dataset_keys = [key for key, value in self.dataset.items() if isinstance(value, list)]
+
+        fout.write("step\t%s\t%s\n" % ("\t".join(self.stepset.keys()), "\t".join(dataset_keys)))
+        first_parameter = dataset_keys[0]
         for index in range(len(self.dataset[first_parameter])):
             if self.step_count == 0:
                 step_data = []  # Empty step
             else:
                 step_data = [self.stepset[param][index] for param in self.stepset.keys()]
-            meas_data = [self.dataset[param][index] for param in self.dataset]
+            meas_data = [self.dataset[param][index] for param in dataset_keys]
 
             if append_with_line_prefix is not None:  # if appending a file it must write the user info
                 fout.write(append_with_line_prefix + '\t')

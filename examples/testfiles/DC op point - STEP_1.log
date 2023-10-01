@@ -1,9 +1,9 @@
-Circuit: * C:\sandbox\spicelib_main\examples\testfiles\DC op point - STEP_1.asc
+Circuit: * C:\sandbox\spicelib\examples\testfiles\DC op point - STEP_1.asc
 
 Direct Newton iteration for .op point succeeded.
 
-Date: Fri Sep  8 11:08:11 2023
-Total elapsed time: 0.023 seconds.
+Date: Sat Sep 30 11:00:25 2023
+Total elapsed time: 0.123 seconds.
 
 tnom = 27
 temp = 27

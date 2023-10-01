@@ -26,7 +26,7 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 from typing import Union, List, Callable, Any, Tuple
-from ..utils.detect_encoding import detect_encoding
+from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
@@ -38,7 +38,7 @@ SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting comp
 # A Spice netlist can only have one of the instructions below, otherwise an error will be raised
 
 REPLACE_REGXES = {
-    'A': r"",  # Special Functions, Parameter substitution not supported
+    'A': r"",  # LTSPice Only : Special Functions, Parameter substitution not supported
     'B': r"^(?P<designator>B§?[VI]?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Behavioral source
     'C': r"^(?P<designator>C§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+(?P<value>({)?(?(6).*}|([0-9\.E+-]+(Meg|[kmuµnpf])?F?))).*$",
     # Capacitor
@@ -80,6 +80,12 @@ REPLACE_REGXES = {
     '@': r"^(?P<designator>@§?\d+)(?P<nodes>(\s+\S+){2})\s?(?P<params>(.*)*)$",
     # Frequency Noise Analysis (FRA) wiggler
     # pattern = r'^@(\d+)\s+(\w+)\s+(\w+)(?:\s+delay=(\d+\w+))?(?:\s+fstart=(\d+\w+))?(?:\s+fend=(\d+\w+))?(?:\s+oct=(\d+))?(?:\s+fcoarse=(\d+\w+))?(?:\s+nmax=(\d+\w+))?\s+(\d+)\s+(\d+\w+)\s+(\d+)(?:\s+pp0=(\d+\.\d+))?(?:\s+pp1=(\d+\.\d+))?(?:\s+f0=(\d+\w+))?(?:\s+f1=(\d+\w+))?(?:\s+tavgmin=(\d+\w+))?(?:\s+tsettle=(\d+\w+))?(?:\s+acmag=(\d+))?$'
+    'Ã': r"^(?P<designator>Ã\w+)(?P<nodes>(\s+\S+){16})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # QSPICE Unique component Ã
+    '¥': r"^(?P<designator>¥\w+)(?P<nodes>(\s+\S+){16})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # QSPICE Unique component ¥
+    '€': r"^(?P<designator>€\w+)(?P<nodes>(\s+\S+){32})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # QSPICE Unique component €
+    '£': r"^(?P<designator>£\w+)(?P<nodes>(\s+\S+){64})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # QSPICE Unique component £
+    'Ø': r"^(?P<designator>Ø\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # QSPICE Unique component Ø
+    '×': r"^(?P<designator>×\w+)(?P<nodes>(\s+\S+){4,16})\s+(?P<value>.*)(?P<params>(\w+\s+){1,8})\s*\\?$",  # QSPICE Unique component ×
 }
 
 SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
@@ -674,15 +680,23 @@ class SpiceEditor(SpiceCircuit):
     :type netlist_file: str or Path
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This however is not 100% fool proof.
+    :param create_blank: Create a blank '.net' file when 'netlist_file' not exist.
     :type encoding: str, optional
     """
 
-    def __init__(self, netlist_file: Union[str, Path], encoding='autodetect'):
+    def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
         super().__init__()
         self.netlist_file = Path(netlist_file)
         self.modified_subcircuits = {}
+        self.create_blank = create_blank
         if encoding == 'autodetect':
-            self.encoding = detect_encoding(self.netlist_file, '*')  # Normally the file will start with a '*'
+            try:
+                self.encoding = detect_encoding(self.netlist_file, '*')  # Normally the file will start with a '*'
+            except EncodingDetectError as err:
+                if self.create_blank:
+                    self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
+                else:
+                    raise err
         else:
             self.encoding = encoding
         self.reset_netlist()
@@ -824,6 +838,11 @@ class SpiceEditor(SpiceCircuit):
                 # else:
                 #     for _ in lines:  # Consuming the rest of the file.
                 #         pass  # print("Ignoring %s" % _)
+        elif self.create_blank:
+            lines = ['* netlist generated from spicelib', '.end']
+            finished = self._add_lines(lines)
+            if not finished:
+                raise SyntaxError("Netlist with missing .END or .ENDS statements")
         else:
             _logger.error("Netlist file not found: {}".format(self.netlist_file))
 
