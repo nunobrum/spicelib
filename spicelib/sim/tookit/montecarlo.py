@@ -87,7 +87,7 @@ class Montecarlo(ToleranceDeviations):
             self.editor.add_instruction(".func urng(nom,mean,df2) if(run<0, nom, mean*flat(df2))")
 
         if min_max_norm_func:
-            self.editor.add_instruction(".func nrng(nom,mean,df23) if(run<0, nom, mean*(1+gauss(df2)))")
+            self.editor.add_instruction(".func nrng(nom,mean,df6) if(run<0, nom, mean*(1+gauss(df6)))")
 
         self.num_runs = kwargs.get('num_runs', 1000)
         self.editor.add_instruction(".step param run -1 %d 1" % self.num_runs)
