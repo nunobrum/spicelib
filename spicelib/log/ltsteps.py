@@ -86,14 +86,19 @@ and use it.
 __author__ = "Nuno Canto Brum <me@nunobrum.com>"
 __copyright__ = "Copyright 2023, Fribourg Switzerland"
 
-
+import dataclasses
+import os.path
 import re
+from typing import List
+
 from .logfile_data import LogfileData, try_convert_value
 from ..utils.detect_encoding import detect_encoding
 import logging
 _logger = logging.getLogger("spicelib.LTSteps")
 
-
+# TODO: Add support for other non default options:
+# .option meascplxfmt=polar
+# .option meascplxfmt=cartesian
 
 def reformat_LTSpice_export(export_file: str, tabular_file: str):
     """
@@ -228,6 +233,52 @@ class LTSpiceExport(object):
         fin.close()
 
 
+@dataclasses.dataclass
+class HarmonicData:
+    harmonic_number: int
+    frequency: float
+    fourier_component: float
+    normalized_component: float
+    phase: float
+    normalized_phase: float
+    # units: dict = dataclasses.field(default_factory=dict)
+
+    @classmethod
+    def from_line(cls, line: str):
+        tokens = line.split()
+        harmonic_number = int(tokens[0])
+        frequency = float(tokens[1])
+        fourier_component = float(tokens[2])
+        normalized_component = float(tokens[3])
+        phase = float(tokens[4].rstrip('°'))
+        normalized_phase = float(tokens[5].rstrip('°'))
+        return cls(harmonic_number, frequency, fourier_component, normalized_component, phase, normalized_phase)
+
+
+@dataclasses.dataclass
+class FourierData:
+    signal: str
+    n_periods: int
+    dc_component: float
+    phd: float  # Partial Harmonic Distortion
+    thd: float  # Total Harmonic Distortion
+    harmonics: List[HarmonicData]
+    step: int
+
+    @property
+    def fundamental(self):
+        return self.harmonics[0].frequency
+
+    def __getitem__(self, item):
+        return self.harmonics[item]
+
+    def __iter__(self):
+        return iter(self.harmonics)
+
+    def __len__(self):
+        return len(self.harmonics)
+
+
 class LTSpiceLogReader(LogfileData):
     """
     Reads an LTSpice log file and retrieves the step information if it exists. The step information is then accessible
@@ -258,6 +309,7 @@ class LTSpiceLogReader(LogfileData):
     def __init__(self, log_filename: str, read_measures=True, step_set: dict = None, encoding=None):
         super().__init__(step_set)
         self.logname = log_filename
+        self.fourier = {}
         if encoding is None:
             self.encoding = detect_encoding(log_filename, "Circuit:")
         else:
@@ -281,12 +333,11 @@ class LTSpiceLogReader(LogfileData):
 
             while line:
                 if line.startswith("N-Period"):
-                    import pandas as pd
                     # Read number of periods
                     n_periods = int(line.strip('\r\n').split("=")[-1])
-                    # Read waveform name
+                    # Read signal name
                     line = fin.readline().strip('\r\n')
-                    waveform = line.split(" of ")[-1]
+                    signal = line.split(" of ")[-1]
                     # Read DC component
                     line = fin.readline().strip('\r\n')
                     dc_component = float(line.split(':')[-1])
@@ -295,66 +346,28 @@ class LTSpiceLogReader(LogfileData):
                     # Skip two header lines
                     fin.readline()
                     fin.readline()
-
-                    harmonic_lines = []
+                    # Read Harmonics table
+                    phd = thd = None
+                    harmonics = []
                     while True:
                         line = fin.readline().strip('\r\n')
                         if line.startswith("Total Harmonic"):
                             # Find THD
                             thd = float(re.search(r"\d+.\d+", line).group())
+                        elif line.startswith("Partial Harmonic"):
+                            # Find PHD
+                            phd = float(re.search(r"\d+.\d+", line).group())
+                        elif line == "":
+                            # End of the table
                             break
                         else:
-                            harmonic_lines.append(line.replace("°",""))
+                            harmonics.append(HarmonicData.from_line(line))
 
-                    # Create Table
-                    columns = [
-                        'Harmonic Number',
-                        'Frequency [Hz]',
-                        'Fourier Component',
-                        'Normalized Component',
-                        'Phase [degree]',
-                        'Normalized Phase [degree]'
-                    ]
-                    harmonics_df = pd.DataFrame([r.split('\t') for r in harmonic_lines], columns=columns)
-                    # Convert to numeric
-                    harmonics_df = harmonics_df.apply(pd.to_numeric, errors='ignore')
-
-                    # Find Fundamental Frequency
-                    frequency = harmonics_df['Frequency [Hz]'][0]
-
-                    # Save data related to this fourier analysis in a dictionary
-                    data_dict = {
-                        'dc': dc_component,
-                        'thd': thd,
-                        'harmonics': harmonics_df
-                    }
-
-                    # Find the dictionary that stores fourier data or create it if it does not exist
-                    fourier_dict: dict = self.dataset.get('fourier', None)
-                    if fourier_dict is None:
-                        self.dataset['fourier'] = {}
-                        fourier_dict = self.dataset['fourier']
-
-                    # Find the dict that stores data for this frequency or create it if it does not exist
-                    frequency_dict: dict = fourier_dict.get(frequency, None)
-                    if frequency_dict is None:
-                        fourier_dict[frequency] = {}
-                        frequency_dict = fourier_dict[frequency]
-
-                    # Find the dict that stores data for this number of periods or create it if it does not exist
-                    period_dict: dict = frequency_dict.get(n_periods, None)
-                    if period_dict is None:
-                        frequency_dict[n_periods] = {}
-                        period_dict = frequency_dict[n_periods]
-
-                    # Find the list that stores data for this waveform or create it if it does not exist
-                    waveform_list: list = period_dict.get(waveform, None)
-                    if waveform_list is None:
-                        period_dict[waveform] = []
-                        waveform_list = period_dict[waveform]
-
-                    # Add the data to the list
-                    waveform_list.append(data_dict)
+                    fourier_data = FourierData(signal, n_periods, dc_component, phd, thd, harmonics, self.step_count - 1)
+                    if signal in self.fourier:
+                        self.fourier[signal].append(fourier_data)
+                    else:
+                        self.fourier[signal] = [fourier_data]
 
                 if line.startswith(".step"):
                     # print(line)
@@ -447,3 +460,70 @@ class LTSpiceLogReader(LogfileData):
 
             _logger.debug("%d measurements" % len(self.dataset))
             _logger.info("Identified %d steps, read %d measurements" % (self.step_count, self.measure_count))
+
+    def export_data(self, export_file: str, encoding=None, append_with_line_prefix=None):
+        """Aside from exporting the data, it also exports fourier data if it exists"""
+        super().export_data(export_file, encoding, append_with_line_prefix)
+
+        fourier_export_file = os.path.splitext(export_file)[0] + "_fourier.txt"
+        if self.fourier:
+            with open(fourier_export_file, "w", encoding=encoding) as fout:
+                if self.step_count > 0:
+                    fout.write("\t".join(self.stepset.keys()) + "\t")
+                fout.write("Signal\tN-Periods\tDC Component\tFundamental\tN-Harmonics\tPHD\tTHD\n")
+                for signal in self.fourier:
+                    if self.step_count > 0:
+                        for step_no in range(self.step_count):
+                            step_values = [f"{self.stepset[step][step_no]}" for step in self.stepset]
+                            for analysis in self.fourier[signal]:
+                                if analysis.step == step_no:
+                                    fout.write('\t'.join(step_values) + '\t')
+                                    fout.write(f"{signal}\t"
+                                               f"{analysis.n_periods}\t"
+                                               f"{analysis.dc_component}\t"
+                                               f"{analysis.fundamental}\t"
+                                               f"{len(analysis)}\t"
+                                               f"{analysis.phd}\t"
+                                               f"{analysis.thd}\n")
+                    else:
+                        for analysis in self.fourier[signal]:
+                            fout.write(f"{signal}\t"
+                                       f"{analysis.n_periods}\t"
+                                       f"{analysis.dc_component}\t"
+                                       f"{analysis.fundamental}"
+                                       f"\t{len(analysis)}\t"
+                                       f"{analysis.phd}\t"
+                                       f"{analysis.thd}\n")
+                fout.write("\n\nHarmonic Analysis\n")
+                fout.write("\t".join(self.stepset.keys()) + "\t")
+                fout.write("Signal\tN-Periods\tHarmonic\tFrequency\tFourier\tNormalized\tPhase\tNormalized\n")
+                for signal in self.fourier:
+                    for analysis in self.fourier[signal]:
+                        if self.step_count > 0:
+                            for step_no in range(self.step_count):
+                                if analysis.step == step_no:
+                                    step_values = [f"{self.stepset[step][step_no]}" for step in self.stepset]
+                                    for harmonic in analysis:
+                                        fout.write('\t'.join(step_values) + '\t')
+                                        fout.write(
+                                            f"{signal}\t"
+                                            f"{analysis.n_periods}\t"
+                                            f"{harmonic.harmonic_number}\t"
+                                            f"{harmonic.frequency}\t"
+                                            f"{harmonic.fourier_component}\t"
+                                            f"{harmonic.normalized_component}\t"
+                                            f"{harmonic.phase}\t"
+                                            f"{harmonic.normalized_phase}\n"
+                                        )
+                        else:
+                            for harmonic in analysis:
+                                fout.write(f"{signal}\t"
+                                           f"{analysis.n_periods}\t"
+                                           f"{harmonic.harmonic_number}\t"
+                                           f"{harmonic.frequency}\t"
+                                           f"{harmonic.fourier_component}\t"
+                                           f"{harmonic.normalized_component}\t"
+                                           f"{harmonic.phase}\t"
+                                           f"{harmonic.normalized_phase}\n"
+                                           )
+                fout.write("\n")
