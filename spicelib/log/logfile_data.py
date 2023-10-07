@@ -19,13 +19,13 @@ import logging
 _logger = logging.getLogger("spicelib.LTSteps")
 
 
-class LTComplex(object):
+class LTComplex(complex):
     """
     Class to represent complex numbers as exported by LTSpice
     """
-    complex_match = re.compile(r"\((?P<mag>.*?)(?P<dB>dB)?,(?P<ph>.*?)(?P<degrees>°?)\)")
+    complex_match = re.compile(r"\((?P<mag>.*?)(?P<dB>dB)?,(?P<ph>.*?)(?P<degrees>°)?\)")
 
-    def __init__(self, strvalue):
+    def __new__(self, strvalue):
         self.strvalue = strvalue
         match = self.complex_match.match(strvalue)
         if match:
@@ -33,20 +33,17 @@ class LTComplex(object):
             ph = float(match.group('ph'))
             if match.group('degrees') is None:
                 # This is the cartesian format
-                self.value = complex(mag, ph)
+                return super().__new__(self, mag, ph)
             else:
                 if match.group('dB') is not None:
                     # This is the polar format
                     mag = 10 ** (mag / 20)
-                self.value = complex(mag * math.cos(ph), mag * math.sin(ph))
+                return super().__new__(self, mag * math.cos(math.pi * ph / 180), mag * math.sin(math.pi * ph / 180))
         else:
             raise ValueError("Invalid complex value format")
 
-    def to_complex(self):
-        return self.value
-
-    def __str__(self):
-        return self.strvalue
+    # def __str__(self):
+    #     return self.strvalue
 
 
 def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list]:
