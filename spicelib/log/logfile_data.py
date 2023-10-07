@@ -23,28 +23,30 @@ class LTComplex(object):
     """
     Class to represent complex numbers as exported by LTSpice
     """
-    complex_match = re.compile(r"\((?P<mag>[^dB]*)(dB)?,(?P<ph>.*)°\)")
+    complex_match = re.compile(r"\((?P<mag>.*?)(?P<dB>dB)?,(?P<ph>.*?)(?P<degrees>°?)\)")
 
     def __init__(self, strvalue):
-        a = self.complex_match.match(strvalue)
-        if a:
-            self.mag = float(a.group('mag'))
-            self.ph = float(a.group('ph'))
-            self.unit = 'dB' if len(a.groups()) == 3 else ''
+        self.strvalue = strvalue
+        match = self.complex_match.match(strvalue)
+        if match:
+            mag = float(match.group('mag'))
+            ph = float(match.group('ph'))
+            if match.group('degrees') is None:
+                # This is the cartesian format
+                self.value = complex(mag, ph)
+            else:
+                if match.group('dB') is not None:
+                    # This is the polar format
+                    mag = 10 ** (mag / 20)
+                self.value = complex(mag * math.cos(ph), mag * math.sin(ph))
         else:
             raise ValueError("Invalid complex value format")
 
     def to_complex(self):
-        ph = self.ph / 180 * math.pi
-        if self.unit == '':
-            mag = self.mag
-        else:
-            mag = 10 ** (self.mag / 20)  # Typically, we are working in voltages
-
-        return complex(mag * math.cos(ph), mag * math.sin(ph))
+        return self.value
 
     def __str__(self):
-        return f"{self.mag}{self.unit},{self.ph}°"
+        return self.strvalue
 
 
 def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list]:
@@ -298,7 +300,7 @@ class LogfileData:
         TODO: Delete the old data and insert new ones the the right position
         """
         for param in list(self.dataset.keys()):
-            if (isinstance(self.dataset[param], list) and len(self.dataset[param]) > 0 and isinstance(self.dataset[param][0], LTComplex)):
+            if len(self.dataset[param]) > 0 and isinstance(self.dataset[param][0], LTComplex):
                 self.dataset[param + '_mag'] = [v.mag for v in self.dataset[param]]
                 self.dataset[param + '_ph'] = [v.ph for v in self.dataset[param]]
 
@@ -337,7 +339,7 @@ class LogfileData:
         if append_with_line_prefix is not None:  # if appending a file, it must write the column title
             fout.write('user info\t')
 
-        dataset_keys = [key for key, value in self.dataset.items() if isinstance(value, list)]
+        dataset_keys = [key for key, value in self.dataset.items()]
 
         fout.write("step\t%s\t%s\n" % ("\t".join(self.stepset.keys()), "\t".join(dataset_keys)))
         first_parameter = dataset_keys[0]
