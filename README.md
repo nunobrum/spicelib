@@ -455,6 +455,12 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 0.6.1
+  * Implementing a conversion from Qspice Schematics .qsch to spice files
+  * Improving the Analsysis Toolkit to support adding instructions directly 
+  to the WorstCase and Montecarlo classes.
+  * Using dataclasses to store the fourier information on LTSpiceLogReader.
+  * Exporting fourier data into a separate log file.
 * Version 0.5
   * Reading QSPICE .AC and .OP simulation results from qraw files
   * Parsing of QSPICE log and measure files

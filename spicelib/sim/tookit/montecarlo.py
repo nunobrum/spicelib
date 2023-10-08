@@ -24,7 +24,7 @@ from .tolerance_deviations import ToleranceDeviations, DeviationType
 class Montecarlo(ToleranceDeviations):
     """Class to automate Monte-Carlo simulations"""
 
-    def prepare_testbench(self, *args, **kwargs):
+    def prepare_testbench(self, **kwargs):
         """
         Prepares the simulation by setting the tolerances for the components
         :keyword num_runs: Number of runs to be performed. Default is 1000.
@@ -89,7 +89,7 @@ class Montecarlo(ToleranceDeviations):
         if min_max_norm_func:
             self.editor.add_instruction(".func nrng(nom,mean,df6) if(run<0, nom, mean*(1+gauss(df6)))")
 
-        self.num_runs = kwargs.get('num_runs', 1000)
+        self.num_runs = kwargs.get('num_runs', self.num_runs if self.num_runs != 0 else 1000)
         self.editor.add_instruction(".step param run -1 %d 1" % self.num_runs)
         self.editor.set_parameter('run', -1)
         self.testbench_prepared = True

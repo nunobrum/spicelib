@@ -131,7 +131,7 @@ class test_spicelib(unittest.TestCase):
     def test_run_from_spice_editor(self):
         """Run command on SpiceEditor"""
         print("Starting test_run_from_spice_editor")
-        LTC = SimRunner(output_folder=test_dir + "temp/", simulator=qspice_simulator)
+        LTC = SimRunner(output_folder='temp' + "temp/", simulator=qspice_simulator)
         # select spice model
         netlist = SpiceEditor(test_dir + "testfile.net")
         # set default arguments
@@ -160,7 +160,7 @@ class test_spicelib(unittest.TestCase):
         def callback_function(raw_file, log_file):
             print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
 
-        LTC = SimRunner(output_folder=test_dir + "temp/", simulator=qspice_simulator)
+        LTC = SimRunner(output_folder='temp' + "temp/", simulator=qspice_simulator)
         SE = SpiceEditor(test_dir + "testfile.net")
         #, parallel_sims=1)
         tstart = 0
@@ -329,7 +329,7 @@ class test_spicelib(unittest.TestCase):
             ]
         }
         if has_qspice:
-            runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
+            runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "QSPICE_Batch_Test.net")
             print(raw_file, log_file)
         else:
@@ -348,7 +348,7 @@ class test_spicelib(unittest.TestCase):
         """Operating Point Simulation Test"""
         print("Starting test_operating_point")
         if has_qspice:
-            runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
+            runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point.net")
         else:
             raw_file = test_dir + "DC op point_1.qraw"
@@ -366,7 +366,7 @@ class test_spicelib(unittest.TestCase):
         """Operating Point Simulation with Steps """
         print("Starting test_operating_point_step")
         if has_qspice:
-            runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
+            runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point - STEP.net")
         else:
             raw_file = test_dir + "DC op point - STEP_1.qraw"
@@ -383,7 +383,7 @@ class test_spicelib(unittest.TestCase):
         """Transient Simulation test """
         print("Starting test_transient")
         if has_qspice:
-            runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
+            runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "TRAN.net")
         else:
             raw_file = test_dir + "TRAN_1.raw"
@@ -404,7 +404,7 @@ class test_spicelib(unittest.TestCase):
         """Transient simulation with stepped data."""
         print("Starting test_transient_steps")
         if has_qspice:
-            runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
+            runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "QSPICE_TRAN - STEP.net")
         else:
             raw_file = test_dir + "QSPICE_TRAN - STEP_1.qraw"
@@ -428,7 +428,7 @@ class test_spicelib(unittest.TestCase):
         from numpy import pi, angle
         if has_qspice:
             editor = SpiceEditor(test_dir + "AC.net")
-            runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
+            runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(editor)
 
             R1 = editor.get_component_floatvalue('R1')
@@ -460,7 +460,7 @@ class test_spicelib(unittest.TestCase):
         from numpy import pi, angle
         if has_qspice:
             editor = SpiceEditor(test_dir + "AC - STEP.net")
-            runner = SimRunner(output_folder=test_dir, simulator=qspice_simulator)
+            runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(editor)
             C1 = editor.get_component_floatvalue('C1')
         else:

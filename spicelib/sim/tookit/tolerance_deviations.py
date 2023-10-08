@@ -61,6 +61,7 @@ class ToleranceDeviations(SimAnalysis):
         self.default_tolerance = {prefix: ComponentDeviation.none() for prefix in self.devices_with_deviation_allowed}
         self.device_deviations: Dict[str, ComponentDeviation] = {}
         self.parameter_deviations: Dict[str, ComponentDeviation] = {}
+        self.received_instructions = []
         self.testbench_prepared = False
         self.num_runs = 0
 
@@ -119,9 +120,6 @@ class ToleranceDeviations(SimAnalysis):
         else:
             return value, ComponentDeviation.none()
 
-    def set_component_value(self, ref: str, new_value: str):
-        self.editor.set_component_value(ref, new_value)
-
     def set_parameter_deviation(self, ref: str,  min_val, max_val: float, distribution: str = 'uniform'):
         self.parameter_deviations[ref] = ComponentDeviation.from_min_max(min_val, max_val, distribution)
 
@@ -134,7 +132,42 @@ class ToleranceDeviations(SimAnalysis):
             self.prepare_testbench()
         self.editor.write_netlist(filename)
 
-    def prepare_testbench(self, *args, **kwargs):
+    def reset_netlist(self):
+        super().reset_netlist()
+        self.testbench_prepared = False
+        self.received_instructions.clear()
+
+    def set_component_value(self, ref: str, new_value: str):
+        self.received_instructions.append(('set_component_value', ref, new_value))
+
+    def set_element_model(self, ref: str, new_model: str):
+        self.received_instructions.append(('set_element_model', ref, new_model))
+
+    def set_parameter(self, ref: str, new_value: str):
+        self.received_instructions.append(('set_parameter', ref, new_value))
+
+    def add_instruction(self, new_instruction: str):
+        self.received_instructions.append(('add_instruction', new_instruction))
+
+    def remove_instruction(self, instruction: str):
+        self.received_instructions.append(('remove_instruction', instruction))
+
+    def play_instructions(self):
+        for instruction in self.received_instructions:
+            if instruction[0] == 'set_component_value':
+                self.editor.set_component_value(instruction[1], instruction[2])
+            elif instruction[0] == 'set_element_model':
+                self.editor.set_element_model(instruction[1], instruction[2])
+            elif instruction[0] == 'set_parameter':
+                self.editor.set_parameter(instruction[1], instruction[2])
+            elif instruction[0] == 'add_instruction':
+                self.editor.add_instruction(instruction[1])
+            elif instruction[0] == 'remove_instruction':
+                self.editor.remove_instruction(instruction[1])
+            else:
+                raise ValueError("Unknown instruction")
+
+    def prepare_testbench(self, **kwargs):
         raise RuntimeError("This method should be implemented in the derived class")
 
     def run(self, max_runs_per_sim: int = 512,  **kwargs):
@@ -143,8 +176,9 @@ class ToleranceDeviations(SimAnalysis):
         :param max_runs_per_sim: Maximum number of runs per simulation. If the number of runs is higher than this number,
         the simulation is split in multiple runs.
         """
-        self.reset_netlist()
-        self.prepare_testbench(self.num_runs)
+        super().reset_netlist()
+        self.play_instructions()
+        self.prepare_testbench()
         self.editor.remove_instruction(".step param run -1 %d 1" % self.num_runs)  # Needs to remove this instruction
         for sim_no in range(-1, self.num_runs, max_runs_per_sim):
             run_stepping = ".step param run {} {} 1".format(sim_no, sim_no + max_runs_per_sim)

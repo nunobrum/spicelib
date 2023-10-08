@@ -43,7 +43,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
             self.set_component_value(ref, new_val)  # update the value
         return True
 
-    def prepare_testbench(self, *args, **kwargs):
+    def prepare_testbench(self, **kwargs):
         """Prepares the simulation by setting the tolerances for the components"""
         index = 0
         for ref in self.device_deviations:
