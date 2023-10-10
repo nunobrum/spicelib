@@ -5,6 +5,7 @@ from .raw.raw_read import RawRead, SpiceReadException
 from .raw.raw_write import RawWrite, Trace
 from .editor.spice_editor import SpiceEditor, SpiceCircuit
 from .editor.asc_editor import AscEditor
+from .editor.qsch_editor import QschEditor
 from .sim.sim_runner import SimRunner
 
 

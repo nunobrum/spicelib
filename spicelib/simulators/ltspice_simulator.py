@@ -26,7 +26,7 @@ from typing import Union
 import logging
 _logger = logging.getLogger("spicelib.LTSpiceSimulator")
 
-from spicelib.sim.simulator import Simulator, run_function
+from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
 
 
 class LTspice(Simulator):
@@ -72,11 +72,7 @@ class LTspice(Simulator):
                 break
         else:
             spice_exe = []
-            _logger.error("================== ALERT! ====================")
-            _logger.error("Unable to find a LTSpice executable.")
-            _logger.error("A specific location of the LTSPICE can be set")
-            _logger.error("using the create_from(<location>) class method")
-            _logger.error("==============================================")
+            _logger.warning("LTspice executable not found. Please install LTspice from Analog Devices.")
 
         process_name = "XVIIx64.exe"
 
@@ -166,6 +162,13 @@ class LTspice(Simulator):
 
     @classmethod
     def run(cls, netlist_file, cmd_line_switches, timeout):
+        if not cls.spice_exe:
+            _logger.error("================== ALERT! ====================")
+            _logger.error("Unable to find a LTSpice executable.")
+            _logger.error("A specific location of the LTSPICE can be set")
+            _logger.error("using the create_from(<location>) class method")
+            _logger.error("==============================================")
+            raise SpiceSimulatorError("Simulator executable not found.")
         if sys.platform == 'darwin':
             cmd_run = cls.spice_exe + ['-b'] + [netlist_file] + cmd_line_switches
         else:

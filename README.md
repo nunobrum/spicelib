@@ -137,7 +137,7 @@ Here follows an example of operation.
 ```python
 from spicelib import SimRunner
 from spicelib import SpiceEditor
-from spicelib.simulators.ltspice_simulator import LTspice 
+from spicelib.simulators.ltspice_simulator import LTspice
 
 # select spice model
 LTC = SimRunner(output_folder='./temp', simulator=LTspice)
@@ -291,7 +291,7 @@ written. There are two possible usages of this module, either programmatically b
 accessing data through the class as exemplified here:
 
 ```python
-from spicelib.LTSteps import LTSpiceLogReader
+from spicelib.log.ltsteps import LTSpiceLogReader
 
 data = LTSpiceLogReader("Batch_Test_AD820_15.log")
 

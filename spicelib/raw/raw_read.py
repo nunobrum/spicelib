@@ -470,7 +470,7 @@ class RawRead(object):
                     # If an Operation Point or Transfer Function, only one point per step
                     trace = TraceRead(name, var_type, self.nPoints, None, numerical_type)
             else:
-                trace = DummyTrace(name, var_type)
+                trace = DummyTrace(name, var_type, self.nPoints, numerical_type)
 
             self._traces.append(trace)
             ivar += 1

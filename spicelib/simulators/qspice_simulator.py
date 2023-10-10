@@ -25,7 +25,7 @@ from pathlib import Path
 import logging
 _logger = logging.getLogger("spicelib.QSpiceSimulator")
 
-from spicelib.sim.simulator import Simulator, run_function
+from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
 
 
 class Qspice(Simulator):
@@ -50,11 +50,7 @@ class Qspice(Simulator):
                 break
         else:
             spice_exe = []
-            _logger.error("================== ALERT! ====================")
-            _logger.error("Unable to find the QSPICE executable.")
-            _logger.error("A specific location of the LTSPICE can be set")
-            _logger.error("using the create_from(<location>) class method")
-            _logger.error("==============================================")
+            _logger.warning("QSPICE not found in the usual locations. Please install it and try again.")
 
         process_name = "QSPICE64.exe"
 
@@ -108,6 +104,13 @@ class Qspice(Simulator):
 
     @classmethod
     def run(cls, netlist_file, cmd_line_switches, timeout):
+        if not cls.spice_exe:
+            _logger.error("================== ALERT! ====================")
+            _logger.error("Unable to find the QSPICE executable.")
+            _logger.error("A specific location of the QSPICE can be set")
+            _logger.error("using the create_from(<location>) class method")
+            _logger.error("==============================================")
+            raise SpiceSimulatorError("Simulator executable not found.")
         log_file = Path(netlist_file).with_suffix('.log').as_posix()
         cmd_run = cls.spice_exe + ['-o', log_file] + [netlist_file] + cmd_line_switches
         # start execution

@@ -352,11 +352,13 @@ class TraceRead(DataSet):
 class DummyTrace(object):
     """Dummy Trace for bypassing traces while reading"""
 
-    def __init__(self, name, whattype):
+    def __init__(self, name, whattype, datalen, numerical_type='real'):
         """Base Class for both Axis and Trace Classes.
         Defines the common operations between both."""
         self.name = name
         self.whattype = whattype
+        self.datalen = datalen
+        self.numerical_type = numerical_type
 
 
 class SpiceReadException(Exception):

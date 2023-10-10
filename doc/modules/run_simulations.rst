@@ -13,7 +13,8 @@ temperature to 80 degrees, and update the values of R1 and R2 to 3.3k.
 
 .. code-block:: python
 
-    from spicelib import SimRunner, SpiceEditor, LTspice
+    from spicelib import SimRunner, SpiceEditor
+    from spicelib.simulators.ltspice_simulator import LTspice
 
     runner = SimRunner(output_folder='./temp_batch3', simulator=LTspice)  # Configures the simulator to use and output 
     # folder 
@@ -66,7 +67,8 @@ each executing in parallel a simulation. This is exemplified in the modified exa
 
 .. code-block:: python
 
-    from spicelib import SimRunner, SpiceEditor, LTspice
+    from spicelib import SimRunner, SpiceEditor
+    from spicelib.simulators.ltspice_simulator import LTspice
 
     def processing_data(raw_file, log_file):
         """This is the function that will process the data from simulations"""

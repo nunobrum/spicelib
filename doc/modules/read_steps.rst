@@ -9,7 +9,7 @@ There are two possible usages of this module, either programmatically by running
 
 .. code-block:: python
 
-	from spicelib.LTSteps import LTSpiceLogReader
+	from spicelib.log.ltsteps import LTSpiceLogReader
 
 	data = LTSpiceLogReader("Batch_Test_AD820_15.log")
 

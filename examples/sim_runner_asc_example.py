@@ -3,7 +3,7 @@ from spicelib import AscEditor
 from spicelib.simulators.ltspice_simulator import LTspice
 
 # Force another simulatior
-simulator = r"C:\Program Files\LTC\LTspiceXVII\XVIIx64.exe"
+simulator = r"C:\Users\nunob\AppData\Local\Programs\ADI\LTspice\LTspice.exe"
 
 # select spice model
 LTC = SimRunner(output_folder='./temp', simulator=LTspice.create_from(simulator))
