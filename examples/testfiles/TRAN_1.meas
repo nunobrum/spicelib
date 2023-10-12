@@ -1,0 +1,10 @@
+.meas tran t1 find v(out) at 1m:
+       0.632118      0.001
+.meas tran t2 find v(out) at 2m:
+       0.864664      0.002
+.meas tran t3 find v(out) at 3m:
+       0.950213      0.003
+.meas tran t4 find v(out) at 4m:
+       0.981684      0.004
+.meas tran t5 find v(out) at 5m:
+       0.993262      0.005

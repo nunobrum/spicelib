@@ -101,18 +101,30 @@ class QspiceLogReader(LogfileData):
         In QSpice the measures are obtained by calling the QPOST command giving as arguments
         the .qraw file and the .log file
         """
-        # Get the QPOST location, which is the same as the QSPICE location
-        qpost = [Qspice.spice_exe[0].replace("QSPICE64.exe", "QPOST.exe")]
-        # Guess the name of the .qraw file
-        netlist = self.logname.with_suffix('.net')
-        # Run the QPOST command
         if meas_filename is None:
             meas_filename = self.logname.with_suffix(".meas")
+
+        if Path(meas_filename).exists():
+            _logger.debug(f"Found existing .meas file: {meas_filename}")
+            return meas_filename
+
+        if not Qspice.is_available():
+            _logger.error("================== ALERT! ====================")
+            _logger.error("Unable to find the QSPICE executable.")
+            _logger.error("A specific location of the QSPICE can be set")
+            _logger.error("using the create_from(<location>) class method")
+            _logger.error("==============================================")
+            raise RuntimeError("QSPICE not found in the usual locations. Please install it and try again.")
+
+        # Get the QPOST location, which is the same as the QSPICE location
+        qpost = [Qspice.spice_exe[0].replace("QSPICE64.exe", "QPOST.exe")]
+        # Guess the name of the .net file
+        netlist = self.logname.with_suffix('.net')
+        # Run the QPOST command
         cmd_run = qpost + [netlist.absolute(), "-o", meas_filename.absolute()]
         _logger.debug(f"Running QPOST command: {cmd_run}")
         run_function(cmd_run)
         return meas_filename
-
 
     def parse_meas_file(self, meas_filename):
         """
