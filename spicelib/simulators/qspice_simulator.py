@@ -36,9 +36,11 @@ class Qspice(Simulator):
 
     """Searches on the any usual locations for a simulator"""
     if sys.platform == "linux":
-        raise NotImplementedError("QSPICE is not available for Linux")
+        spice_exe = []
+        _logger.warning("QSPICE is not available for Linux")
     elif sys.platform == "darwin":
-        raise NotImplementedError("QSPICE is not available for MacOS")
+        spice_exe = []
+        _logger.warning("QSPICE is not available for MacOS")
     else:  # Windows
         for exe in (  # Placed in order of preference. The first to be found will be used.
                 os.path.expanduser(r"~\AppData\Local\Programs\Qspice\QSPICE64.exe"),
