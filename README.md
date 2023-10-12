@@ -455,7 +455,7 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
-* Version 0.6.1
+* Version 0.6
   * Implementing a conversion from Qspice Schematics .qsch to spice files
   * Improving the Analsysis Toolkit to support adding instructions directly 
   to the WorstCase and Montecarlo classes.

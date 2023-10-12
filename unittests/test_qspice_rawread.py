@@ -102,7 +102,7 @@ class test_spicelib(unittest.TestCase):
             runner.run(editor, run_filename=run_netlist_file, callback=processing_data)
 
         runner.wait_completion()
-
+        self.assertEqual(runner.okSim, 3)  # Simulation done with success
         # Sim Statistics
         print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
         self.assertEqual(runner.okSim, 3)
@@ -131,7 +131,7 @@ class test_spicelib(unittest.TestCase):
     def test_run_from_spice_editor(self):
         """Run command on SpiceEditor"""
         print("Starting test_run_from_spice_editor")
-        LTC = SimRunner(output_folder='temp' + "temp/", simulator=qspice_simulator)
+        runner = SimRunner(output_folder='temp' + "temp/", simulator=qspice_simulator)
         # select spice model
         netlist = SpiceEditor(test_dir + "testfile.net")
         # set default arguments
@@ -147,10 +147,12 @@ class test_spicelib(unittest.TestCase):
         for res in range(5):
             # LTC.runs_to_do = range(2)
             netlist.set_parameters(ANA=res)
-            raw, log = LTC.run(netlist).wait_results()
+            raw, log = runner.run(netlist).wait_results()
             print("Raw file '%s' | Log File '%s'" % (raw, log))
         # Sim Statistics
-        print('Successful/Total Simulations: ' + str(LTC.okSim) + '/' + str(LTC.runno))
+        runner.wait_completion()
+        print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+        self.assertEqual(runner.okSim, 5)  # Simulation done with success
 
     @unittest.skipIf(skip_qspice_editor_tests, "Skip if not in windows environment")
     def test_sim_runner(self):
@@ -160,7 +162,7 @@ class test_spicelib(unittest.TestCase):
         def callback_function(raw_file, log_file):
             print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
 
-        LTC = SimRunner(output_folder='temp' + "temp/", simulator=qspice_simulator)
+        runner = SimRunner(output_folder='temp' + "temp/", simulator=qspice_simulator)
         SE = SpiceEditor(test_dir + "testfile.net")
         #, parallel_sims=1)
         tstart = 0
@@ -170,17 +172,18 @@ class test_spicelib(unittest.TestCase):
             if tstart != 0:
                 SE.add_instruction(".loadbias {}".format(bias_file))
                 # Put here your parameter modifications
-                # LTC.set_parameters(param1=1, param2=2, param3=3)
+                # runner.set_parameters(param1=1, param2=2, param3=3)
             bias_file = test_dir + "sim_loadbias_%d.txt" % tstop
             SE.add_instruction(".savebias {} internal time={}".format(bias_file, tduration))
             tstart = tstop
-            LTC.run(SE, callback=callback_function)
+            runner.run(SE, callback=callback_function)
 
         SE.reset_netlist()
         SE.add_instruction('.ac dec 40 1m 1G')
         SE.set_component_value('V1', 'AC 1 0')
-        LTC.run(SE, callback=callback_function)
-        LTC.wait_completion()
+        runner.run(SE, callback=callback_function)
+        runner.wait_completion()
+        self.assertEqual(runner.okSim, 5)  # Simulation done with success
 
     @unittest.skipIf(False, "Execute All")
     def test_ltsteps_measures(self):
@@ -350,6 +353,7 @@ class test_spicelib(unittest.TestCase):
         if has_qspice:
             runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point.net")
+            self.assertEqual(runner.okSim, 1)  # Simulation done with success
         else:
             raw_file = test_dir + "DC op point_1.qraw"
             # log_file = test_dir + "DC op point_1.log"

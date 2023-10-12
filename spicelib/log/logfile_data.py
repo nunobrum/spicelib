@@ -42,8 +42,23 @@ class LTComplex(complex):
         else:
             raise ValueError("Invalid complex value format")
 
-    # def __str__(self):
-    #     return self.strvalue
+    @property
+    def mag(self):
+        """Returns the magnitude of the complex number"""
+        return abs(self)
+
+    @property
+    def ph(self):
+        """Returns the phase of the complex number in degrees"""
+        return math.atan2(self.imag, self.real) * 180 / math.pi
+
+    def mag_db(self):
+        """Returns the magnitude of the complex number in dBV"""
+        return 20 * math.log10(self.mag)
+
+    def ph_rad(self):
+        """Returns the phase of the complex number in radians"""
+        return math.atan2(self.imag, self.real)
 
 
 def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list]:

@@ -133,8 +133,9 @@ class test_spicelib(unittest.TestCase):
         for measure in log.get_measure_names():
             print(measure, '=', log.get_measure_value(measure))
         self.assertEqual(log.get_measure_value('fcutac'), 8479370.0)
-        self.assertEqual(str(log.get_measure_value('vout1m')), '6.02059dB,-5.37934e-08°')
-        self.assertEqual(log.get_measure_value('vout1m').mag, 6.02059)
+        self.assertEqual(log.get_measure_value('vout1m'), 1.9999977173843142-1.8777417486008045e-09j)
+        self.assertEqual(log.get_measure_value('vout1m').mag_db(), 6.02059)
+        self.assertEqual(log.get_measure_value('vout1m').ph, -5.37934e-08)
 
     @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
     def test_run_from_spice_editor(self):
