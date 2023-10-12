@@ -378,10 +378,7 @@ class QschEditor(BaseEditor):
         """
         Returns the coordinate on the Schematic File canvas where a text can be appended.
         """
-        min_x = 100000   # High enough to be sure it will be replaced
-        max_x = -100000  # Low enough to be sure it will be replaced
-        min_y = 100000   # High enough to be sure it will be replaced
-        max_y = -100000  # Low enough to be sure it will be replaced
+        first = True
         for tag in self.schematic.items:
             if tag.tag in ('component', 'net', 'text'):
                 x1, y1 = tag.get_attr(1)
@@ -389,13 +386,24 @@ class QschEditor(BaseEditor):
             elif tag.tag == 'wire':
                 x1, y1 = tag.get_attr(1)
                 x2, y2 = tag.get_attr(2)
+            else:
+                continue  # this avoids executing the code below when no coordinates are found
+            if first:
+                min_x = min(x1, x2)
+                max_x = max(x1, x2)
+                min_y = min(y1, y2)
+                max_y = max(y1, y2)
+                first = False
+            else:
+                min_x = min(min_x, x1, x2)
+                max_x = max(max_x, x1, x2)
+                min_y = min(min_y, y1, y2)
+                max_y = max(max_y, y1, y2)
 
-            min_x = min(min_x, x1, x2)
-            max_x = max(max_x, x1, x2)
-            min_y = min(min_y, y1, y2)
-            max_y = max(max_y, y1, y2)
-
-        return min_x, min_y - 240  # Setting the text in the bottom left corner of the canvas
+        if first:
+            return 0, 0  # If no coordinates are found, we return the origin
+        else:
+            return min_x, min_y - 240  # Setting the text in the bottom left corner of the canvas
 
     def add_instruction(self, instruction: str) -> None:
         instruction = instruction.strip()  # Clean any end of line terminators
