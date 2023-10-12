@@ -54,7 +54,7 @@ def has_ltspice_detect():
     from spicelib.simulators.ltspice_simulator import LTspice
     global ltspice_simulator
     ltspice_simulator = LTspice
-    return isinstance(LTspice.spice_exe, list) and os.path.exists(LTspice.spice_exe[0])
+    return ltspice_simulator.is_available()
 
 
 # ------------------------------------------------------------------------------

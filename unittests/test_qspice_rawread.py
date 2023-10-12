@@ -53,7 +53,7 @@ def has_qspice_detect():
     from spicelib.simulators.qspice_simulator import Qspice
     global qspice_simulator
     qspice_simulator = Qspice
-    return isinstance(Qspice.spice_exe, list) and os.path.exists(Qspice.spice_exe[0])
+    return qspice_simulator.is_available()
 
 
 # ------------------------------------------------------------------------------
