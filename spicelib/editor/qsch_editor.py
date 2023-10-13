@@ -253,7 +253,7 @@ class QschEditor(BaseEditor):
             return '####'
 
     def reset_netlist(self):
-        with open(self._qsch_file_path, 'r') as asc_file:
+        with open(self._qsch_file_path, 'r', encoding='ansi') as asc_file:
             _logger.info(f"Reading QSCH file {self._qsch_file_path}")
             stream = asc_file.read()
         self._parse_qsch_stream(stream)
