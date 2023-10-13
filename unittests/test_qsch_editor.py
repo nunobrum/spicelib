@@ -68,9 +68,9 @@ class ASC_Editor_Test(unittest.TestCase):
         self.equalFiles(test_dir + 'test_instructions_output_1.qsch', golden_dir + 'test_instructions_output_1.qsch')
 
     def equalFiles(self, file1, file2):
-        with open(file1, 'r') as f1:
+        with open(file1, 'r', encoding='cp1252') as f1:
             lines1 = f1.readlines()
-        with open(file2, 'r') as f2:
+        with open(file2, 'r', encoding='cp1252') as f2:
             lines2 = f2.readlines()
         for i, lines in enumerate(zip(lines1, lines2)):
             self.assertEqual(lines[0], lines[1], "Line %d" % i)
