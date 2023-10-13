@@ -26,6 +26,8 @@ from spicelib.editor.base_editor import (
 )
 __all__ = ('QschEditor', )
 
+from ..utils.detect_encoding import detect_encoding
+
 _logger = logging.getLogger("qspice.QschEditor")
 
 QSCH_HEADER = (255, 216, 255, 219)
@@ -253,7 +255,10 @@ class QschEditor(BaseEditor):
             return '####'
 
     def reset_netlist(self):
-        with open(self._qsch_file_path, 'r', encoding='ansi') as asc_file:
+        """Reads the ASC file and parses it into memory"""
+        # detect encoding
+        encoding = detect_encoding(self._qsch_file_path)
+        with open(self._qsch_file_path, 'r', encoding=encoding) as asc_file:
             _logger.info(f"Reading QSCH file {self._qsch_file_path}")
             stream = asc_file.read()
         self._parse_qsch_stream(stream)
