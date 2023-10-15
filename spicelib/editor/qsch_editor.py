@@ -162,7 +162,7 @@ class QschEditor(BaseEditor):
             _logger.error("Empty Schematic information")
             return
         if run_netlist_file.suffix == '.qsch':
-            with open(run_netlist_file, 'w') as qsch_file:
+            with open(run_netlist_file, 'w', encoding="cp1252") as qsch_file:
                 _logger.info(f"Writing ASC file {run_netlist_file}")
                 for c in QSCH_HEADER:
                     qsch_file.write(chr(c))
@@ -246,9 +246,7 @@ class QschEditor(BaseEditor):
 
     def reset_netlist(self):
         """Reads the ASC file and parses it into memory"""
-        # detect encoding
-        encoding = detect_encoding(self._qsch_file_path, "ÿØÿÛ")
-        with open(self._qsch_file_path, 'r', encoding=encoding) as asc_file:
+        with open(self._qsch_file_path, 'r', encoding="cp1252") as asc_file:
             _logger.info(f"Reading QSCH file {self._qsch_file_path}")
             stream = asc_file.read()
         self._parse_qsch_stream(stream)

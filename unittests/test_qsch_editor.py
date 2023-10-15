@@ -63,14 +63,14 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertEqual(self.edt.get_component_value('R1'), '33K', "Tested R1 Value")  # add assertion here
         self.edt.remove_component('R1')
         self.edt.write_netlist(temp_dir + 'test_components_output_1.qsch')
-        equalFiles(self, test_dir + 'test_components_output_1.qsch', golden_dir + 'test_components_output_1.qsch')
+        equalFiles(self, temp_dir + 'test_components_output_1.qsch', golden_dir + 'test_components_output_1.qsch')
 
     def test_parameter_edit(self):
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameter('TEMP', 25)
         self.assertEqual(self.edt.get_parameter('TEMP'), '25', "Tested TEMP Parameter")  # add assertion here
         self.edt.write_netlist(temp_dir + 'test_parameter_output.qsch')
-        equalFiles(self, test_dir + 'test_parameter_output.qsch', golden_dir + 'test_parameter_output.qsch')
+        equalFiles(self, temp_dir + 'test_parameter_output.qsch', golden_dir + 'test_parameter_output.qsch')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
         self.assertEqual(self.edt.get_parameter('TEMP'), '0.0', "Tested TEMP Parameter")  # add assertion here
 
@@ -81,10 +81,10 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.add_instruction('.save I(R2)')
         self.edt.add_instruction('.save I(D1)')
         self.edt.write_netlist(temp_dir + 'test_instructions_output.qsch')
-        equalFiles(self, test_dir + 'test_instructions_output.qsch', golden_dir + 'test_instructions_output.qsch')
+        equalFiles(self, temp_dir + 'test_instructions_output.qsch', golden_dir + 'test_instructions_output.qsch')
         self.edt.remove_instruction('.save I(R1)')
         self.edt.write_netlist(temp_dir + 'test_instructions_output_1.qsch')
-        equalFiles(self, test_dir + 'test_instructions_output_1.qsch', golden_dir + 'test_instructions_output_1.qsch')
+        equalFiles(self, temp_dir + 'test_instructions_output_1.qsch', golden_dir + 'test_instructions_output_1.qsch')
 
 
 class QschEditorRotation(unittest.TestCase):
