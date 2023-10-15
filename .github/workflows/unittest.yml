@@ -35,9 +35,18 @@ jobs:
       - name: Test sweep_iterators.py
         run: |
           python ./unittests/sweep_iterators_unittest.py
-      - name: Test Asc_Editor
-        run: |
-          python ./unittests/test_asc_editor.py
       - name: Test spicelib
         run: |
           python ./unittests/test_spicelib.py
+      - name: Test QSpice Raw Reader
+        run: |
+          python ./unittests/test_qspice_rawread.py
+      - name: Test Spice Editor
+        run: |
+          python ./unittests/test_spice_editor.py
+      - name: Test Asc_Editor
+        run: |
+          python ./unittests/test_asc_editor.py
+      - name: Test Qsch Editor
+        run: |
+          python ./unittests/test_qsch_editor.py
