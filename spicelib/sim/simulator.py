@@ -123,3 +123,12 @@ class Simulator(ABC):
     def valid_switch(cls, switch, switch_param) -> list:
         """This method validates that a switch exist and is valid. This should be overriden by its subclass."""
         ...
+
+    @classmethod
+    def is_available(cls):
+        """This method checks if the simulator exists in the system. It will return a boolean value indicating if the
+        simulator is installed or not."""
+        if cls.spice_exe and len(cls.spice_exe) > 0:
+            if Path(cls.spice_exe[0]).exists():
+                return True
+        return False

@@ -1,0 +1,7 @@
+1 of 4 steps:  .step vin=1 r1=1000
+C:\sandbox\spicelib\examples\testfiles\QSPICE_TRAN - STEP_1.net
+2 of 4 steps:  .step vin=10 r1=1000
+3 of 4 steps:  .step vin=1 r1=10000
+4 of 4 steps:  .step vin=10 r1=10000
+
+Total elapsed time: 0.126016 seconds.

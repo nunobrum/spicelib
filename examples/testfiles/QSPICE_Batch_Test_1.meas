@@ -1,0 +1,10 @@
+.meas tran vin_rms rms v(in):
+       0.707405
+.meas tran vout_rms rms v(out):
+         1.4148
+.meas tran gain param vout_rms/vin_rms:
+        1.99998
+.meas vout1m find v(out) at 1m:
+     -0.00763593      0.001
+.meas tran period find time when v(out)=0 rise=1:
+     3.29713e-08 3.29713e-08

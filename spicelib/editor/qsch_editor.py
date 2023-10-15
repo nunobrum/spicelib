@@ -16,6 +16,7 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+import math
 from pathlib import Path
 from typing import Union, Tuple, List
 import re
@@ -25,6 +26,8 @@ from spicelib.editor.base_editor import (
     PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 )
 __all__ = ('QschEditor', )
+
+from ..utils.detect_encoding import detect_encoding
 
 _logger = logging.getLogger("qspice.QschEditor")
 
@@ -159,7 +162,7 @@ class QschEditor(BaseEditor):
             _logger.error("Empty Schematic information")
             return
         if run_netlist_file.suffix == '.qsch':
-            with open(run_netlist_file, 'w') as qsch_file:
+            with open(run_netlist_file, 'w', encoding="cp1252") as qsch_file:
                 _logger.info(f"Writing ASC file {run_netlist_file}")
                 for c in QSCH_HEADER:
                     qsch_file.write(chr(c))
@@ -174,8 +177,9 @@ class QschEditor(BaseEditor):
                     if item.tag == 'component':
                         component_pos = item.get_attr(QSCH_COMPONENT_POS)
                         orientation = item.get_attr(2)
+                        disabled = item.get_attr(3)
                         symbol_tags = item.get_items('symbol')
-                        if len(symbol_tags) != 1:
+                        if len(symbol_tags) != 1 or disabled == 1:
                             continue
                         symbol_tag = symbol_tags[0]
                         symbol = symbol_tag.get_text_attr(1)
@@ -218,31 +222,19 @@ class QschEditor(BaseEditor):
     def _find_net_at_pin(self, comp_pos, orientation : int, pin: QschTag) -> str:
         """Returns the net at the given position"""
         pin_pos = pin.get_attr(1)
-        pin_pos1 = pin.get_attr(2)
-        if orientation == 0:  # Normal orientation
-            x = comp_pos[0] + pin_pos[0]
-            y = comp_pos[1] + pin_pos[1]
-        elif orientation == 2:  # 90º rotation
-            x = comp_pos[0] - pin_pos[1]
-            y = comp_pos[1] + pin_pos[0]
-        elif orientation == 4:  # 180º rotation
-            x = comp_pos[0] - pin_pos[0]
-            y = comp_pos[1] - pin_pos[1]
-        elif orientation == 6:  # 270º rotation
-            x = comp_pos[0] + pin_pos[1]
-            y = comp_pos[1] - pin_pos[0]
-        elif orientation == 8:  # Mirror
-            x = comp_pos[0] - pin_pos[0]
-            y = comp_pos[1] + pin_pos[1]
-        elif orientation == 10:  # Mirror + 90º rotation
-            x = comp_pos[0] + pin_pos[1]
-            y = comp_pos[1] - pin_pos[0]
-        elif orientation == 12:  # Mirror + 180º rotation
-            x = comp_pos[0] + pin_pos[0]
-            y = comp_pos[1] - pin_pos[1]
-        elif orientation == 14:  # Mirror + 270º rotation
-            x = comp_pos[0] + pin_pos[1]
-            y = comp_pos[1] + pin_pos[0]
+        hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
+        if orientation % 2:
+            # in 45º rotations the component is 1.414 times larger
+            hyp *= 1.414
+        if 0 <= orientation <= 7:
+            theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians(orientation * 45)
+            x = comp_pos[0] + round(hyp * math.cos(theta), -2)  # round to multiple of 100
+            y = comp_pos[1] + round(hyp * math.sin(theta), -2)
+        elif 8 <= orientation <= 15:
+            # The component is mirrored on the X axis
+            theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians((orientation - 8) * 45)
+            x = comp_pos[0] - round(hyp * math.cos(theta), -2)  # round to multiple of 100
+            y = comp_pos[1] + round(hyp * math.sin(theta), -2)
         else:
             raise ValueError(f"Invalid orientation: {orientation}")
         for net in self.schematic.get_items('wire'):
@@ -253,7 +245,8 @@ class QschEditor(BaseEditor):
             return '####'
 
     def reset_netlist(self):
-        with open(self._qsch_file_path, 'r') as asc_file:
+        """Reads the ASC file and parses it into memory"""
+        with open(self._qsch_file_path, 'r', encoding="cp1252") as asc_file:
             _logger.info(f"Reading QSCH file {self._qsch_file_path}")
             stream = asc_file.read()
         self._parse_qsch_stream(stream)
@@ -354,6 +347,7 @@ class QschEditor(BaseEditor):
         texts = symbol.get_items('text')
         assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == device
         texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
+        self._symbols[device]['model'] = model
         _logger.info(f"Component {device} updated to {model}")
         _logger.debug(f"Component at :{component.get_attr(1)} Updated")
 
@@ -378,10 +372,7 @@ class QschEditor(BaseEditor):
         """
         Returns the coordinate on the Schematic File canvas where a text can be appended.
         """
-        min_x = 100000   # High enough to be sure it will be replaced
-        max_x = -100000  # Low enough to be sure it will be replaced
-        min_y = 100000   # High enough to be sure it will be replaced
-        max_y = -100000  # Low enough to be sure it will be replaced
+        first = True
         for tag in self.schematic.items:
             if tag.tag in ('component', 'net', 'text'):
                 x1, y1 = tag.get_attr(1)
@@ -389,13 +380,24 @@ class QschEditor(BaseEditor):
             elif tag.tag == 'wire':
                 x1, y1 = tag.get_attr(1)
                 x2, y2 = tag.get_attr(2)
+            else:
+                continue  # this avoids executing the code below when no coordinates are found
+            if first:
+                min_x = min(x1, x2)
+                max_x = max(x1, x2)
+                min_y = min(y1, y2)
+                max_y = max(y1, y2)
+                first = False
+            else:
+                min_x = min(min_x, x1, x2)
+                max_x = max(max_x, x1, x2)
+                min_y = min(min_y, y1, y2)
+                max_y = max(max_y, y1, y2)
 
-            min_x = min(min_x, x1, x2)
-            max_x = max(max_x, x1, x2)
-            min_y = min(min_y, y1, y2)
-            max_y = max(max_y, y1, y2)
-
-        return min_x, min_y - 240  # Setting the text in the bottom left corner of the canvas
+        if first:
+            return 0, 0  # If no coordinates are found, we return the origin
+        else:
+            return min_x, min_y - 240  # Setting the text in the bottom left corner of the canvas
 
     def add_instruction(self, instruction: str) -> None:
         instruction = instruction.strip()  # Clean any end of line terminators
