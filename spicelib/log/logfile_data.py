@@ -27,8 +27,10 @@ class LTComplex(complex):
 
     def __new__(self, strvalue):
         self.strvalue = strvalue
+        self.unit = None
         match = self.complex_match.match(strvalue)
         if match:
+            self.unit = match.group('dB')
             mag = float(match.group('mag'))
             ph = float(match.group('ph'))
             if match.group('degrees') is None:
@@ -41,6 +43,9 @@ class LTComplex(complex):
                 return super().__new__(self, mag * math.cos(math.pi * ph / 180), mag * math.sin(math.pi * ph / 180))
         else:
             raise ValueError("Invalid complex value format")
+
+    def __str__(self):
+        return self.strvalue
 
     @property
     def mag(self):
@@ -217,7 +222,7 @@ class LogfileData:
         :return: List of step variables.
         :rtype: list of str
         """
-        return self.stepset.keys()
+        return list(self.stepset.keys())
 
     def get_measure_names(self) -> List[str]:
         """
@@ -225,7 +230,7 @@ class LogfileData:
         :return: List of measurement names.
         :rtype: list of str
         """
-        return self.dataset.keys()
+        return list(self.dataset.keys())
 
     def get_measure_value(self, measure: str, step: int = None) -> Union[float, int, str, LTComplex]:
         """
@@ -308,8 +313,8 @@ class LogfileData:
 
     def split_complex_values_on_datasets(self):
         """
-        Internal function to split the complex values into additional two columns
-        TODO: Delete the old data and insert new ones the the right position
+        Internal function to split the complex values into additional two columns.
+        The two columns correspond to the magnitude and phase of the complex value in degrees.
         """
         for param in list(self.dataset.keys()):
             if len(self.dataset[param]) > 0 and isinstance(self.dataset[param][0], LTComplex):
