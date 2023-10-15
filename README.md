@@ -457,17 +457,18 @@ _Make sure to initialize the root logger before importing the library to be able
 ## History ##
 * Version 0.6
   * Implementing a conversion from Qspice Schematics .qsch to spice files
-  * Improving the Analsysis Toolkit to support adding instructions directly 
+  * Improving the Analysis Toolkit to support adding instructions directly 
   to the WorstCase and Montecarlo classes.
   * Using dataclasses to store the fourier information on LTSpiceLogReader.
-  * Exporting fourier data into a separate log file.
+  * Exporting fourier data into a separate log file: <logfile>.fourier
+  * Making LTComplex a subclass of Python built-in complex class.
 * Version 0.5
   * Reading QSPICE .AC and .OP simulation results from qraw files
   * Parsing of QSPICE log and measure files
   * Enabling the Histogram.py to read log files directly (only for LTSpice)
   * Fixing a bug on the LTSpiceLogReader class that was not correctly exporting 
   the data when there fourier data was present.
-  * Enabling the creation of blank netlists (Thanks to @xgzi)
+  * Enabling the creation of blank netlists (Thanks to @rliangcn)
   * Correction on the Mac OSX process name for LTSpice (Thanks to Wynand M.)
 * Version 0.4
   * Implementing the callback argument in the SimRunner class.
