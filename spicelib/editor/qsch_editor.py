@@ -16,6 +16,7 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+import math
 from pathlib import Path
 from typing import Union, Tuple, List
 import re
@@ -176,8 +177,9 @@ class QschEditor(BaseEditor):
                     if item.tag == 'component':
                         component_pos = item.get_attr(QSCH_COMPONENT_POS)
                         orientation = item.get_attr(2)
+                        disabled = item.get_attr(3)
                         symbol_tags = item.get_items('symbol')
-                        if len(symbol_tags) != 1:
+                        if len(symbol_tags) != 1 or disabled == 1:
                             continue
                         symbol_tag = symbol_tags[0]
                         symbol = symbol_tag.get_text_attr(1)
@@ -220,31 +222,19 @@ class QschEditor(BaseEditor):
     def _find_net_at_pin(self, comp_pos, orientation : int, pin: QschTag) -> str:
         """Returns the net at the given position"""
         pin_pos = pin.get_attr(1)
-        pin_pos1 = pin.get_attr(2)
-        if orientation == 0:  # Normal orientation
-            x = comp_pos[0] + pin_pos[0]
-            y = comp_pos[1] + pin_pos[1]
-        elif orientation == 2:  # 90º rotation
-            x = comp_pos[0] - pin_pos[1]
-            y = comp_pos[1] + pin_pos[0]
-        elif orientation == 4:  # 180º rotation
-            x = comp_pos[0] - pin_pos[0]
-            y = comp_pos[1] - pin_pos[1]
-        elif orientation == 6:  # 270º rotation
-            x = comp_pos[0] + pin_pos[1]
-            y = comp_pos[1] - pin_pos[0]
-        elif orientation == 8:  # Mirror
-            x = comp_pos[0] - pin_pos[0]
-            y = comp_pos[1] + pin_pos[1]
-        elif orientation == 10:  # Mirror + 90º rotation
-            x = comp_pos[0] + pin_pos[1]
-            y = comp_pos[1] - pin_pos[0]
-        elif orientation == 12:  # Mirror + 180º rotation
-            x = comp_pos[0] + pin_pos[0]
-            y = comp_pos[1] - pin_pos[1]
-        elif orientation == 14:  # Mirror + 270º rotation
-            x = comp_pos[0] + pin_pos[1]
-            y = comp_pos[1] + pin_pos[0]
+        hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
+        if orientation % 2:
+            # in 45º rotations the component is 1.414 times larger
+            hyp *= 1.414
+        if 0 <= orientation <= 7:
+            theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians(orientation * 45)
+            x = comp_pos[0] + round(hyp * math.cos(theta), -2)  # round to multiple of 100
+            y = comp_pos[1] + round(hyp * math.sin(theta), -2)
+        elif 8 <= orientation <= 15:
+            # The component is mirrored on the X axis
+            theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians((orientation - 8) * 45)
+            x = comp_pos[0] - round(hyp * math.cos(theta), -2)  # round to multiple of 100
+            y = comp_pos[1] + round(hyp * math.sin(theta), -2)
         else:
             raise ValueError(f"Invalid orientation: {orientation}")
         for net in self.schematic.get_items('wire'):
@@ -257,7 +247,7 @@ class QschEditor(BaseEditor):
     def reset_netlist(self):
         """Reads the ASC file and parses it into memory"""
         # detect encoding
-        encoding = detect_encoding(self._qsch_file_path)
+        encoding = detect_encoding(self._qsch_file_path, "ÿØÿÛ")
         with open(self._qsch_file_path, 'r', encoding=encoding) as asc_file:
             _logger.info(f"Reading QSCH file {self._qsch_file_path}")
             stream = asc_file.read()

@@ -29,6 +29,25 @@ import spicelib
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
+temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/temp/'
+
+if not os.path.exists(temp_dir):
+    os.mkdir(temp_dir)
+
+
+def equalFiles(testcase, file1, file2):
+    with open(file1, 'r', encoding='cp1252') as f1:
+        lines1 = f1.readlines()
+    with open(file2, 'r', encoding='cp1252') as f2:
+        lines2 = f2.readlines()
+    testcase.assertEqual(len(lines1), len(lines2), "Files have different number of lines")
+    for i in range(len(lines1)):
+        data1 = lines1[i].strip()  # Remove white spaces and line terminators
+        data2 = lines2[i].strip()
+        if data1.startswith('*') and data2.startswith('*'):
+            continue  # Skip comments
+        testcase.assertEqual(data1, data2, "Files are not equal")
+    
 
 class ASC_Editor_Test(unittest.TestCase):
 
@@ -39,19 +58,19 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertEqual(self.edt.get_component_value('R1'), '10K', "Tested R1 Value")  # add assertion here
         self.assertSetEqual(set(self.edt.get_components()), set(('Vin', 'R1', 'R2', 'D1')), "Tested get_components")  # add assertion here
         self.edt.set_component_value('R1', '33K')
-        self.edt.write_netlist(test_dir + 'test_components_output.qsch')
-        self.equalFiles(test_dir + 'test_components_output.qsch', golden_dir + 'test_components_output.qsch')
+        self.edt.write_netlist(temp_dir + 'test_components_output.qsch')
+        equalFiles(self, temp_dir + 'test_components_output.qsch', golden_dir + 'test_components_output.qsch')
         self.assertEqual(self.edt.get_component_value('R1'), '33K', "Tested R1 Value")  # add assertion here
         self.edt.remove_component('R1')
-        self.edt.write_netlist(test_dir + 'test_components_output_1.qsch')
-        self.equalFiles(test_dir + 'test_components_output_1.qsch', golden_dir + 'test_components_output_1.qsch')
+        self.edt.write_netlist(temp_dir + 'test_components_output_1.qsch')
+        equalFiles(self, test_dir + 'test_components_output_1.qsch', golden_dir + 'test_components_output_1.qsch')
 
     def test_parameter_edit(self):
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameter('TEMP', 25)
         self.assertEqual(self.edt.get_parameter('TEMP'), '25', "Tested TEMP Parameter")  # add assertion here
-        self.edt.write_netlist(test_dir + 'test_parameter_output.qsch')
-        self.equalFiles(test_dir + 'test_parameter_output.qsch', golden_dir + 'test_parameter_output.qsch')
+        self.edt.write_netlist(temp_dir + 'test_parameter_output.qsch')
+        equalFiles(self, test_dir + 'test_parameter_output.qsch', golden_dir + 'test_parameter_output.qsch')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
         self.assertEqual(self.edt.get_parameter('TEMP'), '0.0', "Tested TEMP Parameter")  # add assertion here
 
@@ -61,18 +80,19 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.add_instruction('.save I(R1)')
         self.edt.add_instruction('.save I(R2)')
         self.edt.add_instruction('.save I(D1)')
-        self.edt.write_netlist(test_dir + 'test_instructions_output.qsch')
-        self.equalFiles(test_dir + 'test_instructions_output.qsch', golden_dir + 'test_instructions_output.qsch')
+        self.edt.write_netlist(temp_dir + 'test_instructions_output.qsch')
+        equalFiles(self, test_dir + 'test_instructions_output.qsch', golden_dir + 'test_instructions_output.qsch')
         self.edt.remove_instruction('.save I(R1)')
-        self.edt.write_netlist(test_dir + 'test_instructions_output_1.qsch')
-        self.equalFiles(test_dir + 'test_instructions_output_1.qsch', golden_dir + 'test_instructions_output_1.qsch')
+        self.edt.write_netlist(temp_dir + 'test_instructions_output_1.qsch')
+        equalFiles(self, test_dir + 'test_instructions_output_1.qsch', golden_dir + 'test_instructions_output_1.qsch')
 
-    def equalFiles(self, file1, file2):
-        with open(file1, 'rb') as f1:
-            data1 = f1.read()
-        with open(file2, 'rb') as f2:
-            data2 = f2.read()
-        self.assertEqual(data1, data2, "Files are not equal")
+
+class QschEditorRotation(unittest.TestCase):
+
+    def test_component_rotations(self):
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "qsch_rotation.qsch")
+        self.edt.write_netlist(temp_dir + 'qsch_rotation.net')
+        equalFiles(self, temp_dir + 'qsch_rotation.net', golden_dir + "qsch_rotation.net")
 
 
 if __name__ == '__main__':

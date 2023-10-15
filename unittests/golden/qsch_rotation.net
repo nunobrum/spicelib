@@ -1,0 +1,19 @@
+* C:\sandbox\spicelib\examples\testfiles\qsch_rotation.qsch
+R1 1 2 10k
+R2 2 3 10k
+R3 3 4 10k
+R4 4 5 10k
+R5 5 6 10k
+R6 6 7 10k
+R7 7 8 10k
+R8 8 9 10k
+R9 9 10 10k
+R10 10 11 10k
+R11 11 12 10k
+R12 12 13 10k
+R13 13 14 10k
+R14 14 15 10k
+R15 15 16 10k
+R16 16 0 10k
+V1 1 0 10k
+.end
