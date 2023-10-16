@@ -177,13 +177,17 @@ class LTspice(Simulator):
         return run_function(cmd_run, timeout=timeout)
 
     @classmethod
-    def create_netlist(cls, circuit_file: Union[str, Path]) -> Path:
+    def create_netlist(cls, circuit_file: Union[str, Path], cmd_line_switches=None) -> Path:
         # prepare instructions, two stages used to enable edits on the netlist w/o open GUI
         # see: https://www.mikrocontroller.net/topic/480647?goto=5965300#5965300
+        if cmd_line_switches is None:
+            cmd_line_switches = []
+        elif isinstance(cmd_line_switches, str):
+            cmd_line_switches = [cmd_line_switches]
         circuit_file = Path(circuit_file)
         if sys.platform == 'darwin':
             NotImplementedError("In this platform LTSpice doesn't have netlist generation capabilities")
-        cmd_netlist = cls.spice_exe + ['-netlist'] + [circuit_file.as_posix()]
+        cmd_netlist = cls.spice_exe + ['-netlist'] + [circuit_file.as_posix()] + cmd_line_switches
         # print(f'Creating netlist file from "{circuit_file}"', end='...')
         error = run_function(cmd_netlist)
 
@@ -194,5 +198,5 @@ class LTspice(Simulator):
                 return netlist
         msg = "Failed to create netlist"
         # print(msg)
-        _logger.error(msg)
+        _logger.error(msg)  
         raise RuntimeError(msg)
