@@ -55,14 +55,7 @@ class DataSet(object):
             raise NotImplementedError
 
     def __str__(self):
-        if isinstance(self.data[0], float):
-            # data = ["%e" % value for value in self.data]
-            return "name:'%s'\ntype:'%s'\nlen:%d\n%s" % (self.name, self.whattype, len(self.data), str(self.data))
-        elif isinstance(self.data[0], complex):
-            return "name: {}\ntype: {}\nlen: {:d}\n{}".format(self.name, self.whattype, len(self.data), str(self.data))
-        else:
-            data = [b2a_hex(value) for value in self.data]
-            return "name:'%s'\ntype:'%s'\nlen:%d\n%s" % (self.name, self.whattype, len(self.data), str(data))
+            return "name:'%s'\ntype:'%s'\nlen:%d" % (self.name, self.whattype, len(self.data))
 
     def __len__(self):
         return len(self.data)
