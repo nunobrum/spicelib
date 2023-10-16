@@ -54,7 +54,7 @@ class DataSet(object):
             raise NotImplementedError
 
     def __str__(self):
-            return f"name:'{self.name}'\ntype:'{self.whattype}'\nlen:{len(self.data)}"
+        return f"name:'{self.name}'\ntype:'{self.whattype}'\nlen:{len(self.data)}"
 
     def __len__(self):
         return len(self.data)
