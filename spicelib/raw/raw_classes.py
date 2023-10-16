@@ -353,6 +353,9 @@ class DummyTrace(object):
         self.datalen = datalen
         self.numerical_type = numerical_type
 
+    def __str__(self):
+        return f"name:'{self.name}'\ntype:'{self.whattype}'\nlen:{self.datalen}"
+
 
 class SpiceReadException(Exception):
     """Custom class for exception handling"""
