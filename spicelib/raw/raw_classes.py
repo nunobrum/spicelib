@@ -23,7 +23,6 @@ Defines base classes for the RAW file data structures.
 """
 import numpy as np
 from numpy import zeros, complex128, float32, float64
-from binascii import b2a_hex
 from typing import Union, List
 
 
@@ -55,14 +54,7 @@ class DataSet(object):
             raise NotImplementedError
 
     def __str__(self):
-        if isinstance(self.data[0], float):
-            # data = ["%e" % value for value in self.data]
-            return "name:'%s'\ntype:'%s'\nlen:%d\n%s" % (self.name, self.whattype, len(self.data), str(self.data))
-        elif isinstance(self.data[0], complex):
-            return "name: {}\ntype: {}\nlen: {:d}\n{}".format(self.name, self.whattype, len(self.data), str(self.data))
-        else:
-            data = [b2a_hex(value) for value in self.data]
-            return "name:'%s'\ntype:'%s'\nlen:%d\n%s" % (self.name, self.whattype, len(self.data), str(data))
+        return f"name:'{self.name}'\ntype:'{self.whattype}'\nlen:{len(self.data)}"
 
     def __len__(self):
         return len(self.data)
@@ -359,6 +351,9 @@ class DummyTrace(object):
         self.whattype = whattype
         self.datalen = datalen
         self.numerical_type = numerical_type
+
+    def __str__(self):
+        return f"name:'{self.name}'\ntype:'{self.whattype}'\nlen:{self.datalen}"
 
 
 class SpiceReadException(Exception):
