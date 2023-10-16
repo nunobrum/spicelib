@@ -23,7 +23,6 @@ Defines base classes for the RAW file data structures.
 """
 import numpy as np
 from numpy import zeros, complex128, float32, float64
-from binascii import b2a_hex
 from typing import Union, List
 
 
