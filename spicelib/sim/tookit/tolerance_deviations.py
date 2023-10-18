@@ -170,11 +170,27 @@ class ToleranceDeviations(SimAnalysis):
     def prepare_testbench(self, **kwargs):
         raise RuntimeError("This method should be implemented in the derived class")
 
-    def run(self, max_runs_per_sim: int = 512,  **kwargs):
+    def run(self, *,
+            max_runs_per_sim: int = 512,
+            wait_resource: bool = True,
+            callback: Union[Type[ProcessCallback], Callable] = None,
+            callback_args: Union[tuple, dict] = None,
+            switches=None,
+            timeout: float = None,
+            run_filename: str = None):
         """
-        Runs the simulations. See runner.run for details on keyword arguments.
+        Runs the simulations.
         :param max_runs_per_sim: Maximum number of runs per simulation. If the number of runs is higher than this number,
         the simulation is split in multiple runs.
+        :param wait_resource: If True, the simulation will wait for the resource to be available. If False, the simulation
+        will be queued and the method will return immediately.
+        :param callback: A callback function to be called when the simulation is completed. The callback function must
+        accept a single argument, which is the simulation object.
+        :param callback_args: A tuple or dictionary with the arguments to be passed to the callback function.
+        :param switches: A dictionary with the switches to be passed to the simulator.
+        :param timeout: A timeout in seconds. If the simulation is not completed in this time, it will be aborted.
+        :param run_filename: The name of the file to be used for the simulation. If None, a temporary file will be used.
+        :return: The callback returns of every batch if a callback function is given. Otherwise, None.
         """
         super().reset_netlist()
         self.play_instructions()
@@ -183,10 +199,13 @@ class ToleranceDeviations(SimAnalysis):
         for sim_no in range(-1, self.num_runs, max_runs_per_sim):
             run_stepping = ".step param run {} {} 1".format(sim_no, sim_no + max_runs_per_sim)
             self.editor.add_instruction(run_stepping)
-            sim = self.runner.run(self.editor, **kwargs)
+            sim = self.runner.run(self.editor, wait_resource=wait_resource, callback=callback,
+                                  callback_args=callback_args, switches=switches, timeout=timeout,
+                                  run_filename=run_filename)
             self.simulations.append(sim)
             self.editor.remove_instruction(run_stepping)
         self.runner.wait_completion()
-        if 'callback' in kwargs:
-            return (sim.callback_return if sim is not None else None for sim in self.simulations)
+        if callback is not None:
+            if sim is not None:
+                return (sim.get_results() if sim is not None else None for sim in self.simulations)
         return None

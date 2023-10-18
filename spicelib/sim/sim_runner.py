@@ -125,7 +125,15 @@ class SimRunnerTimeoutError(TimeoutError):
 
 
 class AnyRunner(Protocol):
-    def run(self, netlist: Union[str, Path, BaseEditor], **kwargs) -> None:
+    def run(self, netlist: Union[str, Path, BaseEditor], *,
+            wait_resource: bool = True,
+            callback: Union[Type[ProcessCallback], Callable] = None,
+            callback_args: Union[tuple, dict] = None,
+            switches=None,
+            timeout: float = None, run_filename: str = None) -> Union[RunTask, None]:
+        ...
+
+    def wait_completion(self, timeout=None, abort_all_on_timeout=False) -> bool:
         ...
 
 

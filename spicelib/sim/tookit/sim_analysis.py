@@ -22,10 +22,10 @@
 
 from collections import OrderedDict
 from functools import wraps
-from typing import Union, Optional
+from pathlib import Path
+from typing import Union, Optional, Type, Callable
 
-from ..sim_runner import AnyRunner
-from ..simulator import Simulator
+from ..sim_runner import AnyRunner, RunTask, ProcessCallback
 from ...editor.base_editor import BaseEditor
 from ...log.ltsteps import LTSpiceLogReader
 from ...log.logfile_data import LogfileData
@@ -61,15 +61,27 @@ class SimAnalysis(object):
     def runner(self, new_runner: AnyRunner):
         self._runner = new_runner
 
-    def run(self, **kwargs):
+    def run(self,
+            netlist: Union[str, Path, BaseEditor], *,
+            wait_resource: bool = True,
+            callback: Union[Type[ProcessCallback], Callable] = None,
+            callback_args: Union[tuple, dict] = None,
+            switches=None,
+            timeout: float = None, run_filename: str = None) -> Union[RunTask, None]:
         """
-        Runs the simulations. See runner.run() method for details on keyword arguments.
+        Runs the simulations. See runner.run() method for details on arguments.
         """
-        sim = self.runner.run(self.editor, **kwargs)
+        sim = self.runner.run(self.editor,
+                              wait_resource=wait_resource,
+                              callback=callback,
+                              callback_args=callback_args,
+                              switches=switches,
+                              timeout=timeout,
+                              run_filename=run_filename)
         if sim is not None:
             self.simulations.append(sim)
             self.runner.wait_completion()
-            if 'callback' in kwargs:
+            if callback is not None:
                 return sim.get_results()
 
     @wraps(BaseEditor.reset_netlist)
