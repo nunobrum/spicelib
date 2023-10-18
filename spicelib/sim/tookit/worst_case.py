@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # coding=utf-8
-from typing import Union, Optional
-
-from ...editor.base_editor import BaseEditor
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -12,8 +9,8 @@ from ...editor.base_editor import BaseEditor
 #  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
-# Name:        montecarlo.py
-# Purpose:     Classes to automate Monte-Carlo simulations
+# Name:        worst_case.py
+# Purpose:     Classes to automate Worst-Case simulations
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #

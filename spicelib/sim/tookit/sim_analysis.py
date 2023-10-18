@@ -27,8 +27,8 @@ from typing import Union, Optional, Type, Callable
 
 from ..sim_runner import AnyRunner, RunTask, ProcessCallback
 from ...editor.base_editor import BaseEditor
-from ...log.ltsteps import LTSpiceLogReader
 from ...log.logfile_data import LogfileData
+from ...log.ltsteps import LTSpiceLogReader
 
 
 class SimAnalysis(object):
@@ -49,6 +49,8 @@ class SimAnalysis(object):
         self._runner = runner
         self.simulations = []
         self.num_runs = 0
+        self.received_instructions = []
+        self.instructions_added = False
 
     @property
     def runner(self):
@@ -86,7 +88,53 @@ class SimAnalysis(object):
 
     @wraps(BaseEditor.reset_netlist)
     def reset_netlist(self):
+        """Resets the netlist to the original state and clears the instructions added by the user."""
+        self._reset_netlist()
+        self.received_instructions.clear()
+
+    def _reset_netlist(self):
+        """Unlike the reset_netlist method of the BaseEditor, this method does not clear the instructions added by the
+        user. This is useful for the case where the user wants to run multiple simulations with different parameters
+        without having to add the instructions again."""
         self.editor.reset_netlist()
+        self.instructions_added = False
+
+    def set_component_value(self, ref: str, new_value: str):
+        self.received_instructions.append(('set_component_value', ref, new_value))
+
+    def set_element_model(self, ref: str, new_model: str):
+        self.received_instructions.append(('set_element_model', ref, new_model))
+
+    def set_parameter(self, ref: str, new_value: str):
+        self.received_instructions.append(('set_parameter', ref, new_value))
+
+    def add_instruction(self, new_instruction: str):
+        self.received_instructions.append(('add_instruction', new_instruction))
+
+    def remove_instruction(self, instruction: str, use_regex: bool = False):
+        self.received_instructions.append(('remove_instruction', instruction, use_regex))
+
+    def play_instructions(self):
+        if self.instructions_added:
+            return  # Nothing to do
+        for instruction in self.received_instructions:
+            if instruction[0] == 'set_component_value':
+                self.editor.set_component_value(instruction[1], instruction[2])
+            elif instruction[0] == 'set_element_model':
+                self.editor.set_element_model(instruction[1], instruction[2])
+            elif instruction[0] == 'set_parameter':
+                self.editor.set_parameter(instruction[1], instruction[2])
+            elif instruction[0] == 'add_instruction':
+                self.editor.add_instruction(instruction[1])
+            elif instruction[0] == 'remove_instruction':
+                self.editor.remove_instruction(instruction[1], instruction[2])
+            else:
+                raise ValueError("Unknown instruction")
+        self.instructions_added = True
+
+    def save_netlist(self, filename: str):
+        self.play_instructions()
+        self.editor.save_netlist(filename)
 
     def cleanup_files(self):
         """Clears all simulation files. Typically used after a simulation run and analysis."""
@@ -120,3 +168,6 @@ class SimAnalysis(object):
         # Now reusing the last log_results object to store the results
         return LogfileData(all_stepset, all_dataset)
 
+    def configure_measurement(self, meas_name: str, meas_expression: str, meas_type: str = 'tran'):
+        """Configures a measurement to be done in the simulation"""
+        self.editor.add_instruction(".meas {} {} {}".format(meas_type, meas_name, meas_expression))

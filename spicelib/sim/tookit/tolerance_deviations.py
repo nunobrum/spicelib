@@ -18,10 +18,10 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 from dataclasses import dataclass
-from typing import Union, Optional, Dict
+from typing import Union, Optional, Dict, Callable, Type
 
 from ...editor.base_editor import BaseEditor, scan_eng
-from .sim_analysis import SimAnalysis, AnyRunner
+from .sim_analysis import SimAnalysis, AnyRunner, ProcessCallback
 from enum import Enum
 
 
@@ -52,6 +52,7 @@ class ComponentDeviation:
     def none(cls):
         return cls(0.0, 0.0, DeviationType.none)
 
+
 class ToleranceDeviations(SimAnalysis):
     """Class to automate Monte-Carlo simulations"""
     devices_with_deviation_allowed = ('R', 'C', 'L', 'V', 'I')
@@ -61,7 +62,6 @@ class ToleranceDeviations(SimAnalysis):
         self.default_tolerance = {prefix: ComponentDeviation.none() for prefix in self.devices_with_deviation_allowed}
         self.device_deviations: Dict[str, ComponentDeviation] = {}
         self.parameter_deviations: Dict[str, ComponentDeviation] = {}
-        self.received_instructions = []
         self.testbench_prepared = False
         self.num_runs = 0
 
@@ -132,40 +132,9 @@ class ToleranceDeviations(SimAnalysis):
             self.prepare_testbench()
         super().save_netlist(filename)
 
-    def reset_netlist(self):
-        super().reset_netlist()
+    def _reset_netlist(self):
+        super()._reset_netlist()
         self.testbench_prepared = False
-        self.received_instructions.clear()
-
-    def set_component_value(self, ref: str, new_value: str):
-        self.received_instructions.append(('set_component_value', ref, new_value))
-
-    def set_element_model(self, ref: str, new_model: str):
-        self.received_instructions.append(('set_element_model', ref, new_model))
-
-    def set_parameter(self, ref: str, new_value: str):
-        self.received_instructions.append(('set_parameter', ref, new_value))
-
-    def add_instruction(self, new_instruction: str):
-        self.received_instructions.append(('add_instruction', new_instruction))
-
-    def remove_instruction(self, instruction: str):
-        self.received_instructions.append(('remove_instruction', instruction))
-
-    def play_instructions(self):
-        for instruction in self.received_instructions:
-            if instruction[0] == 'set_component_value':
-                self.editor.set_component_value(instruction[1], instruction[2])
-            elif instruction[0] == 'set_element_model':
-                self.editor.set_element_model(instruction[1], instruction[2])
-            elif instruction[0] == 'set_parameter':
-                self.editor.set_parameter(instruction[1], instruction[2])
-            elif instruction[0] == 'add_instruction':
-                self.editor.add_instruction(instruction[1])
-            elif instruction[0] == 'remove_instruction':
-                self.editor.remove_instruction(instruction[1])
-            else:
-                raise ValueError("Unknown instruction")
 
     def prepare_testbench(self, **kwargs):
         raise RuntimeError("This method should be implemented in the derived class")
@@ -192,7 +161,7 @@ class ToleranceDeviations(SimAnalysis):
         :param run_filename: The name of the file to be used for the simulation. If None, a temporary file will be used.
         :return: The callback returns of every batch if a callback function is given. Otherwise, None.
         """
-        super().reset_netlist()
+        super()._reset_netlist()
         self.play_instructions()
         self.prepare_testbench()
         self.editor.remove_instruction(".step param run -1 %d 1" % self.num_runs)  # Needs to remove this instruction
