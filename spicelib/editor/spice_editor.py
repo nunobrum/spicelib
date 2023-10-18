@@ -660,7 +660,7 @@ class SpiceCircuit(BaseEditor):
     def add_instruction(self, instruction: str) -> None:
         pass
 
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str, use_regex: bool = False) -> None:
         pass
 
     @property
@@ -672,7 +672,7 @@ class SpiceCircuit(BaseEditor):
 class SpiceEditor(SpiceCircuit):
     """
     This class implements interfaces to manipulate SPICE netlist files. The class doesn't update the netlist file
-    itself. After implementing the modifications the user should call the "write_netlist" method to write a new
+    itself. After implementing the modifications the user should call the "save_netlist" method to write a new
     netlist file.
 
     :param netlist_file: Name of the .NET file to parse
@@ -774,7 +774,7 @@ class SpiceEditor(SpiceCircuit):
                 line = len(self.netlist) - 2  # This is where typically the .backanno instruction is
             self.netlist.insert(line, instruction)
 
-    def remove_instruction(self, instruction) -> None:
+    def remove_instruction(self, instruction, use_regex: bool = False) -> None:
         """Usage a previously added instructions.
         Example: ::
 
@@ -785,18 +785,26 @@ class SpiceEditor(SpiceCircuit):
 
         :param instruction: The list of instructions to remove. Each instruction is of the type 'str'
         :type instruction: str
+        :param use_regex: If True, the instruction is treated as a regular expression. Default is False.
+        :type use_regex: bool
         :returns: Nothing
         """
-        # TODO: Make it more inteligent so it recognizes .models, .param
-        #  and .subckt
+        # TODO: Make it more intelligent so it recognizes .models, .param and .subckt
         # Because the netlist is stored containing the end of line terminations and because they are added when they
         # they are added to the netlist.
-        if not instruction.endswith(END_LINE_TERM):
-            instruction += END_LINE_TERM
+        if use_regex:
+            regex = re.compile(instruction, re.IGNORECASE)
+            for line in self.netlist:
+                if regex.match(line):
+                    self.netlist.remove(line)
+                    break
+        else:
+            if not instruction.endswith(END_LINE_TERM):
+                instruction += END_LINE_TERM
 
-        self.netlist.remove(instruction)
+            self.netlist.remove(instruction)
 
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         """
         Writes the netlist will all the requested updates into a file named <run_netlist_file>.
 
@@ -890,7 +898,7 @@ class SpiceEditor(SpiceCircuit):
 if __name__ == '__main__':
     E = SpiceEditor(os.path.abspath('..\\tests\\PI_Filter_resampled.net'))
     E.add_instruction(".nodeset V(N001)=0")
-    E.write_netlist('..\\tests\\PI_Filter_resampled_mod.net')
+    E.save_netlist('..\\tests\\PI_Filter_resampled_mod.net')
     E = SpiceEditor('..\\tests\\Editor_Test.net')
     print("Circuit Nodes", E.get_all_nodes())
     E.add_library_search_paths([r"C:\SVN\Electronic_Libraries\LTSpice\lib"])
@@ -922,4 +930,4 @@ if __name__ == '__main__':
         test_exiting_param_set3=26,
         test_exiting_param_set4=27,
         test_add_parameter=34.45, )
-    E.write_netlist("..\\tests\\test_spice_editor.net")
+    E.save_netlist("..\\tests\\test_spice_editor.net")

@@ -247,11 +247,12 @@ class AscEditor(BaseEditor):
         self._asc_file_lines.append("TEXT {} {} Left 2 !{}".format(x, y, instruction) + END_LINE_TERM)
         self._parse_asc_file()
 
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str, use_regex: bool = False) -> None:
         i = 0
         while i < len(self._texts):
             line_no, line = self._texts[i]
-            if instruction in line:
+            if not use_regex and instruction in line or \
+                    use_regex and re.match(instruction, line, re.IGNORECASE):
                 del self._asc_file_lines[line_no]
                 self._parse_asc_file()
                 return  # Job done, can exit this method

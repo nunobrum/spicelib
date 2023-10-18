@@ -422,10 +422,11 @@ class QschEditor(BaseEditor):
         tag = QschTag(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{instruction}"»', 0)
         self.schematic.items.append(tag)
 
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str, use_regex: bool = False) -> None:
         for text_tag in self.schematic.get_items('text'):
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
-            if instruction in text:
+            if not use_regex or instruction in text or \
+                    use_regex and re.match(instruction, text, re.IGNORECASE):
                 self.schematic.items.remove(text_tag)
                 return  # Job done, can exit this method
 
