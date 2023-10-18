@@ -1,0 +1,7 @@
+* C:\sandbox\spicelib\examples\testfiles\AC_1.asc
+Vin in 0 0 AC 1 0
+R1 in out 100
+C1 out 0 10µ
+.ac dec 10 1 100k
+.backanno
+.end

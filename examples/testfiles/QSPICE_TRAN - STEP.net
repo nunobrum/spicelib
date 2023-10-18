@@ -1,0 +1,15 @@
+* C:\sandbox\spicelib\examples\testfiles\QSPICE_TRAN - STEP.qsch
+V1 in 0 PWL 0 0 10n {Vin}
+R1 in out {R1}
+C1 out 0 1µ
+.param R1=1K
+.param Vin=2
+.step param Vin list 1 10
+.step param R1 list 1K 10K
+.tran 5m
+.meas t1 find V(out) at 1m
+.meas t2 find V(out) at 2m
+.meas t3 find V(out) at 3m
+.meas t4 find V(out) at 4m
+.meas t5 find V(out) at 5m
+.end
