@@ -61,8 +61,14 @@ def has_ltspice_detect():
 has_ltspice = has_ltspice_detect()
 skip_ltspice_tests = not has_ltspice
 print("skip_ltspice_tests", skip_ltspice_tests)
-test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
-# test_dir = os.path.abspath(test_dir)
+# ------------------------------------------------------------------------------
+if os.path.abspath(os.curdir).endswith('unittests'):
+    test_dir = '../examples/testfiles/'
+    temp_dir = '../examples/testfiles/temp/'
+else:
+    test_dir = './examples/testfiles/'
+    temp_dir = './examples/testfiles/temp/'
+
 print("test_dir", test_dir)
 # ------------------------------------------------------------------------------
 
@@ -141,7 +147,7 @@ class test_spicelib(unittest.TestCase):
     def test_run_from_spice_editor(self):
         """Run command on SpiceEditor"""
         print("Starting test_run_from_spice_editor")
-        LTC = SimRunner(output_folder=test_dir + "temp/", simulator=ltspice_simulator)
+        LTC = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
         # select spice model
         netlist = SpiceEditor(test_dir + "testfile.net")
         # set default arguments
@@ -173,7 +179,7 @@ class test_spicelib(unittest.TestCase):
         # Forcing to use only one simulation at a time so that the bias file is created before
         # the next simulation is called. Alternatively, wait_completion() can be called after each run
         # or use run_now and call the callback_function manually.
-        LTC = SimRunner(output_folder=test_dir + "temp/", simulator=ltspice_simulator, parallel_sims=1)
+        LTC = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator, parallel_sims=1)
         # select spice model
         SE = SpiceEditor(test_dir + "testfile.net")
         tstart = 0
@@ -343,7 +349,7 @@ class test_spicelib(unittest.TestCase):
             ]
         }
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
+            runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "Batch_Test.asc")
             print(raw_file, log_file)
         else:
@@ -362,7 +368,7 @@ class test_spicelib(unittest.TestCase):
         """Operating Point Simulation Test"""
         print("Starting test_operating_point")
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
+            runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point.asc")
         else:
             raw_file = test_dir + "DC op point_1.raw"
@@ -377,7 +383,7 @@ class test_spicelib(unittest.TestCase):
         """Operating Point Simulation with Steps """
         print("Starting test_operating_point_step")
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
+            runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "DC op point - STEP.asc")
         else:
             raw_file = test_dir + "DC op point - STEP_1.raw"
@@ -394,7 +400,7 @@ class test_spicelib(unittest.TestCase):
         """Transient Simulation test """
         print("Starting test_transient")
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
+            runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "TRAN.asc")
         else:
             raw_file = test_dir + "TRAN_1.raw"
@@ -415,7 +421,7 @@ class test_spicelib(unittest.TestCase):
         """Transient simulation with stepped data."""
         print("Starting test_transient_steps")
         if has_ltspice:
-            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
+            runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(test_dir + "TRAN - STEP.asc")
         else:
             raw_file = test_dir + "TRAN - STEP_1.raw"
@@ -442,7 +448,7 @@ class test_spicelib(unittest.TestCase):
         if has_ltspice:
             from spicelib.editor.asc_editor import AscEditor
             editor = AscEditor(test_dir + "AC.asc")
-            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
+            runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(editor)
 
             R1 = editor.get_component_floatvalue('R1')
@@ -475,7 +481,7 @@ class test_spicelib(unittest.TestCase):
         if has_ltspice:
             from spicelib.editor.asc_editor import AscEditor
             editor = AscEditor(test_dir + "AC - STEP.asc")
-            runner = SimRunner(output_folder=test_dir, simulator=ltspice_simulator)
+            runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
             raw_file, log_file = runner.run_now(editor)
             C1 = editor.get_component_floatvalue('C1')
         else:
