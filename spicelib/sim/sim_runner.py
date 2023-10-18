@@ -148,7 +148,6 @@ class SimRunner(object):
     :param simulator: Forcing a given simulator executable.
     :type simulator: Simulator, optional
     """
-    default_simulator = None
 
     def __init__(self, *, simulator=None, parallel_sims: int = 4, timeout: float = 600.0, verbose=False,
                  output_folder: str = None):
@@ -170,9 +169,6 @@ class SimRunner(object):
         self.completed_tasks = []
         self._iterator_counter = 0  # Note: Nested iterators are not supported
 
-        # master_log_filename = self.circuit_radic + '.masterlog' TODO: create the JSON or YAML file
-        _logger.info("SimRunner started")
-
         self.runno = 0  # number of total runs
         self.failSim = 0  # number of failed simulations
         self.okSim = 0  # number of successful completed simulations
@@ -180,13 +176,12 @@ class SimRunner(object):
 
         # Gets a simulator.
         if simulator is None:
-            if SimRunner.default_simulator is None:
-                raise ValueError("No default simulator defined, please specify a simulator")
-            self.simulator = SimRunner.default_simulator
+            raise ValueError("No default simulator defined, please specify a simulator")
         elif issubclass(simulator, Simulator):
             self.simulator = simulator
         else:
             raise TypeError("Invalid simulator type.")
+        _logger.info("SimRunner initialized")
 
     def __del__(self):
         """Class Destructor : Closes Everything"""
@@ -232,7 +227,7 @@ class SimRunner(object):
 
     def _on_output_folder(self, afile):
         if self.output_folder:
-            return self.output_folder / afile
+            return self.output_folder / Path(afile).name
         else:
             return Path(afile)
 
@@ -271,7 +266,7 @@ class SimRunner(object):
 
             # Calculates the path where to store the new netlist.
             run_netlist_file = self._on_output_folder(run_filename)
-            netlist.write_netlist(run_netlist_file)
+            netlist.save_netlist(run_netlist_file)
 
         elif isinstance(netlist, (Path, str)):
             if run_filename is None:
