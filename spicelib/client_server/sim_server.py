@@ -36,7 +36,7 @@ class SimServer():
 
     def __init__(self, simulator, parallel_sims=4, output_folder='./temp', port=9000):
         self.output_folder = output_folder
-        self.simulation_manager = ServerSimRunner(parallel_sims=parallel_sims, timeout=5 * 60, verbose=True,
+        self.simulation_manager = ServerSimRunner(parallel_sims=parallel_sims, timeout=5 * 60, verbose=False,
                                                   output_folder=output_folder, simulator=simulator)
         self.server = SimpleXMLRPCServer(
                 ('localhost', port),

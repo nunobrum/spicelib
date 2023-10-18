@@ -67,7 +67,7 @@ class RunTask(threading.Thread):
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
                  callback: Union[Type[ProcessCallback], Callable[[Path, Path], Any]],
                  callback_args: dict = None,
-                 switches: Any = None, timeout: float = None, verbose=True):
+                 switches: Any = None, timeout: float = None, verbose=False):
 
         super().__init__(name=f"RunTask#{runno}")
         self.start_time = None
