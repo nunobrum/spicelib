@@ -154,7 +154,15 @@ class QschEditor(BaseEditor):
     def circuit_file(self) -> Path:
         return self._qsch_file_path
 
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_as(self, qsch_file: Union[str, Path]) -> None:
+        with open(qsch_file, 'w', encoding="cp1252") as qsch_file:
+            _logger.info(f"Writing ASC file {qsch_file}")
+            for c in QSCH_HEADER:
+                qsch_file.write(chr(c))
+            qsch_file.write(self.schematic.out(0))
+            qsch_file.write('\n')  # Terminates the new line
+
+    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
 
@@ -162,12 +170,7 @@ class QschEditor(BaseEditor):
             _logger.error("Empty Schematic information")
             return
         if run_netlist_file.suffix == '.qsch':
-            with open(run_netlist_file, 'w', encoding="cp1252") as qsch_file:
-                _logger.info(f"Writing ASC file {run_netlist_file}")
-                for c in QSCH_HEADER:
-                    qsch_file.write(chr(c))
-                qsch_file.write(self.schematic.out(0))
-                qsch_file.write('\n')  # Terminates the new line
+            self.save_as(run_netlist_file)
         elif run_netlist_file.suffix in ('.net', '.cir'):
             libraries_to_include = []
             with open(run_netlist_file, 'w') as netlist_file:

@@ -53,7 +53,7 @@ class AscEditor(BaseEditor):
     def circuit_file(self) -> Path:
         return self._asc_file_path
 
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
         run_netlist_file = run_netlist_file.with_suffix(".asc")

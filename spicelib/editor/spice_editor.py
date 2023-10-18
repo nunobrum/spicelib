@@ -654,7 +654,7 @@ class SpiceCircuit(BaseEditor):
     def reset_netlist(self) -> None:
         pass
 
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         pass
 
     def add_instruction(self, instruction: str) -> None:

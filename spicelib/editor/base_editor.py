@@ -167,9 +167,16 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         """Writes the netlist to a file"""
         ...
+
+    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+        """
+        (Deprecated)
+
+        Writes the netlist to a file. This is an alias to save_netlist."""
+        self.save_netlist(run_netlist_file)
 
     @abstractmethod
     def get_component_info(self, component) -> dict:
@@ -203,7 +210,7 @@ class BaseEditor(ABC):
 
         Usage: ::
 
-         LTC.set_parameter("TEMP", 80)
+         editor.set_parameter("TEMP", 80)
 
         This adds onto the netlist the following line: ::
 
@@ -228,7 +235,7 @@ class BaseEditor(ABC):
 
             for temp in (-40, 25, 125):
                 for freq in sweep_log(1, 100E3,):
-                    LTC.set_parameters(TEMP=80, freq=freq)
+                    editor.set_parameters(TEMP=80, freq=freq)
 
         :key param_name:
             Key is the parameter to be set. values the ther corresponding values. Values can either be a str; an int or
@@ -245,8 +252,8 @@ class BaseEditor(ABC):
         subcircuits, use the subcirciut designator prefix with ':' as separator (Example X1:R1)
         Usage: ::
 
-            LTC.set_component_value('R1', '3.3k')
-            LTC.set_component_value('X1:C1', '10u')
+            editor.set_component_value('R1', '3.3k')
+            editor.set_component_value('X1:C1', '10u')
 
         :param device: Reference of the circuit element to be updated.
         :type device: str
@@ -271,8 +278,8 @@ class BaseEditor(ABC):
         """Changes the value of a circuit element, such as a diode model or a voltage supply.
         Usage: ::
 
-            LTC.set_element_model('D1', '1N4148')
-            LTC.set_element_model('V1' "SINE(0 1 3k 0 0 0)")
+            editor.set_element_model('D1', '1N4148')
+            editor.set_element_model('V1' "SINE(0 1 3k 0 0 0)")
 
         :param element: Reference of the circuit element to be updated.
         :type element: str
@@ -330,12 +337,12 @@ class BaseEditor(ABC):
 
         Usage 1: ::
 
-         LTC.set_component_values(R1=330, R2="3.3k", R3="1Meg", V1="PWL(0 1 30m 1 30.001m 0 60m 0 60.001m 1)")
+         editor.set_component_values(R1=330, R2="3.3k", R3="1Meg", V1="PWL(0 1 30m 1 30.001m 0 60m 0 60.001m 1)")
 
         Usage 2: ::
 
          value_settings = {'R1': 330, 'R2': '3.3k', 'R3': "1Meg", 'V1': 'PWL(0 1 30m 1 30.001m 0 60m 0 60.001m 1)'}
-         LTC.set_component_values(**value_settings)
+         editor.set_component_values(**value_settings)
 
         :key <comp_ref>:
             The key is the component designator (Ex: V1) and the value is the value to be set. Values can either be
@@ -398,17 +405,19 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str, use_regex: bool = False) -> None:
         """Usage a previously added instructions.
         Example: ::
 
-            LTC.remove_instruction(".STEP run -1 1023 1")
+            editor.remove_instruction(".STEP run -1 1023 1")
 
         This only works if the instruction exactly matches the line on the netlist. This means that space characters,
         and upper case and lower case differences will not match the line.
 
         :param instruction: The list of instructions to remove. Each instruction is of the type 'str'
         :type instruction: str
+        :param use_regex: If True, the instruction is treated as a regular expression.
+        :type use_regex: bool
         :returns: Nothing
         """
         ...
@@ -418,7 +427,7 @@ class BaseEditor(ABC):
         Example:
         ::
 
-            LTC.add_instructions(
+            editor.add_instructions(
                 ".STEP run -1 1023 1",
                 ".dc V1 -5 5"
             )

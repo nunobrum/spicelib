@@ -130,7 +130,7 @@ class ToleranceDeviations(SimAnalysis):
     def save_netlist(self, filename: str):
         if self.testbench_prepared is False:
             self.prepare_testbench()
-        self.editor.write_netlist(filename)
+        super().save_netlist(filename)
 
     def reset_netlist(self):
         super().reset_netlist()
