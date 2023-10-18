@@ -338,7 +338,6 @@ class LogfileData:
         :type append_with_line_prefix: str
         :return: Nothing
         """
-        # print(tokens)
         if append_with_line_prefix is None:
             mode = 'w'  # rewrites the file
         else:

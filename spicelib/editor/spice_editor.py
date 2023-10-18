@@ -328,7 +328,6 @@ class SpiceCircuit(BaseEditor):
         m = regex.match(line)
         if m is None:
             raise UnrecognizedSyntaxError(line, REPLACE_REGXES[prefix])
-            # print("Unsupported line ""{}""".format(line))
         else:
             start = m.start('value')
             end = m.end('value')

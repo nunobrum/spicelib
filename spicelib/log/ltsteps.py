@@ -138,11 +138,8 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
     for line in fin:
         if line.startswith("Step Information:"):
             match = regx.match(line)
-            # print(line, end="")
             if match:
-                # print(match.groups())
                 step, run_no = match.groups()
-                # print(step, line, end="")
                 params = []
                 for param in step.split():
                     params.append(param.split('=')[1])
@@ -157,7 +154,6 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
                     fout.write(msg)
                     _logger.debug(msg)
                     go_header = False
-                    # print("%s\t%s"% (run_no, param_values))
         else:
             fout.write("%s\t%s\t%s" % (run_no, param_values, line))
 
@@ -203,11 +199,8 @@ class LTSpiceExport(object):
         for line in fin:
             if line.startswith("Step Information:"):
                 match = regx.match(line)
-                # print(line, end="")
                 if match:
-                    # print(match.groups())
                     step, run_no = match.groups()
-                    # print(step, line, end="")
                     curr_dic['runno'] = run_no
                     for param in step.split():
                         key, value = param.split('=')
@@ -370,7 +363,6 @@ class LTSpiceLogReader(LogfileData):
                         self.fourier[signal] = [fourier_data]
 
                 if line.startswith(".step"):
-                    # print(line)
                     self.step_count += 1
                     tokens = line.strip('\r\n').split(' ')
                     for tok in tokens[1:]:
@@ -411,7 +403,6 @@ class LTSpiceLogReader(LogfileData):
                                 try_convert_value(measurements[k])]  # need to be a list for compatibility
                 line = fin.readline()
 
-            # print("Reading Measurements")
             dataname = None
 
             headers = []  # Initializing an empty parameters
