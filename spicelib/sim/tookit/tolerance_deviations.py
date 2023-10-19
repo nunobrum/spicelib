@@ -64,6 +64,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.device_deviations: Dict[str, ComponentDeviation] = {}
         self.parameter_deviations: Dict[str, ComponentDeviation] = {}
         self.testbench_prepared = False
+        self.testbench_executed = False
         self.num_runs = 0
         self.simulation_results = {}
 
@@ -179,6 +180,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
         :return: The callback returns of every batch if a callback function is given. Otherwise, None.
         """
         super()._reset_netlist()
+        self.clear_simulation_data()
         self.play_instructions()
         self.prepare_testbench()
         self.editor.remove_instruction(".step param run -1 %d 1" % self.num_runs)  # Needs to remove this instruction
@@ -198,6 +200,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.runner.wait_completion()
         if callback is not None:
             return (sim.get_results() if sim is not None else None for sim in self.simulations)
+        self.testbench_executed = True
         return None
 
     @abstractmethod

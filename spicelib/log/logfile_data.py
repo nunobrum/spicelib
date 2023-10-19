@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
+from __future__ import annotations
 
 # -------------------------------------------------------------------------------
 # Name:        logfile_data.py
@@ -232,24 +233,37 @@ class LogfileData:
         """
         return list(self.dataset.keys())
 
-    def get_measure_value(self, measure: str, step: int = None) -> Union[float, int, str, LTComplex]:
+    def get_measure_value(self, measure: str, step: int | slice = None, **kwargs) -> float | int | str | LTComplex:
         """
         Returns a measure value on a given step.
 
         :param measure: name of the measurement to get
         :type measure: str
-        :param step: optional step number if the simulation has no steps.
-        :type step: measured value, int, float, Complex or str
+        :param step: optional step number or slice if the simulation has no steps.
+        :type step: int or slice
+        :param kwargs: additional arguments that can be translated into step conditions
+        :return: measurement value
+        :rtype: int, float, Complex or str
         """
         if step is None:
-            if len(self.dataset[measure]) == 1:
+            if kwargs:
+                step = self.steps_with_conditions(**kwargs)
+                if len(step) == 1:
+                    step = step[0]
+                    return self.dataset[measure][step]
+                else:
+                    raise IndexError("Not sufficient conditions to identify a single step")
+            elif len(self.dataset[measure]) == 1:
                 return self.dataset[measure][0]
             elif len(self.dataset[measure]) == 0:
                 _logger.error(f'No measurements found for measure "{measure}"')
             else:
                 raise IndexError("In stepped data, the step number needs to be provided")
         else:
-            return self.dataset[measure][step]
+            if isinstance(step, (slice, int)):
+                return self.dataset[measure][step]
+            else:
+                raise TypeError("Step must be an integer or a slice")
 
     def get_measure_values_at_steps(self, measure: str, steps: Union[None, int, Iterable]) \
             -> List[Union[float, int, str, LTComplex]]:

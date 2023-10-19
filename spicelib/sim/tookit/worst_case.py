@@ -171,3 +171,11 @@ class WorstCaseAnalysis(ToleranceDeviations):
             return None
         else:
             return min(meas_data), max(meas_data)
+
+    def make_sensitivity_analysis(self, meas_name: str, ref: str):
+        """Makes a sensitivity analysis for a given measurement and reference component"""
+        pass
+        # TODO: implement this method
+        # 1. Run the simulation
+        # 2. Read the log files
+        # 3. Calculate the sensitivity
