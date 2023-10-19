@@ -461,6 +461,8 @@ _Make sure to initialize the root logger before importing the library to be able
   * Improving the sim_analysis so to be able to analyse simulation results.
   * Renamed editors .write_netlist() to .save_netlist(). The former is kept
     for legacy purposes. 
+  * Improving the get_measure_value() method to be able to return the value
+    of a measure in a specific step.
 * Version 0.6
   * Implementing a conversion from Qspice Schematics .qsch to spice files
   * Improving the Analysis Toolkit to support adding instructions directly 
