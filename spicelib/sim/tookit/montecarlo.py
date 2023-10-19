@@ -20,15 +20,14 @@
 
 import random
 import logging
-from typing import Union, Optional, Dict, Callable, Type
-import numpy as np
-
-from ...log.logfile_data import LogfileData
+from typing import Union, Callable, Type
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
 
 from .tolerance_deviations import ToleranceDeviations, DeviationType, ComponentDeviation
 from ..process_callback import ProcessCallback
+from ...log.logfile_data import LogfileData
+
 
 
 class Montecarlo(ToleranceDeviations):
@@ -104,7 +103,9 @@ class Montecarlo(ToleranceDeviations):
         self.editor.set_parameter('run', -1)
         self.testbench_prepared = True
 
-    def _get_sim_value(self, value: float, dev: ComponentDeviation):
+    def _get_sim_value(self, value: float, dev: ComponentDeviation) -> float:
+        """Returns a new value for the simulation"""
+        new_val = value
         if dev.typ == DeviationType.tolerance:
             if dev.distribution == 'uniform':
                 new_val = f"{random.Random().uniform(value * (1- dev.max_val), value * (1 + dev.max_val)):g}"
@@ -117,7 +118,6 @@ class Montecarlo(ToleranceDeviations):
                 new_val = f"{random.Random().gauss((dev.max_val + dev.min_val) / 2, (dev.max_val - dev.min_val) / 6):g}"
         else:
             _logger.warning("Unknown deviation type")
-            new_val = value
         return new_val
 
     def run_analysis(self, num_runs: int = 1000,
@@ -130,7 +130,7 @@ class Montecarlo(ToleranceDeviations):
         It will update component values and parameters according to their deviation type and call the simulation.
         The advantage of this method is that it doesn't require adding random functions to the netlist.
         The number of times the simulation is done is specified on the argument num_runs."""
-        run_tasks = []
+        self.clear_simulation_data()
         for run in range(num_runs):
             self._reset_netlist() # reset the netlist
             self.play_instructions() # play the instructions
@@ -139,7 +139,7 @@ class Montecarlo(ToleranceDeviations):
                 val, dev = self.get_component_value_deviation_type(ref)  # get there present value
                 new_val = self._get_sim_value(val, dev)
                 if new_val != val:  # Only update the value if it has changed
-                    self.set_component_value(ref, new_val)  # update the value
+                    self.editor.set_component_value(ref, new_val)  # update the value
             # Preparing the variation on parameters
             for param in self.parameter_deviations:
                 val, dev = self.get_parameter_value_deviation_type(param)
@@ -150,13 +150,11 @@ class Montecarlo(ToleranceDeviations):
             rt = self.run(self.editor, wait_resource=True,
                           callback=callback, callback_args=callback_args,
                           switches=switches, timeout=timeout)
-            if callback is not None:
-                run_tasks.append(rt)
 
         self.runner.wait_completion()
         if callback is not None:
             callback_rets = []
-            for rt in self.simulations:
+            for rt in self.run_tasks:
                 callback_rets.append(rt.get_results())
             self.simulation_results['callback_returns'] = callback_rets
 
@@ -166,7 +164,7 @@ class Montecarlo(ToleranceDeviations):
             self.simulation_results['log_data'] = log_data
 
         log_data: LogfileData = self.simulation_results['log_data']
-        meas_data = log_data.get_measure_value(meas_name)
+        meas_data = log_data[meas_name]
         if meas_data is None:
             _logger.warning("Measurement %s not found in log files", meas_name)
             return None

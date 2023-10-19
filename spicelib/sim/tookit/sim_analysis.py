@@ -24,12 +24,14 @@ from collections import OrderedDict
 from functools import wraps
 from pathlib import Path
 from typing import Union, Optional, Type, Callable
-
+import logging
 from ..sim_runner import AnyRunner, RunTask, ProcessCallback
 from ...editor.base_editor import BaseEditor
 from ...log.logfile_data import LogfileData
 from ...log.ltsteps import LTSpiceLogReader
+from ...utils.detect_encoding import EncodingDetectError
 
+_logger = logging.getLogger("spicelib.SimAnalysis")
 
 class SimAnalysis(object):
     """
@@ -166,7 +168,14 @@ class SimAnalysis(object):
         for sim in self.simulations:
             if sim is None:
                 continue
-            log_results = LTSpiceLogReader(sim.log_file)
+            try:
+                log_results = LTSpiceLogReader(sim.log_file)
+            except FileNotFoundError:
+                _logger.warning("Log file not found: %s", sim.log_file)
+                continue
+            except EncodingDetectError:
+                _logger.warning("Log file %s couldn't be read", sim.log_file)
+                continue
             for param in log_results.stepset:
                 if param not in all_stepset:
                     all_stepset[param] = log_results.stepset[param]

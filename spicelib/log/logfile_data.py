@@ -244,6 +244,8 @@ class LogfileData:
         if step is None:
             if len(self.dataset[measure]) == 1:
                 return self.dataset[measure][0]
+            elif len(self.dataset[measure]) == 0:
+                _logger.error(f'No measurements found for measure "{measure}"')
             else:
                 raise IndexError("In stepped data, the step number needs to be provided")
         else:

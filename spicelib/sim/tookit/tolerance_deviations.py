@@ -65,9 +65,9 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.parameter_deviations: Dict[str, ComponentDeviation] = {}
         self.testbench_prepared = False
         self.num_runs = 0
-        self.simulation_results = None
+        self.simulation_results = {}
 
-    def clear_settings(self):
+    def reset_tolerances(self):
         """
         Clears all the settings for the simulation
         """
@@ -75,7 +75,11 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.parameter_deviations.clear()
         self.testbench_prepared = False
         self.num_runs = 0
-        self.simulation_results = None
+
+    def clear_simulation_data(self):
+        """Clears the data from the simulations"""
+        super().clear_simulation_data()
+        self.simulation_results.clear()
 
     def set_tolerance(self, ref: str, new_tolerance: float, distribution: str = 'uniform'):
         """
@@ -179,7 +183,12 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.prepare_testbench()
         self.editor.remove_instruction(".step param run -1 %d 1" % self.num_runs)  # Needs to remove this instruction
         for sim_no in range(-1, self.num_runs, max_runs_per_sim):
-            run_stepping = ".step param run {} {} 1".format(sim_no, sim_no + max_runs_per_sim)
+            last_no = sim_no + max_runs_per_sim - 1
+            if last_no > self.num_runs:
+                last_no = self.num_runs
+            if sim_no >= last_no:
+                break
+            run_stepping = ".step param run {} {} 1".format(sim_no, last_no)
             self.editor.add_instruction(run_stepping)
             sim = self.runner.run(self.editor, wait_resource=wait_resource, callback=callback,
                                   callback_args=callback_args, switches=switches, timeout=timeout,
@@ -190,10 +199,6 @@ class ToleranceDeviations(SimAnalysis, ABC):
         if callback is not None:
             return (sim.get_results() if sim is not None else None for sim in self.simulations)
         return None
-
-    @abstractmethod
-    def analyse_measurement(self, meas_name: str):
-        ...
 
     @abstractmethod
     def run_analysis(self):

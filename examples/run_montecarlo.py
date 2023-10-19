@@ -33,11 +33,11 @@ mc.cleanup_files()  # Deletes the temporary files
 
 print("=====================================")
 # Now using the second method, where the simulations are ran one by one
-# mc.clear_simulation_data()  # Clears the simulation data
-# mc.reset_netlist()  # Resets the netlist to the original
-# mc.run_analysis(num_runs=100)  # Runs the 1000 simulations
-# logs = mc.read_logfiles()   # Reads the log files and stores the results in the results attribute
-# logs.export_data('./temp_mc/data_sims.csv')  # Exports the data to a csv file
-# logs.plot_histogram('fcut')  # Plots the histograms for the results
-# mc.cleanup_files()  # Deletes the temporary files
+mc.clear_simulation_data()  # Clears the simulation data
+mc.reset_netlist()  # Resets the netlist to the original
+mc.run_analysis(num_runs=1000)  # Runs the 1000 simulations
+logs = mc.read_logfiles()   # Reads the log files and stores the results in the results attribute
+logs.export_data('./temp_mc/data_sims.csv')  # Exports the data to a csv file
+logs.plot_histogram('fcut')  # Plots the histograms for the results
+mc.cleanup_files()  # Deletes the temporary files
 
