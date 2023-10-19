@@ -17,7 +17,7 @@ sa.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides th
 # Tolerances can be set for parameters as well.
 sa.set_parameter_deviation('Vos', 3e-4, 5e-3)
 
-sa.remove_instruction("\.AC.*", use_regex=True)  # Removes the .AC instruction
+sa.remove_Xinstruction("\.AC.*")  # Removes the .AC instruction
 sa.add_instruction(".OP")
 
 # Finally the netlist is saved to a file

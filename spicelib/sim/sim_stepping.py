@@ -106,6 +106,10 @@ class SimStepper(object):
     def remove_instruction(self, instruction) -> None:
         self.netlist.remove_instruction(instruction)
 
+    @wraps(BaseEditor.remove_Xinstruction)
+    def remove_Xinstruction(self, search_pattern) -> None:
+        self.netlist.remove_Xinstruction(search_pattern)
+
     @wraps(BaseEditor.set_parameters)
     def set_parameters(self, **kwargs):
         self.netlist.set_parameters(**kwargs)

@@ -405,7 +405,7 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
-    def remove_instruction(self, instruction: str, use_regex: bool = False) -> None:
+    def remove_instruction(self, instruction) -> None:
         """Usage a previously added instructions.
         Example: ::
 
@@ -416,8 +416,20 @@ class BaseEditor(ABC):
 
         :param instruction: The list of instructions to remove. Each instruction is of the type 'str'
         :type instruction: str
-        :param use_regex: If True, the instruction is treated as a regular expression.
-        :type use_regex: bool
+        :returns: Nothing
+        """
+        ...
+
+    @abstractmethod
+    def remove_Xinstruction(self, search_pattern: str) -> None:
+        """Removes a list of instructions from the SPICE NETLIST.
+        Example:
+        ::
+
+            editor.remove_Xinstruction("\.AC.*")
+
+        :param search_pattern: The list of instructions to remove. Each instruction is of the type 'str'
+        :type search_pattern: str
         :returns: Nothing
         """
         ...

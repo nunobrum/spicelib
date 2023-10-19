@@ -247,13 +247,13 @@ class AscEditor(BaseEditor):
         self._asc_file_lines.append("TEXT {} {} Left 2 !{}".format(x, y, instruction) + END_LINE_TERM)
         self._parse_asc_file()
 
-    def remove_instruction(self, instruction: str, use_regex: bool = False) -> None:
+    def remove_instruction(self, instruction: str) -> None:
         i = 0
         while i < len(self._texts):
             line_no, line = self._texts[i]
-            if not use_regex and instruction in line or \
-                    use_regex and re.match(instruction, line, re.IGNORECASE):
+            if instruction in line:
                 del self._asc_file_lines[line_no]
+                _logger.info(f"Instruction {line} removed")
                 self._parse_asc_file()
                 return  # Job done, can exit this method
             i += 1
@@ -261,3 +261,20 @@ class AscEditor(BaseEditor):
         msg = f'Instruction "{instruction}" not found'
         _logger.error(msg)
         raise RuntimeError(msg)
+
+    def remove_Xinstruction(self, search_pattern: str) -> None:
+        regex = re.compile(search_pattern, re.IGNORECASE)
+        instr_removed = False
+        i = 0
+        while i < len(self._texts):
+            line_no, line = self._texts[i]
+            if regex.match(line):
+                instr_removed = True
+                del self._asc_file_lines[line_no]
+                _logger.info(f"Instruction {line} removed")
+                self._parse_asc_file()  # This is needed to update the self._texts list
+            else:
+                i += 1
+        if not instr_removed:
+            msg = f'Instructions matching "{search_pattern}" not found'
+            _logger.error(msg)

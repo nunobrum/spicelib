@@ -67,12 +67,16 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt.remove_instruction('.save I(R1)')
         self.edt.save_netlist(test_dir + 'test_instructions_output_1.net')
         self.equalFiles(test_dir + 'test_instructions_output_1.net', golden_dir + 'test_instructions_output_1.net')
+        self.edt.remove_Xinstruction(r"\.save\sI\(.*\)")  # removes all .save instructions for currents
+        self.edt.save_netlist(test_dir + 'test_instructions_output_2.net')
+        self.equalFiles(test_dir + 'test_instructions_output_2.net', golden_dir + 'test_instructions_output_2.net')
 
     def equalFiles(self, file1, file2):
         with open(file1, 'r') as f1:
             lines1 = f1.readlines()
         with open(file2, 'r') as f2:
             lines2 = f2.readlines()
+        self.assertEqual(len(lines1), len(lines2), "Files have different number of lines")
         for i, lines in enumerate(zip(lines1, lines2)):
             self.assertEqual(lines[0], lines[1], "Line %d" % i)
 

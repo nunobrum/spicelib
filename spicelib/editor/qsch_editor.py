@@ -422,14 +422,26 @@ class QschEditor(BaseEditor):
         tag = QschTag(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{instruction}"»', 0)
         self.schematic.items.append(tag)
 
-    def remove_instruction(self, instruction: str, use_regex: bool = False) -> None:
+    def remove_instruction(self, instruction: str) -> None:
         for text_tag in self.schematic.get_items('text'):
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
-            if not use_regex or instruction in text or \
-                    use_regex and re.match(instruction, text, re.IGNORECASE):
+            if instruction in text:
                 self.schematic.items.remove(text_tag)
+                _logger.info(f'Instruction "{instruction}" removed')
                 return  # Job done, can exit this method
 
         msg = f'Instruction "{instruction}" not found'
         _logger.error(msg)
-        raise RuntimeError(msg)
+
+    def remove_Xinstruction(self, search_pattern: str) -> None:
+        regex = re.compile(search_pattern, re.IGNORECASE)
+        instr_removed = False
+        for text_tag in self.schematic.get_items('text'):
+            text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+            if regex.match(text):
+                self.schematic.items.remove(text_tag)
+                _logger.info(f'Instruction "{text}" removed')
+                instr_removed = True
+        if not instr_removed:
+            msg = f'Instruction matching "{search_pattern}" not found'
+            _logger.error(msg)

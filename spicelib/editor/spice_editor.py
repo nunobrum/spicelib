@@ -660,7 +660,10 @@ class SpiceCircuit(BaseEditor):
     def add_instruction(self, instruction: str) -> None:
         pass
 
-    def remove_instruction(self, instruction: str, use_regex: bool = False) -> None:
+    def remove_instruction(self, instruction: str) -> None:
+        pass
+
+    def remove_Xinstruction(self, search_pattern: str) -> None:
         pass
 
     @property
@@ -774,7 +777,7 @@ class SpiceEditor(SpiceCircuit):
                 line = len(self.netlist) - 2  # This is where typically the .backanno instruction is
             self.netlist.insert(line, instruction)
 
-    def remove_instruction(self, instruction, use_regex: bool = False) -> None:
+    def remove_instruction(self, instruction) -> None:
         """Usage a previously added instructions.
         Example: ::
 
@@ -785,24 +788,39 @@ class SpiceEditor(SpiceCircuit):
 
         :param instruction: The list of instructions to remove. Each instruction is of the type 'str'
         :type instruction: str
-        :param use_regex: If True, the instruction is treated as a regular expression. Default is False.
-        :type use_regex: bool
         :returns: Nothing
         """
         # TODO: Make it more intelligent so it recognizes .models, .param and .subckt
         # Because the netlist is stored containing the end of line terminations and because they are added when they
         # they are added to the netlist.
-        if use_regex:
-            regex = re.compile(instruction, re.IGNORECASE)
-            for line in self.netlist:
-                if regex.match(line):
-                    self.netlist.remove(line)
-                    break
-        else:
-            if not instruction.endswith(END_LINE_TERM):
-                instruction += END_LINE_TERM
-
+        if not instruction.endswith(END_LINE_TERM):
+            instruction += END_LINE_TERM
+        if instruction in self.netlist:
             self.netlist.remove(instruction)
+            _logger.info(f'Instruction "{instruction}" removed')
+        else:
+            _logger.error(f'Instruction "{instruction}" not found.')
+
+    def remove_Xinstruction(self, search_pattern: str) -> None:
+        """
+        Removes all instructions that match the search pattern.
+        :param search_pattern: The search pattern to be used
+        :type search_pattern: str
+        :return: Nothing
+        """
+        regex = re.compile(search_pattern, re.IGNORECASE)
+        i = 0
+        instr_removed = False
+        while i < len(self.netlist):
+            line = self.netlist[i]
+            if isinstance(line, str) and regex.match(line):
+                del self.netlist[i]
+                instr_removed = True
+                _logger.info(f'Instruction "{line}" removed')
+            else:
+                i += 1
+        if not instr_removed:
+            _logger.error(f'No instruction matching pattern "{search_pattern}" was found')
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         """

@@ -66,12 +66,16 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.remove_instruction('.save I(R1)')
         self.edt.save_netlist(test_dir + 'test_instructions_output_1.asc')
         self.equalFiles(test_dir + 'test_instructions_output_1.asc', golden_dir + 'test_instructions_output_1.asc')
+        self.edt.remove_Xinstruction(r"\.save\sI\(.*\)")  # removes all .save instructions for currents
+        self.edt.save_netlist(test_dir + 'test_instructions_output_2.asc')
+        self.equalFiles(test_dir + 'test_instructions_output_2.asc', golden_dir + 'test_instructions_output_2.asc')
 
     def equalFiles(self, file1, file2):
         with open(file1, 'r') as f1:
             lines1 = f1.readlines()
         with open(file2, 'r') as f2:
             lines2 = f2.readlines()
+        self.assertEqual(len(lines1), len(lines2), "Number of lines is different")
         for i, lines in enumerate(zip(lines1, lines2)):
             self.assertEqual(lines[0], lines[1], "Line %d" % i)
 

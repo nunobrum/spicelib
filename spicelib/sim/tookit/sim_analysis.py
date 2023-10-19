@@ -111,8 +111,12 @@ class SimAnalysis(object):
     def add_instruction(self, new_instruction: str):
         self.received_instructions.append(('add_instruction', new_instruction))
 
-    def remove_instruction(self, instruction: str, use_regex: bool = False):
-        self.received_instructions.append(('remove_instruction', instruction, use_regex))
+    def remove_instruction(self, instruction: str):
+        self.received_instructions.append(('remove_instruction', instruction))
+
+    def remove_Xinstruction(self, search_pattern: str):
+        self.received_instructions.append(('remove_Xinstruction', search_pattern))
+
 
     def play_instructions(self):
         if self.instructions_added:
@@ -127,7 +131,9 @@ class SimAnalysis(object):
             elif instruction[0] == 'add_instruction':
                 self.editor.add_instruction(instruction[1])
             elif instruction[0] == 'remove_instruction':
-                self.editor.remove_instruction(instruction[1], instruction[2])
+                self.editor.remove_instruction(instruction[1])
+            elif instruction[0] == 'remove_Xinstruction':
+                self.editor.remove_Xinstruction(instruction[1])
             else:
                 raise ValueError("Unknown instruction")
         self.instructions_added = True

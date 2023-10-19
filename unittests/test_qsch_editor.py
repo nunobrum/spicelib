@@ -85,6 +85,9 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.remove_instruction('.save I(R1)')
         self.edt.save_netlist(temp_dir + 'test_instructions_output_1.qsch')
         equalFiles(self, temp_dir + 'test_instructions_output_1.qsch', golden_dir + 'test_instructions_output_1.qsch')
+        self.edt.remove_Xinstruction(r"\.save\sI\(.*\)")  # removes all .save instructions for currents
+        self.edt.save_netlist(temp_dir + 'test_instructions_output_2.qsch')
+        equalFiles(self, temp_dir + 'test_instructions_output_2.qsch', golden_dir + 'test_instructions_output_2.qsch')
 
 
 class QschEditorRotation(unittest.TestCase):
