@@ -173,6 +173,7 @@ class test_spicelib(unittest.TestCase):
         """SimRunner and SpiceEditor singletons"""
         print("Starting test_sim_runner")
         # Old legacy class that merged SpiceEditor and SimRunner
+
         def callback_function(raw_file, log_file):
             print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
 

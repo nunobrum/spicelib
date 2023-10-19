@@ -7,3 +7,4 @@ Editor Classes
    spice_editor
    spice_circuit
    asc_editor
+   qsch_editor
