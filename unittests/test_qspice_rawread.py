@@ -49,6 +49,7 @@ from spicelib.raw.raw_read import RawRead
 from spicelib.editor.spice_editor import SpiceEditor
 from spicelib.sim.sim_runner import SimRunner
 
+
 def has_qspice_detect():
     from spicelib.simulators.qspice_simulator import Qspice
     global qspice_simulator
