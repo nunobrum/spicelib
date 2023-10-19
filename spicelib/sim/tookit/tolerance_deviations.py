@@ -17,6 +17,7 @@
 # Created:     10-08-2023
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Union, Optional, Dict, Callable, Type
 
@@ -53,7 +54,7 @@ class ComponentDeviation:
         return cls(0.0, 0.0, DeviationType.none)
 
 
-class ToleranceDeviations(SimAnalysis):
+class ToleranceDeviations(SimAnalysis, ABC):
     """Class to automate Monte-Carlo simulations"""
     devices_with_deviation_allowed = ('R', 'C', 'L', 'V', 'I')
 
@@ -64,6 +65,17 @@ class ToleranceDeviations(SimAnalysis):
         self.parameter_deviations: Dict[str, ComponentDeviation] = {}
         self.testbench_prepared = False
         self.num_runs = 0
+        self.simulation_results = None
+
+    def clear_settings(self):
+        """
+        Clears all the settings for the simulation
+        """
+        self.device_deviations.clear()
+        self.parameter_deviations.clear()
+        self.testbench_prepared = False
+        self.num_runs = 0
+        self.simulation_results = None
 
     def set_tolerance(self, ref: str, new_tolerance: float, distribution: str = 'uniform'):
         """
@@ -105,7 +117,7 @@ class ToleranceDeviations(SimAnalysis):
             return value, ComponentDeviation.none()
         # The value needs to be able to be computed, otherwise it can't be used
         try:
-            scan_eng(value)
+            value = scan_eng(value)
         except ValueError:
             if value.startswith('{') and value.endswith('}'):
                 # This is still acceptable as the value could be computed.
@@ -136,10 +148,11 @@ class ToleranceDeviations(SimAnalysis):
         super()._reset_netlist()
         self.testbench_prepared = False
 
+    @abstractmethod
     def prepare_testbench(self, **kwargs):
-        raise RuntimeError("This method should be implemented in the derived class")
+        ...
 
-    def run(self, *,
+    def run_testbench(self, *,
             max_runs_per_sim: int = 512,
             wait_resource: bool = True,
             callback: Union[Type[ProcessCallback], Callable] = None,
@@ -175,6 +188,13 @@ class ToleranceDeviations(SimAnalysis):
             self.editor.remove_instruction(run_stepping)
         self.runner.wait_completion()
         if callback is not None:
-            if sim is not None:
-                return (sim.get_results() if sim is not None else None for sim in self.simulations)
+            return (sim.get_results() if sim is not None else None for sim in self.simulations)
         return None
+
+    @abstractmethod
+    def analyse_measurement(self, meas_name: str):
+        ...
+
+    @abstractmethod
+    def run_analysis(self):
+        ...

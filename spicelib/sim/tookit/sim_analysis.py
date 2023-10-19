@@ -52,6 +52,11 @@ class SimAnalysis(object):
         self.received_instructions = []
         self.instructions_added = False
 
+    def clear_simulation_data(self):
+        """Clears the data from the simulations"""
+        self.simulations.clear()
+        self.num_runs = 0
+
     @property
     def runner(self):
         if self._runner is None:
@@ -82,9 +87,10 @@ class SimAnalysis(object):
                               run_filename=run_filename)
         if sim is not None:
             self.simulations.append(sim)
-            self.runner.wait_completion()
-            if callback is not None:
-                return sim.get_results()
+            return sim
+
+    def wait_completion(self):
+        self.runner.wait_completion()
 
     @wraps(BaseEditor.reset_netlist)
     def reset_netlist(self):

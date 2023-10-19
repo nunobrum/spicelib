@@ -101,7 +101,7 @@ simulation is finished.
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2020, Fribourg Switzerland"
 
-__all__ = ['SimRunner']
+__all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask', 'clock_function']
 
 import shutil
 import inspect  # Library used to get the arguments of the callback function
@@ -381,7 +381,7 @@ class SimRunner(object):
 
             if (wait_resource is False) or (self.active_threads() < self.parallel_sims):
                 t = RunTask(self.simulator, self.runno, run_netlist_file, callback, callback_kwargs,
-                            cmdline_switches, timeout=self.timeout, verbose=self.verbose)
+                            cmdline_switches, timeout=timeout, verbose=self.verbose)
                 self.active_tasks.append(t)
                 t.start()
                 sleep(0.01)  # Give slack for the thread to start

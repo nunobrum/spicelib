@@ -311,7 +311,7 @@ class LogfileData:
         values = self.get_measure_values_at_steps(measure, steps)
         return sum(values) / len(values)
 
-    def split_complex_values_on_datasets(self):
+    def obtain_amplitude_and_phase_from_complex_values(self):
         """
         Internal function to split the complex values into additional two columns.
         The two columns correspond to the magnitude and phase of the complex value in degrees.
@@ -320,6 +320,12 @@ class LogfileData:
             if len(self.dataset[param]) > 0 and isinstance(self.dataset[param][0], LTComplex):
                 self.dataset[param + '_mag'] = [v.mag for v in self.dataset[param]]
                 self.dataset[param + '_ph'] = [v.ph for v in self.dataset[param]]
+
+    def split_complex_values_on_datasets(self):
+        """
+        (Deprecated) Use obtain_amplitude_and_phase_from_complex_values instead
+        """
+        self.obtain_amplitude_and_phase_from_complex_values()
 
     def export_data(self, export_file: str, encoding=None, append_with_line_prefix=None):
         """
