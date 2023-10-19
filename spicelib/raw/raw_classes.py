@@ -101,7 +101,6 @@ class Axis(DataSet):
         k = 1
         while i < len(self.data):
             if self.data[i] == self.data[0]:
-                # print(k, i, self.data[i], self.data[i+1])
                 self.step_offsets[k] = i
                 k += 1
             i += 1
@@ -286,8 +285,6 @@ class TraceRead(DataSet):
         :return: a List or numpy array (if installed) containing the data contained in this object.
         :rtype: numpy.array
         """
-        # print('step size %d' % step)
-        # print(self.data[self.axis.step_offset(step):self.axis.step_offset(step + 1)])
         if self.axis is None:
             return super().get_wave()
         else:

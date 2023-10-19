@@ -107,7 +107,6 @@ class SimClient(object):
 
     def __init__(self, host_address, port):
         self.server = xmlrpc.client.ServerProxy(f'{host_address}:{port}')
-        # print(self.server.system.listMethods())
         self.session_id = self.server.start_session()
         _logger.info(f"Started {self.session_id}")
         self.started_jobs = OrderedDict()  # This list keeps track of started jobs on the server

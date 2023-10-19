@@ -1,4 +1,4 @@
-* C:\sandbox\spicelib_main\examples\testfiles\testfile.asc
+* C:\sandbox\spicelib\examples\testfiles\testfile.asc
 V1 in 0 PULSE(-1 1 1u 1n 1n 2m 1m 1)
 R1 out in {res}
 C1 out 0 {cap}

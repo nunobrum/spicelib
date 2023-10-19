@@ -17,11 +17,12 @@
 # Created:     10-08-2023
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Union, Optional, Dict
+from typing import Union, Optional, Dict, Callable, Type
 
 from ...editor.base_editor import BaseEditor, scan_eng
-from .sim_analysis import SimAnalysis, AnyRunner
+from .sim_analysis import SimAnalysis, AnyRunner, ProcessCallback
 from enum import Enum
 
 
@@ -52,7 +53,8 @@ class ComponentDeviation:
     def none(cls):
         return cls(0.0, 0.0, DeviationType.none)
 
-class ToleranceDeviations(SimAnalysis):
+
+class ToleranceDeviations(SimAnalysis, ABC):
     """Class to automate Monte-Carlo simulations"""
     devices_with_deviation_allowed = ('R', 'C', 'L', 'V', 'I')
 
@@ -61,9 +63,24 @@ class ToleranceDeviations(SimAnalysis):
         self.default_tolerance = {prefix: ComponentDeviation.none() for prefix in self.devices_with_deviation_allowed}
         self.device_deviations: Dict[str, ComponentDeviation] = {}
         self.parameter_deviations: Dict[str, ComponentDeviation] = {}
-        self.received_instructions = []
+        self.testbench_prepared = False
+        self.testbench_executed = False
+        self.num_runs = 0
+        self.simulation_results = {}
+
+    def reset_tolerances(self):
+        """
+        Clears all the settings for the simulation
+        """
+        self.device_deviations.clear()
+        self.parameter_deviations.clear()
         self.testbench_prepared = False
         self.num_runs = 0
+
+    def clear_simulation_data(self):
+        """Clears the data from the simulations"""
+        super().clear_simulation_data()
+        self.simulation_results.clear()
 
     def set_tolerance(self, ref: str, new_tolerance: float, distribution: str = 'uniform'):
         """
@@ -105,7 +122,7 @@ class ToleranceDeviations(SimAnalysis):
             return value, ComponentDeviation.none()
         # The value needs to be able to be computed, otherwise it can't be used
         try:
-            scan_eng(value)
+            value = scan_eng(value)
         except ValueError:
             if value.startswith('{') and value.endswith('}'):
                 # This is still acceptable as the value could be computed.
@@ -130,63 +147,62 @@ class ToleranceDeviations(SimAnalysis):
     def save_netlist(self, filename: str):
         if self.testbench_prepared is False:
             self.prepare_testbench()
-        self.editor.write_netlist(filename)
+        super().save_netlist(filename)
 
-    def reset_netlist(self):
-        super().reset_netlist()
+    def _reset_netlist(self):
+        super()._reset_netlist()
         self.testbench_prepared = False
-        self.received_instructions.clear()
 
-    def set_component_value(self, ref: str, new_value: str):
-        self.received_instructions.append(('set_component_value', ref, new_value))
-
-    def set_element_model(self, ref: str, new_model: str):
-        self.received_instructions.append(('set_element_model', ref, new_model))
-
-    def set_parameter(self, ref: str, new_value: str):
-        self.received_instructions.append(('set_parameter', ref, new_value))
-
-    def add_instruction(self, new_instruction: str):
-        self.received_instructions.append(('add_instruction', new_instruction))
-
-    def remove_instruction(self, instruction: str):
-        self.received_instructions.append(('remove_instruction', instruction))
-
-    def play_instructions(self):
-        for instruction in self.received_instructions:
-            if instruction[0] == 'set_component_value':
-                self.editor.set_component_value(instruction[1], instruction[2])
-            elif instruction[0] == 'set_element_model':
-                self.editor.set_element_model(instruction[1], instruction[2])
-            elif instruction[0] == 'set_parameter':
-                self.editor.set_parameter(instruction[1], instruction[2])
-            elif instruction[0] == 'add_instruction':
-                self.editor.add_instruction(instruction[1])
-            elif instruction[0] == 'remove_instruction':
-                self.editor.remove_instruction(instruction[1])
-            else:
-                raise ValueError("Unknown instruction")
-
+    @abstractmethod
     def prepare_testbench(self, **kwargs):
-        raise RuntimeError("This method should be implemented in the derived class")
+        ...
 
-    def run(self, max_runs_per_sim: int = 512,  **kwargs):
+    def run_testbench(self, *,
+            max_runs_per_sim: int = 512,
+            wait_resource: bool = True,
+            callback: Union[Type[ProcessCallback], Callable] = None,
+            callback_args: Union[tuple, dict] = None,
+            switches=None,
+            timeout: float = None,
+            run_filename: str = None):
         """
-        Runs the simulations. See runner.run for details on keyword arguments.
+        Runs the simulations.
         :param max_runs_per_sim: Maximum number of runs per simulation. If the number of runs is higher than this number,
         the simulation is split in multiple runs.
+        :param wait_resource: If True, the simulation will wait for the resource to be available. If False, the simulation
+        will be queued and the method will return immediately.
+        :param callback: A callback function to be called when the simulation is completed. The callback function must
+        accept a single argument, which is the simulation object.
+        :param callback_args: A tuple or dictionary with the arguments to be passed to the callback function.
+        :param switches: A dictionary with the switches to be passed to the simulator.
+        :param timeout: A timeout in seconds. If the simulation is not completed in this time, it will be aborted.
+        :param run_filename: The name of the file to be used for the simulation. If None, a temporary file will be used.
+        :return: The callback returns of every batch if a callback function is given. Otherwise, None.
         """
-        super().reset_netlist()
+        super()._reset_netlist()
+        self.clear_simulation_data()
         self.play_instructions()
         self.prepare_testbench()
         self.editor.remove_instruction(".step param run -1 %d 1" % self.num_runs)  # Needs to remove this instruction
         for sim_no in range(-1, self.num_runs, max_runs_per_sim):
-            run_stepping = ".step param run {} {} 1".format(sim_no, sim_no + max_runs_per_sim)
+            last_no = sim_no + max_runs_per_sim - 1
+            if last_no > self.num_runs:
+                last_no = self.num_runs
+            if sim_no >= last_no:
+                break
+            run_stepping = ".step param run {} {} 1".format(sim_no, last_no)
             self.editor.add_instruction(run_stepping)
-            sim = self.runner.run(self.editor, **kwargs)
+            sim = self.runner.run(self.editor, wait_resource=wait_resource, callback=callback,
+                                  callback_args=callback_args, switches=switches, timeout=timeout,
+                                  run_filename=run_filename)
             self.simulations.append(sim)
             self.editor.remove_instruction(run_stepping)
         self.runner.wait_completion()
-        if 'callback' in kwargs:
-            return (sim.callback_return if sim is not None else None for sim in self.simulations)
+        if callback is not None:
+            return (sim.get_results() if sim is not None else None for sim in self.simulations)
+        self.testbench_executed = True
         return None
+
+    @abstractmethod
+    def run_analysis(self):
+        ...

@@ -154,7 +154,15 @@ class QschEditor(BaseEditor):
     def circuit_file(self) -> Path:
         return self._qsch_file_path
 
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_as(self, qsch_file: Union[str, Path]) -> None:
+        with open(qsch_file, 'w', encoding="cp1252") as qsch_file:
+            _logger.info(f"Writing ASC file {qsch_file}")
+            for c in QSCH_HEADER:
+                qsch_file.write(chr(c))
+            qsch_file.write(self.schematic.out(0))
+            qsch_file.write('\n')  # Terminates the new line
+
+    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
 
@@ -162,12 +170,7 @@ class QschEditor(BaseEditor):
             _logger.error("Empty Schematic information")
             return
         if run_netlist_file.suffix == '.qsch':
-            with open(run_netlist_file, 'w', encoding="cp1252") as qsch_file:
-                _logger.info(f"Writing ASC file {run_netlist_file}")
-                for c in QSCH_HEADER:
-                    qsch_file.write(chr(c))
-                qsch_file.write(self.schematic.out(0))
-                qsch_file.write('\n')  # Terminates the new line
+            self.save_as(run_netlist_file)
         elif run_netlist_file.suffix in ('.net', '.cir'):
             libraries_to_include = []
             with open(run_netlist_file, 'w') as netlist_file:
@@ -424,8 +427,21 @@ class QschEditor(BaseEditor):
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             if instruction in text:
                 self.schematic.items.remove(text_tag)
+                _logger.info(f'Instruction "{instruction}" removed')
                 return  # Job done, can exit this method
 
         msg = f'Instruction "{instruction}" not found'
         _logger.error(msg)
-        raise RuntimeError(msg)
+
+    def remove_Xinstruction(self, search_pattern: str) -> None:
+        regex = re.compile(search_pattern, re.IGNORECASE)
+        instr_removed = False
+        for text_tag in self.schematic.get_items('text'):
+            text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+            if regex.match(text):
+                self.schematic.items.remove(text_tag)
+                _logger.info(f'Instruction "{text}" removed')
+                instr_removed = True
+        if not instr_removed:
+            msg = f'Instruction matching "{search_pattern}" not found'
+            _logger.error(msg)

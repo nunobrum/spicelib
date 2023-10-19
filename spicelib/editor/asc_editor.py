@@ -53,7 +53,7 @@ class AscEditor(BaseEditor):
     def circuit_file(self) -> Path:
         return self._asc_file_path
 
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
         run_netlist_file = run_netlist_file.with_suffix(".asc")
@@ -253,6 +253,7 @@ class AscEditor(BaseEditor):
             line_no, line = self._texts[i]
             if instruction in line:
                 del self._asc_file_lines[line_no]
+                _logger.info(f"Instruction {line} removed")
                 self._parse_asc_file()
                 return  # Job done, can exit this method
             i += 1
@@ -260,3 +261,20 @@ class AscEditor(BaseEditor):
         msg = f'Instruction "{instruction}" not found'
         _logger.error(msg)
         raise RuntimeError(msg)
+
+    def remove_Xinstruction(self, search_pattern: str) -> None:
+        regex = re.compile(search_pattern, re.IGNORECASE)
+        instr_removed = False
+        i = 0
+        while i < len(self._texts):
+            line_no, line = self._texts[i]
+            if regex.match(line):
+                instr_removed = True
+                del self._asc_file_lines[line_no]
+                _logger.info(f"Instruction {line} removed")
+                self._parse_asc_file()  # This is needed to update the self._texts list
+            else:
+                i += 1
+        if not instr_removed:
+            msg = f'Instructions matching "{search_pattern}" not found'
+            _logger.error(msg)

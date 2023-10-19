@@ -49,6 +49,7 @@ from spicelib.raw.raw_read import RawRead
 from spicelib.editor.spice_editor import SpiceEditor
 from spicelib.sim.sim_runner import SimRunner
 
+
 def has_qspice_detect():
     from spicelib.simulators.qspice_simulator import Qspice
     global qspice_simulator
@@ -185,7 +186,7 @@ class test_spicelib(unittest.TestCase):
         runner.wait_completion()
         self.assertEqual(runner.okSim, 5)  # Simulation done with success
 
-    @unittest.skipIf(False, "Execute All")
+    @unittest.skipIf(skip_qspice_editor_tests, "Execute All")
     def test_ltsteps_measures(self):
         """LTSteps Measures from Batch_Test.asc"""
         print("Starting test_ltsteps_measures")
@@ -382,7 +383,7 @@ class test_spicelib(unittest.TestCase):
             for step in range(raw.nPoints):
                 self.assertAlmostEqual(meas[step], vin[step] * 2**-i, 7, f"mismatch in node {b}")
 
-    @unittest.skipIf(False, "Execute All")
+    @unittest.skipIf(skip_qspice_editor_tests, "Execute All")
     def test_transient(self):
         """Transient Simulation test """
         print("Starting test_transient")
@@ -403,7 +404,7 @@ class test_spicelib(unittest.TestCase):
             print(log_value, raw_value, log_value - raw_value)
             self.assertAlmostEqual(log_value, raw_value, 2, "Mismatch between log file and raw file")
 
-    @unittest.skipIf(False, "Execute All")
+    @unittest.skipIf(skip_qspice_editor_tests, "Execute All")
     def test_transient_steps(self):
         """Transient simulation with stepped data."""
         print("Starting test_transient_steps")

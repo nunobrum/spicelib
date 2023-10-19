@@ -23,11 +23,14 @@
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
-from typing import Callable, Any, Union
+from typing import Callable, Union, Type
 from typing import Iterable
 import pathlib
 from functools import wraps
 import logging
+
+from spicelib.sim.process_callback import ProcessCallback
+
 _logger = logging.getLogger("spicelib.SimStepper")
 from ..editor.base_editor import BaseEditor
 from .sim_runner import AnyRunner, SimRunner
@@ -103,6 +106,10 @@ class SimStepper(object):
     def remove_instruction(self, instruction) -> None:
         self.netlist.remove_instruction(instruction)
 
+    @wraps(BaseEditor.remove_Xinstruction)
+    def remove_Xinstruction(self, search_pattern) -> None:
+        self.netlist.remove_Xinstruction(search_pattern)
+
     @wraps(BaseEditor.set_parameters)
     def set_parameters(self, **kwargs):
         self.netlist.set_parameters(**kwargs)
@@ -150,7 +157,13 @@ class SimStepper(object):
                 _logger.debug(f"'{step}' is empty.")
         return total
 
-    def run_all(self, callback: Callable[[str, str], Any] = None, use_loadbias='Auto', wait_completion=True):
+    def run_all(self,
+                callback: Union[Type[ProcessCallback], Callable] = None,
+                callback_args: Union[tuple, dict] = None,
+                switches = None,
+                timeout: float = None,
+                use_loadbias='Auto',
+                wait_completion=True) -> None:
         assert use_loadbias in ('Auto', 'Yes', 'No'), "use_loadbias argument must be 'Auto', 'Yes' or 'No'"
         if (use_loadbias == 'Auto' and self.total_number_of_simulations() > 10) or use_loadbias == 'Yes':
             # It will choose to use .SAVEBIAS/.LOADBIAS if the number of simulaitons is higher than 10
@@ -178,7 +191,8 @@ class SimStepper(object):
                 iter_no += 1
             if iter_no < 0:
                 break
-            self.runner.run(self.netlist, callback=callback)  # Like this a recursion is avoided
+            self.runner.run(self.netlist, callback=callback, callback_args=callback_args,
+                            switches=switches, timeout=timeout)  # Like this a recursion is avoided
             iter_no = len(self.iter_list) - 1  # Resets the counter to start next iteration
         if wait_completion:
             # Now waits for the simulations to end

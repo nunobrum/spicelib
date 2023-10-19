@@ -67,7 +67,7 @@ class RunTask(threading.Thread):
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
                  callback: Union[Type[ProcessCallback], Callable[[Path, Path], Any]],
                  callback_args: dict = None,
-                 switches: Any = None, timeout: float = None, verbose=True):
+                 switches: Any = None, timeout: float = None, verbose=False):
 
         super().__init__(name=f"RunTask#{runno}")
         self.start_time = None
@@ -109,18 +109,18 @@ class RunTask(threading.Thread):
 
         # Cleanup everything
         if self.retcode == 0:
-            # simulation successful
-            self.print_info(_logger.info, "Simulation Successful. Time elapsed: %s" % sim_time)
             self.raw_file = self.netlist_file.with_suffix(self.simulator.raw_extension)
-
             if self.raw_file.exists() and self.log_file.exists():
+                # simulation successful
+                self.print_info(_logger.info, "Simulation Successful. Time elapsed: %s" % sim_time)
+
                 if self.callback:
                     if self.callback_args is not None:
                         callback_print = ', '.join([f"{key}={value}" for key, value in self.callback_args.items()])
                     else:
                         callback_print = ''
                     self.print_info(_logger.info, "Simulation Finished. Calling...{}(rawfile, logfile{})".format(
-                            self.callback.__name__, callback_print))
+                        self.callback.__name__, callback_print))
                     try:
                         if self.callback_args is not None:
                             return_or_process = self.callback(self.raw_file, self.log_file, **self.callback_args)
@@ -141,14 +141,14 @@ class RunTask(threading.Thread):
                         callback_start_time = self.stop_time
                         self.stop_time = clock_function()
                         self.print_info(_logger.info, "Callback Finished. Time elapsed: %s" % format_time_difference(
-                                self.stop_time - callback_start_time))
+                            self.stop_time - callback_start_time))
                 else:
                     self.print_info(_logger.info, 'Simulation Finished. No Callback function given')
             else:
                 self.print_info(_logger.error, "Simulation Raw file or Log file were not found")
         else:
             # simulation failed
-            self.print_info(_logger.warning, ": Simulation Failed. Time elapsed: %s" % sim_time)
+            self.print_info(_logger.error, ": Simulation Aborted. Time elapsed: %s" % sim_time)
             if self.log_file.exists():
                 self.log_file = self.log_file.replace(self.log_file.with_suffix('.fail'))
 

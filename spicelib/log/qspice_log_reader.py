@@ -104,10 +104,6 @@ class QspiceLogReader(LogfileData):
         if meas_filename is None:
             meas_filename = self.logname.with_suffix(".meas")
 
-        if Path(meas_filename).exists():
-            _logger.debug(f"Found existing .meas file: {meas_filename}")
-            return meas_filename
-
         if not Qspice.is_available():
             _logger.error("================== ALERT! ====================")
             _logger.error("Unable to find the QSPICE executable.")

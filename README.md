@@ -23,10 +23,10 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   parameters as well as the simulation commands. These methods allow to update a netlist without having to open the
   schematic in LTSpice. The simulations can then be run in batch mode (see sim_runner.py).
 
-    - `set_element_model('D1', '1N4148') # Replaces the Diode D1 with the model 1N4148 `
+    - `set_element_model('D1', '1N4148') # Replaces the Diode D1 with the model 1N4148`
     - `set_component_value('R2', '33k') # Replaces the value of R2 by 33k`
     - `set_parameters(run=1, TEMP=80) # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80`
-    - `add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5") `
+    - `add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")`
     - `remove_instruction(".STEP run -1 1023 1")  # Removes previously added instruction`
     - `reset_netlist() # Resets all edits done to the netlist.`
 
@@ -89,14 +89,14 @@ from spicelib import RawRead
 
 from matplotlib import pyplot as plt
 
-LTR = RawRead("TRAN - STEP.raw")
+rawfile = RawRead("TRAN - STEP.raw")
 
-print(LTR.get_trace_names())
-print(LTR.get_raw_property())
+print(rawfile.get_trace_names())
+print(rawfile.get_raw_property())
 
-IR1 = LTR.get_trace("I(R1)")
-x = LTR.get_trace('time')  # Gets the time axis
-steps = LTR.get_steps()
+IR1 = rawfile.get_trace("I(R1)")
+x = rawfile.get_trace('time')  # Gets the time axis
+steps = rawfile.get_steps()
 for step in range(len(steps)):
     # print(steps[step])
     plt.plot(x.get_wave(step), IR1.get_wave(step), label=steps[step])
@@ -219,7 +219,7 @@ mc.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides th
 
 # Tolerances can be set for parameters as well
 mc.set_parameter_deviation('Vos', 3e-4, 5e-3, 'uniform')  # The keyword 'distribution' is optional
-mc.prepare_testbench(1000)  # Prepares the testbench for 1000 simulations
+mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulations
 
 # Finally the netlist is saved to a file
 mc.save_netlist('./testfiles/sallenkey_mc.net')
@@ -455,6 +455,14 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 0.7
+  * Setting the default verbose to False.
+  * Implementing the Sensitivity Analysis.
+  * Improving the sim_analysis so to be able to analyse simulation results.
+  * Renamed editors .write_netlist() to .save_netlist(). The former is kept
+    for legacy purposes. 
+  * Improving the get_measure_value() method to be able to return the value
+    of a measure in a specific step.
 * Version 0.6
   * Implementing a conversion from Qspice Schematics .qsch to spice files
   * Improving the Analysis Toolkit to support adding instructions directly 

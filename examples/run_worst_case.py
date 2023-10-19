@@ -3,7 +3,7 @@ from spicelib.sim.tookit.worst_case import WorstCaseAnalysis
 from spicelib.simulators.ltspice_simulator import LTspice
 
 sallenkey = AscEditor("./testfiles/sallenkey.asc")  # Reads the asc file into memory
-runner = SimRunner(simulator=LTspice, output_folder='./temp_wca')  # Instantiates the runner with a temp folder set
+runner = SimRunner(simulator=LTspice, output_folder='./temp_wca', verbose=True)  # Instantiates the runner with a temp folder set
 wca = WorstCaseAnalysis(sallenkey, runner)  # Instantiates the Worst Case Analysis class
 
 # The following lines set the default tolerances for the components
@@ -20,8 +20,7 @@ wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
 # Finally the netlist is saved to a file
 wca.save_netlist('./testfiles/sallenkey_wc.asc')
 
-
-wca.run()  # Runs the simulation with splits of 100 runs each
+wca.run_testbench()  # Runs the simulation with splits of 100 runs each
 logs = wca.read_logfiles()   # Reads the log files and stores the results in the results attribute
 logs.export_data('./temp_wca/data.csv')  # Exports the data to a csv file
 
@@ -29,4 +28,13 @@ print("Worst case results:")
 for param in ('fcut', 'fcut_FROM'):
     print(f"{param}: min:{logs.min_measure_value(param)} max:{logs.max_measure_value(param)}")
 
+wca.cleanup_files()  # Deletes the temporary files
+
+print("=====================================")
+# Now using the second method, where the simulations are ran one by one
+wca.clear_simulation_data()  # Clears the simulation data
+wca.reset_netlist()  # Resets the netlist to the original
+wca.run_analysis()  # Makes the Worst Case Analysis
+min, max = wca.get_min_max_measure_value('fcut')
+print(f"fcut: min:{min} max:{max}")
 wca.cleanup_files()  # Deletes the temporary files

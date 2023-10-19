@@ -49,7 +49,7 @@ class ServerSimRunner(threading.Thread):
     by this class.
     """
 
-    def __init__(self, parallel_sims: int = 4, timeout: float = None, verbose=True, output_folder: str = None, simulator=None):
+    def __init__(self, parallel_sims: int = 4, timeout: float = None, verbose=False, output_folder: str = None, simulator=None):
         super().__init__(name="SimManager")
         self.runner = SimRunner(simulator=simulator, parallel_sims=parallel_sims, timeout=timeout,
                                 verbose=verbose, output_folder=output_folder)

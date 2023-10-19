@@ -22,8 +22,9 @@
 from collections import OrderedDict
 from typing import Union, Optional, Iterable, Type
 
-from editor.base_editor import BaseEditor, ComponentNotFoundError
-from .sim_analysis import SimAnalysis, AnyRunner, Simulator
+from ..simulator import Simulator
+from ...editor.base_editor import BaseEditor, ComponentNotFoundError
+from .sim_analysis import SimAnalysis, AnyRunner
 
 
 class FailureMode(SimAnalysis):
@@ -75,7 +76,7 @@ class FailureMode(SimAnalysis):
         for resistor in self.resistors:
             # Short Circuit
             self.editor.set_component_value(resistor, '1f')  # replaces the resistor with a one femto-Ohm
-            self.simulations[f"{resistor}_S"] = self.simulator.run()
+            self.simulations[f"{resistor}_S"] = self.runner.run()
             # Open Circuit
             self.editor.remove_component(resistor)
             self.simulations[f"{resistor}_O"] = self.simulator.run()
