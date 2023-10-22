@@ -20,9 +20,10 @@
 
 import logging
 from typing import Union, Callable, Type
-from ...log.logfile_data import LogfileData
-from ..process_callback import ProcessCallback
+
 from .tolerance_deviations import ToleranceDeviations, DeviationType
+from ..process_callback import ProcessCallback
+from ...log.logfile_data import LogfileData
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
 
@@ -93,12 +94,12 @@ class WorstCaseAnalysis(ToleranceDeviations):
         worst_case_elements = {}
         worst_case_index = []
 
-        def check_and_add_component(ref: str):
-            val, dev = self.get_component_value_deviation_type(ref)  # get there present value
-            if dev.min_val == dev.max_val or dev.typ == DeviationType.none:
+        def check_and_add_component(ref1: str):
+            val1, dev1 = self.get_component_value_deviation_type(ref1)  # get there present value
+            if dev1.min_val == dev1.max_val or dev1.typ == DeviationType.none:
                 return
-            worst_case_elements[ref] = val, dev, 'component'
-            worst_case_index.append(ref)
+            worst_case_elements[ref1] = val1, dev1, 'component'
+            worst_case_index.append(ref1)
 
         for ref in self.device_deviations:
             check_and_add_component(ref)
@@ -122,6 +123,13 @@ class WorstCaseAnalysis(ToleranceDeviations):
 
         self._reset_netlist()  # reset the netlist
         self.play_instructions()  # play the instructions
+        self.editor.set_parameter('run', -1)  # This is aligned with the testbench preparation
+        # Simulate the nominal case
+        self.run(self.editor, wait_resource=True,
+                    callback=callback, callback_args=callback_args,
+                    switches=switches, timeout=timeout)
+        self.runner.wait_completion()
+        # Simulate the worst case
         last_run = 2 ** len(worst_case_index) - 1  # Sets all valid bits to 1
         for run in range(num_runs):
             # Preparing the variation on components, but only on the ones that have changed
@@ -146,6 +154,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
                         _logger.warning("Unknown type")
                 bit_updated >>= 1
                 bit_index += 1
+            self.editor.set_parameter('run', run)
             # Run the simulation
             self.run(self.editor, wait_resource=True,
                      callback=callback, callback_args=callback_args,
@@ -158,13 +167,15 @@ class WorstCaseAnalysis(ToleranceDeviations):
             for rt in self.simulations:
                 callback_rets.append(rt.get_results())
             self.simulation_results['callback_returns'] = callback_rets
+        self.analysis_executed = True
 
     def get_min_max_measure_value(self, meas_name: str):
-        if 'log_data' not in self.simulation_results:
-            log_data = self.read_logfiles()
-            self.simulation_results['log_data'] = log_data
+        """Returns the minimum and maximum values of a measurement"""
+        if not self.analysis_executed:
+            _logger.warning("The analysis was not executed. Please run the analysis before calling this method")
+            return None
 
-        log_data: LogfileData = self.simulation_results['log_data']
+        log_data: LogfileData = self.get_logdata()
         meas_data = log_data[meas_name]
         if meas_data is None:
             _logger.warning("Measurement %s not found in log files", meas_name)
@@ -172,10 +183,9 @@ class WorstCaseAnalysis(ToleranceDeviations):
         else:
             return min(meas_data), max(meas_data)
 
-    def make_sensitivity_analysis(self, meas_name: str, ref: str):
+    def make_sensitivity_analysis(self, meas_name: str, ref: str = '*'):
         """Makes a sensitivity analysis for a given measurement and reference component"""
-        pass
-        # TODO: implement this method
-        # 1. Run the simulation
-        # 2. Read the log files
+        log_data: LogfileData = self.get_logdata()
+
+       # 2. Read the log files
         # 3. Calculate the sensitivity

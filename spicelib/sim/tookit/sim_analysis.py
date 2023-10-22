@@ -125,7 +125,6 @@ class SimAnalysis(object):
     def remove_Xinstruction(self, search_pattern: str):
         self.received_instructions.append(('remove_Xinstruction', search_pattern))
 
-
     def play_instructions(self):
         if self.instructions_added:
             return  # Nothing to do

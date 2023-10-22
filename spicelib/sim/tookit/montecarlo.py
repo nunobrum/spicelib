@@ -18,8 +18,8 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-import random
 import logging
+import random
 from typing import Union, Callable, Type
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
@@ -154,16 +154,22 @@ class Montecarlo(ToleranceDeviations):
         self.runner.wait_completion()
         if callback is not None:
             callback_rets = []
-            for rt in self.run_tasks:
+            for rt in self.simulations:
                 callback_rets.append(rt.get_results())
             self.simulation_results['callback_returns'] = callback_rets
+        self.analysis_executed = True
 
     def analyse_measurement(self, meas_name: str):
-        if 'log_data' not in self.simulation_results:
-            log_data = self.read_logfiles()
-            self.simulation_results['log_data'] = log_data
-
-        log_data: LogfileData = self.simulation_results['log_data']
+        """Returns the measurement data for the given measurement name.
+        If the measurement is not found, it returns None
+        Note: It is up to the user to make the statistics on the data. The traditional way is to use the numpy package
+        to calculate the mean and standard deviation of the data. It is also usual to consider max and min as 3 sigma,
+        which is 99.7% of the data.
+        """
+        if not self.analysis_executed:
+            _logger.warning("The analysis was not executed. Please run the analysis before calling this method")
+            return None
+        log_data: LogfileData = self.read_logfiles()
         meas_data = log_data[meas_name]
         if meas_data is None:
             _logger.warning("Measurement %s not found in log files", meas_name)
