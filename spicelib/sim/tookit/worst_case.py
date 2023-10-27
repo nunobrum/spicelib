@@ -114,7 +114,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
                 if ref not in self.device_deviations:
                     check_and_add_component(ref)
 
-        num_runs = 2**len(worst_case_index) - 1
+        num_runs = 2**len(worst_case_index)
         if num_runs > 4096:
             _logger.warning("The number of runs is too high. It will be limited to 4096\n"
                             "Consider limiting the number of components with deviation")
@@ -122,7 +122,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
 
         self._reset_netlist()  # reset the netlist
         self.play_instructions()  # play the instructions
-        last_run = 2 ** len(worst_case_index) - 1  # Sets all valid bits to 1
+        last_run = num_runs - 1  # Sets all valid bits to 1
         for run in range(num_runs):
             # Preparing the variation on components, but only on the ones that have changed
             bit_updated = run ^ last_run
