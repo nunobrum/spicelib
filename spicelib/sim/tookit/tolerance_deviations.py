@@ -25,6 +25,8 @@ from ...editor.base_editor import BaseEditor, scan_eng
 from .sim_analysis import SimAnalysis, AnyRunner, ProcessCallback
 from enum import Enum
 
+from ...log.logfile_data import LTComplex
+
 
 class DeviationType(Enum):
     """Enum to define the type of deviation"""
@@ -66,8 +68,9 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.testbench_prepared = False
         self.testbench_executed = False
         self.analysis_executed = False
-        self.num_runs = 0
+        self.last_run_number = 0
         self.simulation_results = {}
+        self.elements_analysed = []
 
     def reset_tolerances(self):
         """
@@ -76,12 +79,13 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.device_deviations.clear()
         self.parameter_deviations.clear()
         self.testbench_prepared = False
-        self.num_runs = 0
+        self.last_run_number = 0
 
     def clear_simulation_data(self):
         """Clears the data from the simulations"""
         super().clear_simulation_data()
         self.simulation_results.clear()
+        self.elements_analysed.clear()
         self.analysis_executed = False
 
     def set_tolerance(self, ref: str, new_tolerance: float, distribution: str = 'uniform'):
@@ -188,11 +192,11 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.clear_simulation_data()
         self.play_instructions()
         self.prepare_testbench()
-        self.editor.remove_instruction(".step param run -1 %d 1" % self.num_runs)  # Needs to remove this instruction
-        for sim_no in range(-1, self.num_runs, max_runs_per_sim):
+        self.editor.remove_instruction(".step param run -1 %d 1" % self.last_run_number)  # Needs to remove this instruction
+        for sim_no in range(-1, self.last_run_number, max_runs_per_sim):
             last_no = sim_no + max_runs_per_sim - 1
-            if last_no > self.num_runs:
-                last_no = self.num_runs
+            if last_no > self.last_run_number:
+                last_no = self.last_run_number
             if sim_no >= last_no:
                 break
             run_stepping = ".step param run {} {} 1".format(sim_no, last_no)
@@ -216,6 +220,14 @@ class ToleranceDeviations(SimAnalysis, ABC):
             return self.simulation_results['log_data']
         else:
             log_data = super().read_logfiles()
+            # The code below makes the run measure (if it exists) available on the stepset.
+            # Note: this was only tested with LTSpice
+            if len(log_data.stepset) == 0 and 'run' in log_data.dataset and len(log_data.dataset['run']) > 0:
+                if isinstance(log_data.dataset['run'][0], LTComplex):
+                    log_data.stepset = {'run': [round(val.real) for val in log_data.dataset['run']]}
+                else:
+                    log_data.stepset = {'run': log_data.dataset['run']}
+                log_data.step_count = len(log_data.stepset)
             self.simulation_results['log_data'] = log_data
             return log_data
 

@@ -21,6 +21,7 @@
 # -------------------------------------------------------------------------------
 
 from collections import OrderedDict
+from copy import deepcopy
 from functools import wraps
 from pathlib import Path
 from typing import Union, Optional, Type, Callable
@@ -50,14 +51,14 @@ class SimAnalysis(object):
             self.editor = circuit_file
         self._runner = runner
         self.simulations = []
-        self.num_runs = 0
+        self.last_run_number = 0
         self.received_instructions = []
         self.instructions_added = False
 
     def clear_simulation_data(self):
         """Clears the data from the simulations"""
         self.simulations.clear()
-        self.num_runs = 0
+        self.last_run_number = 0
 
     @property
     def runner(self):
@@ -182,9 +183,9 @@ class SimAnalysis(object):
                     all_stepset[param].extend(log_results.stepset[param])
             for param in log_results.dataset:
                 if param not in all_dataset:
-                    all_dataset[param] = log_results.dataset[param]
+                    all_dataset[param] = log_results.dataset[param][:]
                 else:
-                    all_dataset[param].extend(log_results.dataset[param])
+                    all_dataset[param].extend(log_results.dataset[param][:])
         # Now reusing the last log_results object to store the results
         return LogfileData(all_stepset, all_dataset)
 
