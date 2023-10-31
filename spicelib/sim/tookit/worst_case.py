@@ -45,6 +45,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
 
         if new_val != val:
             self.set_component_value(ref, new_val)  # update the value
+            self.elements_analysed.append(ref)
         return True
 
     def prepare_testbench(self, **kwargs):
@@ -73,8 +74,8 @@ class WorstCaseAnalysis(ToleranceDeviations):
         self.editor.add_instruction(".func binary(run,idx) floor(run/(2**idx))-2*floor(run/(2**(idx+1)))")
         self.editor.add_instruction(".func wc(nom,tol,idx) {nom*if(binary(run,idx),1-tol,1+tol)}")
         self.editor.add_instruction(".func wc1(nom,min,max,idx) {nom*if(binary(run,idx),min,max)}")
-        self.num_runs = 2**index - 1
-        self.editor.add_instruction(".step param run -1 %d 1" % self.num_runs)
+        self.last_run_number = 2**index - 1
+        self.editor.add_instruction(".step param run -1 %d 1" % self.last_run_number)
         self.editor.set_parameter('run', -1)  # in case the step is commented.
         self.testbench_prepared = True
 
@@ -86,20 +87,16 @@ class WorstCaseAnalysis(ToleranceDeviations):
                      ):
         """This method runs the analysis without updating the netlist.
         It will update component values and parameters according to their deviation type and call the simulation.
-        The advantage of this method is that it doesn't require adding random functions to the netlist.
-        The number of times the simulation is done is specified on the argument num_runs."""
+        The advantage of this method is that it doesn't require adding random functions to the netlist."""
         self.clear_simulation_data()
-        # Calculate the number of runs
-
         worst_case_elements = {}
-        worst_case_index = []
 
         def check_and_add_component(ref1: str):
             val1, dev1 = self.get_component_value_deviation_type(ref1)  # get there present value
             if dev1.min_val == dev1.max_val or dev1.typ == DeviationType.none:
                 return
             worst_case_elements[ref1] = val1, dev1, 'component'
-            worst_case_index.append(ref1)
+            self.elements_analysed.append(ref1)
 
         for ref in self.device_deviations:
             check_and_add_component(ref)
@@ -108,15 +105,16 @@ class WorstCaseAnalysis(ToleranceDeviations):
             val, dev = self.get_parameter_value_deviation_type(ref)
             if dev.typ == DeviationType.tolerance or dev.typ == DeviationType.minmax:
                 worst_case_elements[ref] = val, dev, 'parameter'
-                worst_case_index.append(ref)
+                self.elements_analysed.append(ref)
 
         for prefix in self.default_tolerance:
             for ref in self.get_components(prefix):
                 if ref not in self.device_deviations:
                     check_and_add_component(ref)
 
-        num_runs = 2**len(worst_case_index) - 1
-        if num_runs > 4096:
+        # Calculate the number of runs
+        last_run_number = 2**len(self.elements_analysed) - 1
+        if last_run_number >= 4095:
             _logger.warning("The number of runs is too high. It will be limited to 4096\n"
                             "Consider limiting the number of components with deviation")
             return
@@ -126,18 +124,18 @@ class WorstCaseAnalysis(ToleranceDeviations):
         self.editor.set_parameter('run', -1)  # This is aligned with the testbench preparation
         # Simulate the nominal case
         self.run(self.editor, wait_resource=True,
-                    callback=callback, callback_args=callback_args,
-                    switches=switches, timeout=timeout)
+                 callback=callback, callback_args=callback_args,
+                 switches=switches, timeout=timeout)
         self.runner.wait_completion()
         # Simulate the worst case
-        last_run = 2 ** len(worst_case_index) - 1  # Sets all valid bits to 1
-        for run in range(num_runs):
+        last_run = 2 ** len(self.elements_analysed) - 1  # Sets all valid bits to 1
+        for run in range(0, last_run_number):
             # Preparing the variation on components, but only on the ones that have changed
             bit_updated = run ^ last_run
             bit_index = 0
             while bit_updated != 0:
                 if bit_updated & 1:
-                    ref = worst_case_index[bit_index]
+                    ref = self.elements_analysed[bit_index]
                     val, dev, typ = worst_case_elements[ref]
                     if dev.typ == DeviationType.tolerance:
                         new_val = val * (1 - dev.max_val) if run & (1 << bit_index) else val * (1 + dev.max_val)
@@ -154,6 +152,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
                         _logger.warning("Unknown type")
                 bit_updated >>= 1
                 bit_index += 1
+
             self.editor.set_parameter('run', run)
             # Run the simulation
             self.run(self.editor, wait_resource=True,
@@ -175,17 +174,38 @@ class WorstCaseAnalysis(ToleranceDeviations):
             _logger.warning("The analysis was not executed. Please run the analysis before calling this method")
             return None
 
-        log_data: LogfileData = self.get_logdata()
+        log_data: LogfileData = self.read_logfiles()
         meas_data = log_data[meas_name]
         if meas_data is None:
             _logger.warning("Measurement %s not found in log files", meas_name)
             return None
+        elif len(meas_data) != len(self.simulations):
+            _logger.warning("Missing log files. Results may not be reliable. Probable cause are:\n"
+                            "  - Failed simulations.\n"
+                            "  - Measurement couldn't be done in simulation results.")
         else:
             return min(meas_data), max(meas_data)
 
-    def make_sensitivity_analysis(self, meas_name: str, ref: str = '*'):
+    def make_sensitivity_analysis(self, measure: str, ref: str = '*'):
         """Makes a sensitivity analysis for a given measurement and reference component"""
-        log_data: LogfileData = self.get_logdata()
-
-       # 2. Read the log files
-        # 3. Calculate the sensitivity
+        if self.testbench_prepared and self.testbench_executed or self.analysis_executed:
+            # Read the log files
+            log_data: LogfileData = self.read_logfiles()
+            nominal_data = log_data.get_measure_value(measure, run=-1)
+            error_data = []
+            for idx, ref in enumerate(self.elements_analysed):
+                # For sensitivity, we take all measurements with the ref at maximum and subtract with the respective
+                # measurement when the ref is at its minimum.
+                step_data = log_data.get_measure_value(measure, run=idx)
+                error_data.append(abs(step_data - nominal_data))
+            total_error = sum(error_data)
+            if ref == '*':
+                return {ref: error_data[idx] / total_error * 100 if total_error != 0 else 0
+                        for idx, ref in enumerate(self.elements_analysed)}
+            else:
+                idx = self.elements_analysed.index(ref)
+                return error_data[idx] / total_error * 100 if total_error != 0 else 0
+        else:
+            _logger.warning("The analysis was not executed. Please run the run_analysis(...) or run_testbench(...)"
+                            " before calling this method")
+            return None
