@@ -79,7 +79,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
             log_data: LogfileData = self.read_logfiles()
             nominal_data = log_data.get_measure_value(measure, run=-1)
             error_data = []
-            for idx, _ in enumerate(self.elements_analysed):
+            for idx in range(len(self.elements_analysed)):
                 step_data = log_data.get_measure_value(measure, run=idx)
                 error_data.append(abs(step_data - nominal_data))
             total_error = sum(error_data)

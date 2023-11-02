@@ -112,9 +112,14 @@ class WorstCaseAnalysis(ToleranceDeviations):
                 if ref not in self.device_deviations:
                     check_and_add_component(ref)
 
+        _logger.info("Worst Case Analysis: %d elements to be analysed", len(self.elements_analysed))
+
         # Calculate the number of runs
-        last_run_number = 2**len(self.elements_analysed) - 1
-        if last_run_number >= 4095:
+        run_count = 2**len(self.elements_analysed)
+        self.last_run_number = run_count - 1
+
+        _logger.info("Worst Case Analysis: %d runs to be executed", run_count)
+        if run_count >= 4096:
             _logger.warning("The number of runs is too high. It will be limited to 4096\n"
                             "Consider limiting the number of components with deviation")
             return
@@ -122,14 +127,15 @@ class WorstCaseAnalysis(ToleranceDeviations):
         self._reset_netlist()  # reset the netlist
         self.play_instructions()  # play the instructions
         self.editor.set_parameter('run', -1)  # This is aligned with the testbench preparation
+        self.editor.add_instruction(".meas run PARAM {run}")
         # Simulate the nominal case
         self.run(self.editor, wait_resource=True,
                  callback=callback, callback_args=callback_args,
                  switches=switches, timeout=timeout)
         self.runner.wait_completion()
         # Simulate the worst case
-        last_run = 2 ** len(self.elements_analysed) - 1  # Sets all valid bits to 1
-        for run in range(0, last_run_number):
+        last_run = self.last_run_number  # Sets all valid bits to 1
+        for run in range(0, run_count):
             # Preparing the variation on components, but only on the ones that have changed
             bit_updated = run ^ last_run
             bit_index = 0
@@ -191,20 +197,42 @@ class WorstCaseAnalysis(ToleranceDeviations):
         if self.testbench_prepared and self.testbench_executed or self.analysis_executed:
             # Read the log files
             log_data: LogfileData = self.read_logfiles()
-            nominal_data = log_data.get_measure_value(measure, run=-1)
-            error_data = []
-            for idx, ref in enumerate(self.elements_analysed):
-                # For sensitivity, we take all measurements with the ref at maximum and subtract with the respective
-                # measurement when the ref is at its minimum.
-                step_data = log_data.get_measure_value(measure, run=idx)
-                error_data.append(abs(step_data - nominal_data))
-            total_error = sum(error_data)
+            wc_data = [log_data.get_measure_value(measure, run=run) for run in range(self.last_run_number + 1)]
+
+            def diff_for_a_ref(wc_data, bit_index):
+                """
+                Calculates the difference of the measurement for the toggle of a given bit.
+                """
+                bit_updated = 1 << bit_index
+                diffs = []
+                for run in range(len(wc_data)):
+                    if run & bit_updated == 0:
+                        diffs.append(abs(wc_data[run] - wc_data[run | bit_updated]))
+                mean = sum(diffs) / len(diffs)
+                variance = sum([(diff - mean) ** 2 for diff in diffs]) / len(diffs)
+                std_div = variance ** 0.5
+                return mean, std_div
+
+            sensitivities = {}
+            for ref_ in self.elements_analysed:
+                idx = self.elements_analysed.index(ref_)
+                sensitivities[ref_] = diff_for_a_ref(wc_data, idx)
+            total = sum(sens[0] for sens in sensitivities.values())
+
+            # Calculate the sensitivity for each component if ref is '*'
+            # Return the sensitivity as a percentage of the total error
+            # This is not very accurate, but it is a way of having
+            # sensitivity as a percentages that sum up to 100%.
             if ref == '*':
-                return {ref: error_data[idx] / total_error * 100 if total_error != 0 else 0
-                        for idx, ref in enumerate(self.elements_analysed)}
+                # Returns a dictionary with all the references sensitivity
+                answer = {}
+                for ref, (sens, sigma) in sensitivities.items():
+                    answer[ref] = sens / total * 100, sigma / total * 100
+                return answer
             else:
-                idx = self.elements_analysed.index(ref)
-                return error_data[idx] / total_error * 100 if total_error != 0 else 0
+                # Calculates the sensitivity for the given component
+                sens, sigma = sensitivities[ref]
+                return sens /total * 100, sigma / total * 100
         else:
             _logger.warning("The analysis was not executed. Please run the run_analysis(...) or run_testbench(...)"
                             " before calling this method")
