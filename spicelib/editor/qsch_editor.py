@@ -139,14 +139,14 @@ class QschTag:
 
 
 class QschEditor(BaseEditor):
-    """Class made to update directly the LTspice ASC files"""
+    """Class made to update directly the LTspice QSCH files"""
 
-    def __init__(self, asc_file: str):
-        self._qsch_file_path = Path(asc_file)
+    def __init__(self, qsch_file: str):
+        self._qsch_file_path = Path(qsch_file)
         self.schematic = None
         self._symbols = {}
         if not self._qsch_file_path.exists():
-            raise FileNotFoundError(f"File {asc_file} not found")
+            raise FileNotFoundError(f"File {qsch_file} not found")
         # read the file into memory
         self.reset_netlist()
 
@@ -156,7 +156,7 @@ class QschEditor(BaseEditor):
 
     def save_as(self, qsch_file: Union[str, Path]) -> None:
         with open(qsch_file, 'w', encoding="cp1252") as qsch_file:
-            _logger.info(f"Writing ASC file {qsch_file}")
+            _logger.info(f"Writing QSCH file {qsch_file}")
             for c in QSCH_HEADER:
                 qsch_file.write(chr(c))
             qsch_file.write(self.schematic.out(0))
@@ -248,16 +248,16 @@ class QschEditor(BaseEditor):
             return '####'
 
     def reset_netlist(self):
-        """Reads the ASC file and parses it into memory"""
-        with open(self._qsch_file_path, 'r', encoding="cp1252") as asc_file:
+        """Reads the QSCH file and parses it into memory"""
+        with open(self._qsch_file_path, 'r', encoding="cp1252") as qsch_file:
             _logger.info(f"Reading QSCH file {self._qsch_file_path}")
-            stream = asc_file.read()
+            stream = qsch_file.read()
         self._parse_qsch_stream(stream)
 
     def _parse_qsch_stream(self, stream):
 
         self._symbols.clear()
-        _logger.debug("Parsing ASC file")
+        _logger.debug("Parsing QSCH file")
         header = tuple(ord(c) for c in stream[:4])
 
         if header != QSCH_HEADER:
@@ -287,8 +287,8 @@ class QschEditor(BaseEditor):
     def get_component_info(self, component) -> dict:
         """Returns the component information as a dictionary"""
         if component not in self._symbols:
-            _logger.error(f"Component {component} not found in ASC file")
-            raise ComponentNotFoundError(f"Component {component} not found in ASC file")
+            _logger.error(f"Component {component} not found in QSCH file")
+            raise ComponentNotFoundError(f"Component {component} not found in QSCH file")
         return self._symbols[component]
 
     def _get_text_matching(self, command, search_expression: re.Pattern):
@@ -309,13 +309,13 @@ class QschEditor(BaseEditor):
         if match:
             return match.group('value')
         else:
-            raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
+            raise ParameterNotFoundError(f"Parameter {param} not found in QSCH file")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         param_regex = re.compile(PARAM_REGEX % param, re.IGNORECASE)
         tag, match = self._get_text_matching(".PARAM", param_regex)
         if match:
-            _logger.debug(f"Parameter {param} found in ASC file, updating it")
+            _logger.debug(f"Parameter {param} found in QSCH file, updating it")
             if isinstance(value, (int, float)):
                 value_str = format_eng(value)
             else:
@@ -329,7 +329,7 @@ class QschEditor(BaseEditor):
             _logger.debug(f"Text at {tag.get_attr(QSCH_TEXT_POS)} Updated to {text}")
         else:
             # Was not found so we need to add it,
-            _logger.debug(f"Parameter {param} not found in ASC file, adding it")
+            _logger.debug(f"Parameter {param} not found in QSCH file, adding it")
             x, y = self._get_text_space()
             tag = QschTag(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 ".param {param}={value}"»', 0)
             self.schematic.items.append(tag)
