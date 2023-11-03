@@ -29,8 +29,10 @@ import logging
 from ..sim_runner import AnyRunner, RunTask, ProcessCallback
 from ...editor.base_editor import BaseEditor
 from ...log.logfile_data import LogfileData
-from ...log.ltsteps import LTSpiceLogReader
 from ...utils.detect_encoding import EncodingDetectError
+
+from ...log.ltsteps import LTSpiceLogReader
+from ...log.qspice_log_reader import QspiceLogReader
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
 
@@ -58,7 +60,6 @@ class SimAnalysis(object):
     def clear_simulation_data(self):
         """Clears the data from the simulations"""
         self.simulations.clear()
-        self.last_run_number = 0
 
     @property
     def runner(self):
@@ -168,8 +169,15 @@ class SimAnalysis(object):
         for sim in self.simulations:
             if sim is None:
                 continue
+            if sim.simulator.__name__ == "LTspice":
+                LogReader = LTSpiceLogReader
+            elif sim.simulator.__name__ == "Qspice":
+                LogReader = QspiceLogReader
+            else:
+                raise ValueError("Unknown simulator type")
+
             try:
-                log_results = LTSpiceLogReader(sim.log_file)
+                log_results = LogReader(sim.log_file)
             except FileNotFoundError:
                 _logger.warning("Log file not found: %s", sim.log_file)
                 continue
