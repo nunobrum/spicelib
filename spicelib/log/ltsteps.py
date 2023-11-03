@@ -96,9 +96,6 @@ from ..utils.detect_encoding import detect_encoding
 import logging
 _logger = logging.getLogger("spicelib.LTSteps")
 
-# TODO: Add support for other non default options:
-# .option meascplxfmt=polar
-# .option meascplxfmt=cartesian
 
 def reformat_LTSpice_export(export_file: str, tabular_file: str):
     """
