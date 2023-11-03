@@ -27,11 +27,8 @@ class LTComplex(complex):
     complex_match = re.compile(r"\((?P<mag>.*?)(?P<dB>dB)?,(?P<ph>.*?)(?P<degrees>°)?\)")
 
     def __new__(self, strvalue):
-        self.strvalue = strvalue
-        self.unit = None
         match = self.complex_match.match(strvalue)
         if match:
-            self.unit = match.group('dB')
             mag = float(match.group('mag'))
             ph = float(match.group('ph'))
             if match.group('degrees') is None:
@@ -44,6 +41,9 @@ class LTComplex(complex):
                 return super().__new__(self, mag * math.cos(math.pi * ph / 180), mag * math.sin(math.pi * ph / 180))
         else:
             raise ValueError("Invalid complex value format")
+
+    def __init__(self, strvalue):
+        self.strvalue = strvalue
 
     def __str__(self):
         return self.strvalue
@@ -63,8 +63,15 @@ class LTComplex(complex):
         return 20 * math.log10(self.mag)
 
     def ph_rad(self):
-        """Returns the phase of the complex number in radians"""
         return math.atan2(self.imag, self.real)
+
+    @property
+    def unit(self):
+        _unit = None
+        match = self.complex_match.match(self.strvalue)
+        if match:
+            _unit = match.group('dB')
+        return _unit
 
 
 def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list]:

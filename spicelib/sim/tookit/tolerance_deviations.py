@@ -25,6 +25,8 @@ from ...editor.base_editor import BaseEditor, scan_eng
 from .sim_analysis import SimAnalysis, AnyRunner, ProcessCallback
 from enum import Enum
 
+from ...log.logfile_data import LTComplex
+
 
 class DeviationType(Enum):
     """Enum to define the type of deviation"""
@@ -65,8 +67,10 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.parameter_deviations: Dict[str, ComponentDeviation] = {}
         self.testbench_prepared = False
         self.testbench_executed = False
-        self.num_runs = 0
+        self.analysis_executed = False
+        self.last_run_number = 0
         self.simulation_results = {}
+        self.elements_analysed = []
 
     def reset_tolerances(self):
         """
@@ -75,12 +79,14 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.device_deviations.clear()
         self.parameter_deviations.clear()
         self.testbench_prepared = False
-        self.num_runs = 0
+        self.last_run_number = 0
 
     def clear_simulation_data(self):
         """Clears the data from the simulations"""
         super().clear_simulation_data()
         self.simulation_results.clear()
+        self.elements_analysed.clear()
+        self.analysis_executed = False
 
     def set_tolerance(self, ref: str, new_tolerance: float, distribution: str = 'uniform'):
         """
@@ -155,22 +161,23 @@ class ToleranceDeviations(SimAnalysis, ABC):
 
     @abstractmethod
     def prepare_testbench(self, **kwargs):
+        """The override of this method should set the self.testbench_prepared to True"""
         ...
 
     def run_testbench(self, *,
-            max_runs_per_sim: int = 512,
-            wait_resource: bool = True,
-            callback: Union[Type[ProcessCallback], Callable] = None,
-            callback_args: Union[tuple, dict] = None,
-            switches=None,
-            timeout: float = None,
-            run_filename: str = None):
+                      max_runs_per_sim: int = 512,
+                      wait_resource: bool = True,
+                      callback: Union[Type[ProcessCallback], Callable] = None,
+                      callback_args: Union[tuple, dict] = None,
+                      switches=None,
+                      timeout: float = None,
+                      run_filename: str = None):
         """
         Runs the simulations.
-        :param max_runs_per_sim: Maximum number of runs per simulation. If the number of runs is higher than this number,
-        the simulation is split in multiple runs.
-        :param wait_resource: If True, the simulation will wait for the resource to be available. If False, the simulation
-        will be queued and the method will return immediately.
+        :param max_runs_per_sim: Maximum number of runs per simulation. If the number of runs is higher than this
+        number, the simulation is split in multiple runs.
+        :param wait_resource: If True, the simulation will wait for the resource to be available. If False, the
+        simulation will be queued and the method will return immediately.
         :param callback: A callback function to be called when the simulation is completed. The callback function must
         accept a single argument, which is the simulation object.
         :param callback_args: A tuple or dictionary with the arguments to be passed to the callback function.
@@ -179,15 +186,17 @@ class ToleranceDeviations(SimAnalysis, ABC):
         :param run_filename: The name of the file to be used for the simulation. If None, a temporary file will be used.
         :return: The callback returns of every batch if a callback function is given. Otherwise, None.
         """
+        if self.testbench_prepared is False:
+            raise RuntimeError("The testbench is not prepared. Please call prepare_testbench() first")
         super()._reset_netlist()
         self.clear_simulation_data()
         self.play_instructions()
         self.prepare_testbench()
-        self.editor.remove_instruction(".step param run -1 %d 1" % self.num_runs)  # Needs to remove this instruction
-        for sim_no in range(-1, self.num_runs, max_runs_per_sim):
+        self.editor.remove_instruction(".step param run -1 %d 1" % self.last_run_number)  # Needs to remove this instruction
+        for sim_no in range(-1, self.last_run_number, max_runs_per_sim):
             last_no = sim_no + max_runs_per_sim - 1
-            if last_no > self.num_runs:
-                last_no = self.num_runs
+            if last_no > self.last_run_number:
+                last_no = self.last_run_number
             if sim_no >= last_no:
                 break
             run_stepping = ".step param run {} {} 1".format(sim_no, last_no)
@@ -203,6 +212,26 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.testbench_executed = True
         return None
 
+    def read_logfiles(self):
+        """Returns the logdata for the simulations"""
+        if self.analysis_executed is False and self.testbench_executed is False:
+            raise RuntimeError("The analysis has not been executed yet")
+        if 'log_data' in self.simulation_results:
+            return self.simulation_results['log_data']
+        else:
+            log_data = super().read_logfiles()
+            # The code below makes the run measure (if it exists) available on the stepset.
+            # Note: this was only tested with LTSpice
+            if len(log_data.stepset) == 0 and 'run' in log_data.dataset and len(log_data.dataset['run']) > 0:
+                if isinstance(log_data.dataset['run'][0], LTComplex):
+                    log_data.stepset = {'run': [round(val.real) for val in log_data.dataset['run']]}
+                else:
+                    log_data.stepset = {'run': log_data.dataset['run']}
+                log_data.step_count = len(log_data.stepset)
+            self.simulation_results['log_data'] = log_data
+            return log_data
+
     @abstractmethod
     def run_analysis(self):
+        """The override of this method should set the self.analysis_executed to True"""
         ...
