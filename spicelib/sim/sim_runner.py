@@ -107,15 +107,15 @@ import shutil
 import inspect  # Library used to get the arguments of the callback function
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Union, Any, Type, Protocol
+from typing import Callable, Union, Type, Protocol
 import logging
-_logger = logging.getLogger("spicelib.SimRunner")
 
 from .process_callback import ProcessCallback
 from ..sim.run_task import RunTask, clock_function
 from ..sim.simulator import Simulator
 from ..editor.base_editor import BaseEditor
 
+_logger = logging.getLogger("spicelib.SimRunner")
 END_LINE_TERM = '\n'
 
 
@@ -261,6 +261,9 @@ class SimRunner(object):
     def _run_file_name(self, netlist):
         if not isinstance(netlist, Path):
             netlist = Path(netlist)
+        if netlist.suffix == '.qsch':
+            # The Qsch files can't be simulated, so, they have to be converted to netlist first.
+            netlist = netlist.with_suffix('.net')
         return "%s_%i%s" % (netlist.stem, self.runno, netlist.suffix)
 
     def _prepare_sim(self, netlist: Union[str, Path, BaseEditor], run_filename: str):
