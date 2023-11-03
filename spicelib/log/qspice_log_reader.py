@@ -64,7 +64,7 @@ class QspiceLogReader(LogfileData):
         else:
             self.encoding = encoding
 
-        step_regex = re.compile(r"^(\d+) of \d+ steps:\s+\.step (.*)$")
+        step_regex = re.compile(r"^\s*(\d+) of \d+ steps:\s+\.step (.*)$")
 
         _logger.debug(f"Processing LOG file:{log_filename}")
         with open(log_filename, 'r', encoding=self.encoding) as fin:
