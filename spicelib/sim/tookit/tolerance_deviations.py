@@ -130,12 +130,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
         try:
             value = scan_eng(value)
         except ValueError:
-            if value.startswith('{') and value.endswith('}'):
-                # This is still acceptable as the value could be computed.
-                # but we need to get rid of the outer {}
-                value = value[1:-1]
-            else:
-                return value, ComponentDeviation.none()
+            return value, ComponentDeviation.none()
         if ref in self.device_deviations:
             return value, self.device_deviations[ref]
         elif ref[0] in self.default_tolerance:
@@ -187,12 +182,11 @@ class ToleranceDeviations(SimAnalysis, ABC):
         :return: The callback returns of every batch if a callback function is given. Otherwise, None.
         """
         if self.testbench_prepared is False:
-            raise RuntimeError("The testbench is not prepared. Please call prepare_testbench() first")
-        super()._reset_netlist()
-        self.clear_simulation_data()
-        self.play_instructions()
-        self.prepare_testbench()
+            super()._reset_netlist()
+            self.play_instructions()
+            self.prepare_testbench()
         self.editor.remove_instruction(".step param run -1 %d 1" % self.last_run_number)  # Needs to remove this instruction
+        self.clear_simulation_data()
         for sim_no in range(-1, self.last_run_number, max_runs_per_sim):
             last_no = sim_no + max_runs_per_sim - 1
             if last_no > self.last_run_number:
