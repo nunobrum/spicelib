@@ -216,16 +216,27 @@ class ToleranceDeviations(SimAnalysis, ABC):
             log_data = super().read_logfiles()
             # The code below makes the run measure (if it exists) available on the stepset.
             # Note: this was only tested with LTSpice
-            if len(log_data.stepset) == 0 and 'run' in log_data.dataset and len(log_data.dataset['run']) > 0:
-                if isinstance(log_data.dataset['run'][0], LTComplex):
-                    log_data.stepset = {'run': [round(val.real) for val in log_data.dataset['run']]}
+            if len(log_data.stepset) == 0:
+                if 'run' in log_data.dataset and len(log_data.dataset['run']) > 0:
+                    if isinstance(log_data.dataset['run'][0], LTComplex):
+                        log_data.stepset = {'run': [round(val.real) for val in log_data.dataset['run']]}
+                    else:
+                        log_data.stepset = {'run': log_data.dataset['run']}
                 else:
-                    log_data.stepset = {'run': log_data.dataset['run']}
+                    # auto assign a step starting from 0 and incrementing by 1
+                    # will use the size of the first element found in the dataset
+                    any_meas = next(iter(log_data.dataset.values()))
+                    log_data.stepset = {'run': list(range(len(any_meas)))}
                 log_data.step_count = len(log_data.stepset)
             self.simulation_results['log_data'] = log_data
             return log_data
 
     @abstractmethod
-    def run_analysis(self):
+    def run_analysis(self,
+                     callback: Union[Type[ProcessCallback], Callable] = None,
+                     callback_args: Union[tuple, dict] = None,
+                     switches=None,
+                     timeout: float = None,
+                     ):
         """The override of this method should set the self.analysis_executed to True"""
         ...

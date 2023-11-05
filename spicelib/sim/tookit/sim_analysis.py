@@ -162,6 +162,26 @@ class SimAnalysis(object):
     def __getitem__(self, item):
         return self.simulations[item]
 
+    @staticmethod
+    def read_logfile(run_task: RunTask) -> Union[LogfileData, None]:
+        """Reads the log file and returns a dictionary with the results"""
+        if run_task.simulator.__name__ == "LTspice":
+            LogReader = LTSpiceLogReader
+        elif run_task.simulator.__name__ == "Qspice":
+            LogReader = QspiceLogReader
+        else:
+            raise ValueError("Unknown simulator type")
+
+        try:
+            log_results = LogReader(run_task.log_file)
+        except FileNotFoundError:
+            _logger.warning("Log file not found: %s", run_task.log_file)
+            return None
+        except EncodingDetectError:
+            _logger.warning("Log file %s couldn't be read", run_task.log_file)
+            return None
+        return log_results
+
     def read_logfiles(self) -> LogfileData:
         """Reads the log files and returns a dictionary with the results"""
         all_stepset = {}
@@ -169,21 +189,11 @@ class SimAnalysis(object):
         for sim in self.simulations:
             if sim is None:
                 continue
-            if sim.simulator.__name__ == "LTspice":
-                LogReader = LTSpiceLogReader
-            elif sim.simulator.__name__ == "Qspice":
-                LogReader = QspiceLogReader
-            else:
-                raise ValueError("Unknown simulator type")
+            log_results = self.read_logfile(sim)
 
-            try:
-                log_results = LogReader(sim.log_file)
-            except FileNotFoundError:
-                _logger.warning("Log file not found: %s", sim.log_file)
+            if log_results is None:
                 continue
-            except EncodingDetectError:
-                _logger.warning("Log file %s couldn't be read", sim.log_file)
-                continue
+
             for param in log_results.stepset:
                 if param not in all_stepset:
                     all_stepset[param] = log_results.stepset[param]

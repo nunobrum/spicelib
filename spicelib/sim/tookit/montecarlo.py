@@ -29,9 +29,36 @@ from ..process_callback import ProcessCallback
 from ...log.logfile_data import LogfileData
 
 
-
 class Montecarlo(ToleranceDeviations):
-    """Class to automate Monte-Carlo simulations"""
+    """
+    Class to automate Montecarlo simulations, where component values and parameters are replaced by a random
+    distribution (either a gaussian or a uniform distribution).
+
+    This is a statistical method, hence, it needs a considerable number of simulations to achieve a final
+    gaussian distribution in order to apply this method. If the number of parameters and component values is
+    low, it is better to use a Worst-Case approach.
+
+    Like the Worst-Case and Sensitivity analysis, there are two possible approaches to use this class:
+
+    Class to automate Worst-Case simulations, where all possible combinations of maximum and minimums
+    possible values of component values and parameters are done.
+
+    It is advised to use this algorithm when the number of parameters to be varied is reduced.
+    Typically less than 10 or 12. A higher number will translate into a huge number of simulations.
+    For more than 1000 simulations, it is better to use a statistical method such as the Montecarlo.
+
+    Like the Worst-Case and Sensitivity analysis, there are two possible approaches to use this class:
+
+        1. Preparing a testbench where all combinations are managed directly by the simulator, replacing
+         parameters and component values by formulas and using a .STEP primitive to cycle through all possible
+         combinations.
+
+        2. Launching each simulation separately where the running python script manages all parameter value
+        variations.
+
+    The first approach is normally faster, but not possible in all simulators. The second approach is a valid backup
+    when every single simulation takes too long, or when it is prone to crashes and stalls.
+    """
 
     def prepare_testbench(self, **kwargs):
         """
@@ -122,11 +149,12 @@ class Montecarlo(ToleranceDeviations):
             _logger.warning("Unknown deviation type")
         return new_val
 
-    def run_analysis(self, num_runs: int = 1000,
+    def run_analysis(self,
                      callback: Union[Type[ProcessCallback], Callable] = None,
                      callback_args: Union[tuple, dict] = None,
                      switches=None,
                      timeout: float = None,
+                     num_runs: int = 1000,
                      ):
         """This method runs the analysis without updating the netlist.
         It will update component values and parameters according to their deviation type and call the simulation.
