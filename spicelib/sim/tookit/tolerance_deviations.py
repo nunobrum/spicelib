@@ -21,11 +21,12 @@ from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Union, Optional, Dict, Callable, Type
 
+from ..run_task import RunTask
 from ...editor.base_editor import BaseEditor, scan_eng
 from .sim_analysis import SimAnalysis, AnyRunner, ProcessCallback
 from enum import Enum
 
-from ...log.logfile_data import LTComplex
+from ...log.logfile_data import LTComplex, LogfileData
 
 
 class DeviationType(Enum):
@@ -206,30 +207,53 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.testbench_executed = True
         return None
 
+    def add_log(self, run_task: RunTask) -> Union[LogfileData, None]:
+        """Reads a log file and adds it to the simulation_results. It does so making sure that the run number is
+        correctly set."""
+        if run_task.retcode != 0:
+            return None
+
+        log_results = self.read_logfile(run_task)
+        if len(log_results.stepset) == 0:
+            if 'run' in log_results.dataset and len(log_results.dataset['run']) > 0:
+                if isinstance(log_results.dataset['run'][0], LTComplex):
+                    log_results.stepset = {'run': [round(val.real) for val in log_results.dataset['run']]}
+                else:
+                    log_results.stepset = {'run': log_results.dataset['run']}
+            else:
+                # auto assign a step starting from 0 and incrementing by 1
+                # will use the size of the first element found in the dataset
+                any_meas = next(iter(log_results.dataset.values()))
+                run_start = self.log_data.stepset['run'][-1] + 1 if len(self.log_data.stepset) > 0 else 0
+                log_results.stepset = {'run': list(range(run_start, run_start + len(any_meas)))}
+
+            log_results.step_count = len(log_results.stepset)
+
+        self.add_log_data(log_results)
+        return log_results
+
     def read_logfiles(self):
         """Returns the logdata for the simulations"""
         if self.analysis_executed is False and self.testbench_executed is False:
             raise RuntimeError("The analysis has not been executed yet")
-        if 'log_data' in self.simulation_results:
-            return self.simulation_results['log_data']
-        else:
-            log_data = super().read_logfiles()
-            # The code below makes the run measure (if it exists) available on the stepset.
-            # Note: this was only tested with LTSpice
-            if len(log_data.stepset) == 0:
-                if 'run' in log_data.dataset and len(log_data.dataset['run']) > 0:
-                    if isinstance(log_data.dataset['run'][0], LTComplex):
-                        log_data.stepset = {'run': [round(val.real) for val in log_data.dataset['run']]}
-                    else:
-                        log_data.stepset = {'run': log_data.dataset['run']}
+
+        super().read_logfiles()
+        # The code below makes the run measure (if it exists) available on the stepset.
+        # Note: this was only tested with LTSpice
+        if len(self.log_data.stepset) == 0:
+            if 'run' in self.log_data.dataset and len(self.log_data.dataset['run']) > 0:
+                if isinstance(self.log_data.dataset['run'][0], LTComplex):
+                    self.log_data.stepset = {'run': [round(val.real) for val in self.log_data.dataset['run']]}
                 else:
-                    # auto assign a step starting from 0 and incrementing by 1
-                    # will use the size of the first element found in the dataset
-                    any_meas = next(iter(log_data.dataset.values()))
-                    log_data.stepset = {'run': list(range(len(any_meas)))}
-                log_data.step_count = len(log_data.stepset)
-            self.simulation_results['log_data'] = log_data
-            return log_data
+                    self.log_data.stepset = {'run': self.log_data.dataset['run']}
+            else:
+                # auto assign a step starting from 0 and incrementing by 1
+                # will use the size of the first element found in the dataset
+                any_meas = next(iter(self.log_data.dataset.values()))
+                self.log_data.stepset = {'run': list(range(len(any_meas)))}
+            self.log_data.step_count = len(self.log_data.stepset)
+
+        return self.log_data
 
     @abstractmethod
     def run_analysis(self,

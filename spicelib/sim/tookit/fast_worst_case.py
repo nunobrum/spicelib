@@ -137,6 +137,18 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             else:
                 _logger.warning("Unknown type")
 
+        def run_and_get_measure():
+            # Run the simulation
+            task = self.run(
+                self.editor, wait_resource=True,
+                callback=callback, callback_args=callback_args,
+                switches=switches, timeout=timeout)
+            self.wait_completion()
+            # Get the results from the simulation
+            log_data = self.add_log(task)
+            return log_data.get_measure_value(measure)
+
+
         for ref in self.device_deviations:
             check_and_add_component(ref)
 
@@ -167,24 +179,117 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             self.run(self.editor, wait_resource=True,
                      callback=callback, callback_args=callback_args,
                      switches=switches, timeout=timeout)
-        self.runner.wait_completion()
-
+        self.wait_completion()
+        self.analysis_executed = True  # Need to set this to True, so that the next step can be executed
+        self.testbench_executed = True  # Idem
         # Get the results from the simulation
         log_data = self.read_logfiles()
         nominal = log_data.get_measure_value(measure, 0)
         _logger.info("Nominal value: %g", nominal)
         component_deltas = {}
         idx = 1
-        last_measure = nominal
+        new_measure = last_measure = nominal
         for ref in self.elements_analysed:
-            component_deltas[ref] = log_data.get_measure_value(measure, idx) - last_measure
+            new_measure = log_data.get_measure_value(measure, idx)
+            component_deltas[ref] = new_measure - last_measure
+            last_measure = new_measure
             _logger.info("Component %s: %g", ref, component_deltas[ref])
             idx += 1
         # Check which components have a positive impact on the final result, that is, increasing the component value
         # increases the final result
-        negative = [ref for ref in component_deltas if component_deltas[ref] < 0]
+        max_setting = {ref: component_deltas[ref] > 0 for ref in component_deltas}
 
         # Set all components with a positive impact to the maximum value and all components with a negative impact to
         # the minimum value
-        for ref in negative:
-            set_ref_to(ref, WorstCaseType.min)
+        component_changed = False
+        for ref in max_setting:
+            if not max_setting[ref]:  # Set the negative impact components to the minimum value
+                set_ref_to(ref, WorstCaseType.min)
+                component_changed = True
+
+        if component_changed:
+            # Run the simulation
+            # This is the expected maximum
+            max_value = run_and_get_measure()
+            idx += 1
+        else:
+            max_value = new_measure
+
+        # Check if the assumption is correct. Cycling each component to its opposite value
+        iterator = iter(self.elements_analysed)
+        while True:
+            try:
+                ref = next(iterator)
+            except StopIteration:
+                break
+            if max_setting[ref]:  # Set the negative impact components to the minimum value
+                set_ref_to(ref, WorstCaseType.min)
+            else:
+                set_ref_to(ref, WorstCaseType.max)
+            # Run the simulation
+            new_value = run_and_get_measure()
+            idx += 1
+
+            if new_value > max_value:
+                # The assumption is wrong, so the component is set to the minimum value
+                max_setting[ref] = not max_setting[ref]
+                max_value = new_value
+                # Need to restart the cycle
+                iterator = iterator(self.elements_analysed)
+
+            # setting it back to the maximum value
+            if max_setting[ref]:
+                set_ref_to(ref, WorstCaseType.max)
+            else:
+                set_ref_to(ref, WorstCaseType.min)
+
+        # Now determining the minimum value: Assuming the opposite of the maximum setting
+        min_setting = {ref: not max_setting[ref] for ref in max_setting}
+
+        # Set the component back to their opposite value
+        for ref in self.elements_analysed:
+            if min_setting[ref]:
+                set_ref_to(ref, WorstCaseType.max)
+            else:
+                set_ref_to(ref, WorstCaseType.min)
+
+        # Run the simulation
+        # This is the expected minimum of the final result
+        min_value = run_and_get_measure()
+        idx += 1
+
+        # Check if the assumption is correct. Cycling each component to its opposite value
+        iterator = iter(self.elements_analysed)
+        while True:
+            try:
+                ref = next(iterator)
+            except StopIteration:
+                break
+            if min_setting[ref]:
+                set_ref_to(ref, WorstCaseType.min)
+            else:
+                set_ref_to(ref, WorstCaseType.max)
+            # Run the simulation
+            new_value = run_and_get_measure()
+            idx += 1
+            # This is the expected maximum of the final result
+            if new_value < min_value:
+                # The assumption is wrong, so the component is set to the minimum value
+                min_setting[ref] = not min_setting[ref]
+                min_value = new_value
+                # Need to restart the cycle
+                iterator = iter(self.elements_analysed)
+
+            # setting it back to the previous value
+            if min_setting[ref]:
+                set_ref_to(ref, WorstCaseType.max)
+            else:
+                set_ref_to(ref, WorstCaseType.min)
+
+        # Now that we have the maximum and minimum values, we can set the components to the nominal value
+        self.clear_simulation_data()
+        self.cleanup_files()
+        self.reset_netlist()
+        self.play_instructions()
+
+        return nominal, min_value, max_value, min_setting, max_setting
