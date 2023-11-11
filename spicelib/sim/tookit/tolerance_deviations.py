@@ -161,7 +161,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
         ...
 
     def run_testbench(self, *,
-                      max_runs_per_sim: int = 512,
+                      runs_per_sim: int = 512,
                       wait_resource: bool = True,
                       callback: Union[Type[ProcessCallback], Callable] = None,
                       callback_args: Union[tuple, dict] = None,
@@ -170,7 +170,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
                       run_filename: str = None):
         """
         Runs the simulations.
-        :param max_runs_per_sim: Maximum number of runs per simulation. If the number of runs is higher than this
+        :param runs_per_sim: Maximum number of runs per simulation. If the number of runs is higher than this
         number, the simulation is split in multiple runs.
         :param wait_resource: If True, the simulation will wait for the resource to be available. If False, the
         simulation will be queued and the method will return immediately.

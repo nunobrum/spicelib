@@ -72,7 +72,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
 
     def run_testbench(
             self, *,
-            max_runs_per_sim: int = None,  # This parameter is ignored
+            runs_per_sim: int = None,  # This parameter is ignored
             wait_resource: bool = True, # This parameter is ignored
             callback: Union[Type[ProcessCallback], Callable] = None,
             callback_args: Union[tuple, dict] = None,

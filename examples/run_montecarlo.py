@@ -24,7 +24,7 @@ mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulatio
 mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
 
 # Testing to see if it works
-mc.run_testbench(max_runs_per_sim=100)  # Runs the simulation with splits of 100 runs each
+mc.run_testbench(runs_per_sim=100)  # Runs the simulation with splits of 100 runs each
 logs = mc.read_logfiles()   # Reads the log files and stores the results in the results attribute
 logs.obtain_amplitude_and_phase_from_complex_values()  # Splits the complex values into real and imaginary parts
 logs.export_data('./temp_mc/data_testbench.csv')  # Exports the data to a csv file
