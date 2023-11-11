@@ -70,6 +70,7 @@ class Montecarlo(ToleranceDeviations):
         min_max_norm_func = False
         tol_uni_func = False
         tol_norm_func = False
+        self.elements_analysed.clear()
         for ref in self.get_components('*'):
             val, dev = self.get_component_value_deviation_type(ref)  # get there present value
             new_val = val
@@ -160,6 +161,7 @@ class Montecarlo(ToleranceDeviations):
         It will update component values and parameters according to their deviation type and call the simulation.
         The advantage of this method is that it doesn't require adding random functions to the netlist.
         The number of times the simulation is done is specified on the argument num_runs."""
+        self.elements_analysed.clear()
         self.clear_simulation_data()
         for run in range(num_runs):
             self._reset_netlist() # reset the netlist

@@ -94,6 +94,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
         assert measure is not None, "The measure argument must be defined"
 
         self.clear_simulation_data()
+        self.elements_analysed.clear()
         worst_case_elements = {}
 
         def check_and_add_component(ref1: str):
@@ -103,13 +104,12 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             worst_case_elements[ref1] = val1, dev1, 'component'
             self.elements_analysed.append(ref1)
 
-        def set_ref_to(ref, to: WorstCaseType):
+        def value_change(val, dev, to: WorstCaseType):
             """
             Sets the reference component to the maximum value if set_max is True, or to the minimum value if set_max is
             False. This method is used by the run_analysis() method.
             """
             # Preparing the variation on components, but only on the ones that have changed
-            val, dev, typ = worst_case_elements[ref]
             if dev.typ == DeviationType.tolerance:
                 if to == WorstCaseType.max:
                     new_val = val * (1 + dev.max_val)
@@ -130,6 +130,11 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             else:
                 _logger.warning("Unknown deviation type")
                 new_val = val
+            return new_val
+
+        def set_ref_to(ref, to: WorstCaseType):
+            val, dev, typ = worst_case_elements[ref]
+            new_val = value_change(val, dev, to)
             if typ == 'component':
                 self.editor.set_component_value(ref, new_val)  # update the value
             elif typ == 'parameter':
@@ -287,9 +292,23 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
                 set_ref_to(ref, WorstCaseType.min)
 
         # Now that we have the maximum and minimum values, we can set the components to the nominal value
+        min_comp_values = {}
+        max_comp_values = {}
+        for ref in self.elements_analysed:
+            val, dev, typ = worst_case_elements[ref]
+            if min_setting[ref]:
+                min_comp_values[ref] = value_change(val, dev, WorstCaseType.max)
+            else:
+                min_comp_values[ref] = value_change(val, dev, WorstCaseType.min)
+
+            if max_setting[ref]:
+                max_comp_values[ref] = value_change(val, dev, WorstCaseType.max)
+            else:
+                max_comp_values[ref] = value_change(val, dev, WorstCaseType.min)
+
         self.clear_simulation_data()
         self.cleanup_files()
         self.reset_netlist()
         self.play_instructions()
 
-        return nominal, min_value, max_value, min_setting, max_setting
+        return nominal, min_value, max_comp_values, max_value, min_comp_values

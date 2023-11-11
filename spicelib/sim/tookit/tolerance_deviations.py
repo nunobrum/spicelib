@@ -86,7 +86,6 @@ class ToleranceDeviations(SimAnalysis, ABC):
         """Clears the data from the simulations"""
         super().clear_simulation_data()
         self.simulation_results.clear()
-        self.elements_analysed.clear()
         self.analysis_executed = False
 
     def set_tolerance(self, ref: str, new_tolerance: float, distribution: str = 'uniform'):
@@ -188,12 +187,18 @@ class ToleranceDeviations(SimAnalysis, ABC):
             self.prepare_testbench()
         self.editor.remove_instruction(".step param run -1 %d 1" % self.last_run_number)  # Needs to remove this instruction
         self.clear_simulation_data()
-        for sim_no in range(-1, self.last_run_number, max_runs_per_sim):
-            last_no = sim_no + max_runs_per_sim - 1
+        # calculate the ideal number of runs per simulation to avoid orphan runs. This is to avoid having a simulation
+        # with only one run. Which poses a problem for .step instruction
+        total_number_of_runs = self.last_run_number + 2  # the +2 is to account for the run -1 and the last run
+        runs_per_sim = min(runs_per_sim, total_number_of_runs)
+        while total_number_of_runs % runs_per_sim == 1:  # Avoid orphan runs
+            runs_per_sim += 1
+
+        for sim_no in range(-1, self.last_run_number + 1, runs_per_sim):
+            last_no = sim_no + runs_per_sim - 1
             if last_no > self.last_run_number:
                 last_no = self.last_run_number
-            if sim_no >= last_no:
-                break
+
             run_stepping = ".step param run {} {} 1".format(sim_no, last_no)
             self.editor.add_instruction(run_stepping)
             sim = self.runner.run(self.editor, wait_resource=wait_resource, callback=callback,

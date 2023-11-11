@@ -70,10 +70,10 @@ class WorstCaseAnalysis(ToleranceDeviations):
     def prepare_testbench(self, **kwargs):
         """Prepares the simulation by setting the tolerances for the components"""
         index = 0
+        self.elements_analysed.clear()
         for ref in self.device_deviations:
             if self._set_component_deviation(ref, index):
                 index += 1
-                self.elements_analysed.append(ref)
         for ref in self.parameter_deviations:
             val, dev = self.get_parameter_value_deviation_type(ref)
             new_val = val
@@ -91,7 +91,6 @@ class WorstCaseAnalysis(ToleranceDeviations):
                 if ref not in self.device_deviations:
                     if self._set_component_deviation(ref, index):
                         index += 1
-                        self.elements_analysed.append(ref)
 
         self.editor.add_instruction(".func binary(run,idx) floor(run/(2**idx))-2*floor(run/(2**(idx+1)))")
         self.editor.add_instruction(".func wc(nom,tol,idx) {nom*if(binary(run,idx),1-tol,1+tol)}")
@@ -111,6 +110,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
         It will update component values and parameters according to their deviation type and call the simulation.
         The advantage of this method is that it doesn't require adding random functions to the netlist."""
         self.clear_simulation_data()
+        self.elements_analysed.clear()
         worst_case_elements = {}
 
         def check_and_add_component(ref1: str):
