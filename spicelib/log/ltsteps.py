@@ -312,9 +312,11 @@ class LTSpiceLogReader(LogfileData):
         # vin_rms: RMS(v(in))=0.70622 FROM 0 TO 0.001  => Interval
         # gain: vout_rms/vin_rms=1.99809 => Parameter
         # vout1m: v(out)=-0.0186257 at 0.001 => Point
+        # fcut: v(vout)=vmax/sqrt(2) AT 252.921
         # fcutac=8.18166e+006 FROM 1.81834e+006 TO 1e+007 => AC Find Computation
         regx = re.compile(
-                r"^(?P<name>\w+)(:\s+.*)?=(?P<value>[\d(inf)\.E+\-\(\)dB,°]+)(( FROM (?P<from>[\d\.E+-]*) TO (?P<to>[\d\.E+-]*))|( at (?P<at>[\d\.E+-]*)))?",
+                # r"^(?P<name>\w+)(:\s+.*)?=(?P<value>[\d(inf)\.E+\-\(\)dB,°]+)(( FROM (?P<from>[\d\.E+-]*) TO (?P<to>[\d\.E+-]*))|( at (?P<at>[\d\.E+-]*)))?",
+                r"^(?P<name>\w+)(:\s+.*)?=(?P<value>[\d(inf)E+\-\(\)dB,°(-/\w]+)( FROM (?P<from>[\d\.E+-]*) TO (?P<to>[\d\.E+-]*)|( at (?P<at>[\d\.E+-]*)))?",
                 re.IGNORECASE)
 
         _logger.debug(f"Processing LOG file:{log_filename}")
