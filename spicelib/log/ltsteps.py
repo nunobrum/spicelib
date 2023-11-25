@@ -324,7 +324,11 @@ class LTSpiceLogReader(LogfileData):
             while line:
                 if line.startswith("N-Period"):
                     # Read number of periods
-                    n_periods = int(line.strip('\r\n').split("=")[-1])
+                    n_periods = line.strip('\r\n').split("=")[-1]
+                    if n_periods == 'all':
+                        n_periods = -1
+                    else:
+                        n_periods = float(n_periods)
                     # Read signal name
                     line = fin.readline().strip('\r\n')
                     signal = line.split(" of ")[-1]
@@ -466,8 +470,12 @@ class LTSpiceLogReader(LogfileData):
                             for analysis in self.fourier[signal]:
                                 if analysis.step == step_no:
                                     fout.write('\t'.join(step_values) + '\t')
+                                    if analysis.n_periods < 1:
+                                        n_periods = 'all'
+                                    else:
+                                        n_periods = analysis.n_periods
                                     fout.write(f"{signal}\t"
-                                               f"{analysis.n_periods}\t"
+                                               f"{n_periods}\t"
                                                f"{analysis.dc_component}\t"
                                                f"{analysis.fundamental}\t"
                                                f"{len(analysis)}\t"
@@ -475,8 +483,12 @@ class LTSpiceLogReader(LogfileData):
                                                f"{analysis.thd}\n")
                     else:
                         for analysis in self.fourier[signal]:
+                            if analysis.n_periods == -1:
+                                n_periods = 'all'
+                            else:
+                                n_periods = analysis.n_periods
                             fout.write(f"{signal}\t"
-                                       f"{analysis.n_periods}\t"
+                                       f"{n_periods}\t"
                                        f"{analysis.dc_component}\t"
                                        f"{analysis.fundamental}"
                                        f"\t{len(analysis)}\t"
