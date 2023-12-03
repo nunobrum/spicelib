@@ -10,7 +10,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        worst_case.py
-# Purpose:     Classes to automate Worst-Case simulations
+# Purpose:     Class to automate Worst-Case simulations
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
@@ -29,7 +29,26 @@ _logger = logging.getLogger("spicelib.SimAnalysis")
 
 
 class WorstCaseAnalysis(ToleranceDeviations):
-    """Class to automate Monte-Carlo simulations"""
+    """
+    Class to automate Worst-Case simulations, where all possible combinations of maximum and minimums
+    possible values of component values and parameters are done.
+
+    It is advised to use this algorithm when the number of parameters to be varied is reduced.
+    Typically less than 10 or 12. A higher number will translate into a huge number of simulations.
+    For more than 1000 simulations, it is better to use a statistical method such as the Montecarlo.
+
+    Like the Montecarlo and Sensitivity analysis, there are two possible approaches to use this class:
+
+        1. Preparing a testbench where all combinations are managed directly by the simulator, replacing
+         parameters and component values by formulas and using a .STEP primitive to cycle through all possible
+         combinations.
+
+        2. Launching each simulation separately where the running python script manages all parameter value
+        variations.
+
+    The first approach is normally faster, but not possible in all simulators. The second approach is a valid backup
+    when every single simulation takes too long, or when it is prone to crashes and stalls.
+    """
 
     def _set_component_deviation(self, ref: str, index) -> bool:
         """Sets the deviation of a component. Returns True if the component is valid and the deviation was set.
@@ -51,6 +70,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
     def prepare_testbench(self, **kwargs):
         """Prepares the simulation by setting the tolerances for the components"""
         index = 0
+        self.elements_analysed.clear()
         for ref in self.device_deviations:
             if self._set_component_deviation(ref, index):
                 index += 1
@@ -64,6 +84,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
             if new_val != val:
                 self.editor.set_parameter(ref, new_val)
             index += 1
+            self.elements_analysed.append(ref)
 
         for prefix in self.default_tolerance:
             for ref in self.get_components(prefix):
@@ -89,6 +110,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
         It will update component values and parameters according to their deviation type and call the simulation.
         The advantage of this method is that it doesn't require adding random functions to the netlist."""
         self.clear_simulation_data()
+        self.elements_analysed.clear()
         worst_case_elements = {}
 
         def check_and_add_component(ref1: str):
