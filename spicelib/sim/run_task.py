@@ -126,8 +126,8 @@ class RunTask(threading.Thread):
                             return_or_process = self.callback(self.raw_file, self.log_file, **self.callback_args)
                         else:
                             return_or_process = self.callback(self.raw_file, self.log_file)
-                    except Exception as err:
-                        error = traceback.format_tb(err.__traceback__)
+                    except Exception:
+                        error = traceback.format_exc()
                         self.print_info(_logger.error, error)
                     else:
                         if isinstance(return_or_process, ProcessCallback):
