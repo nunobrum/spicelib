@@ -142,6 +142,7 @@ class QschEditor(BaseEditor):
     """Class made to update directly the LTspice ASC files"""
 
     def __init__(self, asc_file: str):
+        super().__init__()
         self._qsch_file_path = Path(asc_file)
         self.schematic = None
         self._symbols = {}
@@ -249,6 +250,7 @@ class QschEditor(BaseEditor):
 
     def reset_netlist(self):
         """Reads the ASC file and parses it into memory"""
+        super().reset_netlist()
         with open(self._qsch_file_path, 'r', encoding="cp1252") as asc_file:
             _logger.info(f"Reading QSCH file {self._qsch_file_path}")
             stream = asc_file.read()

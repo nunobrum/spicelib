@@ -177,6 +177,7 @@ class SpiceCircuit(BaseEditor):
     """
 
     def __init__(self):
+        super().__init__()
         self.netlist = []
 
     def _get_line_starting_with(self, substr: str) -> int:
@@ -652,7 +653,7 @@ class SpiceCircuit(BaseEditor):
         return circuit_nodes
 
     def reset_netlist(self) -> None:
-        pass
+        super().reset_netlist()
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         pass
@@ -852,6 +853,7 @@ class SpiceEditor(SpiceCircuit):
 
         :returns: Nothing
         """
+        super().reset_netlist()
         self.netlist.clear()
         self.modified_subcircuits.clear()
         if self.netlist_file.exists():
