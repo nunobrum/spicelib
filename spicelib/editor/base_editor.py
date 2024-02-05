@@ -79,12 +79,12 @@ def format_eng(value) -> str:
     :rtype: str
     """
     if value == 0.0:
-        return "0.0"  # This avoids a problematic log(0)
+        return "{:g}".format(value)  # This avoids a problematic log(0), and the int and float conversions
     e = floor(log(abs(value), 1000))
     if -5 <= e < 0:
         suffix = "fpnum"[e]
     elif e == 0:
-        suffix = ''
+        return "{:g}".format(value)
     elif e == 1:
         suffix = "k"
     elif e == 2:
@@ -177,6 +177,15 @@ class VerAlign(enum.Enum):
     BOTTOM = "Bottom"
 
 
+class TextTypeEnum(enum.IntEnum):
+    """Text Type Enum"""
+    NULL = enum.auto()
+    COMMENT = enum.auto()
+    DIRECTIVE = enum.auto()
+    LABEL = enum.auto()
+    ATTRIBUTE = enum.auto()
+
+
 @dataclasses.dataclass
 class Point:
     """X, Y coordinates"""
@@ -197,8 +206,9 @@ class Text:
     coord: Point
     text: str
     size: int = 1
+    type: TextTypeEnum = TextTypeEnum.NULL
     textAlignment: HorAlign = HorAlign.LEFT
-    verticalAlignment: VerAlign = VerAlign.BOTTOM
+    verticalAlignment: VerAlign = VerAlign.CENTER
 
 
 class SchematicComponent(object):

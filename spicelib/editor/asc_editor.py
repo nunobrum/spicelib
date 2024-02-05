@@ -16,13 +16,13 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
-import pathlib
 from pathlib import Path
 from typing import Union, Tuple, List
 import re
 import logging
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Point, Line, Text, SchematicComponent, ERotation, HorAlign, VerAlign
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Point, Line, Text, SchematicComponent, ERotation, HorAlign, VerAlign, \
+    TextTypeEnum
 
 _logger = logging.getLogger("spicelib.AscEditor")
 
@@ -43,6 +43,10 @@ ASC_ROTATION_DICT = {
     'R90': ERotation.R90,
     'R180': ERotation.R180,
     'R270': ERotation.R270,
+    'M0': ERotation.M0,
+    'M90': ERotation.M90,
+    'M180': ERotation.M180,
+    'M270': ERotation.M270,
 }
 
 ASC_INV_ROTATION_DICT = {val: key for key, val in ASC_ROTATION_DICT.items()}
@@ -70,7 +74,7 @@ def asc_text_align_set(text: Text, alignment: str):
     else:
         # Default
         text.textAlignment = HorAlign.LEFT
-        text.verticalAlignment = VerAlign.BOTTOM
+        text.verticalAlignment = VerAlign.CENTER
     return text
 
 
@@ -145,11 +149,10 @@ class AscEditor(BaseEditor):
                 posY = directive.coord.Y
                 alignment = asc_text_align_get(directive)
                 size = directive.size
-                if size < 0:  # Negative size means that the directive type is a comment
-                    size = -size
-                    directive_type = '?'
-                else:
+                if directive.type == TextTypeEnum.DIRECTIVE:
                     directive_type = '!'
+                else:
+                    directive_type = '?'  # Otherwise assume it is a comment
                 asc.write(f"TEXT {posX} {posY} {alignment} {size} {directive_type}{directive.text}" + END_LINE_TERM)
 
     def reset_netlist(self):
@@ -176,7 +179,7 @@ class AscEditor(BaseEditor):
                     assert component is not None, "Syntax Error: WINDOW clause without SYMBOL"
                     tag, num_ref, posX, posY, alignment, size = line.split()
                     coord = Point(int(posX), int(posY))
-                    text = Text(coord=coord, text=num_ref, size=size)
+                    text = Text(coord=coord, text=num_ref, size=size, type=TextTypeEnum.ATTRIBUTE)
                     text = asc_text_align_set(text, alignment)
                     component.attributes['WINDOW ' + num_ref] = text
 
@@ -196,10 +199,12 @@ class AscEditor(BaseEditor):
                         Y = int(match.group(TEXT_REGEX_Y))
                         coord = Point(X, Y)
                         size = int(match.group(TEXT_REGEX_SIZE))
-                        if match.group(TEXT_REGEX_TYPE) != "!":
-                            size = -size  # This is used to signal that it is a comment
+                        if match.group(TEXT_REGEX_TYPE) == "!":
+                            ttype = TextTypeEnum.DIRECTIVE
+                        else:
+                            ttype = TextTypeEnum.COMMENT
                         alignment = match.group(TEXT_REGEX_ALIGN)
-                        text = Text(coord=coord, text=text.strip(), size=size)
+                        text = Text(coord=coord, text=text.strip(), size=size, type=ttype)
                         text = asc_text_align_set(text, alignment)
                         self._directives.append(text)
 
@@ -212,7 +217,7 @@ class AscEditor(BaseEditor):
                 elif line.startswith("FLAG"):
                     tag, posX, posY, text = line.split(maxsplit=4)
                     coord = Point(int(posX), int(posY))
-                    flag = Text(coord=coord, text=text)
+                    flag = Text(coord=coord, text=text, type=TextTypeEnum.LABEL)
                     self._labels.append(flag)
                 elif line.startswith("Version"):
                     tag, version = line.split()
@@ -237,29 +242,31 @@ class AscEditor(BaseEditor):
     def _get_directive(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
         for directive in self._directives:
-            if directive.text.startswith(command_upped):
+            command_upped_directive = directive.text.upper()
+            if command_upped_directive.startswith(command_upped):
                 match = search_expression.search(directive.text)
                 if match:
                     return match, directive
         return None, None
 
-    def get_parameter(self, param: str) -> (str, Text):
+    def get_parameter(self, param: str) -> str:
         param_regex = re.compile(PARAM_REGEX % param, re.IGNORECASE)
         match, directive = self._get_directive(".PARAM", param_regex)
         if match:
-            return match.group('value'), directive
+            return match.group('value')
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
-        match, directive = self.get_parameter(param)
+        param_regex = re.compile(PARAM_REGEX % param, re.IGNORECASE)
+        match, directive = self._get_directive(".PARAM", param_regex)
         if match:
             _logger.debug(f"Parameter {param} found in ASC file, updating it")
             if isinstance(value, (int, float)):
                 value_str = format_eng(value)
             else:
                 value_str = value
-            start, stop = match.group('replace').span
+            start, stop = match.span('replace')
             directive.text = f"{directive.text[:start]}{param}={value_str}{directive.text[stop:]}"
             _logger.info(f"Parameter {param} updated to {value_str}")
         else:
@@ -267,11 +274,10 @@ class AscEditor(BaseEditor):
             _logger.debug(f"Parameter {param} not found in ASC file, adding it")
             x, y = self._get_text_space()
             coord = Point(x, y)
-            text = ".param {}={}".format(param, value)
-            directive = Text(coord=coord, text=text, size=2)
+            text = f".param {param}={value}"
+            directive = Text(coord=coord, text=text, size=2, type=TextTypeEnum.DIRECTIVE)
             _logger.info(f"Parameter {param} added with value {value}")
             self._directives.append(directive)
-
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         component = self.get_component_info(device)
@@ -348,29 +354,29 @@ class AscEditor(BaseEditor):
             # Before adding new instruction, if it is a unique instruction, we just replace it
             i = 0
             while i < len(self._directives):
-                line_no, line = self._directives[i]
-                command = line.split()[0].upper()
+                directive = self._directives[i]
+                if directive.size < 0:
+                    continue  # this is a comment
+                command = directive.text.upper()
                 if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
-                    line = self._asc_file_lines[line_no]
-                    self._asc_file_lines[line_no] = line[:line.find("!")] + instruction + END_LINE_TERM
-                    self._parse_asc_file()
+                    directive.text = instruction
                     return  # Job done, can exit this method
                 i += 1
         elif command.startswith('.PARAM'):
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()
-        self._asc_file_lines.append("TEXT {} {} Left 2 !{}".format(x, y, instruction) + END_LINE_TERM)
-        self._parse_asc_file()
+        coord = Point(x, y)
+        directive = Text(coord=coord, text=instruction, size=2, type=TextTypeEnum.DIRECTIVE)
+        self._directives.append(directive)
 
     def remove_instruction(self, instruction: str) -> None:
         i = 0
         while i < len(self._directives):
-            line_no, line = self._directives[i]
-            if instruction in line:
-                del self._asc_file_lines[line_no]
-                _logger.info(f"Instruction {line} removed")
-                self._parse_asc_file()
+            if instruction in self._directives[i].text:
+                text = self._directives[i].text
+                del self._directives[i]
+                _logger.info(f"Instruction {text} removed")
                 return  # Job done, can exit this method
             i += 1
 
@@ -383,12 +389,11 @@ class AscEditor(BaseEditor):
         instr_removed = False
         i = 0
         while i < len(self._directives):
-            line_no, line = self._directives[i]
-            if regex.match(line):
+            instruction = self._directives[i].text
+            if regex.match(instruction) is not None:
                 instr_removed = True
-                del self._asc_file_lines[line_no]
-                _logger.info(f"Instruction {line} removed")
-                self._parse_asc_file()  # This is needed to update the self._directives list
+                del self._directives[i]
+                _logger.info(f"Instruction {instruction} removed")
             else:
                 i += 1
         if not instr_removed:
