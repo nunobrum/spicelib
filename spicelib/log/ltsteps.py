@@ -317,8 +317,9 @@ class LTSpiceLogReader(LogfileData):
         # vout1m: v(out)=-0.0186257 at 0.001 => Point
         # fcutac=8.18166e+006 FROM 1.81834e+006 TO 1e+007 => AC Find Computation
         regx = re.compile(
-                r"^(?P<name>\w+)(:\s+.*)?=(?P<value>[\d\.E+\-\(\)dB,°]+)(( FROM (?P<from>[\d\.E+-]*) TO (?P<to>[\d\.E+-]*))|( at (?P<at>[\d\.E+-]*)))?",
-                re.IGNORECASE)
+                r"^(?P<name>\w+)(:\s+.*)?=(?P<value>[\d\.E+\-\(\)infadB,°]+)"
+                r"(( FROM (?P<from>[\d\.E+-]*) TO (?P<to>[\d\.E+-]*))|( at (?P<at>[\d\.E+-]*)))?",
+                re.IGNORECASE)  # it will also receive inf and nan strings
 
         _logger.debug(f"Processing LOG file:{log_filename}")
         with open(log_filename, 'r', encoding=self.encoding) as fin:

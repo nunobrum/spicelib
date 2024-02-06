@@ -102,17 +102,17 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
                      timeout: float = None,
                      ):
         self.clear_simulation_data()
+        self.components_analysed.clear()
         # Calculate the number of runs
 
         worst_case_elements = {}
-        worst_case_index = []
 
         def check_and_add_component(ref1: str):
             val1, dev1 = self.get_component_value_deviation_type(ref1)  # get there present value
             if dev1.min_val == dev1.max_val or dev1.typ == DeviationType.none:
                 return
             worst_case_elements[ref1] = val1, dev1, 'component'
-            worst_case_index.append(ref1)
+            self.components_analysed.append(ref1)
 
         for ref in self.device_deviations:
             check_and_add_component(ref)
@@ -121,14 +121,14 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
             val, dev = self.get_parameter_value_deviation_type(ref)
             if dev.typ == DeviationType.tolerance or dev.typ == DeviationType.minmax:
                 worst_case_elements[ref] = val, dev, 'parameter'
-                worst_case_index.append(ref)
+                self.components_analysed.append(ref)
 
         for prefix in self.default_tolerance:
             for ref in self.get_components(prefix):
                 if ref not in self.device_deviations:
                     check_and_add_component(ref)
 
-        num_runs = len(worst_case_index)
+        num_runs = len(self.components_analysed)
         if num_runs > 4096:
             _logger.warning("The number of runs is too high. It will be limited to 4096\n"
                             "Consider limiting the number of components with deviation")
@@ -152,7 +152,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
             print("bit updated: %d" % bit_updated)
             while bit_updated != 0:
                 if bit_updated & 1:
-                    ref = worst_case_index[bit_index]
+                    ref = self.components_analysed[bit_index]
                     val, dev, typ = worst_case_elements[ref]
                     if dev.typ == DeviationType.tolerance:
                         new_val = val * (1 + dev.max_val) if bit_setting & (1 << bit_index) else val
@@ -184,3 +184,13 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
                 callback_rets.append(rt.get_results())
             self.simulation_results['callback_returns'] = callback_rets
         self.analysis_executed = True
+        # Force already the reading of logfiles
+        log_data: LogfileData = self.read_logfiles()
+        # if applicable, the run parameter shall be transformed into an int
+        runs = []
+        for run in log_data.dataset['run']:
+            if isinstance(run, complex):
+                runs.append(int(round(run.real, 0)))
+            else:
+                runs.append(run)
+        log_data.dataset['run'] = runs
