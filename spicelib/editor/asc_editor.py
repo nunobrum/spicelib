@@ -21,8 +21,9 @@ from typing import Union, Tuple, List
 import re
 import logging
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Point, Line, Text, SchematicComponent, ERotation, HorAlign, VerAlign, \
-    TextTypeEnum
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+from .base_schematic import (BaseSchematic, Point, Line, Text, SchematicComponent, ERotation, HorAlign, VerAlign,
+                             TextTypeEnum)
 
 _logger = logging.getLogger("spicelib.AscEditor")
 
@@ -97,7 +98,7 @@ def asc_text_align_get(text: Text) -> str:
             return 'Left'
 
 
-class AscEditor(BaseEditor):
+class AscEditor(BaseSchematic):
     """Class made to update directly the LTspice ASC files"""
 
     def __init__(self, asc_file: str):
@@ -326,8 +327,8 @@ class AscEditor(BaseEditor):
         for wire in self._wires:
             min_x = min(min_x, wire.V1.X, wire.V2.X)
             max_x = max(max_x, wire.V1.X, wire.V2.X)
-            min_y = min(min_y, wire.V1.Y, wire.V2.X)
-            max_y = max(max_y, wire.V1.Y, wire.V2.X)
+            min_y = min(min_y, wire.V1.Y, wire.V2.Y)
+            max_y = max(max_y, wire.V1.Y, wire.V2.Y)
         for flag in self._labels:
             min_x = min(min_x, flag.coord.X)
             max_x = max(max_x, flag.coord.X)

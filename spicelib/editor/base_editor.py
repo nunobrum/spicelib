@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
-import dataclasses
-import enum
+
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -22,8 +21,7 @@ import enum
 from abc import ABC, abstractmethod
 from math import floor, log
 from pathlib import Path
-from typing import Union, List
-from collections import OrderedDict
+from typing import Union
 import logging
 
 _logger = logging.getLogger("spicelib.BaseEditor")
@@ -151,87 +149,11 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
-class ERotation(enum.Enum):
-    """Component Rotation Enum"""
-    R0 = "0 Rotation"
-    R90 = "90 Rotation"
-    R180 = "180 Rotation"
-    R270 = "270 Rotation"
-    M0 = "Mirror 0 Rotation"
-    M90 = "Mirror 90 Rotation"
-    M180 = "Mirror 180 Rotation"
-    M270 = "Mirror 270 Rotation"
-
-
-class HorAlign(enum.Enum):
-    """Horizontal Alignment Enum"""
-    LEFT = "Left"
-    RIGHT = "Right"
-    CENTER = "Center"
-
-
-class VerAlign(enum.Enum):
-    """Vertical Alignment Enum"""
-    TOP = "Top"
-    CENTER = "Center"
-    BOTTOM = "Bottom"
-
-
-class TextTypeEnum(enum.IntEnum):
-    """Text Type Enum"""
-    NULL = enum.auto()
-    COMMENT = enum.auto()
-    DIRECTIVE = enum.auto()
-    LABEL = enum.auto()
-    ATTRIBUTE = enum.auto()
-
-
-@dataclasses.dataclass
-class Point:
-    """X, Y coordinates"""
-    X: int
-    Y: int
-
-
-@dataclasses.dataclass
-class Line:
-    """X1, Y1, X2, Y2 coordinates"""
-    V1: Point
-    V2: Point
-
-
-@dataclasses.dataclass
-class Text:
-    """Text object"""
-    coord: Point
-    text: str
-    size: int = 1
-    type: TextTypeEnum = TextTypeEnum.NULL
-    textAlignment: HorAlign = HorAlign.LEFT
-    verticalAlignment: VerAlign = VerAlign.CENTER
-
-
-class SchematicComponent(object):
-    """Hols component information"""
-
-    def __init__(self):
-        self.position: Point = Point(0, 0)
-        self.rotation: ERotation = ERotation.R0
-        self.reference = ""
-        self.attributes = OrderedDict()
-        self.symbol = None
-
-
 class BaseEditor(ABC):
     """
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
     """
-    def __init__(self):
-        self._components: OrderedDict[str, SchematicComponent] = OrderedDict()
-        self._wires: List[Line] = []
-        self._labels: List[Text] = []
-        self._directives: List[Text] = []
 
     @property
     @abstractmethod
@@ -239,12 +161,10 @@ class BaseEditor(ABC):
         """Returns the netlist as a string"""
         ...
 
+    @abstractmethod
     def reset_netlist(self) -> None:
         """Resets the netlist to the original state"""
-        self._components.clear()
-        self._wires.clear()
-        self._labels.clear()
-        self._directives.clear()
+        ...
 
     @abstractmethod
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
