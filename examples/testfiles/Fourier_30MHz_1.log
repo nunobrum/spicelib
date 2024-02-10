@@ -1,0 +1,42 @@
+Circuit: * C:\sandbox\spicelib\examples\testfiles\temp\Fourier_30MHz_1.asc
+
+WARNING: Less than two connections to node a.  This node is used by v1.
+.OP point found by inspection.
+N-Period=33.69
+Fourier components of V(a)
+DC component:0.0322249
+
+Harmonic	Frequency	 Fourier 	Normalized	 Phase  	Normalized
+ Number 	  [Hz]   	Component	 Component	[degree]	Phase [deg]
+    1   	 3.000e+7	 4.977e+0	 1.000e+0	   89.76°	    0.00°
+    2   	 6.000e+7	 4.060e-2	 8.157e-3	 -141.11°	 -230.87°
+    3   	 9.000e+7	 1.844e-2	 3.705e-3	  144.37°	   54.61°
+    4   	 1.200e+8	 8.752e-3	 1.758e-3	   12.00°	  -77.77°
+    5   	 1.500e+8	 7.332e-3	 1.473e-3	 -122.34°	 -212.10°
+    6   	 1.800e+8	 8.706e-3	 1.749e-3	  149.75°	   59.98°
+    7   	 2.100e+8	 4.362e-3	 8.765e-4	   13.92°	  -75.84°
+    8   	 2.400e+8	 5.564e-3	 1.118e-3	  -87.29°	 -177.05°
+    9   	 2.700e+8	 5.833e-3	 1.172e-3	  152.08°	   62.32°
+Partial Harmonic Distortion: 0.959049%
+Total Harmonic Distortion:   4.110027%
+
+
+
+Date: Sun Dec  3 19:24:03 2023
+Total elapsed time: 0.095 seconds.
+
+tnom = 27
+temp = 27
+method = modified trap
+totiter = 2726
+traniter = 2726
+tranpoints = 1364
+accept = 1163
+rejected = 201
+matrix size = 2
+fillins = 0
+solver = Normal
+Avg thread counts: 3.2/5.3/5.3/3.2
+Matrix Compiler1:       1 opcodes  0.1/[0.1]/0.1
+Matrix Compiler2: off  [0.0]/0.1/0.1
+

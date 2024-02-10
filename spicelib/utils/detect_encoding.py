@@ -26,6 +26,8 @@ for the time being a reduced set of encodings.
 """
 from pathlib import Path
 from typing import Union
+import re
+
 
 class EncodingDetectError(Exception):
     """
@@ -34,7 +36,7 @@ class EncodingDetectError(Exception):
     pass
 
 
-def detect_encoding(file_path: Union[str, Path], expected_str: str = '') -> str:
+def detect_encoding(file_path: Union[str, Path], expected_pattern: str = '', re_flags: re.RegexFlag = 0) -> str:
     """
     Simple strategy to detect file encoding.  If an expected_str is given the function will scan through the possible
     encodings and return a match.
@@ -42,15 +44,18 @@ def detect_encoding(file_path: Union[str, Path], expected_str: str = '') -> str:
     'utf_16_le' encoding, otherwise it is assuming that it is 'utf-8'.
     :param file_path: path to the filename
     :type file_path: str
-    :param expected_str: text which the file should start with
-    :type expected_str: str
+    :param expected_pattern: regular expression to match the first line of the file
+    :type expected_pattern: str
+    :param re_flags: flags to be used in the regular expression
+    :type re_flags: int
     :return: detected encoding
+
     :rtype: str
     """
     for encoding in ('utf-8', 'utf_16_le', 'cp1252', 'cp1250', 'shift_jis'):
         try:
             with open(file_path, 'r', encoding=encoding) as f:
-                lines = f.readlines()
+                lines = f.read()
                 f.seek(0)
         except UnicodeDecodeError:
             # This encoding didn't work, let's try again
@@ -59,16 +64,16 @@ def detect_encoding(file_path: Union[str, Path], expected_str: str = '') -> str:
             if len(lines) == 0:
                 # Empty file
                 continue
-            if expected_str:
-                if not lines[0].startswith(expected_str):
-                    # File did not start with expected string
+            if expected_pattern:
+                if not re.match(expected_pattern, lines, re_flags):
+                    # File did not have the expected string
                     # Try again with a different encoding (This is unlikely to resolve the issue)
                     continue
-            if encoding == 'utf-8' and lines[0][1] == '\x00':
+            if encoding == 'utf-8' and lines[1] == '\x00':
                 continue
             return encoding
     else:
-        if expected_str:
-            raise EncodingDetectError(f"Expected string \"{expected_str}\" not found in file:{file_path}")
+        if expected_pattern:
+            raise EncodingDetectError(f"Expected pattern \"{expected_pattern}\" not found in file:{file_path}")
         else:
             raise EncodingDetectError(f"Unable to detect encoding on log file: {file_path}")

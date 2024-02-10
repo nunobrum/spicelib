@@ -21,6 +21,7 @@
 # -------------------------------------------------------------------------------
 
 from collections import OrderedDict
+from copy import deepcopy
 from functools import wraps
 from pathlib import Path
 from typing import Union, Optional, Type, Callable
@@ -28,8 +29,10 @@ import logging
 from ..sim_runner import AnyRunner, RunTask, ProcessCallback
 from ...editor.base_editor import BaseEditor
 from ...log.logfile_data import LogfileData
-from ...log.ltsteps import LTSpiceLogReader
 from ...utils.detect_encoding import EncodingDetectError
+
+from ...log.ltsteps import LTSpiceLogReader
+from ...log.qspice_log_reader import QspiceLogReader
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
 
@@ -50,14 +53,14 @@ class SimAnalysis(object):
             self.editor = circuit_file
         self._runner = runner
         self.simulations = []
-        self.num_runs = 0
+        self.last_run_number = 0
         self.received_instructions = []
         self.instructions_added = False
+        self.log_data = LogfileData()
 
     def clear_simulation_data(self):
         """Clears the data from the simulations"""
         self.simulations.clear()
-        self.num_runs = 0
 
     @property
     def runner(self):
@@ -160,33 +163,54 @@ class SimAnalysis(object):
     def __getitem__(self, item):
         return self.simulations[item]
 
+    @staticmethod
+    def read_logfile(run_task: RunTask) -> Union[LogfileData, None]:
+        """Reads the log file and returns a dictionary with the results"""
+        if run_task.simulator.__name__ == "LTspice":
+            LogReader = LTSpiceLogReader
+        elif run_task.simulator.__name__ == "Qspice":
+            LogReader = QspiceLogReader
+        else:
+            raise ValueError("Unknown simulator type")
+
+        try:
+            log_results = LogReader(run_task.log_file)
+        except FileNotFoundError:
+            _logger.warning("Log file not found: %s", run_task.log_file)
+            return None
+        except EncodingDetectError:
+            _logger.warning("Log file %s couldn't be read", run_task.log_file)
+            return None
+        return log_results
+
+    def add_log_data(self, log_data: LogfileData):
+        """Add data from a log file to the log_data object"""
+        if log_data is None:
+            return
+
+        for param in log_data.stepset:
+            if param not in self.log_data.stepset:
+                self.log_data.stepset[param] = log_data.stepset[param]
+            else:
+                self.log_data.stepset[param].extend(log_data.stepset[param])
+        for param in log_data.dataset:
+            if param not in self.log_data.dataset:
+                self.log_data.dataset[param] = log_data.dataset[param][:]
+            else:
+                self.log_data.dataset[param].extend(log_data.dataset[param][:])
+        self.log_data.step_count += log_data.step_count
+
     def read_logfiles(self) -> LogfileData:
         """Reads the log files and returns a dictionary with the results"""
-        all_stepset = {}
-        all_dataset = OrderedDict()
+        self.log_data = LogfileData()  # Clears the log data
         for sim in self.simulations:
             if sim is None:
                 continue
-            try:
-                log_results = LTSpiceLogReader(sim.log_file)
-            except FileNotFoundError:
-                _logger.warning("Log file not found: %s", sim.log_file)
-                continue
-            except EncodingDetectError:
-                _logger.warning("Log file %s couldn't be read", sim.log_file)
-                continue
-            for param in log_results.stepset:
-                if param not in all_stepset:
-                    all_stepset[param] = log_results.stepset[param]
-                else:
-                    all_stepset[param].extend(log_results.stepset[param])
-            for param in log_results.dataset:
-                if param not in all_dataset:
-                    all_dataset[param] = log_results.dataset[param]
-                else:
-                    all_dataset[param].extend(log_results.dataset[param])
-        # Now reusing the last log_results object to store the results
-        return LogfileData(all_stepset, all_dataset)
+
+            log_results = self.read_logfile(sim)
+            self.add_log_data(log_results)
+
+        return self.log_data
 
     def configure_measurement(self, meas_name: str, meas_expression: str, meas_type: str = 'tran'):
         """Configures a measurement to be done in the simulation"""

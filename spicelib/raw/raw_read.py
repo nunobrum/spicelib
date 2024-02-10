@@ -755,7 +755,7 @@ class RawRead(object):
                 raise SpiceReadException("Invalid Filename. The file should end with '.raw'")
             logfile = filename.with_suffix(".log")
             try:
-                encoding = detect_encoding(logfile, "Circuit:")
+                encoding = detect_encoding(logfile, "^(.*\n)?Circuit:")
                 log = open(logfile, 'r', errors='replace', encoding=encoding)
             except OSError:
                 raise SpiceReadException("Log file '%s' not found" % logfile)

@@ -455,6 +455,13 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Vesion 0.9
+  * SimAnalysis supporting both Qspice and LTSpice logfiles.
+  * FastWorstCaseAnalysis algorithm implemented
+  * Fix on the log reading of fourier data.
+* Version 0.8
+  * Important Bugfix on the LTComplex class.
+  * Fixes and enhancing the analysis toolkit.
 * Version 0.7
   * Setting the default verbose to False.
   * Implementing the Sensitivity Analysis.

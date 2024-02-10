@@ -509,6 +509,28 @@ class test_spicelib(unittest.TestCase):
                 self.assertAlmostEqual(angle(vout), angle(h), 5,
                                        f"Difference between theoretical value ans simulation at point {point}")
 
+    @unittest.skipIf(False, "Execute All")
+    def test_fourier_log_read(self):
+        """Fourier Analysis Test"""
+        print("Starting test_fourier_log_read")
+        if has_ltspice:
+            runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
+            raw_file, log_file = runner.run_now(test_dir + "Fourier_30MHz.asc")
+        else:
+            raw_file = test_dir + "Fourier_30MHz_1.raw"
+            log_file = test_dir + "Fourier_30MHz_1.log"
+        raw = RawRead(raw_file)
+        log = LTSpiceLogReader(log_file)
+        print(log.fourier)
+        tmax = max(raw.get_time_axis())
+        dc_component = raw.get_wave('V(a)').mean()
+        fundamental = log.fourier['V(a)'][0].fundamental
+        self.assertEqual(fundamental, 30E6, "Fundamental frequency is not 30MHz")
+        n_periods_calc = tmax * fundamental
+        self.assertAlmostEqual(log.fourier['V(a)'][0].n_periods, n_periods_calc, 5, "Mismatch in calculated number of periods")
+        self.assertAlmostEqual(log.fourier['V(a)'][0].dc_component, dc_component, 2, "Mismatch in DC component")
+        self.assertEqual(len(log.fourier['V(a)'][0].harmonics), 9,"Mismatch in requested number of harmonics")
+
     # 
     # def test_pathlib(self):
     #     """pathlib support"""

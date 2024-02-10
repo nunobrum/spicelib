@@ -95,7 +95,7 @@ class RunTask(threading.Thread):
         # Running the Simulation
 
         self.start_time = clock_function()
-        self.print_info(_logger.info, ": Starting simulation %d" % self.runno)
+        self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
 
         # start execution
         self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout)
@@ -126,8 +126,8 @@ class RunTask(threading.Thread):
                             return_or_process = self.callback(self.raw_file, self.log_file, **self.callback_args)
                         else:
                             return_or_process = self.callback(self.raw_file, self.log_file)
-                    except Exception as err:
-                        error = traceback.format_tb(err.__traceback__)
+                    except Exception:
+                        error = traceback.format_exc()
                         self.print_info(_logger.error, error)
                     else:
                         if isinstance(return_or_process, ProcessCallback):

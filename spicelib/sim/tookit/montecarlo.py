@@ -29,9 +29,36 @@ from ..process_callback import ProcessCallback
 from ...log.logfile_data import LogfileData
 
 
-
 class Montecarlo(ToleranceDeviations):
-    """Class to automate Monte-Carlo simulations"""
+    """
+    Class to automate Montecarlo simulations, where component values and parameters are replaced by a random
+    distribution (either a gaussian or a uniform distribution).
+
+    This is a statistical method, hence, it needs a considerable number of simulations to achieve a final
+    gaussian distribution in order to apply this method. If the number of parameters and component values is
+    low, it is better to use a Worst-Case approach.
+
+    Like the Worst-Case and Sensitivity analysis, there are two possible approaches to use this class:
+
+    Class to automate Worst-Case simulations, where all possible combinations of maximum and minimums
+    possible values of component values and parameters are done.
+
+    It is advised to use this algorithm when the number of parameters to be varied is reduced.
+    Typically less than 10 or 12. A higher number will translate into a huge number of simulations.
+    For more than 1000 simulations, it is better to use a statistical method such as the Montecarlo.
+
+    Like the Worst-Case and Sensitivity analysis, there are two possible approaches to use this class:
+
+        1. Preparing a testbench where all combinations are managed directly by the simulator, replacing
+         parameters and component values by formulas and using a .STEP primitive to cycle through all possible
+         combinations.
+
+        2. Launching each simulation separately where the running python script manages all parameter value
+        variations.
+
+    The first approach is normally faster, but not possible in all simulators. The second approach is a valid backup
+    when every single simulation takes too long, or when it is prone to crashes and stalls.
+    """
 
     def prepare_testbench(self, **kwargs):
         """
@@ -43,6 +70,7 @@ class Montecarlo(ToleranceDeviations):
         min_max_norm_func = False
         tol_uni_func = False
         tol_norm_func = False
+        self.elements_analysed.clear()
         for ref in self.get_components('*'):
             val, dev = self.get_component_value_deviation_type(ref)  # get there present value
             new_val = val
@@ -64,6 +92,7 @@ class Montecarlo(ToleranceDeviations):
 
             if new_val != val:  # Only update the value if it has changed
                 self.set_component_value(ref, new_val)  # update the value
+                self.elements_analysed.append(ref)
 
         for param in self.parameter_deviations:
             val, dev = self.get_parameter_value_deviation_type(param)
@@ -85,6 +114,7 @@ class Montecarlo(ToleranceDeviations):
             else:
                 continue
             self.editor.set_parameter(param, new_val)
+            self.elements_analysed.append(param)
 
         if tol_uni_func:
             self.editor.add_instruction(".func utol(nom,tol) if(run<0, nom, mc(nom,tol))")
@@ -98,8 +128,8 @@ class Montecarlo(ToleranceDeviations):
         if min_max_norm_func:
             self.editor.add_instruction(".func nrng(nom,mean,df6) if(run<0, nom, mean*(1+gauss(df6)))")
 
-        self.num_runs = kwargs.get('num_runs', self.num_runs if self.num_runs != 0 else 1000)
-        self.editor.add_instruction(".step param run -1 %d 1" % self.num_runs)
+        self.last_run_number = kwargs.get('num_runs', self.last_run_number if self.last_run_number != 0 else 1000)
+        self.editor.add_instruction(".step param run -1 %d 1" % self.last_run_number)
         self.editor.set_parameter('run', -1)
         self.testbench_prepared = True
 
@@ -120,16 +150,18 @@ class Montecarlo(ToleranceDeviations):
             _logger.warning("Unknown deviation type")
         return new_val
 
-    def run_analysis(self, num_runs: int = 1000,
+    def run_analysis(self,
                      callback: Union[Type[ProcessCallback], Callable] = None,
                      callback_args: Union[tuple, dict] = None,
                      switches=None,
                      timeout: float = None,
+                     num_runs: int = 1000,
                      ):
         """This method runs the analysis without updating the netlist.
         It will update component values and parameters according to their deviation type and call the simulation.
         The advantage of this method is that it doesn't require adding random functions to the netlist.
         The number of times the simulation is done is specified on the argument num_runs."""
+        self.elements_analysed.clear()
         self.clear_simulation_data()
         for run in range(num_runs):
             self._reset_netlist() # reset the netlist

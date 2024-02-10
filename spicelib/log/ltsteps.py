@@ -96,9 +96,6 @@ from ..utils.detect_encoding import detect_encoding
 import logging
 _logger = logging.getLogger("spicelib.LTSteps")
 
-# TODO: Add support for other non default options:
-# .option meascplxfmt=polar
-# .option meascplxfmt=cartesian
 
 def reformat_LTSpice_export(export_file: str, tabular_file: str):
     """
@@ -304,7 +301,7 @@ class LTSpiceLogReader(LogfileData):
         self.logname = log_filename
         self.fourier = {}
         if encoding is None:
-            self.encoding = detect_encoding(log_filename, "Circuit:")
+            self.encoding = detect_encoding(log_filename, "^(.*\n)?Circuit:")
         else:
             self.encoding = encoding
 
@@ -315,11 +312,12 @@ class LTSpiceLogReader(LogfileData):
         # vin_rms: RMS(v(in))=0.70622 FROM 0 TO 0.001  => Interval
         # gain: vout_rms/vin_rms=1.99809 => Parameter
         # vout1m: v(out)=-0.0186257 at 0.001 => Point
+        # fcut: v(vout)=vmax/sqrt(2) AT 252.921
         # fcutac=8.18166e+006 FROM 1.81834e+006 TO 1e+007 => AC Find Computation
         regx = re.compile(
-                r"^(?P<name>\w+)(:\s+.*)?=(?P<value>[\d\.E+\-\(\)infadB,°]+)"
-                r"(( FROM (?P<from>[\d\.E+-]*) TO (?P<to>[\d\.E+-]*))|( at (?P<at>[\d\.E+-]*)))?",
-                re.IGNORECASE)  # it will also receive inf and nan strings
+                # r"^(?P<name>\w+)(:\s+.*)?=(?P<value>[\d(inf)\.E+\-\(\)dB,°]+)(( FROM (?P<from>[\d\.E+-]*) TO (?P<to>[\d\.E+-]*))|( at (?P<at>[\d\.E+-]*)))?",
+                r"^(?P<name>\w+)(:\s+.*)?=(?P<value>[\d(inf)E+\-\(\)dB,°(-/\w]+)( FROM (?P<from>[\d\.E+-]*) TO (?P<to>[\d\.E+-]*)|( at (?P<at>[\d\.E+-]*)))?",
+                re.IGNORECASE)
 
         _logger.debug(f"Processing LOG file:{log_filename}")
         with open(log_filename, 'r', encoding=self.encoding) as fin:
@@ -328,7 +326,11 @@ class LTSpiceLogReader(LogfileData):
             while line:
                 if line.startswith("N-Period"):
                     # Read number of periods
-                    n_periods = int(line.strip('\r\n').split("=")[-1])
+                    n_periods = line.strip('\r\n').split("=")[-1]
+                    if n_periods == 'all':
+                        n_periods = -1
+                    else:
+                        n_periods = float(n_periods)
                     # Read signal name
                     line = fin.readline().strip('\r\n')
                     signal = line.split(" of ")[-1]
@@ -470,8 +472,12 @@ class LTSpiceLogReader(LogfileData):
                             for analysis in self.fourier[signal]:
                                 if analysis.step == step_no:
                                     fout.write('\t'.join(step_values) + '\t')
+                                    if analysis.n_periods < 1:
+                                        n_periods = 'all'
+                                    else:
+                                        n_periods = analysis.n_periods
                                     fout.write(f"{signal}\t"
-                                               f"{analysis.n_periods}\t"
+                                               f"{n_periods}\t"
                                                f"{analysis.dc_component}\t"
                                                f"{analysis.fundamental}\t"
                                                f"{len(analysis)}\t"
@@ -479,8 +485,12 @@ class LTSpiceLogReader(LogfileData):
                                                f"{analysis.thd}\n")
                     else:
                         for analysis in self.fourier[signal]:
+                            if analysis.n_periods == -1:
+                                n_periods = 'all'
+                            else:
+                                n_periods = analysis.n_periods
                             fout.write(f"{signal}\t"
-                                       f"{analysis.n_periods}\t"
+                                       f"{n_periods}\t"
                                        f"{analysis.dc_component}\t"
                                        f"{analysis.fundamental}"
                                        f"\t{len(analysis)}\t"
