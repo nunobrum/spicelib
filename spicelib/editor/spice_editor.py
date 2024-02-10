@@ -693,7 +693,7 @@ class SpiceEditor(SpiceCircuit):
         self.create_blank = create_blank
         if encoding == 'autodetect':
             try:
-                self.encoding = detect_encoding(self.netlist_file, '*')  # Normally the file will start with a '*'
+                self.encoding = detect_encoding(self.netlist_file, '^\* ')  # Normally the file will start with a '*'
             except EncodingDetectError as err:
                 if self.create_blank:
                     self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
