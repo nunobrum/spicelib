@@ -301,7 +301,7 @@ class LTSpiceLogReader(LogfileData):
         self.logname = log_filename
         self.fourier = {}
         if encoding is None:
-            self.encoding = detect_encoding(log_filename, "Circuit:")
+            self.encoding = detect_encoding(log_filename, "^(.*\n)?Circuit:")
         else:
             self.encoding = encoding
 
