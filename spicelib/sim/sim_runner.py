@@ -535,7 +535,7 @@ class SimRunner(object):
         :type workfile: Path
         :return: Nothing
         """
-        if workfile.exists():
+        if workfile is not None and workfile.exists():
             _logger.info("Deleting..." + workfile.name)
             workfile.unlink()
 

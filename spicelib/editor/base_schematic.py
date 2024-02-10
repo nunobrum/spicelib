@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
+import abc
 import dataclasses
 import enum
 # -------------------------------------------------------------------------------
@@ -19,8 +20,8 @@ import enum
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-from pathlib import Path
-from typing import Union, List
+
+from typing import List
 from collections import OrderedDict
 import logging
 from .base_editor import BaseEditor
@@ -104,6 +105,7 @@ class BaseSchematic(BaseEditor):
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
     """
+
     def __init__(self):
         self._components: OrderedDict[str, SchematicComponent] = OrderedDict()
         self._wires: List[Line] = []
@@ -117,3 +119,7 @@ class BaseSchematic(BaseEditor):
         self._labels.clear()
         self._directives.clear()
 
+    @abc.abstractmethod
+    def get_component(self, reference: str) -> SchematicComponent:
+        """Returns the SchematicComponent object representing the given reference in the schematic file"""
+        ...

@@ -61,7 +61,7 @@ PARAM_REGEX = r"(?<= )(?P<replace>%s(\s*=\s*)(?P<value>[\w\*\/\.\+\-\/\*\{\}\(\)
 
 def format_eng(value) -> str:
     """
-    Helper function for formating value with the SI qualifiers.  That is, it will use
+    Helper function for formatting value with the SI qualifiers.  That is, it will use
 
         * p for pico (10E-12)
         * n for nano (10E-9)
@@ -73,7 +73,7 @@ def format_eng(value) -> str:
 
     :param value: float value to format
     :type value: float
-    :return: String wiht the formatted value
+    :return: String with the formatted value
     :rtype: str
     """
     if value == 0.0:
@@ -179,12 +179,12 @@ class BaseEditor(ABC):
         self.save_netlist(run_netlist_file)
 
     @abstractmethod
-    def get_component_info(self, component) -> dict:
+    def get_component_info(self, reference) -> dict:
         """
         Retrieves the component information. The line number is also added.
 
-        :param component: Reference of the component
-        :type component: str
+        :param reference: Reference of the component
+        :type reference: str
         :return: Dictionary with the component information
         :rtype: dict
         :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX. NotImplementedError of there

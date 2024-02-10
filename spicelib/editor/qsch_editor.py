@@ -21,10 +21,13 @@ from pathlib import Path
 from typing import Union, Tuple, List
 import re
 import logging
-from spicelib.editor.base_editor import (
-    BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError,
+from .base_editor import (
+    format_eng, ComponentNotFoundError, ParameterNotFoundError,
     PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 )
+
+from .base_schematic import BaseSchematic, SchematicComponent, Point
+
 __all__ = ('QschEditor', )
 
 from ..utils.detect_encoding import detect_encoding
@@ -138,14 +141,13 @@ class QschTag:
             return a
 
 
-class QschEditor(BaseEditor):
+class QschEditor(BaseSchematic):
     """Class made to update directly the LTspice ASC files"""
 
     def __init__(self, asc_file: str):
         super().__init__()
         self._qsch_file_path = Path(asc_file)
         self.schematic = None
-        self._symbols = {}
         if not self._qsch_file_path.exists():
             raise FileNotFoundError(f"File {asc_file} not found")
         # read the file into memory
@@ -258,7 +260,7 @@ class QschEditor(BaseEditor):
 
     def _parse_qsch_stream(self, stream):
 
-        self._symbols.clear()
+        self._components.clear()
         _logger.debug("Parsing ASC file")
         header = tuple(ord(c) for c in stream[:4])
 
@@ -272,26 +274,37 @@ class QschEditor(BaseEditor):
         components = self.schematic.get_items('component')
         for component in components:
             symbol: QschTag = component.get_items('symbol')[0]
-            typ = symbol.get_text('type')
-            desc = symbol.get_text('description')
             texts = symbol.get_items('text')
             if len(texts) < 2:
                 raise RuntimeError(f"Missing texts in component at coordinates {component.get_attr(1)}")
             refdes = texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR)
             value = texts[QSCH_SYMBOL_TEXT_VALUE].get_attr(QSCH_TEXT_STR_ATTR)
-            self._symbols[refdes] = {
-                'type': typ,
-                'description': desc,
-                'model': value,
-                'tag': component
-            }
+            sch_comp = SchematicComponent()
+            sch_comp.reference = refdes
+            x, y = tuple(component.get_attr(QSCH_COMPONENT_POS))
+            sch_comp.position = Point(x, y)
+            sch_comp.rotation = qsch_get_rotation(component.get_attr())
+            sch_comp.attributes['type'] = symbol.get_text('type')
+            sch_comp.attributes['description'] = symbol.get_text('description'),
+            sch_comp.attributes['model'] = value,
+            sch_comp.attributes['tag'] = component
+            self._components[refdes] = sch_comp
 
-    def get_component_info(self, component) -> dict:
+        for wires in self.schematic.get_items('wire'):
+            # process wires
+            raise NotImplementedError()
+
+    def get_component(self, component) -> SchematicComponent:
         """Returns the component information as a dictionary"""
-        if component not in self._symbols:
+        if component not in self._components:
             _logger.error(f"Component {component} not found in ASC file")
             raise ComponentNotFoundError(f"Component {component} not found in ASC file")
-        return self._symbols[component]
+        return self._components[component]
+
+    def get_component_info(self, reference) -> dict:
+        """Returns the reference information as a dictionary"""
+        component = self.get_component(reference)
+        return component.attributes
 
     def _get_text_matching(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
@@ -325,7 +338,7 @@ class QschEditor(BaseEditor):
             text: str = tag.get_attr(QSCH_TEXT_STR_ATTR)
             match = param_regex.search(text)  # repeating the search, so we update the correct start/stop parameter
             start, stop = match.span(param_regex.groupindex['replace'])
-            text =  text[:start] + "{}={}".format(param, value_str) + text[stop:]
+            text = text[:start] + "{}={}".format(param, value_str) + text[stop:]
             tag.set_attr(QSCH_TEXT_STR_ATTR, text)
             _logger.info(f"Parameter {param} updated to {value_str}")
             _logger.debug(f"Text at {tag.get_attr(QSCH_TEXT_POS)} Updated to {text}")
@@ -352,7 +365,7 @@ class QschEditor(BaseEditor):
         texts = symbol.get_items('text')
         assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == device
         texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
-        self._symbols[device]['model'] = model
+        self._components[device]['model'] = model
         _logger.info(f"Component {device} updated to {model}")
         _logger.debug(f"Component at :{component.get_attr(1)} Updated")
 
@@ -365,8 +378,8 @@ class QschEditor(BaseEditor):
 
     def get_components(self, prefixes='*') -> list:
         if prefixes == '*':
-            return list(self._symbols.keys())
-        return [k for k in self._symbols.keys() if k[0] in prefixes]
+            return list(self._components.keys())
+        return [k for k in self._components.keys() if k[0] in prefixes]
 
     def remove_component(self, designator: str):
         comp_info = self.get_component_info(designator)

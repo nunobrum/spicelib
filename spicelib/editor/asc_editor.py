@@ -233,12 +233,19 @@ class AscEditor(BaseSchematic):
                 assert component.reference is not None, "Component InstName was not given"
                 self._components[component.reference] = component
 
-    def get_component_info(self, component) -> SchematicComponent:
-        """Returns the component information as a dictionary"""
-        if component not in self._components:
-            _logger.error(f"Component {component} not found in ASC file")
-            raise ComponentNotFoundError(f"Component {component} not found in ASC file")
-        return self._components[component]
+    def get_component(self, reference) -> SchematicComponent:
+        """Returns the reference information as a dictionary"""
+        if reference not in self._components:
+            _logger.error(f"Component {reference} not found in ASC file")
+            raise ComponentNotFoundError(f"Component {reference} not found in ASC file")
+        return self._components[reference]
+
+    def get_component_info(self, reference) -> dict:
+        """Returns the reference information as a dictionary"""
+        component = self.get_component(reference)
+        info = {name: value for name, value in component.attributes if not name.startswith("WINDOW ")}
+        info["InstName"] = reference  # For legacy purposes
+        return info
 
     def _get_directive(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
@@ -281,7 +288,7 @@ class AscEditor(BaseSchematic):
             self._directives.append(directive)
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
-        component = self.get_component_info(device)
+        component = self.get_component(device)
         if "Value" in component.attributes:
             if isinstance(value, str):
                 value_str = value
@@ -294,16 +301,16 @@ class AscEditor(BaseSchematic):
             raise ComponentNotFoundError(f"Component {device} does not have a Value attribute")
 
     def set_element_model(self, element: str, model: str) -> None:
-        component = self.get_component_info(element)
+        component = self.get_component(element)
         component.symbol = model
         _logger.info(f"Component {element} updated to {model}")
 
     def get_component_value(self, element: str) -> str:
-        comp_info = self.get_component_info(element)
-        if "Value" not in comp_info.attributes:
+        component = self.get_component(element)
+        if "Value" not in component.attributes:
             _logger.error(f"Component {element} does not have a Value attribute")
             raise ComponentNotFoundError(f"Component {element} does not have a Value attribute")
-        return comp_info.attributes["Value"]
+        return component.attributes["Value"]
 
     def get_components(self, prefixes='*') -> list:
         if prefixes == '*':
