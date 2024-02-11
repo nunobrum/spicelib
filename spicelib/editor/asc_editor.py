@@ -153,7 +153,7 @@ class AscEditor(BaseSchematic):
                 if directive.type == TextTypeEnum.DIRECTIVE:
                     directive_type = '!'
                 else:
-                    directive_type = '?'  # Otherwise assume it is a comment
+                    directive_type = ';'  # Otherwise assume it is a comment
                 asc.write(f"TEXT {posX} {posY} {alignment} {size} {directive_type}{directive.text}" + END_LINE_TERM)
 
     def reset_netlist(self):
@@ -356,21 +356,21 @@ class AscEditor(BaseSchematic):
 
     def add_instruction(self, instruction: str) -> None:
         instruction = instruction.strip()  # Clean any end of line terminators
-        command = instruction.split()[0].upper()
+        set_command = instruction.split()[0].upper()
 
-        if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
+        if set_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
             # Before adding new instruction, if it is a unique instruction, we just replace it
             i = 0
             while i < len(self._directives):
                 directive = self._directives[i]
-                if directive.size < 0:
+                if directive.type == TextTypeEnum.COMMENT:
                     continue  # this is a comment
-                command = directive.text.upper()
-                if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
+                directive_command = directive.text.split()[0].upper()
+                if directive_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
                     directive.text = instruction
                     return  # Job done, can exit this method
                 i += 1
-        elif command.startswith('.PARAM'):
+        elif set_command.startswith('.PARAM'):
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()

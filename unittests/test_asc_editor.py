@@ -30,6 +30,7 @@ import spicelib
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
 
+
 class ASC_Editor_Test(unittest.TestCase):
 
     def setUp(self):
@@ -53,7 +54,7 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.save_netlist(test_dir + 'test_parameter_output.asc')
         self.equalFiles(test_dir + 'test_parameter_output.asc', golden_dir + 'test_parameter_output.asc')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
-        self.assertEqual(self.edt.get_parameter('TEMP'), '0.0', "Tested TEMP Parameter")  # add assertion here
+        self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
 
     def test_instructions(self):
         self.edt.add_instruction('.ac dec 10 1 100k')
