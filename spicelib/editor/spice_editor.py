@@ -22,10 +22,10 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
-from typing import Union, List, Callable, Any, Tuple
+from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
@@ -417,8 +417,8 @@ class SpiceCircuit(BaseEditor):
         :type component: str
         :return: Dictionary with the component information
         :rtype: dict
-        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX. NotImplementedError of there
-                 isn't an associated regular expression for the component prefix.
+        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
+        :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
         """
         prefix = component[0]  # Using the first letter of the component to identify what is it
         regex = component_replace_regexs.get(prefix, None)  # Obtain RegX to make the update
@@ -429,7 +429,7 @@ class SpiceCircuit(BaseEditor):
             _logger.warning(error_msg)
             raise NotImplementedError("Unsuported prefix {}".format(prefix))
 
-        line_no = self._get_line_starting_with(component)
+        line_no = self.get_component_line(component)
         line = self.netlist[line_no]
         m = regex.match(line)
         if m is None:
@@ -440,6 +440,44 @@ class SpiceCircuit(BaseEditor):
         info = m.groupdict()
         info['line'] = line_no  # adding the line number to the component information
         return info
+
+    def get_component(self, reference: str) -> Component:
+        """
+        Returns an object representing the given reference in the schematic file
+
+        :param reference: Reference of the component
+        :type reference: str
+        :return: The SchematicComponent object
+        :rtype: SchematicComponent
+        :raises: ComponentNotFoundError - In case the component is not found
+        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
+        :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
+        """
+        component_info = self.get_component_info(reference)
+        component = Component()
+        component.reference = reference
+        component.nodes = component_info['nodes']
+        for attr in component_info:
+            if attr not in ('designator', 'nodes'):
+                component.attributes[attr] = component_info[attr]
+        return component
+
+    def get_component_attribute(self, reference: str, attribute: str) -> Optional[str]:
+        """
+        Retrieves the value of the attribute for the given component.
+
+        :param reference: Reference of the component
+        :type reference: str
+        :param attribute: Name of the attribute to be retrieved
+        :type attribute: str
+        :return: Value of the attribute
+        :rtype: str
+        :raises: ComponentNotFoundError - In case the component is not found
+        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
+        :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
+        """
+        component_info = self.get_component_info(reference)
+        return component_info.get(attribute, None)
 
     def get_parameter(self, param: str) -> str:
         """

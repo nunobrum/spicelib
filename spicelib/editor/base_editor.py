@@ -19,6 +19,7 @@
 # -------------------------------------------------------------------------------
 
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from math import floor, log
 from pathlib import Path
 from typing import Union
@@ -149,6 +150,15 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
+class Component(object):
+    """Hols component information"""
+
+    def __init__(self):
+        self.reference = ""
+        self.attributes = OrderedDict()
+        self.ports = []
+
+
 class BaseEditor(ABC):
     """
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
@@ -179,9 +189,38 @@ class BaseEditor(ABC):
         self.save_netlist(run_netlist_file)
 
     @abstractmethod
+    def get_component(self, reference: str) -> Component:
+        """Returns the Component object representing the given reference in the netlist."""
+        ...
+
+    def get_component_attribute(self, reference: str, attribute: str) -> str:
+        """Returns the value of the attribute of the component.
+        :param reference: Reference of the component
+        :type reference: str
+        :param attribute: Name of the attribute to be retrieved
+        :type attribute: str
+        :return: Value of the attribute being sought
+        :rtype: str
+        :raises: ComponentNotFoundError - In case the component is not found
+                 KeyError - In case the attribute is not found
+        """
+        return self.get_component(reference).attributes[attribute]
+
+    def get_component_nodes(self, reference: str) -> list:
+        """Returns the value of the port of the component.
+        :param reference: Reference of the component
+        :type reference: str
+        :return: List with the ports of the component
+        :rtype: str
+        :raises: ComponentNotFoundError - In case the component is not found
+                 KeyError - In case the port is not found
+        """
+        return self.get_component(reference).ports
+
     def get_component_info(self, reference) -> dict:
         """
-        Retrieves the component information. The line number is also added.
+        Retrieves the component information. This is a dictionary with the component information. This method is
+        deprecated and will be removed in future versions. Use get_component_attribute instead.
 
         :param reference: Reference of the component
         :type reference: str
@@ -190,7 +229,7 @@ class BaseEditor(ABC):
         :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX. NotImplementedError of there
                  isn't an associated regular expression for the component prefix.
         """
-        ...
+        return self.get_component(reference).attributes
 
     @abstractmethod
     def get_parameter(self, param: str) -> str:

@@ -18,28 +18,51 @@
 # -------------------------------------------------------------------------------
 import math
 from pathlib import Path
-from typing import Union, Tuple, List
+from typing import Union, List
 import re
 import logging
 from .base_editor import (
     format_eng, ComponentNotFoundError, ParameterNotFoundError,
     PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 )
-
-from .base_schematic import BaseSchematic, SchematicComponent, Point
+from .base_schematic import BaseSchematic, SchematicComponent, Point, ERotation, Line
 
 __all__ = ('QschEditor', )
-
-from ..utils.detect_encoding import detect_encoding
 
 _logger = logging.getLogger("qspice.QschEditor")
 
 QSCH_HEADER = (255, 216, 255, 219)
 QSCH_TEXT_POS = 1
+QSCH_TEXT_ROTATION = 2
 QSCH_TEXT_STR_ATTR = 8
 QSCH_COMPONENT_POS = 1
 QSCH_SYMBOL_TEXT_REFDES = 0
 QSCH_SYMBOL_TEXT_VALUE = 1
+QSCH_WIRE_POS1 = 1
+QSCH_WIRE_POS2 = 2
+QSCH_WIRE_NET = 3
+
+
+QSCH_ROTATION_DICT = {
+    0: ERotation.R0,
+    1: ERotation.R45,  # 45º rotation is valid for QSpice Schematics Files
+    2: ERotation.R90,
+    3: ERotation.R135,
+    4: ERotation.R180,
+    5: ERotation.R225,
+    6: ERotation.R270,
+    7: ERotation.R315,
+    8: ERotation.M0,
+    9: ERotation.M45,  # 45º rotation is valid for QSpice Schematics Files
+    10: ERotation.M90,
+    11: ERotation.M135,
+    12: ERotation.M180,
+    13: ERotation.M225,
+    14: ERotation.M270,
+    15: ERotation.M315,
+}
+
+QSCH_INV_ROTATION_DICT = {val: key for key, val in QSCH_ROTATION_DICT.items()}
 
 
 class QschReadingError(IOError):
@@ -123,6 +146,8 @@ class QschTag:
                 value_str = value
             else:
                 value_str = f'"{value}"'
+        elif isinstance(value, tuple):
+            value_str = f'({value[0]},{value[1]})'
         else:
             raise ValueError("Object not supported in set_attr")
         self.tokens[index] = value_str
@@ -225,7 +250,7 @@ class QschEditor(BaseSchematic):
                     netlist_file.write(f'.lib {library}\n')
                 netlist_file.write('.end\n')
 
-    def _find_net_at_pin(self, comp_pos, orientation : int, pin: QschTag) -> str:
+    def _find_net_at_pin(self, comp_pos, orientation: int, pin: QschTag) -> str:
         """Returns the net at the given position"""
         pin_pos = pin.get_attr(1)
         hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
@@ -246,7 +271,7 @@ class QschEditor(BaseSchematic):
         for net in self.schematic.get_items('wire'):
             if net.get_attr(1) == (x, y) or net.get_attr(2) == (x, y):
                 net_name = net.get_attr(3)  # Found the net
-                return '0' if  net_name == 'GND' else net_name
+                return '0' if net_name == 'GND' else net_name
         else:
             return '####'
 
@@ -283,28 +308,27 @@ class QschEditor(BaseSchematic):
             sch_comp.reference = refdes
             x, y = tuple(component.get_attr(QSCH_COMPONENT_POS))
             sch_comp.position = Point(x, y)
-            sch_comp.rotation = qsch_get_rotation(component.get_attr())
+            sch_comp.rotation = QSCH_ROTATION_DICT[component.get_attr(QSCH_TEXT_ROTATION)]
             sch_comp.attributes['type'] = symbol.get_text('type')
             sch_comp.attributes['description'] = symbol.get_text('description'),
-            sch_comp.attributes['model'] = value,
+            sch_comp.attributes['value'] = value
             sch_comp.attributes['tag'] = component
             self._components[refdes] = sch_comp
 
-        for wires in self.schematic.get_items('wire'):
+        for wire in self.schematic.get_items('wire'):
             # process wires
-            raise NotImplementedError()
+            x1, y1 = wire.get_attr(QSCH_WIRE_POS1)
+            x2, y2 = wire.get_attr(QSCH_WIRE_POS2)
+            net = wire.get_attr(QSCH_WIRE_NET)
+            self._wires.append(Line(Point(x1, y1), Point(x2, y2), net))
 
     def get_component(self, component) -> SchematicComponent:
-        """Returns the component information as a dictionary"""
+        """Returns the component information as a dictionary.
+        """
         if component not in self._components:
             _logger.error(f"Component {component} not found in ASC file")
             raise ComponentNotFoundError(f"Component {component} not found in ASC file")
         return self._components[component]
-
-    def get_component_info(self, reference) -> dict:
-        """Returns the reference information as a dictionary"""
-        component = self.get_component(reference)
-        return component.attributes
 
     def _get_text_matching(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
@@ -359,22 +383,72 @@ class QschEditor(BaseSchematic):
         self.set_element_model(device, value_str)
 
     def set_element_model(self, device: str, model: str) -> None:
-        comp_info = self.get_component_info(device)
-        component: QschTag = comp_info['tag']
+        comp = self.get_component(device)
+        component: QschTag = comp.attributes['tag']
         symbol: QschTag = component.get_items('symbol')[0]
         texts = symbol.get_items('text')
         assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == device
         texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
-        self._components[device]['model'] = model
+        self._components[device].attributes['value'] = model
         _logger.info(f"Component {device} updated to {model}")
         _logger.debug(f"Component at :{component.get_attr(1)} Updated")
 
     def get_component_value(self, element: str) -> str:
-        comp_info = self.get_component_info(element)
-        if "model" not in comp_info:
+        component = self.get_component(element)
+        if "value" not in component.attributes:
             _logger.error(f"Component {element} does not have a Value attribute")
             raise ComponentNotFoundError(f"Component {element} does not have a Value attribute")
-        return comp_info["model"]
+        return component.attributes["value"]
+
+    def get_component_position(self, reference: str) -> (Point, ERotation):
+        component = self.get_component(reference)
+        return component.position, component.rotation
+
+    def set_component_position(self, reference: str,
+                               position: Union[Point, tuple],
+                               rotation: Union[ERotation, int],
+                               mirror: bool = False,
+                               ) -> None:
+        component = self.get_component(reference)
+        comp_tag: QschTag = component.attributes['tag']
+        if isinstance(position, tuple):
+            position = (position[0], position[1])
+        elif isinstance(position, Point):
+            position = (position.X, position.Y)
+        else:
+            raise ValueError("Invalid position object")
+        if isinstance(rotation, ERotation):
+            rot = QSCH_INV_ROTATION_DICT[rotation]
+        elif isinstance(rotation, int):
+            if mirror is False:
+                rot = {
+                    0: 0,
+                    45: 1,
+                    90: 2,
+                    135: 3,
+                    180: 4,
+                    225: 5,
+                    270: 6,
+                    315: 7,
+                }[rotation % 360]
+            else:
+                rot = {
+                    0: 8,
+                    45: 9,  # 45º rotation is valid for QSpice Schematics Files
+                    90: 10,
+                    135: 11,
+                    180: 12,
+                    225: 13,
+                    270: 14,
+                    315: 15,
+                }[rotation % 360]
+        else:
+             raise ValueError("Invalid rotation parameter")
+
+        comp_tag.set_attr(QSCH_COMPONENT_POS, position)
+        comp_tag.set_attr(QSCH_TEXT_ROTATION, rot)
+        component.position = position
+        component.rotation = rotation
 
     def get_components(self, prefixes='*') -> list:
         if prefixes == '*':
@@ -382,9 +456,9 @@ class QschEditor(BaseSchematic):
         return [k for k in self._components.keys() if k[0] in prefixes]
 
     def remove_component(self, designator: str):
-        comp_info = self.get_component_info(designator)
-        component: QschTag = comp_info['tag']
-        self.schematic.items.remove(component)
+        component = self.get_component(designator)
+        comp_tag: QschTag = component.attributes['tag']
+        self.schematic.items.remove(comp_tag)
 
     def _get_text_space(self):
         """
