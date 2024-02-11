@@ -241,6 +241,9 @@ class ToleranceDeviations(SimAnalysis, ABC):
         if self.analysis_executed is False and self.testbench_executed is False:
             raise RuntimeError("The analysis has not been executed yet")
 
+        if 'log_data' in self.simulation_results:
+            return self.simulation_results['log_data']
+
         super().read_logfiles()
         # The code below makes the run measure (if it exists) available on the stepset.
         # Note: this was only tested with LTSpice
@@ -257,6 +260,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
                 self.log_data.stepset = {'run': list(range(len(any_meas)))}
             self.log_data.step_count = len(self.log_data.stepset)
 
+        self.simulation_results['log_data'] = self.log_data
         return self.log_data
 
     @abstractmethod

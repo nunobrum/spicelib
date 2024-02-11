@@ -1,0 +1,7 @@
+* C:\sandbox\spicelib\examples\testfiles\DC op point.asc
+Vin in 0 1
+R1 in out 10k
+R2 out 0 10k
+.op
+.backanno
+.end
