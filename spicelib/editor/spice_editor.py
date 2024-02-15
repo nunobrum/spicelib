@@ -417,6 +417,7 @@ class SpiceCircuit(BaseEditor):
         :type component: str
         :return: Dictionary with the component information
         :rtype: dict
+        :raises: ComponentNotFoundError - In case the component is not found
         :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
         :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
         """
@@ -429,7 +430,7 @@ class SpiceCircuit(BaseEditor):
             _logger.warning(error_msg)
             raise NotImplementedError("Unsuported prefix {}".format(prefix))
 
-        line_no = self.get_component_line(component)
+        line_no = self._get_line_starting_with(component)
         line = self.netlist[line_no]
         m = regex.match(line)
         if m is None:
@@ -942,7 +943,7 @@ class SpiceEditor(SpiceCircuit):
         return None
 
     def run(self, wait_resource: bool = True,
-            callback: Callable[[str, str], Any] = None, timeout: float = 600, run_filename: str = None, simulator=None):
+            callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):
         """
         *(Deprecated)*
 

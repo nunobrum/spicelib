@@ -247,6 +247,15 @@ class AscEditor(BaseSchematic):
         info["InstName"] = reference  # For legacy purposes
         return info
 
+    def get_component_position(self, reference: str) -> (Point, ERotation):
+        component = self.get_component(reference)
+        return component.position, component.rotation
+
+    def set_component_position(self, reference: str, position: Point, rotation: ERotation) -> None:
+        component = self.get_component(reference)
+        component.position = position
+        component.rotation = rotation
+
     def _get_directive(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
         for directive in self._directives:
