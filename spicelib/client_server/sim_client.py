@@ -27,7 +27,7 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 import logging
-from typing import Union
+from typing import Union, List, Iterable
 
 _logger = logging.getLogger("spicelib.SimClient")
 
@@ -108,7 +108,7 @@ class SimClient(object):
     def __init__(self, host_address, port):
         self.server = xmlrpc.client.ServerProxy(f'{host_address}:{port}')
         self.session_id = self.server.start_session()
-        _logger.info(f"Started {self.session_id}")
+        _logger.info(f"Client: Started {self.session_id}")
         self.started_jobs = OrderedDict()  # This list keeps track of started jobs on the server
         self.stored_jobs = OrderedDict()  # This list keeps track of finished simulations that haven't yet been transferred.
         self.completed_jobs = 0
@@ -118,7 +118,28 @@ class SimClient(object):
     def __del__(self):
         self.close_session()
 
-    def run(self, circuit):
+    def add_sources(self, sources: Iterable) -> bool:
+        """Add sources to the simulation environment. The sources are a list of file paths that are going to be
+        transferred to the server. The server will add the sources to the simulation folder. Returns True if the sources
+        were added and False if the session_id is not valid. """
+        # Create a buffer to store the zip file in memory
+        zip_buffer = io.BytesIO()
+
+        # Create the zip file in memory
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for source in sources:
+                dep_path = pathlib.Path(source)
+                if dep_path.exists():
+                    zip_file.write(source, dep_path.name)
+
+        # Reset the buffer position to the start
+        zip_buffer.seek(0)
+
+        # Read the zip file from the buffer and send it to the server
+        zip_data = zip_buffer.read()
+        self.server.add_sources(self.session_id, zip_data)
+
+    def run(self, circuit, dependencies: List[Union[str, pathlib.Path]] = None) -> int:
         """
         Sends the netlist identified with the argument "circuit" to the server, and it receives a run identifier
         (runno). Since the server can receive requests from different machines, this identifier is not guaranteed to be
@@ -126,6 +147,10 @@ class SimClient(object):
 
         :param circuit: path to the netlist file containing the simulation directives.
         :type circuit: pathlib.Path or str
+        :param dependencies: list of files that the netlist depends on. This is used to ensure that the netlist is
+         transferred to the server with all the necessary files.
+
+        :type dependencies: list of pathlib.Path or str
         :returns: identifier on the server of the simulation.
         :rtype: int
         """
@@ -138,6 +163,11 @@ class SimClient(object):
             # Create the zip file in memory
             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 zip_file.write(circuit, circuit_name)  # Makes sure it writes it to the root of the zipfile
+                if dependencies is not None:
+                    for dep in dependencies:
+                        dep_path = pathlib.Path(dep)
+                        if dep_path.exists():
+                            zip_file.write(dep, dep_path.name)
 
             # Reset the buffer position to the start
             zip_buffer.seek(0)
@@ -150,7 +180,7 @@ class SimClient(object):
             self.started_jobs[run_id] = job_info
             return run_id
         else:
-            _logger.error(f"Circuit {circuit} doesn't exit")
+            _logger.error(f"Client: Circuit {circuit} doesn't exit")
             return -1
         
     def get_runno_data(self, runno) -> Union[str, None]:
@@ -195,5 +225,5 @@ class SimClient(object):
         raise StopIteration
 
     def close_session(self):
-        _logger.info(f"closing session {self.session_id}")
+        _logger.info(f"Client: Closing session {self.session_id}")
         self.server.close_session(self.session_id)
