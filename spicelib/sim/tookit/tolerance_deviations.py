@@ -272,12 +272,3 @@ class ToleranceDeviations(SimAnalysis, ABC):
                      ):
         """The override of this method should set the self.analysis_executed to True"""
         ...
-
-    def run(self, *, wait_resource: bool = True, callback: Union[Type[ProcessCallback], Callable] = None,
-            callback_args: Union[tuple, dict] = None, switches=None,
-            timeout: float = None, run_filename: str = None) -> Union[RunTask, None]:
-        raise NotImplementedError("The run method is not implemented for Tolerance Deviation Type simulations\n"
-                                  "Please use the run_analysis() method, or in alternative the prepare_testbench() and "
-                                  "run_testbench() methods")
-
-

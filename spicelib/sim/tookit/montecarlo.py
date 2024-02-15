@@ -179,7 +179,7 @@ class Montecarlo(ToleranceDeviations):
                 if new_val != val:  # Only update the value if it has changed
                     self.editor.set_parameter(param, new_val)
             # Run the simulation
-            rt = self.run(self.editor, wait_resource=True,
+            rt = self.run(wait_resource=True,
                           callback=callback, callback_args=callback_args,
                           switches=switches, timeout=timeout)
 

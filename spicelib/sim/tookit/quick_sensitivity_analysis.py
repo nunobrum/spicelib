@@ -139,7 +139,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
         self.editor.set_parameter('run', -1)  # in case the step is commented.
         self.editor.add_instruction(".meas run PARAM {run}")
         # Run the simulation in the nominal case
-        self.run(self.editor, wait_resource=True,
+        self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,
                  switches=switches, timeout=timeout)
         last_bit_setting = 0
@@ -171,7 +171,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
                 bit_index += 1
             self.editor.set_parameter('run', run)
             # Run the simulation
-            self.run(self.editor, wait_resource=True,
+            self.run(wait_resource=True,
                      callback=callback, callback_args=callback_args,
                      switches=switches, timeout=timeout)
             last_bit_setting = bit_setting

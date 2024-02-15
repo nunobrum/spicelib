@@ -145,7 +145,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
         def run_and_get_measure():
             # Run the simulation
             task = self.run(
-                self.editor, wait_resource=True,
+                wait_resource=True,
                 callback=callback, callback_args=callback_args,
                 switches=switches, timeout=timeout)
             self.wait_completion()
@@ -173,7 +173,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
         self._reset_netlist()  # reset the netlist
         self.play_instructions()  # play the instructions
         # Simulate the nominal case
-        self.run(self.editor, wait_resource=True,
+        self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,
                  switches=switches, timeout=timeout)
 
@@ -181,7 +181,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
         for ref in self.elements_analysed:
             set_ref_to(ref, WorstCaseType.max)
             # Run the simulation
-            self.run(self.editor, wait_resource=True,
+            self.run(wait_resource=True,
                      callback=callback, callback_args=callback_args,
                      switches=switches, timeout=timeout)
         self.wait_completion()
