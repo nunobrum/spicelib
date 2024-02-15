@@ -27,6 +27,7 @@ wca.set_tolerance('R4', 0.0)  # 5% tolerance for R1 only. This only overrides th
 wca.save_netlist('./testfiles/sallenkey_wc.asc')
 
 wca.run_testbench()  # Runs the simulation with splits of 100 runs each
+
 logs = wca.read_logfiles()   # Reads the log files and stores the results in the results attribute
 logs.export_data('./temp_wca/data.csv')  # Exports the data to a csv file
 

@@ -73,8 +73,7 @@ class SimAnalysis(object):
     def runner(self, new_runner: AnyRunner):
         self._runner = new_runner
 
-    def run(self,
-            netlist: Union[str, Path, BaseEditor], *,
+    def run(self, *,
             wait_resource: bool = True,
             callback: Union[Type[ProcessCallback], Callable] = None,
             callback_args: Union[tuple, dict] = None,
