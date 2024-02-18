@@ -21,10 +21,10 @@ import enum
 # -------------------------------------------------------------------------------
 
 
-from typing import List
+from typing import List, Callable, Union
 from collections import OrderedDict
 import logging
-from .base_editor import BaseEditor, Component
+from .base_editor import BaseEditor, Component, ComponentNotFoundError
 
 _logger = logging.getLogger("spicelib.BaseSchematic")
 
@@ -75,8 +75,8 @@ class TextTypeEnum(enum.IntEnum):
 @dataclasses.dataclass
 class Point:
     """X, Y coordinates"""
-    X: int
-    Y: int
+    X: float
+    Y: float
 
 
 @dataclasses.dataclass
@@ -152,29 +152,69 @@ class BaseSchematic(BaseEditor):
     """
 
     def __init__(self):
-        self._components: OrderedDict[str, SchematicComponent] = OrderedDict()
-        self._wires: List[Line] = []
-        self._labels: List[Text] = []
-        self._directives: List[Text] = []
+        self.components: OrderedDict[str, SchematicComponent] = OrderedDict()
+        self.wires: List[Line] = []
+        self.labels: List[Text] = []
+        self.directives: List[Text] = []
 
-    def reset_netlist(self) -> None:
+    def reset_netlist(self, create_blank: bool = False) -> None:
         """Resets the netlist to the original state"""
-        self._components.clear()
-        self._wires.clear()
-        self._labels.clear()
-        self._directives.clear()
+        self.components.clear()
+        self.wires.clear()
+        self.labels.clear()
+        self.directives.clear()
 
-    @abc.abstractmethod
+    def copy_from(self, editor: 'BaseSchematic') -> None:
+        """Copies the contents of the given editor"""
+        from copy import deepcopy
+        self.components = deepcopy(editor.components)
+        self.wires = deepcopy(editor.wires)
+        self.labels = deepcopy(editor.labels)
+        self.directives = deepcopy(editor.directives)
+
     def get_component(self, reference: str) -> SchematicComponent:
         """Returns the SchematicComponent object representing the given reference in the schematic file"""
-        ...
+        if reference not in self.components:
+            _logger.error(f"Component {reference} not found")
+            raise ComponentNotFoundError(f"Component {reference} not found in ASC file")
+        return self.components[reference]
 
-    @abc.abstractmethod
     def get_component_position(self, reference: str) -> (Point, ERotation):
-        """Returns the position of the component"""
-        ...
+        """Returns the position and rotation of the component"""
+        comp = self.get_component(reference)
+        return comp.position, comp.rotation
 
-    @abc.abstractmethod
     def set_component_position(self, reference: str, position: Point, rotation: ERotation) -> None:
         """Sets the position of the component"""
-        ...
+        comp = self.get_component(reference)
+        comp.position = position
+        comp.rotation = rotation
+
+    def add_component(self, component: SchematicComponent, **kwargs) -> None:
+        if component.reference in self.components:
+            # The component is already in the list, so we need to update it
+            comp = self.components[component.reference]
+        else:
+            comp = SchematicComponent()
+            comp.reference = component.reference
+        self.components[component.reference] = comp
+
+    def scale(self, offset_x, offset_y, scale_x, scale_y: float,
+              round_fun: Callable[[float], Union[int, float]] = None) -> None:
+        """Scales the schematic"""
+        if round_fun is None:
+            round_fun = int
+        for comp in self.components.values():
+            comp.position.X = round_fun(comp.position.X * scale_x + offset_x)
+            comp.position.Y = round_fun(comp.position.Y * scale_y + offset_y)
+        for wire in self.wires:
+            wire.V1.X = round_fun(wire.V1.X * scale_x + offset_x)
+            wire.V1.Y = round_fun(wire.V1.Y * scale_y + offset_y)
+            wire.V2.X = round_fun(wire.V2.X * scale_x + offset_x)
+            wire.V2.Y = round_fun(wire.V2.Y * scale_y + offset_y)
+        for label in self.labels:
+            label.coord.X = round_fun(label.coord.X * scale_x + offset_x)
+            label.coord.Y = round_fun(label.coord.Y * scale_y + offset_y)
+        for directive in self.directives:
+            directive.coord.X = round_fun(directive.coord.X * scale_x + offset_x)
+            directive.coord.Y = round_fun(directive.coord.Y * scale_y + offset_y)

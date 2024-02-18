@@ -50,12 +50,13 @@ class SimServer(object):
     :param port: The port where the server will listen for requests. Default is 9000
     """
 
-    def __init__(self, simulator, parallel_sims=4, output_folder='./temp', timeout: float = 300, port=9000):
+    def __init__(self, simulator, parallel_sims=4, output_folder='./temp', timeout: float = 300, port=9000,
+                 host='localhost'):
         self.output_folder = output_folder
         self.simulation_manager = ServerSimRunner(parallel_sims=parallel_sims, timeout=timeout, verbose=False,
                                                   output_folder=output_folder, simulator=simulator)
         self.server = SimpleXMLRPCServer(
-                ('localhost', port),
+                (host, port),
                 # requestHandler=RequestHandler
         )
         self.server.register_introspection_functions()

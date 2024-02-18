@@ -21,7 +21,7 @@ from typing import Union, Tuple, List
 import re
 import logging
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component
 from .base_schematic import (BaseSchematic, Point, Line, Text, SchematicComponent, ERotation, HorAlign, VerAlign,
                              TextTypeEnum)
 
@@ -124,11 +124,11 @@ class AscEditor(BaseSchematic):
 
             asc.write(f"Version {self.version}" + END_LINE_TERM)
             asc.write(f"SHEET {self.sheet}" + END_LINE_TERM)
-            for wire in self._wires:
+            for wire in self.wires:
                 asc.write(f"WIRE {wire.V1.X} {wire.V1.Y} {wire.V2.X} {wire.V2.Y}" + END_LINE_TERM)
-            for flag in self._labels:
+            for flag in self.labels:
                 asc.write(f"FLAG {flag.coord.X} {flag.coord.Y} {flag.text}" + END_LINE_TERM)
-            for component in self._components.values():
+            for component in self.components.values():
                 symbol = component.symbol
                 posX = component.position.X
                 posY = component.position.Y
@@ -145,7 +145,7 @@ class AscEditor(BaseSchematic):
                 for attr, value in component.attributes.items():
                     if not attr.startswith('WINDOW'):
                         asc.write(f"SYMATTR {attr} {value}" + END_LINE_TERM)
-            for directive in self._directives:
+            for directive in self.directives:
                 posX = directive.coord.X
                 posY = directive.coord.Y
                 alignment = asc_text_align_get(directive)
@@ -156,7 +156,7 @@ class AscEditor(BaseSchematic):
                     directive_type = ';'  # Otherwise assume it is a comment
                 asc.write(f"TEXT {posX} {posY} {alignment} {size} {directive_type}{directive.text}" + END_LINE_TERM)
 
-    def reset_netlist(self):
+    def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()
         with open(self._asc_file_path, 'r') as asc_file:
             _logger.info(f"Reading ASC file {self._asc_file_path}")
@@ -167,7 +167,7 @@ class AscEditor(BaseSchematic):
                     tag, symbol, posX, posY, rotation = line.split()
                     if component is not None:
                         assert component.reference is not None, "Component InstName was not given"
-                        self._components[component.reference] = component
+                        self.components[component.reference] = component
                     component = SchematicComponent()
                     component.symbol = symbol
                     component.position.X = int(posX)
@@ -207,19 +207,19 @@ class AscEditor(BaseSchematic):
                         alignment = match.group(TEXT_REGEX_ALIGN)
                         text = Text(coord=coord, text=text.strip(), size=size, type=ttype)
                         text = asc_text_align_set(text, alignment)
-                        self._directives.append(text)
+                        self.directives.append(text)
 
                 elif line.startswith("WIRE"):
                     tag, x1, y1, x2, y2 = line.split()
                     v1 = Point(int(x1), int(y1))
                     v2 = Point(int(x2), int(y2))
                     wire = Line(v1, v2)
-                    self._wires.append(wire)
+                    self.wires.append(wire)
                 elif line.startswith("FLAG"):
                     tag, posX, posY, text = line.split(maxsplit=4)
                     coord = Point(int(posX), int(posY))
                     flag = Text(coord=coord, text=text, type=TextTypeEnum.LABEL)
-                    self._labels.append(flag)
+                    self.labels.append(flag)
                 elif line.startswith("Version"):
                     tag, version = line.split()
                     assert version in ["4"], f"Unsupported version : {version}"
@@ -231,14 +231,7 @@ class AscEditor(BaseSchematic):
                                               f'"{line}"')
             if component is not None:
                 assert component.reference is not None, "Component InstName was not given"
-                self._components[component.reference] = component
-
-    def get_component(self, reference) -> SchematicComponent:
-        """Returns the reference information as a dictionary"""
-        if reference not in self._components:
-            _logger.error(f"Component {reference} not found in ASC file")
-            raise ComponentNotFoundError(f"Component {reference} not found in ASC file")
-        return self._components[reference]
+                self.components[component.reference] = component
 
     def get_component_info(self, reference) -> dict:
         """Returns the reference information as a dictionary"""
@@ -258,7 +251,7 @@ class AscEditor(BaseSchematic):
 
     def _get_directive(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
-        for directive in self._directives:
+        for directive in self.directives:
             command_upped_directive = directive.text.upper()
             if command_upped_directive.startswith(command_upped):
                 match = search_expression.search(directive.text)
@@ -294,7 +287,7 @@ class AscEditor(BaseSchematic):
             text = f".param {param}={value}"
             directive = Text(coord=coord, text=text, size=2, type=TextTypeEnum.DIRECTIVE)
             _logger.info(f"Parameter {param} added with value {value}")
-            self._directives.append(directive)
+            self.directives.append(directive)
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         component = self.get_component(device)
@@ -323,11 +316,11 @@ class AscEditor(BaseSchematic):
 
     def get_components(self, prefixes='*') -> list:
         if prefixes == '*':
-            return list(self._components.keys())
-        return [k for k in self._components.keys() if k[0] in prefixes]
+            return list(self.components.keys())
+        return [k for k in self.components.keys() if k[0] in prefixes]
 
     def remove_component(self, designator: str):
-        del self._components[designator]
+        del self.components[designator]
 
     def _get_text_space(self):
         """
@@ -340,22 +333,22 @@ class AscEditor(BaseSchematic):
         _, x, y = self.sheet.split()
         min_x = min(min_x, int(x))
         min_y = min(min_y, int(y))
-        for wire in self._wires:
+        for wire in self.wires:
             min_x = min(min_x, wire.V1.X, wire.V2.X)
             max_x = max(max_x, wire.V1.X, wire.V2.X)
             min_y = min(min_y, wire.V1.Y, wire.V2.Y)
             max_y = max(max_y, wire.V1.Y, wire.V2.Y)
-        for flag in self._labels:
+        for flag in self.labels:
             min_x = min(min_x, flag.coord.X)
             max_x = max(max_x, flag.coord.X)
             min_y = min(min_y, flag.coord.Y)
             max_y = max(max_y, flag.coord.Y)
-        for directive in self._directives:
+        for directive in self.directives:
             min_x = min(min_x, directive.coord.X)
             max_x = max(max_x, directive.coord.X)
             min_y = min(min_y, directive.coord.Y)
             max_y = max(max_y, directive.coord.Y)
-        for component in self._components.values():
+        for component in self.components.values():
             min_x = min(min_x, component.position.X)
             max_x = max(max_x, component.position.X)
             min_y = min(min_y, component.position.Y)
@@ -370,8 +363,8 @@ class AscEditor(BaseSchematic):
         if set_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
             # Before adding new instruction, if it is a unique instruction, we just replace it
             i = 0
-            while i < len(self._directives):
-                directive = self._directives[i]
+            while i < len(self.directives):
+                directive = self.directives[i]
                 if directive.type == TextTypeEnum.COMMENT:
                     continue  # this is a comment
                 directive_command = directive.text.split()[0].upper()
@@ -385,14 +378,14 @@ class AscEditor(BaseSchematic):
         x, y = self._get_text_space()
         coord = Point(x, y)
         directive = Text(coord=coord, text=instruction, size=2, type=TextTypeEnum.DIRECTIVE)
-        self._directives.append(directive)
+        self.directives.append(directive)
 
     def remove_instruction(self, instruction: str) -> None:
         i = 0
-        while i < len(self._directives):
-            if instruction in self._directives[i].text:
-                text = self._directives[i].text
-                del self._directives[i]
+        while i < len(self.directives):
+            if instruction in self.directives[i].text:
+                text = self.directives[i].text
+                del self.directives[i]
                 _logger.info(f"Instruction {text} removed")
                 return  # Job done, can exit this method
             i += 1
@@ -405,11 +398,11 @@ class AscEditor(BaseSchematic):
         regex = re.compile(search_pattern, re.IGNORECASE)
         instr_removed = False
         i = 0
-        while i < len(self._directives):
-            instruction = self._directives[i].text
+        while i < len(self.directives):
+            instruction = self.directives[i].text
             if regex.match(instruction) is not None:
                 instr_removed = True
-                del self._directives[i]
+                del self.directives[i]
                 _logger.info(f"Instruction {instruction} removed")
             else:
                 i += 1

@@ -172,8 +172,13 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
-    def reset_netlist(self) -> None:
-        """Resets the netlist to the original state"""
+    def reset_netlist(self, create_blank: bool = False) -> None:
+        """
+        Resets the netlist to the original state.
+
+        :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be reset to
+        the original state.
+        """
         ...
 
     @abstractmethod
@@ -408,6 +413,19 @@ class BaseEditor(ABC):
 
         :return:
             A list of components matching the prefixes demanded.
+        """
+        ...
+
+    @abstractmethod
+    def add_component(self, component: Component, **kwargs) -> None:
+        """
+        Adds a component to the design. If the component already exists, it will be replaced by the new one.
+        kwargs can be used to add additional parameters to the component. For example, to add a symbol or position.
+
+        :param component: Component to be added to the design.
+        :type component: Component
+
+        :return: Nothing
         """
         ...
 

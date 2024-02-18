@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">-->
+<properties>
+    <comment>asc_to_qsch_data.xml</comment>
+    <attribute key="asc_to_qsch_data" value="asc_to_qsch_data"/>
+    <attribute key="version" value="1.0"/>
+    <attribute key="date" value="2024-02-18"/>
+    <scaling x="6.25" y="-6.25"/> <!-- scaling for the schematic conversion -->
+    <offset x="0" y="0"/> <!-- offset for the schematic conversion -->
+    <component_symbols>
+        <symbol>
+            <LT_name>res</LT_name>
+            <name>R</name>
+            <offset x="0" y="0"/>
+            <items>
+                <item>«type: R»</item>
+                <item>«description: Resistor(USA Style Symbol)»</item>
+                <item>«shorted pins: false»</item>
+                <item>«line (0,200) (0,180) 0 0 0x1000000 -1 -1»</item>
+                <item>«line (0,-180) (0,-200) 0 0 0x1000000 -1 -1»</item>
+                <item>«zigzag (-80,180) (80,-180) 0 0 0 0x1000000 -1 -1»</item>
+                <item reference="ref">«text (100,150) 1 7 0 0x1000000 -1 -1 "{ref:}"»</item>
+                <item value="val">«text (100,-150) 1 7 0 0x1000000 -1 -1 "{val:}"»</item>
+                <item>«pin (0,200) (0,0) 1 0 0 0x0 -1 "1"»</item>
+                <item>«pin (0,-200) (0,0) 1 0 0 0x0 -1 "2"»</item>
+            </items>
+            <adapter>
+                <wire>«wire (0,200) (0,300) "net"»</wire>
+            </adapter>
+        </symbol>
+        <symbol>
+            <LT_name>cap</LT_name>
+            <name>C</name>
+            <offset x="-200" y="-100"/>
+            <items>
+                <item>«type: C»</item>
+                <item>«description: Capacitor»</item>
+                <item>«shorted pins: false»</item>
+                <item>«line (0,200) (0,40) 0 0 0x1000000 -1 -1»</item>
+                <item>«line (0,-40) (0,-200) 0 0 0x1000000 -1 -1»</item>
+                <item>«rect (-130,-40) (130,-30) 0 0 0 0x1000000 0x3000000 -1 0 -1»</item>
+                <item>«rect (-130,30) (130,40) 0 0 0 0x1000000 0x3000000 -1 0 -1»</item>
+                <item reference="ref">«text (130,0) 1 110 0 0x1000000 -1 -1 "{ref:}"»</item>
+                <item value="val">«text (-130,0) 1 109 0 0x1000000 -1 -1 "{val:}"»</item>
+                <item>«pin (0,200) (0,0) 1 0 0 0x0 -1 "+"»</item>
+                <item>«pin (0,-200) (0,0) 1 0 0 0x0 -1 "-"»</item>
+            </items>
+        </symbol>
+        <symbol>
+            <LT_name>voltage</LT_name>
+            <name>V</name>
+            <offset x="0" y="-300"/>
+            <items>
+                <type>R</type>
+                <item>«type: V»</item>
+                <item>«description: Independent Voltage Source»</item>
+                <item>«shorted pins: false»</item>
+                <item>«line (0,-130) (0,-200) 0 0 0x1000000 -1 -1»</item>
+                <item>«line (0,200) (0,130) 0 0 0x1000000 -1 -1»</item>
+                <item>«rect (-25,77) (25,73) 0 0 0 0x1000000 0x3000000 -1 0 -1»</item>
+                <item>«rect (-2,50) (2,100) 0 0 0 0x1000000 0x3000000 -1 0 -1»</item>
+                <item>«rect (-25,-73) (25,-77) 0 0 0 0x1000000 0x3000000 -1 0 -1»</item>
+                <item>«ellipse (-130,130) (130,-130) 0 0 0 0x1000000 0x1000000 -1 -1»</item>
+                <item reference="ref">«text (100,150) 1 7 0 0x1000000 -1 -1 "{ref:}"»</item>
+                <item value="val">«text (100,-150) 1 7 0 0x1000000 -1 -1 "{val:}"»</item>
+                <item>«pin (0,200) (0,0) 1 0 0 0x0 -1 "+"»</item>
+                <item>«pin (0,-200) (0,0) 1 0 0 0x0 -1 "-"»</item>
+            </items>
+            <adapter>
+                <wire>«wire (0,200) (0,300) "net"»</wire>
+            </adapter>
+        </symbol>
+        <symbol>
+            <LT_name>diode</LT_name>
+            <name>D</name>
+            <offset x="0" y="0"/>
+            <rotation>R180</rotation>
+            <items>
+                <item>«type: D»</item>
+                <item>«description: Silicon Diode»</item>
+                <item>«library file: Diode.txt»</item>
+                <item>«shorted pins: false»</item>
+                <item>«line (100,80) (-100,80) 0 0 0x1000000 -1 -1»</item>
+                <item>«line (0,200) (0,80) 0 0 0x1000000 -1 -1»</item>
+                <item>«line (0,-200) (0,-70) 0 0 0x1000000 -1 -1»</item>
+                <item>«triangle (0,80) (100,-70) (-100,-70) 0 0 0x1000000 0x2000000 -1 -1»</item>
+                <item reference="ref">«text (100,0) 1 110 0 0x1000000 -1 -1 "{ref:}"»</item>
+                <item value="val">«text (-100,0) 1 109 0 0x1000000 -1 -1 "{val:}"»</item>
+                <item>«pin (0,-200) (0,0) 1 0 0 0x0 -1 "A"»</item>
+                <item>«pin (0,200) (0,0) 1 0 0 0x0 -1 "K"»</item>
+            </items>
+        </symbol>
+        <symbol>
+            <LT_name>not_found</LT_name>
+            <name>X</name>
+            <offset x="0" y="0"/>
+            <items>
+                <item>«type: X»</item>
+                <item>«description: Text comment to placed instead of the component»</item>
+                <item>«shorted pins: false»</item>
+                <item>«text (0,0) 1 7 0 0x1000000 -1 -1 "not found"»</item>
+            </items>
+        </symbol>
+    </component_symbols>
+</properties>
