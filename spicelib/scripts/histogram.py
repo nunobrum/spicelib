@@ -10,7 +10,7 @@
 #  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
-# Name:        Histogram.py
+# Name:        histogram.py
 # Purpose:     Make an histogram plot based on data provided by the user
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
@@ -32,7 +32,7 @@ The help can be obtained by calling the script without arguments
 
 .. code-block:: text
 
-    Usage: Histogram.py [options] LOG_FILE TRACE
+    Usage: histogram.py [options] LOG_FILE TRACE
 
     Options:
       --version             show program's version number and exit

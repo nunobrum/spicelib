@@ -455,10 +455,17 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 1.0.0
+  * Timeout always default to No timeout.
+  * Restructure the way netlists are read and written, so to be able to read and write netlists from different simulator
+    schematics.
+  * Added a method add_sources() to copy files from the client to the spice server.  
+  * Moving CLI scripts to their own directory
 * Vesion 0.9
   * SimAnalysis supporting both Qspice and LTSpice logfiles.
   * FastWorstCaseAnalysis algorithm implemented
   * Fix on the log reading of fourier data.
+  * Adding a parameter host to the SimServer class which then passed to the SimpleXMLRPCServer.
 * Version 0.8
   * Important Bugfix on the LTComplex class.
   * Fixes and enhancing the analysis toolkit.

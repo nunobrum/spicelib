@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 [project]
 name = "spicelib"
-version = "0.9"
+version = "1.0.0"
 authors = [
   { name="Nuno Brum", email="me@nunobrum.com" },
 ]
@@ -37,11 +37,12 @@ namespaces = true  # true by default
 
 
 [project.scripts]
-ltsteps = "spicelib.LTSteps:main"
-histogram = "spicelib.Histogram:main"
-rawplot = "spicelib.rawplot:main"
+ltsteps = "spicelib.scripts.ltsteps:main"
+histogram = "spicelib.scripts.histogram:main"
+rawplot = "spicelib.scripts.rawplot:main"
+run_server = "spicelib.scriptsrun_server:main"
+asc_to_qsch = "spicelib.scripts.asc_to_qsch:main"
 rawconvert = "spicelib.raw.raw_convert:main"
-run_server = "spicelib.run_server:main"
 
 [project.urls]
 "Homepage" = "https://github.com/nunobrum/spicelib"
