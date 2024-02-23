@@ -62,6 +62,7 @@ The help can be obtained by calling the script without arguments
 __author__ = "Nuno Canto Brum <me@nunobrum.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
+from spicelib.log.logfile_data import try_convert_value
 from spicelib.utils.detect_encoding import EncodingDetectError, detect_encoding
 
 
@@ -119,7 +120,7 @@ def main():
         text = clipboard.paste()
         for line in text.split('\n'):
             try:
-                values.append(float(line))
+                values.append(try_convert_value(line))
             except ValueError:
                 print("Failed to convert line: '", line, "'")
     elif len(args) == 0:
@@ -155,7 +156,7 @@ def main():
                     for expression in options.filters:
                         lhs_rhs = expression.split("==")
                         if len(lhs_rhs) == 2:
-                            filters[lhs_rhs[0]] = float(lhs_rhs[1])
+                            filters[lhs_rhs[0]] = try_convert_value(lhs_rhs[1])
                         else:
                             print("Unsupported comparison operator in reading .log files.")
                             print("For enhanced comparators convert the file to tlog using LTsteps script")
@@ -167,30 +168,38 @@ def main():
             print("Loading file '%s' with encoding '%s'" % (logfile, encoding))
             log = open(logfile, 'r', encoding=encoding)
             header = log.readline().rstrip('\r\n')
-            vars = header.split('\t')
-            try:
-                sav_col = vars.index(TRACE)
-            except ValueError:
-                log.close()
-                print("File '%s' doesn't have trace '%s'" % (logfile, TRACE))
-                print("LOG FILE contains %s" % vars)
-                exit(-1)
+            for sep in ['\t', ';', ',']:
+                if sep in header:
+                    break
+            else:
+                sep = None
+
+            vars = header.split(sep)
+            if len(vars) > 1:
+                try:
+                    sav_col = vars.index(TRACE)
+                except ValueError:
+                    log.close()
+                    print("File '%s' doesn't have trace '%s'" % (logfile, TRACE))
+                    print("LOG FILE contains %s" % vars)
+                    exit(-1)
+            else:
+                sav_col = 0
 
             if (options.filters is None) or (len(options.filters) == 0):
                 for line in log:
-                    vs = line.split('\t')
-                    values.append(float(vs[sav_col]))
+                    vs = line.split(sep)
+                    values.append(try_convert_value(vs[sav_col]))
             else:
                 for line in log:
-                    vs = map(float, line.split('\t'))
-                    env = dict(zip(vars,vs))
+                    env = {var: try_convert_value(value) for var, value in zip(vars, line.split(sep))}
 
                     for expression in options.filters:
                         test = eval(expression, None, env)
-                        if test == False:
+                        if test is False:
                             break
                     else:
-                        values.append(float(env[TRACE]))
+                        values.append(try_convert_value(env[TRACE]))
             log.close()
 
     if len(values) == 0:
@@ -220,8 +229,8 @@ def main():
         else:
             try:
                 smin, smax = options.range.split(":")
-                axisXmin = float(smin)
-                axisXmax = float(smax)
+                axisXmin = try_convert_value(smin)
+                axisXmax = try_convert_value(smax)
             except:
                 opts.error("Invalid range setting")
                 exit(-1)
@@ -263,4 +272,7 @@ def main():
             plt.savefig(options.imagefile)
         else:
             plt.show()
-main()
+
+
+if __name__ == "__main__":
+    main()

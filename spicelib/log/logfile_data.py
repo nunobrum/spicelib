@@ -74,7 +74,7 @@ class LTComplex(complex):
         return _unit
 
 
-def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list]:
+def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list, LTComplex]:
     """
     Tries to convert the string into an integer and if it fails, tries to convert to a float, if it fails, then returns the
     value as string.
@@ -88,6 +88,8 @@ def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, 
         return value
     elif isinstance(value, list):
         return [try_convert_value(v) for v in value]
+    elif isinstance(value, bytes):
+        value = value.decode('utf-8')
     try:
         ans = int(value)
     except ValueError:
