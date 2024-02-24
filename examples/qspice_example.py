@@ -32,7 +32,7 @@ for cap in sweep_log(1e-12, 10e-6, 10):
 # Reading the data
 results = {}
 for raw_file, vout_max in sim:  # Iterate over the results of the callback function
-    results[raw_file] = vout_max
+    results[raw_file.name] = vout_max
 # The block above can be replaced by the following line
 # results = {raw_file.name: vout_max for raw_file, vout_max in sim}
 
@@ -40,5 +40,5 @@ print(results)
 
 # Sim Statistics
 print('Successful/Total Simulations: ' + str(sim.okSim) + '/' + str(sim.runno))
-
+input('Press Enter to delete simulation files...')
 sim.file_cleanup()

@@ -1,8 +1,10 @@
-import numpy as np
-from spicelib import RawRead, Trace, RawWrite
 
 
 def test_readme_snippet():
+    # -- Start of Example 1 --
+    import numpy as np
+    from spicelib import RawRead, Trace, RawWrite
+
     LW = RawWrite(fastacces=False)
     tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))
     vy = Trace('N001', np.sin(2 * np.pi * tx.data * 10000))
@@ -11,6 +13,7 @@ def test_readme_snippet():
     LW.add_trace(vy)
     LW.add_trace(vz)
     LW.save("./testfiles/teste_snippet1.raw")
+    # -- End of Example 1 --
 
 
 def test_trc2raw():  # Convert Teledyne-Lecroy trace files to raw files

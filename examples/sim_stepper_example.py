@@ -8,6 +8,7 @@ from spicelib.sim.sim_stepping import SimStepper
 def processing_data(raw_file, log_file):
     print("Handling the simulation data of %s" % log_file)
 
+
 runner = SimRunner(parallel_sims=4, output_folder='./temp2', simulator=LTspice)
 
 # select spice model

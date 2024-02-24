@@ -1,3 +1,4 @@
+# -- Start of Example 1 --
 import logging
 
 import spicelib
@@ -25,6 +26,7 @@ wca.set_tolerance('R4', 0.0)  # 5% tolerance for R1 only. This only overrides th
 
 # Finally the netlist is saved to a file
 wca.save_netlist('./testfiles/sallenkey_wc.asc')
+# -- End of Example 1 --
 
 wca.run_testbench()  # Runs the simulation with splits of 100 runs each
 
