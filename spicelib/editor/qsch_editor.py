@@ -18,25 +18,54 @@
 # -------------------------------------------------------------------------------
 import math
 from pathlib import Path
-from typing import Union, Tuple, List
+from typing import Union, List
 import re
 import logging
-from spicelib.editor.base_editor import (
-    BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError,
+from .base_editor import (
+    format_eng, ComponentNotFoundError, ParameterNotFoundError,
     PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 )
-__all__ = ('QschEditor', )
+from .base_schematic import BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum
 
-from ..utils.detect_encoding import detect_encoding
+__all__ = ('QschEditor', )
 
 _logger = logging.getLogger("qspice.QschEditor")
 
 QSCH_HEADER = (255, 216, 255, 219)
 QSCH_TEXT_POS = 1
+QSCH_TEXT_ROTATION = 2
 QSCH_TEXT_STR_ATTR = 8
 QSCH_COMPONENT_POS = 1
 QSCH_SYMBOL_TEXT_REFDES = 0
 QSCH_SYMBOL_TEXT_VALUE = 1
+QSCH_WIRE_POS1 = 1
+QSCH_WIRE_POS2 = 2
+QSCH_WIRE_NET = 3
+QSCH_NET_POS = 1
+QSCH_NET_ROTATION = "?"
+QSCH_NET_STR_ATTR = 5
+
+
+QSCH_ROTATION_DICT = {
+    0: ERotation.R0,
+    1: ERotation.R45,  # 45º rotation is valid for QSpice Schematics Files
+    2: ERotation.R90,
+    3: ERotation.R135,
+    4: ERotation.R180,
+    5: ERotation.R225,
+    6: ERotation.R270,
+    7: ERotation.R315,
+    8: ERotation.M0,
+    9: ERotation.M45,  # 45º rotation is valid for QSpice Schematics Files
+    10: ERotation.M90,
+    11: ERotation.M135,
+    12: ERotation.M180,
+    13: ERotation.M225,
+    14: ERotation.M270,
+    15: ERotation.M315,
+}
+
+QSCH_INV_ROTATION_DICT = {val: key for key, val in QSCH_ROTATION_DICT.items()}
 
 
 class QschReadingError(IOError):
@@ -44,24 +73,30 @@ class QschReadingError(IOError):
 
 
 class QschTag:
-    def __init__(self, stream, start):
-        assert stream[start] == '«'
-        self.start = start
+
+    def __init__(self, *tokens):
         self.items = []
         self.tokens = []
+        if tokens:
+            for token in tokens:
+                self.tokens.append(str(token))
+
+    @classmethod
+    def parse(cls, stream: str, start: int = 0) -> ('QschTag', int):
+        self = cls()
+        assert stream[start] == '«'
         i = start + 1
         i0 = i
         while i < len(stream):
             if stream[i] == '«':
-                child = QschTag(stream, i)
-                i = child.stop
+                child, i = QschTag.parse(stream, i)
                 i0 = i + 1
                 self.items.append(child)
             elif stream[i] == '»':
-                self.stop = i + 1
+                stop = i + 1
                 if i > i0:
                     self.tokens.append(stream[i0:i])
-                break
+                return self, stop
             elif stream[i] == ' ' or stream[i] == '\n':
                 if i > i0:
                     self.tokens.append(stream[i0:i])
@@ -120,6 +155,8 @@ class QschTag:
                 value_str = value
             else:
                 value_str = f'"{value}"'
+        elif isinstance(value, tuple):
+            value_str = f'({value[0]},{value[1]})'
         else:
             raise ValueError("Object not supported in set_attr")
         self.tokens[index] = value_str
@@ -138,17 +175,21 @@ class QschTag:
             return a
 
 
-class QschEditor(BaseEditor):
-    """Class made to update directly the LTspice QSCH files"""
+class QschEditor(BaseSchematic):
+    """Class made to update directly QSCH files. It is a subclass of BaseSchematic, so it can be used to
+    update the netlist and the parameters of the simulation. It can also be used to update the components.
 
-    def __init__(self, qsch_file: str):
+    :param qsch_file: Path to the QSCH file to be edited
+    :type qsch_file: str
+    :keyword create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
+    """
+
+    def __init__(self, qsch_file: str, create_blank: bool = False):
+        super().__init__()
         self._qsch_file_path = Path(qsch_file)
         self.schematic = None
-        self._symbols = {}
-        if not self._qsch_file_path.exists():
-            raise FileNotFoundError(f"File {qsch_file} not found")
         # read the file into memory
-        self.reset_netlist()
+        self.reset_netlist(create_blank)
 
     @property
     def circuit_file(self) -> Path:
@@ -222,7 +263,7 @@ class QschEditor(BaseEditor):
                     netlist_file.write(f'.lib {library}\n')
                 netlist_file.write('.end\n')
 
-    def _find_net_at_pin(self, comp_pos, orientation : int, pin: QschTag) -> str:
+    def _find_net_at_pin(self, comp_pos, orientation: int, pin: QschTag) -> str:
         """Returns the net at the given position"""
         pin_pos = pin.get_attr(1)
         hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
@@ -243,20 +284,27 @@ class QschEditor(BaseEditor):
         for net in self.schematic.get_items('wire'):
             if net.get_attr(1) == (x, y) or net.get_attr(2) == (x, y):
                 net_name = net.get_attr(3)  # Found the net
-                return '0' if  net_name == 'GND' else net_name
+                return '0' if net_name == 'GND' else net_name
         else:
             return '####'
 
-    def reset_netlist(self):
-        """Reads the QSCH file and parses it into memory"""
-        with open(self._qsch_file_path, 'r', encoding="cp1252") as qsch_file:
-            _logger.info(f"Reading QSCH file {self._qsch_file_path}")
-            stream = qsch_file.read()
-        self._parse_qsch_stream(stream)
+    def reset_netlist(self, create_blank: bool = False) -> None:
+        """Reads the QSCH file and parses it into memory.
+
+        :param create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
+        """
+        super().reset_netlist(create_blank)
+        if not create_blank:
+            if not self._qsch_file_path.exists():
+                raise FileNotFoundError(f"File {self._qsch_file_path} not found")
+            with open(self._qsch_file_path, 'r', encoding="cp1252") as qsch_file:
+                _logger.info(f"Reading QSCH file {self._qsch_file_path}")
+                stream = qsch_file.read()
+            self._parse_qsch_stream(stream)
 
     def _parse_qsch_stream(self, stream):
 
-        self._symbols.clear()
+        self.components.clear()
         _logger.debug("Parsing QSCH file")
         header = tuple(ord(c) for c in stream[:4])
 
@@ -264,32 +312,50 @@ class QschEditor(BaseEditor):
             raise QschReadingError("Missing header. The QSCH file should start with: " +
                                    f"{' '.join(f'{c:02X}' for c in QSCH_HEADER)}")
 
-        schematic = QschTag(stream, 4)
+        schematic, _ = QschTag.parse(stream, 4)
         self.schematic = schematic
 
         components = self.schematic.get_items('component')
         for component in components:
             symbol: QschTag = component.get_items('symbol')[0]
-            typ = symbol.get_text('type')
-            desc = symbol.get_text('description')
             texts = symbol.get_items('text')
             if len(texts) < 2:
                 raise RuntimeError(f"Missing texts in component at coordinates {component.get_attr(1)}")
             refdes = texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR)
             value = texts[QSCH_SYMBOL_TEXT_VALUE].get_attr(QSCH_TEXT_STR_ATTR)
-            self._symbols[refdes] = {
-                'type': typ,
-                'description': desc,
-                'model': value,
-                'tag': component
-            }
+            sch_comp = SchematicComponent()
+            sch_comp.reference = refdes
+            x, y = tuple(component.get_attr(QSCH_COMPONENT_POS))
+            sch_comp.position = Point(x, y)
+            sch_comp.rotation = QSCH_ROTATION_DICT[component.get_attr(QSCH_TEXT_ROTATION)]
+            sch_comp.attributes['type'] = symbol.get_text('type')
+            sch_comp.attributes['description'] = symbol.get_text('description'),
+            sch_comp.attributes['value'] = value
+            sch_comp.attributes['tag'] = component
+            self.components[refdes] = sch_comp
 
-    def get_component_info(self, component) -> dict:
-        """Returns the component information as a dictionary"""
-        if component not in self._symbols:
-            _logger.error(f"Component {component} not found in QSCH file")
-            raise ComponentNotFoundError(f"Component {component} not found in QSCH file")
-        return self._symbols[component]
+        for net in self.schematic.get_items('net'):
+            # process nets
+            x, y = net.get_attr(QSCH_NET_POS)
+            # TODO: Get the remaining attributes Rotation, size, color, etc...
+            # rotation = net.get_attr(QSCH_NET_ROTATION)
+            net_name = net.get_attr(QSCH_NET_STR_ATTR)
+            self.labels.append(Text(Point(x, y), net_name, type=TextTypeEnum.LABEL))
+
+        for wire in self.schematic.get_items('wire'):
+            # process wires
+            x1, y1 = wire.get_attr(QSCH_WIRE_POS1)
+            x2, y2 = wire.get_attr(QSCH_WIRE_POS2)
+            net = wire.get_attr(QSCH_WIRE_NET)
+            self.wires.append(Line(Point(x1, y1), Point(x2, y2), net))
+
+    def get_component(self, component) -> SchematicComponent:
+        """Returns the component information as a dictionary.
+        """
+        if component not in self.components:
+            _logger.error(f"Component {component} not found in ASC file")
+            raise ComponentNotFoundError(f"Component {component} not found in ASC file")
+        return self.components[component]
 
     def _get_text_matching(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
@@ -323,7 +389,7 @@ class QschEditor(BaseEditor):
             text: str = tag.get_attr(QSCH_TEXT_STR_ATTR)
             match = param_regex.search(text)  # repeating the search, so we update the correct start/stop parameter
             start, stop = match.span(param_regex.groupindex['replace'])
-            text =  text[:start] + "{}={}".format(param, value_str) + text[stop:]
+            text = text[:start] + "{}={}".format(param, value_str) + text[stop:]
             tag.set_attr(QSCH_TEXT_STR_ATTR, text)
             _logger.info(f"Parameter {param} updated to {value_str}")
             _logger.debug(f"Text at {tag.get_attr(QSCH_TEXT_POS)} Updated to {text}")
@@ -331,7 +397,7 @@ class QschEditor(BaseEditor):
             # Was not found so we need to add it,
             _logger.debug(f"Parameter {param} not found in QSCH file, adding it")
             x, y = self._get_text_space()
-            tag = QschTag(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 ".param {param}={value}"»', 0)
+            tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 ".param {param}={value}"»')
             self.schematic.items.append(tag)
             _logger.info(f"Parameter {param} added with value {value}")
             _logger.debug(f"Text added to {tag.get_attr(QSCH_TEXT_POS)} Added: {tag.get_attr(QSCH_TEXT_STR_ATTR)}")
@@ -344,32 +410,82 @@ class QschEditor(BaseEditor):
         self.set_element_model(device, value_str)
 
     def set_element_model(self, device: str, model: str) -> None:
-        comp_info = self.get_component_info(device)
-        component: QschTag = comp_info['tag']
+        comp = self.get_component(device)
+        component: QschTag = comp.attributes['tag']
         symbol: QschTag = component.get_items('symbol')[0]
         texts = symbol.get_items('text')
         assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == device
         texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
-        self._symbols[device]['model'] = model
+        self.components[device].attributes['value'] = model
         _logger.info(f"Component {device} updated to {model}")
         _logger.debug(f"Component at :{component.get_attr(1)} Updated")
 
     def get_component_value(self, element: str) -> str:
-        comp_info = self.get_component_info(element)
-        if "model" not in comp_info:
+        component = self.get_component(element)
+        if "value" not in component.attributes:
             _logger.error(f"Component {element} does not have a Value attribute")
             raise ComponentNotFoundError(f"Component {element} does not have a Value attribute")
-        return comp_info["model"]
+        return component.attributes["value"]
+
+    def get_component_position(self, reference: str) -> (Point, ERotation):
+        component = self.get_component(reference)
+        return component.position, component.rotation
+
+    def set_component_position(self, reference: str,
+                               position: Union[Point, tuple],
+                               rotation: Union[ERotation, int],
+                               mirror: bool = False,
+                               ) -> None:
+        component = self.get_component(reference)
+        comp_tag: QschTag = component.attributes['tag']
+        if isinstance(position, tuple):
+            position = (position[0], position[1])
+        elif isinstance(position, Point):
+            position = (position.X, position.Y)
+        else:
+            raise ValueError("Invalid position object")
+        if isinstance(rotation, ERotation):
+            rot = QSCH_INV_ROTATION_DICT[rotation]
+        elif isinstance(rotation, int):
+            if mirror is False:
+                rot = {
+                    0: 0,
+                    45: 1,
+                    90: 2,
+                    135: 3,
+                    180: 4,
+                    225: 5,
+                    270: 6,
+                    315: 7,
+                }[rotation % 360]
+            else:
+                rot = {
+                    0: 8,
+                    45: 9,  # 45º rotation is valid for QSpice Schematics Files
+                    90: 10,
+                    135: 11,
+                    180: 12,
+                    225: 13,
+                    270: 14,
+                    315: 15,
+                }[rotation % 360]
+        else:
+             raise ValueError("Invalid rotation parameter")
+
+        comp_tag.set_attr(QSCH_COMPONENT_POS, position)
+        comp_tag.set_attr(QSCH_TEXT_ROTATION, rot)
+        component.position = position
+        component.rotation = rotation
 
     def get_components(self, prefixes='*') -> list:
         if prefixes == '*':
-            return list(self._symbols.keys())
-        return [k for k in self._symbols.keys() if k[0] in prefixes]
+            return list(self.components.keys())
+        return [k for k in self.components.keys() if k[0] in prefixes]
 
     def remove_component(self, designator: str):
-        comp_info = self.get_component_info(designator)
-        component: QschTag = comp_info['tag']
-        self.schematic.items.remove(component)
+        component = self.get_component(designator)
+        comp_tag: QschTag = component.attributes['tag']
+        self.schematic.items.remove(comp_tag)
 
     def _get_text_space(self):
         """
@@ -419,7 +535,7 @@ class QschEditor(BaseEditor):
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()
-        tag = QschTag(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{instruction}"»', 0)
+        tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{instruction}"»')
         self.schematic.items.append(tag)
 
     def remove_instruction(self, instruction: str) -> None:
@@ -445,3 +561,43 @@ class QschEditor(BaseEditor):
         if not instr_removed:
             msg = f'Instruction matching "{search_pattern}" not found'
             _logger.error(msg)
+
+    def copy_from(self, editor: 'BaseSchematic') -> None:
+        super().copy_from(editor)
+        # We need to copy the schematic information
+        if isinstance(editor, QschEditor):
+            from copy import deepcopy
+            self.schematic = deepcopy(editor.schematic)
+        else:
+            # Need to create a new schematic from the netlist
+            self.schematic = QschTag('schematic')
+            for ref, comp in self.components.items():
+                cmpx = comp.position.X
+                cmpy = comp.position.Y
+                rotation = QSCH_INV_ROTATION_DICT[comp.rotation]
+                comp_tag, _ = QschTag.parse(f'«component ({cmpx},{cmpy}) {rotation} 0»')
+                if 'symbol' in comp.attributes:
+                    comp_tag.items.append(comp.attributes['symbol'])
+                self.schematic.items.append(comp_tag)
+
+            for labels in self.labels:
+                label_tag, _ = QschTag.parse('«net (0,0) 1 13 0 "0"»')
+                label_tag.set_attr(QSCH_NET_STR_ATTR, labels.text)
+                label_tag.set_attr(QSCH_NET_POS, (labels.coord.X, labels.coord.Y))
+                self.schematic.items.append(label_tag)
+
+            for wire in self.wires:
+                wire_tag, _ = QschTag.parse('«wire (0,0) (0,0) "0"»')
+                wire_tag.set_attr(QSCH_WIRE_POS1, (wire.V1.X, wire.V1.Y))
+                wire_tag.set_attr(QSCH_WIRE_POS2, (wire.V2.X, wire.V2.Y))
+                # wire_tag.set_attr(QSCH_WIRE_NET, wire.net)
+                self.schematic.items.append(wire_tag)
+
+            for text in self.directives:
+                text_tag, _ = QschTag.parse('«text (0,0) 1 7 0 0x1000000 -1 -1 "text"»')
+                text_tag.set_attr(QSCH_TEXT_STR_ATTR, text.text)
+                text_tag.set_attr(QSCH_TEXT_POS, (text.coord.X, text.coord.Y))
+                self.schematic.items.append(text_tag)
+
+
+

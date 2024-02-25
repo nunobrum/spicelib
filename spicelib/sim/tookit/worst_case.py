@@ -151,7 +151,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
         self.editor.set_parameter('run', -1)  # This is aligned with the testbench preparation
         self.editor.add_instruction(".meas run PARAM {run}")
         # Simulate the nominal case
-        self.run(self.editor, wait_resource=True,
+        self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,
                  switches=switches, timeout=timeout)
         self.runner.wait_completion()
@@ -183,7 +183,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
 
             self.editor.set_parameter('run', run)
             # Run the simulation
-            self.run(self.editor, wait_resource=True,
+            self.run(wait_resource=True,
                      callback=callback, callback_args=callback_args,
                      switches=switches, timeout=timeout)
             last_run = run

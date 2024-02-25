@@ -19,6 +19,7 @@
 # -------------------------------------------------------------------------------
 
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from math import floor, log
 from pathlib import Path
 from typing import Union
@@ -61,7 +62,7 @@ PARAM_REGEX = r"(?<= )(?P<replace>%s(\s*=\s*)(?P<value>[\w\*\/\.\+\-\/\*\{\}\(\)
 
 def format_eng(value) -> str:
     """
-    Helper function for formating value with the SI qualifiers.  That is, it will use
+    Helper function for formatting value with the SI qualifiers.  That is, it will use
 
         * p for pico (10E-12)
         * n for nano (10E-9)
@@ -73,16 +74,16 @@ def format_eng(value) -> str:
 
     :param value: float value to format
     :type value: float
-    :return: String wiht the formatted value
+    :return: String with the formatted value
     :rtype: str
     """
     if value == 0.0:
-        return "0.0"  # This avoids a problematic log(0)
+        return "{:g}".format(value)  # This avoids a problematic log(0), and the int and float conversions
     e = floor(log(abs(value), 1000))
     if -5 <= e < 0:
         suffix = "fpnum"[e]
     elif e == 0:
-        suffix = ''
+        return "{:g}".format(value)
     elif e == 1:
         suffix = "k"
     elif e == 2:
@@ -149,6 +150,15 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
+class Component(object):
+    """Hols component information"""
+
+    def __init__(self):
+        self.reference = ""
+        self.attributes = OrderedDict()
+        self.ports = []
+
+
 class BaseEditor(ABC):
     """
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
@@ -162,8 +172,13 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
-    def reset_netlist(self) -> None:
-        """Resets the netlist to the original state"""
+    def reset_netlist(self, create_blank: bool = False) -> None:
+        """
+        Resets the netlist to the original state.
+
+        :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be reset to
+        the original state.
+        """
         ...
 
     @abstractmethod
@@ -179,18 +194,47 @@ class BaseEditor(ABC):
         self.save_netlist(run_netlist_file)
 
     @abstractmethod
-    def get_component_info(self, component) -> dict:
-        """
-        Retrieves the component information. The line number is also added.
+    def get_component(self, reference: str) -> Component:
+        """Returns the Component object representing the given reference in the netlist."""
+        ...
 
-        :param component: Reference of the component
-        :type component: str
+    def get_component_attribute(self, reference: str, attribute: str) -> str:
+        """Returns the value of the attribute of the component.
+        :param reference: Reference of the component
+        :type reference: str
+        :param attribute: Name of the attribute to be retrieved
+        :type attribute: str
+        :return: Value of the attribute being sought
+        :rtype: str
+        :raises: ComponentNotFoundError - In case the component is not found
+                 KeyError - In case the attribute is not found
+        """
+        return self.get_component(reference).attributes[attribute]
+
+    def get_component_nodes(self, reference: str) -> list:
+        """Returns the value of the port of the component.
+        :param reference: Reference of the component
+        :type reference: str
+        :return: List with the ports of the component
+        :rtype: str
+        :raises: ComponentNotFoundError - In case the component is not found
+                 KeyError - In case the port is not found
+        """
+        return self.get_component(reference).ports
+
+    def get_component_info(self, reference) -> dict:
+        """
+        Retrieves the component information. This is a dictionary with the component information. This method is
+        deprecated and will be removed in future versions. Use get_component_attribute instead.
+
+        :param reference: Reference of the component
+        :type reference: str
         :return: Dictionary with the component information
         :rtype: dict
         :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX. NotImplementedError of there
                  isn't an associated regular expression for the component prefix.
         """
-        ...
+        return self.get_component(reference).attributes
 
     @abstractmethod
     def get_parameter(self, param: str) -> str:
@@ -369,6 +413,19 @@ class BaseEditor(ABC):
 
         :return:
             A list of components matching the prefixes demanded.
+        """
+        ...
+
+    @abstractmethod
+    def add_component(self, component: Component, **kwargs) -> None:
+        """
+        Adds a component to the design. If the component already exists, it will be replaced by the new one.
+        kwargs can be used to add additional parameters to the component. For example, to add a symbol or position.
+
+        :param component: Component to be added to the design.
+        :type component: Component
+
+        :return: Nothing
         """
         ...
 

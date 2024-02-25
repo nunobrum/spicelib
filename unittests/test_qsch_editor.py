@@ -72,7 +72,7 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.save_netlist(temp_dir + 'test_parameter_output.qsch')
         equalFiles(self, temp_dir + 'test_parameter_output.qsch', golden_dir + 'test_parameter_output.qsch')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
-        self.assertEqual(self.edt.get_parameter('TEMP'), '0.0', "Tested TEMP Parameter")  # add assertion here
+        self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
 
     def test_instructions(self):
         self.edt.add_instruction('.ac dec 10 1 100K')
@@ -96,6 +96,11 @@ class QschEditorRotation(unittest.TestCase):
         self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "qsch_rotation.qsch")
         self.edt.save_netlist(temp_dir + 'qsch_rotation.net')
         equalFiles(self, temp_dir + 'qsch_rotation.net', golden_dir + "qsch_rotation.net")
+        self.qsch = spicelib.editor.qsch_editor.QschEditor(test_dir + 'qsch_rotation_set_test.qsch')
+        for rotation in range(0, 360, 45):
+            self.qsch.set_component_position('R1', (0, 0), rotation)
+            self.qsch.save_netlist(temp_dir + f'qsch_rotation_set_{rotation}.qsch')
+            equalFiles(self, temp_dir + f'qsch_rotation_set_{rotation}.qsch', golden_dir + f"qsch_rotation_set_{rotation}.qsch")
 
 
 if __name__ == '__main__':

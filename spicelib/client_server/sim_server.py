@@ -32,14 +32,31 @@ from spicelib.client_server.srv_sim_runner import ServerSimRunner
 import uuid
 
 
-class SimServer():
+class SimServer(object):
+    """This class implements a server that can run simulations by request of a client located in a different machine.
 
-    def __init__(self, simulator, parallel_sims=4, output_folder='./temp', port=9000):
+    The server is implemented using the SimpleXMLRPCServer class from the xmlrpc.server module.
+
+    The client can request the server to start a session, run a simulation, check the status of the simulations and
+    retrieve the results of the simulations. The server can run multiple simulations in parallel, but the number of
+    parallel simulations is limited by the parallel_sims parameter.
+
+    The server can be stopped by the client by calling the stop_server method.
+
+    :param simulator: The simulator to be used. It must be a class that derives from the BaseSimulator class.
+    :param parallel_sims: The maximum number of parallel simulations that the server can run. Default is 4.
+    :param output_folder: The folder where the results of the simulations will be stored. Default is './temp'
+    :param timeout: The maximum time that a simulation can run. Default is None, which means that there is no timeout.
+    :param port: The port where the server will listen for requests. Default is 9000
+    """
+
+    def __init__(self, simulator, parallel_sims=4, output_folder='./temp', timeout: float = 300, port=9000,
+                 host='localhost'):
         self.output_folder = output_folder
-        self.simulation_manager = ServerSimRunner(parallel_sims=parallel_sims, timeout=5 * 60, verbose=False,
+        self.simulation_manager = ServerSimRunner(parallel_sims=parallel_sims, timeout=timeout, verbose=False,
                                                   output_folder=output_folder, simulator=simulator)
         self.server = SimpleXMLRPCServer(
-                ('localhost', port),
+                (host, port),
                 # requestHandler=RequestHandler
         )
         self.server.register_introspection_functions()
@@ -49,20 +66,32 @@ class SimServer():
         self.server_thread = threading.Thread(target=self.server.serve_forever, name="ServerThread")
         self.server_thread.start()
 
-    def run(self, session_id, circuit_name, zip_data):
-        _logger.info(f"Run {session_id} : {circuit_name}")
+    def add_sources(self, session_id, zip_data) -> bool:
+        """Add sources to the simulation. The sources are contained in a zip file will be added to the simulation
+        folder. Returns True if the sources were added and False if the session_id is not valid. """
+        _logger.info(f"Server: Add sources {session_id}")
         if session_id not in self.sessions:
-            return -1  # This indicates that no job is started
+            return False  # This indicates that no job is started
         # Create a buffer from the zip data
         zip_buffer = io.BytesIO(zip_data.data)
-        _logger.debug("Created the buffer")
+        _logger.debug("Server: Created the buffer")
         # Extract the contents of the zip file
+        answer = False
         with zipfile.ZipFile(zip_buffer, 'r') as zip_file:
-            _logger.debug(zip_file.namelist())
-            zip_file.extract(circuit_name, self.output_folder)
+            for name in zip_file.namelist():
+                _logger.debug(f"Server: Writing {name} to zip file")
+            if len(zip_file.namelist()) >= 0:
+                zip_file.extractall(self.output_folder)
+                answer = True
+        return answer
+
+    def run(self, session_id, circuit_name, zip_data):
+        _logger.info(f"Server: Run {session_id} : {circuit_name}")
+        if not self.add_sources(session_id, zip_data):
+            return -1
 
         circuit_name = Path(self.output_folder) / circuit_name
-        _logger.info(f"Running simulation of {circuit_name}")
+        _logger.info(f"Server: Running simulation of {circuit_name}")
         runno = self.simulation_manager.add_simulation(circuit_name)
         if runno != -1:
             self.sessions[session_id].append(runno)
@@ -72,7 +101,7 @@ class SimServer():
         """Returns an unique key that represents the session. It will be later used to sort the sim_tasks belonging
         to the session."""
         session_id = str(uuid.uuid4())  # Needs to be a string, otherwise the rpc client can't handle it
-        _logger.info(f"Starting session {session_id}")
+        _logger.info(f"Server: Starting session {session_id}")
         self.sessions[session_id] = []
         return session_id
 
@@ -88,7 +117,7 @@ class SimServer():
 
             * 'stop' - server time
         """
-        _logger.debug(f"collecting status for {session_id}")
+        _logger.debug(f"Server: collecting status for {session_id}")
         ret = []
         for task_info in self.simulation_manager.completed_tasks:
             _logger.debug(task_info)
@@ -96,7 +125,7 @@ class SimServer():
             if runno in self.sessions[session_id]:
                 ret.append(runno)  # transfers the dictionary from the simulation_manager completed task
                 # to the return dictionary 
-        _logger.debug(f"returning status {ret}")
+        _logger.debug(f"Server: Returning status {ret}")
         return ret
 
     def get_files(self, session_id, runno) -> Tuple[str, Binary]:
@@ -117,16 +146,19 @@ class SimServer():
 
     def close_session(self, session_id):
         """Cleans all the pending sim_tasks with """
+        if session_id not in self.sessions:
+            return False
         _logger.info(f"Closing session {session_id}")
         for runno in self.sessions[session_id]:
             self.simulation_manager.erase_files_of_runno(runno)
+        del self.sessions[session_id]
         return True  # Needs to return always something. None is not supported
 
     def stop_server(self):
-        _logger.debug("stopping...ServerInterface")
+        _logger.debug("Server: stopping...ServerInterface")
         self.simulation_manager.stop()
         self.server.shutdown()
-        _logger.info("stopped...ServerInterface")
+        _logger.info("Server: stopped...ServerInterface")
         return True  # Needs to return always something. None is not supported
 
     def running(self):

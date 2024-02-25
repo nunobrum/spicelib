@@ -1,3 +1,4 @@
+# -- Start of Example 1 --
 import numpy as np
 from spicelib import AscEditor, SimRunner  # Imports the class that manipulates the asc file
 from spicelib.sim.tookit.montecarlo import Montecarlo  # Imports the Montecarlo toolkit class
@@ -22,8 +23,8 @@ mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulatio
 
 # Finally the netlist is saved to a file. This file contians all the instructions to run the simulation in LTspice
 mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
+# -- End of Example 1 --
 
-# Testing to see if it works
 mc.run_testbench(runs_per_sim=100)  # Runs the simulation with splits of 100 runs each
 logs = mc.read_logfiles()   # Reads the log files and stores the results in the results attribute
 logs.obtain_amplitude_and_phase_from_complex_values()  # Splits the complex values into real and imaginary parts

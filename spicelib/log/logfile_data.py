@@ -74,7 +74,7 @@ class LTComplex(complex):
         return _unit
 
 
-def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list]:
+def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list, LTComplex]:
     """
     Tries to convert the string into an integer and if it fails, tries to convert to a float, if it fails, then returns the
     value as string.
@@ -88,6 +88,8 @@ def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, 
         return value
     elif isinstance(value, list):
         return [try_convert_value(v) for v in value]
+    elif isinstance(value, bytes):
+        value = value.decode('utf-8')
     try:
         ans = int(value)
     except ValueError:
@@ -198,8 +200,13 @@ class LogfileData:
         :return: List of positions that respect the condition of equality with parameter value
         :rtype: List[int]
         """
-        condition_set = self.stepset[param]
-        # tries to convert the value to integer or float, for consistency with data loading implemetation
+        if param in self.stepset:
+            condition_set = self.stepset[param]
+        elif param in self.dataset:
+            condition_set = self.dataset[param]
+        else:
+            raise IndexError("'%s' is not a valid step variable or measurement name" % param)
+        # tries to convert the value to integer or float, for consistency with data loading implementation
         v = try_convert_value(value)
         # returns the positions where there is match
         return [i for i, a in enumerate(condition_set) if a == v]

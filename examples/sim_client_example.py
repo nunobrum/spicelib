@@ -27,7 +27,7 @@ import logging
 
 _logger = logging.getLogger("spicelib.SimClient")
 _logger.setLevel(logging.DEBUG)
-
+# -- Start of SimClient Example --
 from spicelib.client_server.sim_client import SimClient
 
 server = SimClient('http://localhost', 9000)
@@ -41,6 +41,7 @@ for runid in server:  # Ma
         print(zipf.namelist())  # Debug printing the contents of the zip file
         zipf.extract(zipf.namelist()[0])  # Normally the raw file comes first
     os.remove(zip_filename)  # Remove the zip file
+# -- End of SimClient Example --
 
 server.close_session()
 print("Finished")

@@ -116,17 +116,38 @@ class Montecarlo(ToleranceDeviations):
             self.editor.set_parameter(param, new_val)
             self.elements_analysed.append(param)
 
-        if tol_uni_func:
-            self.editor.add_instruction(".func utol(nom,tol) if(run<0, nom, mc(nom,tol))")
+        if self.runner.simulator.__name__ == 'LTspice':
+            if tol_uni_func:
+                self.editor.add_instruction(".func utol(nom,tol) if(run<0, nom, mc(nom,tol))")
 
-        if tol_norm_func:
-            self.editor.add_instruction(".func ntol(nom,tol) if(run<0, nom, nom*(1+gauss(tol/3)))")
+            if tol_norm_func:
+                self.editor.add_instruction(".func ntol(nom,tol) if(run<0, nom, nom*(1+gauss(tol/3)))")
 
-        if min_max_uni_func:
-            self.editor.add_instruction(".func urng(nom,mean,df2) if(run<0, nom, mean*flat(df2))")
+            if min_max_uni_func:
+                self.editor.add_instruction(".func urng(nom,mean,df2) if(run<0, nom, mean+flat(df2))")
 
-        if min_max_norm_func:
-            self.editor.add_instruction(".func nrng(nom,mean,df6) if(run<0, nom, mean*(1+gauss(df6)))")
+            if min_max_norm_func:
+                self.editor.add_instruction(".func nrng(nom,mean,df6) if(run<0, nom, mean*(1+gauss(df6)))")
+        elif self.runner.simulator.__name__ == 'Qspice':
+            # if gauss function is needed
+            #  => This is finally not needed because Qspice has a built-in gauss function (non-documented)
+            # if tol_norm_func or min_max_norm_func:
+            #   self.editor.add_instruction(".func random_not0() {(random()+1e-7)/(1+1e-7)}")
+            #   self.editor.add_instruction(".func gauss(sigma) {sqrt(-2*ln(random_not0()))*cos(2*pi*random())*sigma}")
+            if tol_uni_func:
+                self.editor.add_instruction(".func utol(nom,tol) {if(run<0, nom, nom*(1+tol*(2*random()-1)))}")
+
+            if tol_norm_func:
+                self.editor.add_instruction(".func ntol(nom,tol) {if(run<0, nom, nom*(1+gauss(tol/3)))}")
+
+            if min_max_uni_func:
+                self.editor.add_instruction(".func urng(nom,mean,df2) if(run<0, nom, mean+(df2*(2*random()-1))")
+
+            if min_max_norm_func:
+                self.editor.add_instruction(".func nrng(nom,mean,df6) if(run<0, nom, mean*(1+gauss(df6)))")
+        else:
+            _logger.warning("Simulator not supported for this method")
+            raise NotImplementedError("Simulator not supported for this method")
 
         self.last_run_number = kwargs.get('num_runs', self.last_run_number if self.last_run_number != 0 else 1000)
         self.editor.add_instruction(".step param run -1 %d 1" % self.last_run_number)
@@ -179,7 +200,7 @@ class Montecarlo(ToleranceDeviations):
                 if new_val != val:  # Only update the value if it has changed
                     self.editor.set_parameter(param, new_val)
             # Run the simulation
-            rt = self.run(self.editor, wait_resource=True,
+            rt = self.run(wait_resource=True,
                           callback=callback, callback_args=callback_args,
                           switches=switches, timeout=timeout)
 

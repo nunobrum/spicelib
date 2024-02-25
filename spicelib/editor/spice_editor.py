@@ -22,10 +22,10 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
-from typing import Union, List, Callable, Any, Tuple
+from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
@@ -177,6 +177,7 @@ class SpiceCircuit(BaseEditor):
     """
 
     def __init__(self):
+        super().__init__()
         self.netlist = []
 
     def _get_line_starting_with(self, substr: str) -> int:
@@ -333,6 +334,9 @@ class SpiceCircuit(BaseEditor):
             end = m.end('value')
             self.netlist[line_no] = line[:start] + value + line[end:]
 
+    def reset_netlist(self, create_blank: bool = False) -> None:
+        self.netlist.clear()
+
     def clone(self, **kwargs) -> 'SpiceCircuit':
         """
         Creates a new copy of the SpiceCircuit. Change done at the new copy are not affecting the original
@@ -416,8 +420,9 @@ class SpiceCircuit(BaseEditor):
         :type component: str
         :return: Dictionary with the component information
         :rtype: dict
-        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX. NotImplementedError of there
-                 isn't an associated regular expression for the component prefix.
+        :raises: ComponentNotFoundError - In case the component is not found
+        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
+        :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
         """
         prefix = component[0]  # Using the first letter of the component to identify what is it
         regex = component_replace_regexs.get(prefix, None)  # Obtain RegX to make the update
@@ -439,6 +444,44 @@ class SpiceCircuit(BaseEditor):
         info = m.groupdict()
         info['line'] = line_no  # adding the line number to the component information
         return info
+
+    def get_component(self, reference: str) -> Component:
+        """
+        Returns an object representing the given reference in the schematic file
+
+        :param reference: Reference of the component
+        :type reference: str
+        :return: The SchematicComponent object
+        :rtype: SchematicComponent
+        :raises: ComponentNotFoundError - In case the component is not found
+        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
+        :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
+        """
+        component_info = self.get_component_info(reference)
+        component = Component()
+        component.reference = reference
+        component.nodes = component_info['nodes']
+        for attr in component_info:
+            if attr not in ('designator', 'nodes'):
+                component.attributes[attr] = component_info[attr]
+        return component
+
+    def get_component_attribute(self, reference: str, attribute: str) -> Optional[str]:
+        """
+        Retrieves the value of the attribute for the given component.
+
+        :param reference: Reference of the component
+        :type reference: str
+        :param attribute: Name of the attribute to be retrieved
+        :type attribute: str
+        :return: Value of the attribute
+        :rtype: str
+        :raises: ComponentNotFoundError - In case the component is not found
+        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
+        :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
+        """
+        component_info = self.get_component_info(reference)
+        return component_info.get(attribute, None)
 
     def get_parameter(self, param: str) -> str:
         """
@@ -599,6 +642,38 @@ class SpiceCircuit(BaseEditor):
                 pass
         return answer
 
+    def add_component(self, component: Component, **kwargs) -> None:
+        """
+        Adds a component to the netlist. The component is added to the end of the netlist, just before the .END statement.
+        If the component already exists, it will be replaced by the new one.
+
+        :param component: The component to be added to the netlist
+        :type component: Component
+        :param kwargs:
+            The following keyword arguments are supported:
+
+            * **insert_before** (str) - The reference of the component before which the new component should be inserted.
+            * **insert_after** (str) - The reference of the component after which the new component should be inserted.
+        :return: Nothing
+        """
+        if 'insert_before' in kwargs:
+            line_no = self._get_line_starting_with(kwargs['insert_before'])
+        elif 'insert_after' in kwargs:
+            line_no = self._get_line_starting_with(kwargs['insert_after'])
+        else:
+            # Insert before backanno instruction
+            try:
+                line_no = self.netlist.index(
+                    '.backanno\n')  # TODO: Improve this. END of line termination could be differnt
+            except ValueError:
+                line_no = len(self.netlist) - 2
+
+        nodes = " ".join(component.ports)
+        model = component.attributes.get('model', 'no_model')
+        parameters = " ".join([f"{k}={v}" for k, v in component.attributes.items() if k != 'model'])
+        component_line = f"{component.reference} {nodes} {model} {parameters}{END_LINE_TERM}"
+        self.netlist.insert(line_no, component_line)
+
     def remove_component(self, designator: str) -> None:
         """
         Removes a component from  the design.
@@ -651,9 +726,6 @@ class SpiceCircuit(BaseEditor):
                             circuit_nodes.append(node)
         return circuit_nodes
 
-    def reset_netlist(self) -> None:
-        pass
-
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         pass
 
@@ -690,18 +762,17 @@ class SpiceEditor(SpiceCircuit):
         super().__init__()
         self.netlist_file = Path(netlist_file)
         self.modified_subcircuits = {}
-        self.create_blank = create_blank
-        if encoding == 'autodetect':
-            try:
-                self.encoding = detect_encoding(self.netlist_file, '^\* ')  # Normally the file will start with a '*'
-            except EncodingDetectError as err:
-                if self.create_blank:
-                    self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
-                else:
-                    raise err
+        if create_blank:
+            self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
         else:
-            self.encoding = encoding
-        self.reset_netlist()
+            if encoding == 'autodetect':
+                try:
+                    self.encoding = detect_encoding(self.netlist_file, '^\* ')  # Normally the file will start with a '*'
+                except EncodingDetectError as err:
+                    raise err
+            else:
+                self.encoding = encoding
+        self.reset_netlist(create_blank)
 
     @property
     def circuit_file(self) -> Path:
@@ -846,15 +917,20 @@ class SpiceEditor(SpiceCircuit):
                             sub.write_lines(f)
                     f.write(line)
 
-    def reset_netlist(self) -> None:
+    def reset_netlist(self, create_blank: bool = False) -> None:
         """
         Removes all previous edits done to the netlist, i.e. resets it to the original state.
 
         :returns: Nothing
         """
-        self.netlist.clear()
+        super().reset_netlist(create_blank)
         self.modified_subcircuits.clear()
-        if self.netlist_file.exists():
+        if create_blank:
+            lines = ['* netlist generated from spicelib', '.end']
+            finished = self._add_lines(lines)
+            if not finished:
+                raise SyntaxError("Netlist with missing .END or .ENDS statements")
+        elif self.netlist_file.exists():
             with open(self.netlist_file, 'r', encoding=self.encoding, errors='replace') as f:
                 lines = iter(f)  # Creates an iterator object to consume the file
                 finished = self._add_lines(lines)
@@ -863,11 +939,6 @@ class SpiceEditor(SpiceCircuit):
                 # else:
                 #     for _ in lines:  # Consuming the rest of the file.
                 #         pass  # print("Ignoring %s" % _)
-        elif self.create_blank:
-            lines = ['* netlist generated from spicelib', '.end']
-            finished = self._add_lines(lines)
-            if not finished:
-                raise SyntaxError("Netlist with missing .END or .ENDS statements")
         else:
             _logger.error("Netlist file not found: {}".format(self.netlist_file))
 
@@ -902,7 +973,7 @@ class SpiceEditor(SpiceCircuit):
         return None
 
     def run(self, wait_resource: bool = True,
-            callback: Callable[[str, str], Any] = None, timeout: float = 600, run_filename: str = None, simulator=None):
+            callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):
         """
         *(Deprecated)*
 

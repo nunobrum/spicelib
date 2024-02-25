@@ -139,7 +139,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
         self.editor.set_parameter('run', -1)  # in case the step is commented.
         self.editor.add_instruction(".meas run PARAM {run}")
         # Run the simulation in the nominal case
-        self.run(self.editor, wait_resource=True,
+        self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,
                  switches=switches, timeout=timeout)
         last_bit_setting = 0
@@ -171,7 +171,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
                 bit_index += 1
             self.editor.set_parameter('run', run)
             # Run the simulation
-            self.run(self.editor, wait_resource=True,
+            self.run(wait_resource=True,
                      callback=callback, callback_args=callback_args,
                      switches=switches, timeout=timeout)
             last_bit_setting = bit_setting
@@ -183,3 +183,13 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
                 callback_rets.append(rt.get_results())
             self.simulation_results['callback_returns'] = callback_rets
         self.analysis_executed = True
+        # Force already the reading of logfiles
+        log_data: LogfileData = self.read_logfiles()
+        # if applicable, the run parameter shall be transformed into an int
+        runs = []
+        for run in log_data.dataset['run']:
+            if isinstance(run, complex):
+                runs.append(int(round(run.real, 0)))
+            else:
+                runs.append(run)
+        log_data.dataset['run'] = runs

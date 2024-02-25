@@ -49,7 +49,8 @@ class ServerSimRunner(threading.Thread):
     by this class.
     """
 
-    def __init__(self, parallel_sims: int = 4, timeout: float = None, verbose=False, output_folder: str = None, simulator=None):
+    def __init__(self, parallel_sims: int = 4, timeout: float = None, verbose=False,
+                 output_folder: str = None, simulator=None):
         super().__init__(name="SimManager")
         self.runner = SimRunner(simulator=simulator, parallel_sims=parallel_sims, timeout=timeout,
                                 verbose=verbose, output_folder=output_folder)
@@ -83,8 +84,15 @@ class ServerSimRunner(threading.Thread):
         self.runner.wait_completion()
         self.runner.file_cleanup()  # Delete things that have been left behind
 
-    def add_simulation(self, netlist: Union[str, Path, BaseEditor], *, timeout: float = 600) -> int:
-        """"""
+    def add_simulation(self, netlist: Union[str, Path, BaseEditor], *, timeout: float = None) -> int:
+        """
+        Adding a simulation to the list of simulations to be run. The function will return the runno of the simulation
+        or -1 if the simulation could not be started.
+
+        :param netlist: The netlist to be simulated
+        :param timeout: The timeout for the simulation
+        :return: The runno of the simulation or -1 if the simulation could not be started
+        """
         _logger.debug(f"starting Simulation of {netlist}")
         task = self.runner.run(netlist, wait_resource=True, timeout=timeout, callback=zip_files)
         if task is None:

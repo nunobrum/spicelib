@@ -41,6 +41,8 @@ def main():
                         help="Output folder for the results. Default is the current folder")
     parser.add_argument("-l", "--parallel", type=int, default=4,
                         help="Maximum number of parallel simulations. Default is 4")
+    parser.add_argument('timeout', type=int, default=300,
+                        help="Timeout for the simulations. Default is 300 seconds (5 minutes)")
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -64,7 +66,8 @@ def main():
         exit(-1)
 
     print("Starting Server")
-    server = SimServer(simulator, parallel_sims=args.parallel, output_folder=args.output, port=args.port)
+    server = SimServer(simulator, parallel_sims=args.parallel, output_folder=args.output,
+                       port=args.port, timeout=args.timeout)
     print("Server Started. Press and hold 'q' to stop")
     while server.running():
         time.sleep(0.2)

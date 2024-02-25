@@ -103,7 +103,8 @@ for step in range(len(steps)):
 
 plt.legend()  # order a legend
 plt.show()
- ```   
+ ``` 
+-- in examples/raw_read_example.py   
 
 ### RawWrite ###
 
@@ -112,8 +113,7 @@ The following example writes a RAW file with a 3 milliseconds transient simulati
 
  ```python
 import numpy as np
-from spicelib import Trace, RawWrite
-
+from spicelib import RawRead, Trace, RawWrite
 LW = RawWrite(fastacces=False)
 tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))
 vy = Trace('N001', np.sin(2 * np.pi * tx.data * 10000))
@@ -121,8 +121,9 @@ vz = Trace('N002', np.cos(2 * np.pi * tx.data * 9970))
 LW.add_trace(tx)
 LW.add_trace(vy)
 LW.add_trace(vz)
-LW.save("teste_snippet1.raw")
- ```   
+LW.save("./testfiles/teste_snippet1.raw")
+ ```
+-- in examples/raw_write_example.py [Example 1]
 
 ### SpiceEditor, AscEditor and SimRunner.py ###
 
@@ -137,21 +138,23 @@ Here follows an example of operation.
 ```python
 from spicelib import SimRunner
 from spicelib import SpiceEditor
+
 from spicelib.simulators.ltspice_simulator import LTspice
 
 # select spice model
-LTC = SimRunner(output_folder='./temp', simulator=LTspice)
-netlist = SpiceEditor('Batch_Test.net')
+LTC = SimRunner(simulator=LTspice, output_folder='./temp')
+netlist = SpiceEditor('./testfiles/Batch_Test.net')
 # set default arguments
-netlist.set_parameters(res=0, cap=100e-6, run=-1)
+netlist.set_parameters(res=0, cap=100e-6)
 netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
 netlist.set_component_value('R1', '4k')
 netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a define simulation
 netlist.add_instructions(
     "; Simulation settings",
-    ".save V(Vin) I(R1)",
+    ";.param run = 0"
 )
+netlist.set_parameter('run', 0)
 
 for opamp in ('AD712', 'AD820'):
     netlist.set_element_model('XU1', opamp)
@@ -183,6 +186,7 @@ enter = input("Press enter to delete created files")
 if enter == '':
     LTC.file_cleanup()
 ```
+-- in examples/sim_runner_example.py
 
 The example above is using the SpiceEditor to create and modify a spice netlist, but it is also possible to use the
 AscEditor to directly modify the .asc file. The edited .asc file can then be opened by the LTSpice GUI and the
@@ -202,12 +206,15 @@ and then add the .step command for making several runs on the same circuit.
 To simplify this process, the AscEditor class can be used as exemplified below:
 
 ```python
-from spicelib import AscEditor  # Imports the class that manipulates the asc file
+import numpy as np
+from spicelib import AscEditor, SimRunner  # Imports the class that manipulates the asc file
 from spicelib.sim.tookit.montecarlo import Montecarlo  # Imports the Montecarlo toolkit class
+from spicelib.simulators.ltspice_simulator import LTspice
 
 sallenkey = AscEditor("./testfiles/sallenkey.asc")  # Reads the asc file into memory
-
-mc = Montecarlo(sallenkey)  # Instantiates the Montecarlo class, with the asc file already in memory
+runner = SimRunner(simulator=LTspice, output_folder='./temp_mc',
+                   verbose=True)  # Instantiates the runner with a temp folder set
+mc = Montecarlo(sallenkey, runner)  # Instantiates the Montecarlo class, with the asc file already in memory
 
 # The following lines set the default tolerances for the components
 mc.set_tolerance('R', 0.01)  # 1% tolerance, default distribution is uniform
@@ -221,9 +228,11 @@ mc.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides th
 mc.set_parameter_deviation('Vos', 3e-4, 5e-3, 'uniform')  # The keyword 'distribution' is optional
 mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulations
 
-# Finally the netlist is saved to a file
-mc.save_netlist('./testfiles/sallenkey_mc.net')
+# Finally the netlist is saved to a file. This file contians all the instructions to run the simulation in LTspice
+mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
 ```
+-- in examples/run_montecarlo.py [Example 1]
+
 When opening the created sallenkey_mc.net file, we can see that the following circuit.
 
 ![Sallen-Key Amplifier with Montecarlo](./doc/modules/sallenkey_mc.png "Sallen-Key Amplifier with Montecarlo")
@@ -243,27 +252,36 @@ gauss(x) function.
 Similarly, the worst case analysis can also be setup by using the class WorstCaseAnalysis, as exemplified below:
 
 ```python
-from spicelib import AscEditor  # Imports the class that manipulates the asc file
+import logging
+
+import spicelib
+from spicelib import AscEditor, SimRunner  # Imports the class that manipulates the asc file
 from spicelib.sim.tookit.worst_case import WorstCaseAnalysis
+from spicelib.simulators.ltspice_simulator import LTspice
+
+spicelib.set_log_level(logging.INFO)
 
 sallenkey = AscEditor("./testfiles/sallenkey.asc")  # Reads the asc file into memory
-
-wca = WorstCaseAnalysis(sallenkey)  # Instantiates the Worst Case Analysis class
+runner = SimRunner(simulator=LTspice, output_folder='./temp_wca', verbose=True)  # Instantiates the runner with a temp folder set
+wca = WorstCaseAnalysis(sallenkey, runner)  # Instantiates the Worst Case Analysis class
 
 # The following lines set the default tolerances for the components
 wca.set_tolerance('R', 0.01)  # 1% tolerance
 wca.set_tolerance('C', 0.1)  # 10% tolerance
-wca.set_tolerance('V', 0.1)  # 10% tolerance. For Worst Case analysis, the distribution is irrelevant
-
+# wca.set_tolerance('V', 0.1)  # 10% tolerance. For Worst Case analysis, the distribution is irrelevant
+wca.set_tolerance('I', 0.1)  # 10% tolerance. For Worst Case analysis, the distribution is irrelevant
 # Some components can have a different tolerance
 wca.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides the default tolerance for R1
+wca.set_tolerance('R4', 0.0)  # 5% tolerance for R1 only. This only overrides the default tolerance for R1
 
 # Tolerances can be set for parameters as well.
-wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
+# wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
 
 # Finally the netlist is saved to a file
 wca.save_netlist('./testfiles/sallenkey_wc.asc')
 ```
+-- in examples/run_worst_case.py [Example 1]
+
 When opening the created sallenkey_wc.net file, we can see that the following circuit.
 
 ![Sallen-Key Amplifier with WCA](./doc/modules/sallenkey_wc.png "Sallen-Key Amplifier with WCA")
@@ -291,9 +309,12 @@ written. There are two possible usages of this module, either programmatically b
 accessing data through the class as exemplified here:
 
 ```python
+#!/usr/bin/env python
+# coding=utf-8
+
 from spicelib.log.ltsteps import LTSpiceLogReader
 
-data = LTSpiceLogReader("Batch_Test_AD820_15.log")
+data = LTSpiceLogReader("./testfiles/Batch_Test_AD820_15.log")
 
 print("Number of steps  :", data.step_count)
 step_names = data.get_step_vars()
@@ -309,6 +330,7 @@ for i in range(data.step_count):
 
 print("Total number of measures found :", data.measure_count)
 ```
+-- in examples/ltsteps_example.py
 
 The second possibility is to use the module directly on the command line
 
@@ -380,18 +402,21 @@ the simulation and return the results to the client. The client on the remote ma
 SimClient class. An example of its usage is shown below:
 
 ```python
-import zipfile
 from spicelib.client_server.sim_client import SimClient
 
 server = SimClient('http://localhost', 9000)
+print(server.session_id)
 runid = server.run("./testfiles/testfile.net")
-
+print("Got Job id", runid)
 for runid in server:  # Ma
     zip_filename = server.get_runno_data(runid)
+    print(f"Received {zip_filename} from runid {runid}")
     with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
         print(zipf.namelist())  # Debug printing the contents of the zip file
         zipf.extract(zipf.namelist()[0])  # Normally the raw file comes first
+    os.remove(zip_filename)  # Remove the zip file
 ```
+-- in examples/sim_client_example.py [SimClient Example]
 
 ```bash
 usage: run_server [-h] [-p PORT] [-o OUTPUT] [-l PARALLEL] simulator
@@ -455,10 +480,18 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 1.0.0
+  * Timeout always default to No timeout.
+  * Restructure the way netlists are read and written, so to be able to read and write netlists from different simulator
+    schematics.
+  * Added a method add_sources() to copy files from the client to the spice server.  
+  * Moving CLI scripts to their own directory
+  * Adding a script that allows to insert code into a README.md file
 * Vesion 0.9
   * SimAnalysis supporting both Qspice and LTSpice logfiles.
   * FastWorstCaseAnalysis algorithm implemented
   * Fix on the log reading of fourier data.
+  * Adding a parameter host to the SimServer class which then passed to the SimpleXMLRPCServer.
 * Version 0.8
   * Important Bugfix on the LTComplex class.
   * Fixes and enhancing the analysis toolkit.
