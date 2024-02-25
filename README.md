@@ -480,13 +480,14 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
-* Version 1.0.0
+* Version 1.0.1
   * Timeout always default to No timeout.
   * Restructure the way netlists are read and written, so to be able to read and write netlists from different simulator
     schematics.
   * Added a method add_sources() to copy files from the client to the spice server.  
   * Moving CLI scripts to their own directory
   * Adding a script that allows to insert code into a README.md file
+  * Supporting capital "K" for kilo in the spice and schematic editors.
 * Vesion 0.9
   * SimAnalysis supporting both Qspice and LTSpice logfiles.
   * FastWorstCaseAnalysis algorithm implemented

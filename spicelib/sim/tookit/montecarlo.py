@@ -167,6 +167,8 @@ class Montecarlo(ToleranceDeviations):
                 new_val = f"{random.Random().uniform(dev.min_val, dev.max_val):g}"
             elif dev.distribution == 'normal':
                 new_val = f"{random.Random().gauss((dev.max_val + dev.min_val) / 2, (dev.max_val - dev.min_val) / 6):g}"
+        elif dev.typ == DeviationType.none:
+            pass
         else:
             _logger.warning("Unknown deviation type")
         return new_val
@@ -185,8 +187,8 @@ class Montecarlo(ToleranceDeviations):
         self.elements_analysed.clear()
         self.clear_simulation_data()
         for run in range(num_runs):
-            self._reset_netlist() # reset the netlist
-            self.play_instructions() # play the instructions
+            self._reset_netlist()  # reset the netlist
+            self.play_instructions()  # play the instructions
             # Preparing the variation on components
             for ref in self.get_components('*'):
                 val, dev = self.get_component_value_deviation_type(ref)  # get there present value
