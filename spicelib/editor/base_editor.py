@@ -102,7 +102,7 @@ def scan_eng(value: str) -> float:
         * n for nano (10E-9)
         * u or µ for micro (10E-6)
         * m for mili (10E-3)
-        * k for kilo (10E+3)
+        * k or K for kilo (10E+3)
         * Meg for Mega (10E+6)
 
     The extra unit qualifiers such as V for volts or F for Farads are ignored.
@@ -124,7 +124,7 @@ def scan_eng(value: str) -> float:
     suffix = value[x:]  # this is the non-numeric part at the end
     f = float(value[:x])  # this is the numeric part. Can raise ValueError.
     if suffix:
-        if suffix[0] in "fpnuµmk":
+        if suffix[0] in "fpnuµmkK":
             return f * {
                 'f': 1.0e-15,
                 'p': 1.0e-12,
@@ -133,8 +133,9 @@ def scan_eng(value: str) -> float:
                 'µ': 1.0e-06,
                 'm': 1.0e-03,
                 'k': 1.0e+03,
+                'K': 1.0e+03,  # LTSpice uses the capital K for Kilo
             }[suffix[0]]
-        elif suffix.startswith("Meg"):
+        elif suffix.upper().startswith("MEG"):
             return f * 1E+6
     return f
 
