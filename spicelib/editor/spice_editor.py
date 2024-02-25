@@ -334,6 +334,9 @@ class SpiceCircuit(BaseEditor):
             end = m.end('value')
             self.netlist[line_no] = line[:start] + value + line[end:]
 
+    def reset_netlist(self, create_blank: bool = False) -> None:
+        self.netlist.clear()
+
     def clone(self, **kwargs) -> 'SpiceCircuit':
         """
         Creates a new copy of the SpiceCircuit. Change done at the new copy are not affecting the original
@@ -921,7 +924,6 @@ class SpiceEditor(SpiceCircuit):
         :returns: Nothing
         """
         super().reset_netlist(create_blank)
-        self.netlist.clear()
         self.modified_subcircuits.clear()
         if create_blank:
             lines = ['* netlist generated from spicelib', '.end']

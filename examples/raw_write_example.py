@@ -3,7 +3,7 @@
 def test_readme_snippet():
     # -- Start of Example 1 --
     import numpy as np
-    from spicelib import RawRead, Trace, RawWrite
+    from spicelib import Trace, RawWrite
 
     LW = RawWrite(fastacces=False)
     tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))
@@ -17,6 +17,8 @@ def test_readme_snippet():
 
 
 def test_trc2raw():  # Convert Teledyne-Lecroy trace files to raw files
+    import numpy as np
+    from spicelib import Trace, RawWrite
     f = open(r"./testfiles/Current_Lock_Front_Right_8V.trc")
     raw_type = ''  # Initialization of parameters that need to be overridden by the file header
     wave_size = 0
@@ -39,6 +41,8 @@ def test_trc2raw():  # Convert Teledyne-Lecroy trace files to raw files
 
 
 def test_axis_sync():  # Test axis sync
+    import numpy as np
+    from spicelib import Trace, RawWrite, RawRead
     LW = RawWrite()
     tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))
     vy = Trace('N001', np.sin(2 * np.pi * tx.data * 10000))
@@ -70,6 +74,8 @@ def test_axis_sync():  # Test axis sync
 
 
 def test_write_ac():
+    from spicelib import RawWrite, RawRead
+
     LW = RawWrite()
     LR = RawRead("./testfiles/PI_Filter.raw")
     LR1 = RawRead("./testfiles/PI_Filter_resampled.raw")
@@ -82,6 +88,7 @@ def test_write_ac():
 
 
 def test_write_tran():
+    from spicelib import RawRead, RawWrite
     LR = RawRead("./testfiles/TRAN - STEP.raw")
     LW = RawWrite()
     LW.add_traces_from_raw(LR, ('V(out)', 'I(C1)'))
@@ -92,6 +99,7 @@ def test_write_tran():
 
 
 def test_combine_tran():
+    from spicelib import RawRead, RawWrite
     LW = RawWrite()
     for tag, raw in (
             ("AD820_15", "./testfiles/Batch_Test_AD820_15.raw"),

@@ -43,6 +43,7 @@ rawplot = "spicelib.scripts.rawplot:main"
 run_server = "spicelib.scriptsrun_server:main"
 asc_to_qsch = "spicelib.scripts.asc_to_qsch:main"
 rawconvert = "spicelib.raw.raw_convert:main"
+readme_update = "spicelib.scripts.readme_update:main"
 
 [project.urls]
 "Homepage" = "https://github.com/nunobrum/spicelib"

@@ -2,7 +2,7 @@ from spicelib import RawRead
 
 from matplotlib import pyplot as plt
 
-rawfile = RawRead("TRAN - STEP.raw")
+rawfile = RawRead("./testfiles/TRAN - STEP.raw")
 
 print(rawfile.get_trace_names())
 print(rawfile.get_raw_property())

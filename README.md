@@ -486,6 +486,7 @@ _Make sure to initialize the root logger before importing the library to be able
     schematics.
   * Added a method add_sources() to copy files from the client to the spice server.  
   * Moving CLI scripts to their own directory
+  * Adding a script that allows to insert code into a README.md file
 * Vesion 0.9
   * SimAnalysis supporting both Qspice and LTSpice logfiles.
   * FastWorstCaseAnalysis algorithm implemented
