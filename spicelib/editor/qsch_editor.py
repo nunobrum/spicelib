@@ -254,7 +254,8 @@ class QschEditor(BaseSchematic):
                                 libraries_to_include.append(library_name)
                     elif item.tag == 'text':
                         is_comment = item.get_attr(4) == 1
-                        text = item.get_attr(QSCH_TEXT_STR_ATTR).split('\\n')
+                        text = item.get_attr(QSCH_TEXT_STR_ATTR)
+                        text = text.lstrip("ï»¿").split('\n')
                         for line in text:
                             if is_comment:
                                 netlist_file.write('* ')
