@@ -66,6 +66,7 @@ QSCH_ROTATION_DICT = {
 }
 
 QSCH_INV_ROTATION_DICT = {val: key for key, val in QSCH_ROTATION_DICT.items()}
+QSCH_TEXT_INSTR_QUALIFIER = "ï»¿"
 
 
 class QschReadingError(IOError):
@@ -255,7 +256,7 @@ class QschEditor(BaseSchematic):
                     elif item.tag == 'text':
                         is_comment = item.get_attr(4) == 1
                         text = item.get_attr(QSCH_TEXT_STR_ATTR)
-                        text = text.lstrip("ï»¿").split('\n')
+                        text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER).split('\n')
                         for line in text:
                             if is_comment:
                                 netlist_file.write('* ')
@@ -363,6 +364,7 @@ class QschEditor(BaseSchematic):
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
             line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if line.upper().startswith(command_upped):
                 match = search_expression.search(line)
                 if match:
@@ -398,7 +400,9 @@ class QschEditor(BaseSchematic):
             # Was not found so we need to add it,
             _logger.debug(f"Parameter {param} not found in QSCH file, adding it")
             x, y = self._get_text_space()
-            tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 ".param {param}={value}"»')
+            tag, _ = QschTag.parse(
+                f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{QSCH_TEXT_INSTR_QUALIFIER}.param {param}={value}"»'
+            )
             self.schematic.items.append(tag)
             _logger.info(f"Parameter {param} added with value {value}")
             _logger.debug(f"Text added to {tag.get_attr(QSCH_TEXT_POS)} Added: {tag.get_attr(QSCH_TEXT_STR_ATTR)}")
@@ -527,16 +531,17 @@ class QschEditor(BaseSchematic):
             # Before adding new instruction, if it is a unique instruction, we just replace it
             for text_tag in self.schematic.get_items('text'):
                 text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+                text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
                 command = text.split()[0].upper()
                 if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
-                    text_tag.set_attr(QSCH_TEXT_STR_ATTR, instruction)
+                    text_tag.set_attr(QSCH_TEXT_STR_ATTR, QSCH_TEXT_INSTR_QUALIFIER + instruction)
                     return  # Job done, can exit this method
 
         elif command.startswith('.PARAM'):
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()
-        tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{instruction}"»')
+        tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{QSCH_TEXT_INSTR_QUALIFIER}{instruction}"»')
         self.schematic.items.append(tag)
 
     def remove_instruction(self, instruction: str) -> None:
@@ -555,6 +560,7 @@ class QschEditor(BaseSchematic):
         instr_removed = False
         for text_tag in self.schematic.get_items('text'):
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+            text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if regex.match(text):
                 self.schematic.items.remove(text_tag)
                 _logger.info(f'Instruction "{text}" removed')
@@ -596,7 +602,7 @@ class QschEditor(BaseSchematic):
 
             for text in self.directives:
                 text_tag, _ = QschTag.parse('«text (0,0) 1 7 0 0x1000000 -1 -1 "text"»')
-                text_tag.set_attr(QSCH_TEXT_STR_ATTR, text.text)
+                text_tag.set_attr(QSCH_TEXT_STR_ATTR, QSCH_TEXT_INSTR_QUALIFIER + text.text)
                 text_tag.set_attr(QSCH_TEXT_POS, (text.coord.X, text.coord.Y))
                 self.schematic.items.append(text_tag)
 
