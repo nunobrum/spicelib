@@ -357,7 +357,8 @@ class LogfileData:
         """
         self.obtain_amplitude_and_phase_from_complex_values()
 
-    def export_data(self, export_file: str, encoding=None, append_with_line_prefix=None):
+    def export_data(self, export_file: str, encoding=None, append_with_line_prefix=None,
+                    value_separator: str = '\t', line_terminator: str = '\n'):
         """
         Exports the measurement information to a tab separated value (.tsv) format. If step data is found, it is
         included in the exported file.
@@ -368,10 +369,14 @@ class LogfileData:
 
         :param export_file: path to the file containing the information
         :type export_file: str
-        :param encoding: encoding to be used in the file
+        :param optional encoding: encoding to be used in the file
         :type encoding: str
-        :param append_with_line_prefix: user information to be written in the file in case an append is to be made.
+        :param optional append_with_line_prefix: user information to be written in the file in case an append is to be made.
         :type append_with_line_prefix: str
+        :param optional value_separator: character to be used to separate values
+        :type value_separator: str
+        :param optional line_terminator: Line terminator character
+        :type line_terminator: str
         :return: Nothing
         """
         if append_with_line_prefix is None:
@@ -389,31 +394,78 @@ class LogfileData:
         fout = open(export_file, mode, encoding=encoding)
 
         if append_with_line_prefix is not None:  # if appending a file, it must write the column title
-            fout.write('user info\t')
+            fout.write('user info' + value_separator)
 
-        dataset_keys = [key for key, value in self.dataset.items()]
+        data_size = None
+        fout.write("step")
+        columns_per_line = 1
+        for title, values in self.stepset.items():
+            if data_size is None:
+                data_size = len(values)
+            else:
+                if len(values) != data_size:
+                    raise Exception("Data size mismatch. Not all measurements have the same length.")
 
-        fout.write("step\t%s\t%s\n" % ("\t".join(self.stepset.keys()), "\t".join(dataset_keys)))
-        first_parameter = dataset_keys[0]
-        for index in range(len(self.dataset[first_parameter])):
+            if isinstance(values[0], list) and len(values[0]) > 1:
+                for n in range(len(values[0])):
+                    fout.write(value_separator + "%s_%d" % (title, n))
+                    columns_per_line += 1
+            else:
+                fout.write(value_separator + title)
+                columns_per_line += 1
+
+        for title, values in self.dataset.items():
+            if data_size is None:
+                data_size = len(values)
+            else:
+                if len(values) != data_size:
+                    logging.error(f"Data size mismatch. Not all measurements have the same length."
+                                  f" Expected {data_size}. \"{title}\" has {len(values)}")
+
+            if isinstance(values[0], list) and len(values[0]) > 1:
+                for n in range(len(values[0])):
+                    fout.write(value_separator + "%s_%d" % (title, n))
+                    columns_per_line += 1
+            else:
+                fout.write(value_separator + title)
+                columns_per_line += 1
+
+        fout.write('\n')  # Finished to write the headers
+
+        if data_size is None:
+            data_size = 0  # Skips writing data in the loop below
+
+        for index in range(data_size):
             if self.step_count == 0:
                 step_data = []  # Empty step
             else:
                 step_data = [self.stepset[param][index] for param in self.stepset.keys()]
-            meas_data = [self.dataset[param][index] for param in dataset_keys]
+            meas_data = [self.dataset[param][index] for param in self.dataset.keys()]
 
             if append_with_line_prefix is not None:  # if appending a file it must write the user info
-                fout.write(append_with_line_prefix + '\t')
+                fout.write(append_with_line_prefix + value_separator)
             fout.write("%d" % (index + 1))
+            columns_writen = 1
             for s in step_data:
-                fout.write(f'\t{s}')
+                if isinstance(s, list):
+                    for x in s:
+                        fout.write(value_separator + f'{x}')
+                        columns_writen += 1
+                else:
+                    fout.write(value_separator + f'{s}')
+                    columns_writen += 1
 
             for tok in meas_data:
                 if isinstance(tok, list):
                     for x in tok:
-                        fout.write(f'\t{x}')
+                        fout.write(value_separator + f'{x}')
+                        columns_writen += 1
                 else:
-                    fout.write(f'\t{tok}')
+                    fout.write(value_separator + f'{tok}')
+                    columns_writen += 1
+            if columns_writen != columns_per_line:
+                logging.error(f"Line with wrong number of values."
+                              f" Expected:{columns_per_line} Index {index+1} has {columns_writen}")
             fout.write('\n')
 
         fout.close()

@@ -79,7 +79,9 @@ class QspiceLogReader(LogfileData):
                     _logger.debug(f"Found step {step} with stepset {stepset}")
 
                     tokens = stepset.strip('\r\n').split(' ')
-                    for tok in tokens[1:]:
+                    for tok in tokens:
+                        if '=' not in tok:
+                            continue
                         lhs, rhs = tok.split("=")
                         # Try to convert to int or float
                         rhs = try_convert_value(rhs)

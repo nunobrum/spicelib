@@ -154,7 +154,8 @@ class Montecarlo(ToleranceDeviations):
         self.editor.set_parameter('run', -1)
         self.testbench_prepared = True
 
-    def _get_sim_value(self, value: float, dev: ComponentDeviation) -> float:
+    @staticmethod
+    def _get_sim_value(value: float, dev: ComponentDeviation) -> float:
         """Returns a new value for the simulation"""
         new_val = value
         if dev.typ == DeviationType.tolerance:

@@ -480,6 +480,9 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 1.0.2
+  * Correction on the log file data export. Each column is guaranteed to have its own title. 
+  * Fixes on the generation of netlists from QSPICE Schematic files
 * Version 1.0.1
   * Timeout always default to No timeout.
   * Restructure the way netlists are read and written, so to be able to read and write netlists from different simulator
