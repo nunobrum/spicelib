@@ -104,8 +104,6 @@ def main():
                     value = comp.attributes.get('Value', '<val>')
                     symbol_tag = symbol_asc.to_qsch(comp.reference, value)
                     break
-            else:
-                symbol_tree = symbols.get("not_found")
 
         if symbol_tree:
             name = symbol_tree.find("name").text
@@ -177,6 +175,15 @@ def main():
 
                 item_tag, _ = QschTag.parse(text)
                 symbol_tag.items.append(item_tag)
+        else:
+            if comp.rotation == 90:
+                comp.rotation = 270
+            elif comp.rotation == 270:
+                comp.rotation = 90
+            elif comp.rotation == 90 + 360:
+                comp.rotation = 270 + 360
+            elif comp.rotation == 270 + 360:
+                comp.rotation = 90 + 360
 
         if symbol_tag:
             comp.attributes['symbol'] = symbol_tag

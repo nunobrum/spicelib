@@ -22,14 +22,15 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Union
 
-from .base_schematic import Point, Text, TextTypeEnum, Line, Arc, HorAlign, ERotation, VerAlign
+from .base_schematic import Point, Text, TextTypeEnum, Line, HorAlign, ERotation, VerAlign
 from .asc_editor import asc_text_align_set, TEXT_REGEX, LT_ATTRIBUTE_NUMBERS, LT_ATTRIBUTE_NUMBERS_INV, \
     WEIGHT_CONVERSION_TABLE
 
 from .qsch_editor import QschTag
 
 _logger = logging.getLogger("spicelib.AsyReader")
-
+SCALE_X = 6.25
+SCALE_Y = - 6.25
 
 
 class AsyReader(object):
@@ -68,12 +69,17 @@ class AsyReader(object):
                     segment = Line(v1, v2, style=f"{{weight:{weight}}}")
                     self.lines.append(segment)
                 elif line.startswith("CIRCLE"):
-                    tag, weight, x1, y1, x2, y2, style = line.split()
+                    tag, weight, x1, y1, x2, y2 = line.split()
                     # In LTspice the circle is set using the top left and bottom right points of the rectangle that
                     # encloses the circle
-                    distance = ((x2-x1)**2 + (y1-y2)**2) ** 0.5  # Using pythagoras theorem
-                    circle = Arc(Point((x1+x2)/2, (y1+y2)/2), radius=distance/2,
-                                 style=f"{{style:{style}, weight:{weight}}}")
+                    x1 = int(x1)
+                    x2 = int(x2)
+                    y1 = int(y1)
+                    y2 = int(y2)
+                    # distance = (x2-x1)  # Always assuming a circle
+                    # circle = Arc(Point((x1+x2)/2, (y1+y2)/2), radius=distance/2, start_angle=0, stop_angle=360,
+                    #              style=f"{{style:1, weight:{weight}}}")
+                    circle = Line(Point(x1, y1), Point(x2, y2))
                     self.circles.append(circle)
                 elif line.startswith("Version"):
                     tag, version = line.split()
@@ -132,18 +138,31 @@ class AsyReader(object):
         symbol.items.append(QschTag("shorted pins:", "false"))
         for line in self.lines:
             segment, _ = QschTag.parse(
-                f"«line ({line.V1.X * 6.25:.0f},{line.V1.Y * -6.25:.0f}) "
-                f"({line.V2.X * 6.25:.0f},{line.V2.Y * -6.25:.0f})"
+                f"«line ({line.V1.X * SCALE_X:.0f},{line.V1.Y * SCALE_Y:.0f}) "
+                f"({line.V2.X * SCALE_X:.0f},{line.V2.Y * SCALE_Y:.0f})"
                 f" 0 0 0x1000000 -1 -1»")
             symbol.items.append(segment)
+
+        for arc in self.circles:
+            # x1 = int((arc.center.X - arc.radius) * SCALE_X)
+            # y1 = int((arc.center.Y - arc.radius) * SCALE_Y)
+            # x2 = int((arc.center.X + arc.radius) * SCALE_X)
+            # y2 = int((arc.center.Y + arc.radius) * SCALE_Y)
+            x1 = int(arc.V1.X * SCALE_X)
+            y1 = int(arc.V1.Y * SCALE_Y)
+            x2 = int(arc.V2.X * SCALE_X)
+            y2 = int(arc.V2.Y * SCALE_Y)
+            elipse_tag, _ = QschTag.parse(f"«ellipse ({x1},{y1}) ({x2},{y2}) 0 0 0 0x1000000 0x1000000 -1 -1»")
+            symbol.items.append(elipse_tag)
+
         for i, attr in enumerate(self.windows):
             coord = attr.coord
-            text, _ = QschTag.parse(f'«text ({coord.X * 6.25:.0f},{coord.Y * -6.25:.0f})' 
+            x = coord.X * SCALE_X
+            y = coord.Y * SCALE_Y
+            text, _ = QschTag.parse(f'«text ({x :.0f},{y :.0f})'
                                     f' 1 7 0 0x1000000 -1 -1 "{args[i]}"»')
             symbol.items.append(text)
-        for arc in self.circles:
-            elipse_tag, _ = QschTag.parse("«ellipse (-130,130) (130,-130) 0 0 0 0x1000000 0x1000000 -1 -1»")
-            symbol.items.append(elipse_tag)
+
         for pin in self.pins:
             coord = pin.coord
             attr_dict = {}
@@ -152,7 +171,7 @@ class AsyReader(object):
                     k, v = pair.split('=')
                     attr_dict[k] = v
 
-            pin_tag, _ = QschTag.parse(f'«pin ({coord.X * 6.25:.0f},{coord.Y * -6.25:.0f}) (0,0)'
+            pin_tag, _ = QschTag.parse(f'«pin ({coord.X * SCALE_X:.0f},{coord.Y * SCALE_Y:.0f}) (0,0)'
                                        f' 1 0 0 0x1000000 -1 "{attr_dict["PinName"]}"»')
             symbol.items.append(pin_tag)
 

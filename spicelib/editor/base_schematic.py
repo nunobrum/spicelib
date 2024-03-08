@@ -82,31 +82,32 @@ class ERotation(enum.IntEnum):
         elif self.value == 360 + 315:
             return "Mirror 315 Rotation"
 
-    def mirror_y_axis(self):
-        if self == ERotation.R0:
-            return ERotation.M180
-        elif self == ERotation.R90:
-            return ERotation.M270
-        elif self == ERotation.R180:
-            return ERotation.M0
-        elif self == ERotation.R270:
-            return ERotation.M90
-        elif self == ERotation.M0:
-            return ERotation.R180
-        elif self == ERotation.M90:
-            return ERotation.R270
-        elif self == ERotation.M180:
-            return ERotation.R0
-        elif self == ERotation.M270:
-            return ERotation.R90
-        else:
-            return self
-
-    def mirror_x_axis(self):
-        return ERotation((((self.value + 180) % 360) + 360) % 720)
+    # def mirror_y_axis(self):
+    #     if self == ERotation.R0:
+    #         return ERotation.M180
+    #     elif self == ERotation.R90:
+    #         return ERotation.M270
+    #     elif self == ERotation.R180:
+    #         return ERotation.M0
+    #     elif self == ERotation.R270:
+    #         return ERotation.M90
+    #     elif self == ERotation.M0:
+    #         return ERotation.R180
+    #     elif self == ERotation.M90:
+    #         return ERotation.R270
+    #     elif self == ERotation.M180:
+    #         return ERotation.R0
+    #     elif self == ERotation.M270:
+    #         return ERotation.R90
+    #     else:
+    #         return self
+    #
+    # def mirror_x_axis(self):
+    #     return ERotation((((self.value + 180) % 360) + 360) % 720)
 
     def __add__(self, rotation: 'ERotation'):
         return (self.value + rotation.value) % 360
+
 
 class HorAlign(enum.Enum):
     """Horizontal Alignment Enum"""
@@ -185,15 +186,15 @@ class Line:
         return False
 
 
-@dataclasses.dataclass
-class Arc:
-    """X1, Y1, X2, Y2 coordinates"""
-    center: Point
-    radius: float
-    start_angle: float
-    stop_angle: float
-    style: str = ""
-    # The Arcs are decorative, they don't have associated nets
+# @dataclasses.dataclass
+# class Arc:
+#     """X1, Y1, X2, Y2 coordinates"""
+#     center: Point
+#     radius: float
+#     start_angle: float
+#     stop_angle: float
+#     style: str = ""
+#     # The Arcs are decorative, they don't have associated nets
 
 @dataclasses.dataclass
 class Text:

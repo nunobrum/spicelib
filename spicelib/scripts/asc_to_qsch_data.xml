@@ -9,7 +9,7 @@
     <offset x="0" y="0"/> <!-- offset for the schematic conversion -->
     <component_symbols>
         <symbol>
-            <LT_name>res</LT_name>
+            <LT_name>res_zz</LT_name>
             <name>R</name>
             <LT_origin x="-100" y="-100"/>
             <items>
@@ -29,7 +29,7 @@
             </adapter>
         </symbol>
         <symbol>
-            <LT_name>cap</LT_name>
+            <LT_name>cap_zz</LT_name>
             <name>C</name>
             <LT_origin x="-200" y="-100"/>
             <items>
@@ -47,7 +47,7 @@
             </items>
         </symbol>
         <symbol>
-            <LT_name>voltage</LT_name>
+            <LT_name>voltage_zz</LT_name>
             <name>V</name>
             <LT_origin x="0" y="-300"/>
             <rotation>R0</rotation>
@@ -72,7 +72,7 @@
             </adapter>
         </symbol>
         <symbol>
-            <LT_name>diode</LT_name>
+            <LT_name>diode_zz</LT_name>
             <name>D</name>
             <LT_origin x="-100" y="-200"/>
             <rotation>R0</rotation>

@@ -46,26 +46,6 @@ QSCH_NET_ROTATION = "?"
 QSCH_NET_STR_ATTR = 5
 
 
-QSCH_ROTATION_DICT = {
-    0: ERotation.R0,
-    1: ERotation.R45,  # 45º rotation is valid for QSpice Schematics Files
-    2: ERotation.R90,
-    3: ERotation.R135,
-    4: ERotation.R180,
-    5: ERotation.R225,
-    6: ERotation.R270,
-    7: ERotation.R315,
-    8: ERotation.M0,
-    9: ERotation.M45,  # 45º rotation is valid for QSpice Schematics Files
-    10: ERotation.M90,
-    11: ERotation.M135,
-    12: ERotation.M180,
-    13: ERotation.M225,
-    14: ERotation.M270,
-    15: ERotation.M315,
-}
-
-QSCH_INV_ROTATION_DICT = {val: key for key, val in QSCH_ROTATION_DICT.items()}
 QSCH_TEXT_INSTR_QUALIFIER = "ï»¿"
 
 
@@ -329,7 +309,7 @@ class QschEditor(BaseSchematic):
             sch_comp.reference = refdes
             x, y = tuple(component.get_attr(QSCH_COMPONENT_POS))
             sch_comp.position = Point(x, y)
-            sch_comp.rotation = QSCH_ROTATION_DICT[component.get_attr(QSCH_TEXT_ROTATION)]
+            sch_comp.rotation = component.get_attr(QSCH_TEXT_ROTATION).value / 45
             sch_comp.attributes['type'] = symbol.get_text('type')
             sch_comp.attributes['description'] = symbol.get_text('description'),
             sch_comp.attributes['value'] = value
@@ -450,7 +430,7 @@ class QschEditor(BaseSchematic):
         else:
             raise ValueError("Invalid position object")
         if isinstance(rotation, ERotation):
-            rot = QSCH_INV_ROTATION_DICT[rotation]
+            rot = rotation.value / 45
         elif isinstance(rotation, int):
             if mirror is False:
                 rot = {
@@ -581,7 +561,7 @@ class QschEditor(BaseSchematic):
             for ref, comp in self.components.items():
                 cmpx = comp.position.X
                 cmpy = comp.position.Y
-                rotation = QSCH_INV_ROTATION_DICT[comp.rotation]
+                rotation = int(comp.rotation) // 45
                 comp_tag, _ = QschTag.parse(f'«component ({cmpx},{cmpy}) {rotation} 0»')
                 if 'symbol' in comp.attributes:
                     comp_tag.items.append(comp.attributes['symbol'])
