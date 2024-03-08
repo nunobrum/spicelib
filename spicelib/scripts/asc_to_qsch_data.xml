@@ -11,7 +11,7 @@
         <symbol>
             <LT_name>res</LT_name>
             <name>R</name>
-            <offset x="0" y="0"/>
+            <LT_origin x="-100" y="-100"/>
             <items>
                 <item>«type: R»</item>
                 <item>«description: Resistor(USA Style Symbol)»</item>
@@ -31,7 +31,7 @@
         <symbol>
             <LT_name>cap</LT_name>
             <name>C</name>
-            <offset x="-200" y="-100"/>
+            <LT_origin x="-200" y="-100"/>
             <items>
                 <item>«type: C»</item>
                 <item>«description: Capacitor»</item>
@@ -49,7 +49,8 @@
         <symbol>
             <LT_name>voltage</LT_name>
             <name>V</name>
-            <offset x="0" y="-300"/>
+            <LT_origin x="0" y="-300"/>
+            <rotation>R0</rotation>
             <items>
                 <type>R</type>
                 <item>«type: V»</item>
@@ -73,8 +74,8 @@
         <symbol>
             <LT_name>diode</LT_name>
             <name>D</name>
-            <offset x="0" y="0"/>
-            <rotation>R180</rotation>
+            <LT_origin x="-100" y="-200"/>
+            <rotation>R0</rotation>
             <items>
                 <item>«type: D»</item>
                 <item>«description: Silicon Diode»</item>
@@ -93,7 +94,7 @@
         <symbol>
             <LT_name>not_found</LT_name>
             <name>X</name>
-            <offset x="0" y="0"/>
+            <LT_origin x="0" y="0"/>
             <items>
                 <item>«type: X»</item>
                 <item>«description: Text comment to placed instead of the component»</item>
