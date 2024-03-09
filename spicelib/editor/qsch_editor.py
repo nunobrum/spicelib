@@ -235,9 +235,8 @@ class QschEditor(BaseSchematic):
                                 libraries_to_include.append(library_name)
                     elif item.tag == 'text':
                         is_comment = item.get_attr(4) == 1
-                        text = item.get_attr(QSCH_TEXT_STR_ATTR)
-                        text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER).split('\n')
-                        for line in text:
+                        text = item.get_attr(QSCH_TEXT_STR_ATTR).lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+                        for line in text.split('\\n'):
                             if is_comment:
                                 netlist_file.write('* ')
                             netlist_file.write(line.strip() + '\n')
@@ -309,7 +308,7 @@ class QschEditor(BaseSchematic):
             sch_comp.reference = refdes
             x, y = tuple(component.get_attr(QSCH_COMPONENT_POS))
             sch_comp.position = Point(x, y)
-            sch_comp.rotation = component.get_attr(QSCH_TEXT_ROTATION).value / 45
+            sch_comp.rotation = component.get_attr(QSCH_TEXT_ROTATION) / 45
             sch_comp.attributes['type'] = symbol.get_text('type')
             sch_comp.attributes['description'] = symbol.get_text('description'),
             sch_comp.attributes['value'] = value
