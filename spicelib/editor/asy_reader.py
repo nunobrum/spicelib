@@ -59,7 +59,14 @@ class AsyReader(object):
                     text = asc_text_align_set(text, alignment)
                     self.windows.append(text)
                 elif line.startswith("SYMATTR"):
-                    tag, ref, text = line.split(maxsplit=2)
+                    tokens = line.split(maxsplit=2)
+                    if len(tokens) == 3:
+                        tag, ref, text = tokens
+                    elif len(tokens) == 2:
+                        tag, ref = tokens
+                        text = ""
+                    else:
+                        continue
                     text = text.strip()  # Gets rid of the \n terminator
                     self.attributes[ref] = text
                 elif line.startswith("LINE"):

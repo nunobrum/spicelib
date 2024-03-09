@@ -34,6 +34,10 @@ def find_file_in_directory(directory, filename):
     Searches for a file with the given filename in the specified directory and its subdirectories.
     Returns the path to the file if found, or None if not found.
     """
+    # First check whether there is a path tagged to the filename
+    path, filename = os.path.split(filename)
+    if path != '':
+        directory = os.path.join(directory, path)
     for root, dirs, files in os.walk(directory):
         if filename in files:
             return os.path.join(root, filename)
@@ -81,109 +85,113 @@ def main():
     asc_editor.scale(offset_x=offset_x, offset_y=offset_y, scale_x=scale_x, scale_y=scale_y)
 
     # Adding symbols to components
-    symbols = {sym.find('LT_name').text: sym for sym in root.findall('component_symbols/symbol')}
+    # symbol_stock = {sym.find('LT_name').text: sym for sym in root.findall('component_symbols/symbol')}
+    # The symbol_stock has native QSpice symbols and information on how to replace the LTSpice symbols by
+    # QSpice ones. For now this is not operational
     for comp in asc_editor.components.values():
-        symbol_tree = symbols.get(comp.symbol)
+        # TODO: symbol_tree = symbol_stock.get(comp.symbol)
         symbol_tag = None
-        if symbol_tree is None:
-            # Will try to get it from the sym folder
-            for sym_root in (
-                os.path.expanduser(r"~/AppData/Local/LTspice/lib/sym"),
-                os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"),
-                "A stupid test directory that doesn't exist and that should be skipped"
-            ):
-                if not os.path.exists(sym_root):  # Skipping invalid paths
-                    continue
-                if sym_root.endswith('.zip'):  # TODO: test if it is a file
-                    pass  # TODO: implement this
-                    # Using an IO buffer to pass the file to the AsyEditor
-                else:
-                    symbol_asc_file = find_file_in_directory(sym_root, comp.symbol + '.asy')
-                if symbol_asc_file is not None:
-                    symbol_asc = AsyReader(symbol_asc_file)
-                    value = comp.attributes.get('Value', '<val>')
-                    symbol_tag = symbol_asc.to_qsch(comp.reference, value)
-                    break
+        # if symbol_tree is None:
+        # Will try to get it from the sym folder
+        for sym_root in (
+            os.path.curdir,  # The current script directory
+            os.path.split(asc_file)[0],  # The directory where the scrip is located
+            os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
+            os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"),
+            "A stupid test directory that doesn't exist and that should be skipped"
+        ):
+            if not os.path.exists(sym_root):  # Skipping invalid paths
+                continue
+            if sym_root.endswith('.zip'):  # TODO: test if it is a file
+                pass  # TODO: implement this
+                # Using an IO buffer to pass the file to the AsyEditor
+            else:
+                symbol_asc_file = find_file_in_directory(sym_root, comp.symbol + '.asy')
+            if symbol_asc_file is not None:
+                symbol_asc = AsyReader(symbol_asc_file)
+                value = comp.attributes.get('Value', '<val>')
+                symbol_tag = symbol_asc.to_qsch(comp.reference, value)
+                break
 
-        if symbol_tree:
-            name = symbol_tree.find("name").text
-            offset = symbol_tree.find('LT_origin')
-            offset_x = int(offset.get('x'))
-            offset_y = int(offset.get('y'))
-
-            if comp.rotation == ERotation.R0:
-                comp.position.X += offset_x
-                comp.position.Y += offset_y
-            elif comp.rotation == ERotation.R90:
-                comp.position.X += offset_y
-                comp.position.Y -= offset_x
-            elif comp.rotation == ERotation.R180:
-                comp.position.X -= offset_x
-                comp.position.Y -= offset_y
-            elif comp.rotation == ERotation.R270:
-                comp.position.X -= offset_y
-                comp.position.Y += offset_x
-            elif comp.rotation == ERotation.M0:
-                comp.position.X += offset_x
-                comp.position.Y -= offset_y
-            elif comp.rotation == ERotation.M90:
-                comp.position.X -= offset_y
-                comp.position.Y -= offset_x
-            elif comp.rotation == ERotation.M180:
-                comp.position.X -= offset_x
-                comp.position.Y += offset_y
-            elif comp.rotation == ERotation.M270:
-                comp.position.X += offset_y
-                comp.position.Y += offset_x
-            rotation = symbol_tree.find('rotation').text
-            if rotation == 'R0':
-                pass  # basically do nothing
-            elif rotation == 'R90':
-                comp.rotation = comp.rotation + ERotation.R90
-            elif rotation == 'R180':
-                comp.rotation = comp.rotation + ERotation.R180
-            elif rotation == 'R270':
-                comp.rotation = comp.rotation + ERotation.R270
-            elif rotation == 'M0':
-                comp.rotation = comp.rotation.mirror_x_axis()
-            elif rotation == 'M90':
-                comp.rotation = comp.rotation  # TODO
-            elif rotation == 'M180':
-                comp.rotation = comp.rotation.mirror_y_axis()
-            elif rotation == 'M270':
-                comp.rotation = comp.rotation  # TODO
-
-            # typ = symbol_tree.find("type").text
-            # description = symbol_tree.find("description").text
-
-            symbol_tag = QschTag("symbol", name)
-            # symbol_tag.items.append(QschTag("type", typ))
-            # symbol_tag.items.append(QschTag("description:", description))
-            for item in symbol_tree.findall('items/item'):
-                text = item.text
-                if item.attrib:
-                    # need to include the needed attributes
-                    fmt_dict = {}
-                    for key, value in item.attrib.items():
-                        if key == "reference":
-                            fmt_dict[value] = comp.reference
-                        elif key == "value":
-                            fmt_dict[value] = comp.attributes.get("Value", "<val>")
-                        else:
-                            fmt_dict[value] = comp.attributes[key]
-                    text = text.format(**fmt_dict)
-
-                item_tag, _ = QschTag.parse(text)
-                symbol_tag.items.append(item_tag)
-        else:
-            if comp.rotation == 90:
-                comp.rotation = 270
-            elif comp.rotation == 270:
-                comp.rotation = 90
-            elif comp.rotation == 90 + 360:
-                comp.rotation = 270 + 360
-            elif comp.rotation == 270 + 360:
-                comp.rotation = 90 + 360
+        # if symbol_tree:
+        #     name = symbol_tree.find("name").text
+        #     offset = symbol_tree.find('LT_origin')
+        #     offset_x = int(offset.get('x'))
+        #     offset_y = int(offset.get('y'))
+        #
+        #     if comp.rotation == ERotation.R0:
+        #         comp.position.X += offset_x
+        #         comp.position.Y += offset_y
+        #     elif comp.rotation == ERotation.R90:
+        #         comp.position.X += offset_y
+        #         comp.position.Y -= offset_x
+        #     elif comp.rotation == ERotation.R180:
+        #         comp.position.X -= offset_x
+        #         comp.position.Y -= offset_y
+        #     elif comp.rotation == ERotation.R270:
+        #         comp.position.X -= offset_y
+        #         comp.position.Y += offset_x
+        #     elif comp.rotation == ERotation.M0:
+        #         comp.position.X += offset_x
+        #         comp.position.Y -= offset_y
+        #     elif comp.rotation == ERotation.M90:
+        #         comp.position.X -= offset_y
+        #         comp.position.Y -= offset_x
+        #     elif comp.rotation == ERotation.M180:
+        #         comp.position.X -= offset_x
+        #         comp.position.Y += offset_y
+        #     elif comp.rotation == ERotation.M270:
+        #         comp.position.X += offset_y
+        #         comp.position.Y += offset_x
+        #     rotation = symbol_tree.find('rotation').text
+        #     if rotation == 'R0':
+        #         pass  # basically do nothing
+        #     elif rotation == 'R90':
+        #         comp.rotation = comp.rotation + ERotation.R90
+        #     elif rotation == 'R180':
+        #         comp.rotation = comp.rotation + ERotation.R180
+        #     elif rotation == 'R270':
+        #         comp.rotation = comp.rotation + ERotation.R270
+        #     elif rotation == 'M0':
+        #         comp.rotation = comp.rotation.mirror_x_axis()
+        #     elif rotation == 'M90':
+        #         comp.rotation = comp.rotation  # TODO
+        #     elif rotation == 'M180':
+        #         comp.rotation = comp.rotation.M180
+        #     elif rotation == 'M270':
+        #         comp.rotation = comp.rotation  # TODO
+        #
+        #     # typ = symbol_tree.find("type").text
+        #     # description = symbol_tree.find("description").text
+        #
+        #     symbol_tag = QschTag("symbol", name)
+        #     # symbol_tag.items.append(QschTag("type", typ))
+        #     # symbol_tag.items.append(QschTag("description:", description))
+        #     for item in symbol_tree.findall('items/item'):
+        #         text = item.text
+        #         if item.attrib:
+        #             # need to include the needed attributes
+        #             fmt_dict = {}
+        #             for key, value in item.attrib.items():
+        #                 if key == "reference":
+        #                     fmt_dict[value] = comp.reference
+        #                 elif key == "value":
+        #                     fmt_dict[value] = comp.attributes.get("Value", "<val>")
+        #                 else:
+        #                     fmt_dict[value] = comp.attributes[key]
+        #             text = text.format(**fmt_dict)
+        #
+        #         item_tag, _ = QschTag.parse(text)
+        #         symbol_tag.items.append(item_tag)
+        # else:
+        if comp.rotation == 90:
+            comp.rotation = 270
+        elif comp.rotation == 270:
+            comp.rotation = 90
+        elif comp.rotation == 90 + 360:
+            comp.rotation = 270 + 360
+        elif comp.rotation == 270 + 360:
+            comp.rotation = 90 + 360
 
         if symbol_tag:
             comp.attributes['symbol'] = symbol_tag
