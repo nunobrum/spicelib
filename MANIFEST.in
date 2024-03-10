@@ -1,0 +1,7 @@
+prune build
+prune dist
+prune doc
+prune tests
+prune \..*
+global-exclude *.py[cod]
+include spicelib/scripts/asc_to_qsch_data.xml

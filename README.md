@@ -480,6 +480,10 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 1.0.4
+  * Adding the missing the asc_to_qsch_data.xml to the package
+  * Adding a MANIFEST.in to the project
+  * Adding keywords to the project.toml
 * Version 1.0.3
   * Correcting the generation of a .net from the QschEditor.
 * Version 1.0.2
