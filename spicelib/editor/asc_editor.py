@@ -52,6 +52,22 @@ ASC_ROTATION_DICT = {
 
 ASC_INV_ROTATION_DICT = {val: key for key, val in ASC_ROTATION_DICT.items()}
 
+LT_ATTRIBUTE_NUMBERS = {
+    'Prefix': 0,
+    'Type': 1,
+    'Value': 3,
+    'Value2': 123,
+    'SpiceModel': 38,
+    'ModelFile': 'X',
+    'Def_Sub': 'X',
+    'SpiceLine': 39,
+    'SpiceLine2': 40,
+}
+
+LT_ATTRIBUTE_NUMBERS_INV = {val: key for key, val in LT_ATTRIBUTE_NUMBERS.items()}
+
+WEIGHT_CONVERSION_TABLE = ('Thin', 'Normal', 'Thick')
+
 
 def asc_text_align_set(text: Text, alignment: str):
     if alignment == 'Left':
@@ -104,7 +120,7 @@ class AscEditor(BaseSchematic):
     def __init__(self, asc_file: str):
         super().__init__()
         self.version = 4
-        self.sheet = (0, 0)
+        self.sheet = "1 0 0"  # Three values are present on the SHEET clause
         self._asc_file_path = Path(asc_file)
         if not self._asc_file_path.exists():
             raise FileNotFoundError(f"File {asc_file} not found")
@@ -159,9 +175,8 @@ class AscEditor(BaseSchematic):
     def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()
         with open(self._asc_file_path, 'r') as asc_file:
-            _logger.info(f"Reading ASC file {self._asc_file_path}")
+            _logger.info(f"Parsing ASC file {self._asc_file_path}")
             component = None
-            _logger.debug("Parsing ASC file")
             for line in asc_file:
                 if line.startswith("SYMBOL"):
                     tag, symbol, posX, posY, rotation = line.split()

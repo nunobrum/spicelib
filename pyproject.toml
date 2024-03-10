@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 [project]
 name = "spicelib"
-version = "1.0.2"
+version = "1.0.4"
 authors = [
   { name="Nuno Brum", email="me@nunobrum.com" },
 ]
@@ -22,11 +22,18 @@ dependencies = [
     "matplotlib",
     "keyboard",
 ]
+
+keywords = ["spice", "ltspice", "qspice", "electronic simulator", "montecarlo", "worst-case"]
+
 classifiers=[
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
 ]
+
+# [tool.setuptools]
+# Include the data files in the package
+# include-package-data = true
 
 [tool.setuptools.packages.find]
 # All the following settings are optional:
@@ -47,4 +54,6 @@ readme_update = "spicelib.scripts.readme_update:main"
 
 [project.urls]
 "Homepage" = "https://github.com/nunobrum/spicelib"
+"Repository" = "https://github.com/nunobrum/spicelib.git"
 "Bug Tracker" = "https://github.com/nunobrum/spicelib/issues"
+"Author" = "https://www.nunobrum.com/"

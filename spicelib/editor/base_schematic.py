@@ -29,24 +29,84 @@ from .base_editor import BaseEditor, Component, ComponentNotFoundError
 _logger = logging.getLogger("spicelib.BaseSchematic")
 
 
-class ERotation(enum.Enum):
+class ERotation(enum.IntEnum):
     """Component Rotation Enum"""
-    R0 = "0 Rotation"
-    R45 = "45 Rotation"
-    R90 = "90 Rotation"
-    R135 = "135 Rotation"
-    R180 = "180 Rotation"
-    R225 = "225 Rotation"
-    R270 = "270 Rotation"
-    R315 = "315 Rotation"
-    M0 = "Mirror 0 Rotation"
-    M45 = "Mirror 45 Rotation"
-    M90 = "Mirror 90 Rotation"
-    M135 = "Mirror 135 Rotation"
-    M180 = "Mirror 180 Rotation"
-    M225 = "Mirror 225 Rotation"
-    M270 = "Mirror 270 Rotation"
-    M315 = "Mirror 315 Rotation"
+    R0 = 0  # 0 Rotation
+    R45 = 45  # 45 Rotation
+    R90 = 90  # 90 Rotation
+    R135 = 135  # 135 Rotation
+    R180 = 180  # 180 Rotation
+    R225 = 225  # 225 Rotation
+    R270 = 270  # 270 Rotation
+    R315 = 315  # 315 Rotation
+    M0 = 360 + 0  # Mirror 0 Rotation
+    M45 = 360 + 45  # Mirror 45 Rotation
+    M90 = 360 + 90  # Mirror 90 Rotation
+    M135 = 360 + 135  # Mirror 135 Rotation
+    M180 = 360 + 180  # Mirror 180 Rotation
+    M225 = 360 + 225  # Mirror 225 Rotation
+    M270 = 360 + 270  # Mirror 270 Rotation
+    M315 = 360 + 315  # Mirror 315 Rotation
+
+    def __str__(self):
+        if self.value == 0:
+            return "0 Rotation"
+        elif self.value == 45:
+            return "45 Rotation"
+        elif self.value == 90:
+            return "90 Rotation"
+        elif self.value == 135:
+            return "135 Rotation"
+        elif self.value == 180:
+            return "180 Rotation"
+        elif self.value == 225:
+            return "225 Rotation"
+        elif self.value == 270:
+            return "270 Rotation"
+        elif self.value == 315:
+            return "315 Rotation"
+        elif self.value == 360 + 0:
+            return "Mirror 0 Rotation"
+        elif self.value == 360 + 45:
+            return "Mirror 45 Rotation"
+        elif self.value == 360 + 90:
+            return "Mirror 90 Rotation"
+        elif self.value == 360 + 135:
+            return "Mirror 135 Rotation"
+        elif self.value == 360 + 180:
+            return "Mirror 180 Rotation"
+        elif self.value == 360 + 225:
+            return "Mirror 225 Rotation"
+        elif self.value == 360 + 270:
+            return "Mirror 270 Rotation"
+        elif self.value == 360 + 315:
+            return "Mirror 315 Rotation"
+
+    # def mirror_y_axis(self):
+    #     if self == ERotation.R0:
+    #         return ERotation.M180
+    #     elif self == ERotation.R90:
+    #         return ERotation.M270
+    #     elif self == ERotation.R180:
+    #         return ERotation.M0
+    #     elif self == ERotation.R270:
+    #         return ERotation.M90
+    #     elif self == ERotation.M0:
+    #         return ERotation.R180
+    #     elif self == ERotation.M90:
+    #         return ERotation.R270
+    #     elif self == ERotation.M180:
+    #         return ERotation.R0
+    #     elif self == ERotation.M270:
+    #         return ERotation.R90
+    #     else:
+    #         return self
+    #
+    # def mirror_x_axis(self):
+    #     return ERotation((((self.value + 180) % 360) + 360) % 720)
+
+    def __add__(self, rotation: 'ERotation'):
+        return (self.value + rotation.value) % 360
 
 
 class HorAlign(enum.Enum):
@@ -70,6 +130,7 @@ class TextTypeEnum(enum.IntEnum):
     DIRECTIVE = enum.auto()
     LABEL = enum.auto()
     ATTRIBUTE = enum.auto()
+    PIN = enum.auto()  # pin label
 
 
 @dataclasses.dataclass
@@ -84,6 +145,7 @@ class Line:
     """X1, Y1, X2, Y2 coordinates"""
     V1: Point
     V2: Point
+    style: str = ""
     net: str = ""
 
     def touches(self, point: Point) -> bool:
@@ -124,6 +186,16 @@ class Line:
         return False
 
 
+# @dataclasses.dataclass
+# class Arc:
+#     """X1, Y1, X2, Y2 coordinates"""
+#     center: Point
+#     radius: float
+#     start_angle: float
+#     stop_angle: float
+#     style: str = ""
+#     # The Arcs are decorative, they don't have associated nets
+
 @dataclasses.dataclass
 class Text:
     """Text object"""
@@ -133,6 +205,7 @@ class Text:
     type: TextTypeEnum = TextTypeEnum.NULL
     textAlignment: HorAlign = HorAlign.LEFT
     verticalAlignment: VerAlign = VerAlign.CENTER
+    angle: ERotation = ERotation.R0
 
 
 class SchematicComponent(Component):
