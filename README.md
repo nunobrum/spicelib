@@ -8,7 +8,7 @@ spicelib is a toolchain of python utilities design to interact with spice simula
 
 ## What is contained in this repository ##
 
-* __LTSteps.py__
+* __ltsteps.exe__
   An utility that extracts from LTSpice output files data, and formats it for import in a spreadsheet, such like Excel
   or Calc.
 
@@ -37,7 +37,7 @@ spicelib is a toolchain of python utilities design to interact with spice simula
     - Can overcome the limitation of only stepping 3 parameters
     - Different types of simulations .TRAN .AC .NOISE can be run in a single batch
     - The RAW Files are smaller and easier to treat
-    - When used with the RawRead.py and LTSteps.py, validation of the circuit can be done automatically.
+    - When used with the RawRead.py and ltsteps.py, validation of the circuit can be done automatically.
     - Different models can be simulated in a single batch, by using the following instructions:
 
   Note: It was only tested with Windows based installations.
@@ -47,7 +47,7 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   by the user and the netlist is updated accordingly. The netlist can then be used with the sim_runner.py to run a 
   batch of simulations or with the LTSpice GUI.
 
-* __Histogram.py__
+* __histogram.exe__
   A python script that uses numpy and matplotlib to create a histogram and calculate the sigma deviations. This is
   useful for Monte-Carlo analysis.
 
@@ -128,7 +128,7 @@ LW.save("./testfiles/teste_snippet1.raw")
 ### SpiceEditor, AscEditor and SimRunner.py ###
 
 This module is used to launch LTSPice simulations. Results then can be processed with either the RawRead or with the
-LTSteps module to read the log file which can contain .MEAS results.
+LTSpiceLogReader module to read the log file which can contain .MEAS results.
 
 The script will firstly invoke the LTSpice in command line to generate a netlist, and then this netlist can be updated
 directly by the script, in order to change component values, parameters or simulation commands.
@@ -168,7 +168,7 @@ for raw, log in LTC:
     print("Raw file: %s, Log file: %s" % (raw, log))
     # do something with the data
     # raw_data = RawRead(raw)
-    # log_data = LTSteps(log)
+    # log_data = LTSpiceLogReader(log)
     # ...
 
 netlist.reset_netlist()
@@ -302,7 +302,7 @@ given a tolerance value and its respective index.
 - The wc1() function is added to the circuit. This function is used to calculate the worst case value for each component,
 given a minimum and maximum value and its respective index.
 
-### LTSteps.py ###
+### ltsteps.py ###
 
 This module defines a class that can be used to parse LTSpice log files where the information about .STEP information is
 written. There are two possible usages of this module, either programmatically by importing the module and then

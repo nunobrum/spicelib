@@ -33,7 +33,7 @@ for raw, log in LTC:
     print("Raw file: %s, Log file: %s" % (raw, log))
     # do something with the data
     # raw_data = RawRead(raw)
-    # log_data = LTSteps(log)
+    # log_data = LTSpiceLogReader(log)
     # ...
 
 # Sim Statistics

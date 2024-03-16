@@ -177,8 +177,8 @@ class BaseEditor(ABC):
         """
         Resets the netlist to the original state.
 
-        :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be reset to
-        the original state.
+        :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be
+                             reset to the original state.
         """
         ...
 
