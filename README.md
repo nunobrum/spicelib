@@ -89,7 +89,7 @@ from spicelib import RawRead
 
 from matplotlib import pyplot as plt
 
-rawfile = RawRead("TRAN - STEP.raw")
+rawfile = RawRead("./testfiles/TRAN - STEP.raw")
 
 print(rawfile.get_trace_names())
 print(rawfile.get_raw_property())
@@ -113,7 +113,7 @@ The following example writes a RAW file with a 3 milliseconds transient simulati
 
  ```python
 import numpy as np
-from spicelib import RawRead, Trace, RawWrite
+from spicelib import Trace, RawWrite
 LW = RawWrite(fastacces=False)
 tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))
 vy = Trace('N001', np.sin(2 * np.pi * tx.data * 10000))
@@ -206,7 +206,6 @@ and then add the .step command for making several runs on the same circuit.
 To simplify this process, the AscEditor class can be used as exemplified below:
 
 ```python
-import numpy as np
 from spicelib import AscEditor, SimRunner  # Imports the class that manipulates the asc file
 from spicelib.sim.tookit.montecarlo import Montecarlo  # Imports the Montecarlo toolkit class
 from spicelib.simulators.ltspice_simulator import LTspice
@@ -402,6 +401,16 @@ the simulation and return the results to the client. The client on the remote ma
 SimClient class. An example of its usage is shown below:
 
 ```python
+import os
+import zipfile
+import logging
+
+# In order for this, to work, you need to have a server running. To start a server, run the following command:
+# python -m spicelib.run_server --port 9000 --parallel 4 --output ./temp
+
+_logger = logging.getLogger("spicelib.SimClient")
+_logger.setLevel(logging.DEBUG)
+
 from spicelib.client_server.sim_client import SimClient
 
 server = SimClient('http://localhost', 9000)
@@ -415,6 +424,8 @@ for runid in server:  # Ma
         print(zipf.namelist())  # Debug printing the contents of the zip file
         zipf.extract(zipf.namelist()[0])  # Normally the raw file comes first
     os.remove(zip_filename)  # Remove the zip file
+
+server.close_session()
 ```
 -- in examples/sim_client_example.py [SimClient Example]
 

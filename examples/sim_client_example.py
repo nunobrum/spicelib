@@ -18,7 +18,8 @@
 # Created:     23-02-2023
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
-import os.path
+# -- Start of SimClient Example --
+import os
 import zipfile
 import logging
 
@@ -27,7 +28,7 @@ import logging
 
 _logger = logging.getLogger("spicelib.SimClient")
 _logger.setLevel(logging.DEBUG)
-# -- Start of SimClient Example --
+
 from spicelib.client_server.sim_client import SimClient
 
 server = SimClient('http://localhost', 9000)
@@ -41,8 +42,8 @@ for runid in server:  # Ma
         print(zipf.namelist())  # Debug printing the contents of the zip file
         zipf.extract(zipf.namelist()[0])  # Normally the raw file comes first
     os.remove(zip_filename)  # Remove the zip file
-# -- End of SimClient Example --
 
 server.close_session()
+# -- End of SimClient Example --
 print("Finished")
 # server.server.stop_server()  # This will terminate the server

@@ -1,5 +1,4 @@
 # -- Start of Example 1 --
-import numpy as np
 from spicelib import AscEditor, SimRunner  # Imports the class that manipulates the asc file
 from spicelib.sim.tookit.montecarlo import Montecarlo  # Imports the Montecarlo toolkit class
 from spicelib.simulators.ltspice_simulator import LTspice
