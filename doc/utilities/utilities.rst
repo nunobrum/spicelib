@@ -10,6 +10,6 @@ E.g.: ``python -m spicelib.Histogram``
 .. toctree::
    :maxdepth: 1
 
-   LTSteps
+   ltsteps
    Histogram
 
