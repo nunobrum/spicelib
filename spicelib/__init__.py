@@ -18,7 +18,6 @@ def all_loggers():
     """
     return [
         "spicelib.RunTask",
-        "spicelib.LTSteps",
         "spicelib.SimClient",
         "spicelib.SimServer",
         "spicelib.ServerSimRunner",

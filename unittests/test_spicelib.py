@@ -205,7 +205,7 @@ class test_spicelib(unittest.TestCase):
 
     @unittest.skipIf(False, "Execute All")
     def test_ltsteps_measures(self):
-        """LTSteps Measures from Batch_Test.asc"""
+        """LTSpiceLogReader Measures from Batch_Test.asc"""
         print("Starting test_ltsteps_measures")
         assert_data = {
             'vout1m'   : [
