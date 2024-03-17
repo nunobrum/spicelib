@@ -199,7 +199,7 @@ class AsyReader(object):
             x2 = int(rectangle.V2.X * SCALE_X)
             y2 = int(rectangle.V2.Y * SCALE_Y)
             rectangle_tag, _ = QschTag.parse(
-                f"«rect ({x1},{y1}) ({x2},{y2}) 0 0 2 0x4000000 0x1000000 -1 0 -1»"
+                f"«rect ({x1},{y1}) ({x2},{y2}) 0 0 0 0x4000000 0x1000000 -1 0 -1»"
             )
             symbol.items.append(rectangle_tag)
 
@@ -212,7 +212,7 @@ class AsyReader(object):
             y2 = int((arc.center.Y + arc.stop.Y * arc.radius) * SCALE_Y)
 
             elipse_tag, _ = QschTag.parse(
-                f"«arc3p ({x1},{y1}) ({x2},{y2}) ({cx},{cy}) 0 2 0xff0000 -1 -1»"
+                f"«arc3p ({x1},{y1}) ({x2},{y2}) ({cx},{cy}) 0 0 0xff0000 -1 -1»"
             )
             symbol.items.append(elipse_tag)
         for i, attr in enumerate(self.windows):
