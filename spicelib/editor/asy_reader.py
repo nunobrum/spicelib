@@ -22,7 +22,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Union
 
-from .base_schematic import Point, Text, TextTypeEnum, Line, HorAlign, ERotation, VerAlign
+from .base_schematic import Point, Text, TextTypeEnum, Line, Circle, Rectangle, Arc, HorAlign, ERotation, VerAlign
 from .asc_editor import asc_text_align_set, TEXT_REGEX, LT_ATTRIBUTE_NUMBERS, LT_ATTRIBUTE_NUMBERS_INV, \
     WEIGHT_CONVERSION_TABLE
 
@@ -42,7 +42,9 @@ class AsyReader(object):
         self.symbol_type = None
         self.pins = []
         self.lines = []
+        self.arcs = []
         self.circles = []
+        self.rectangles = []
         self.attributes = OrderedDict()
         self._asy_file_path = Path(asy_file)
         self.windows = []
@@ -86,7 +88,7 @@ class AsyReader(object):
                     # distance = (x2-x1)  # Always assuming a circle
                     # circle = Arc(Point((x1+x2)/2, (y1+y2)/2), radius=distance/2, start_angle=0, stop_angle=360,
                     #              style=f"{{style:1, weight:{weight}}}")
-                    circle = Line(Point(x1, y1), Point(x2, y2))
+                    circle = Circle(Point(x1, y1), Point(x2, y2))
                     self.circles.append(circle)
                 elif line.startswith("Version"):
                     tag, version = line.split()
@@ -130,8 +132,33 @@ class AsyReader(object):
 
                     pin = Text(coord, "", type=TextTypeEnum.PIN, size=int(offset),
                                textAlignment=text_alignment, verticalAlignment=vertical_alignment, angle=angle)
+                elif line.startswith("ARC"):
+                    tag, weight, x1, y1, x2, y2, x3, y3, x4, y4  = line.split()
+                    x1 = int(x1)
+                    x2 = int(x2)
+                    x3 = int(x3)
+                    x4 = int(x4)
+                    y1 = int(y1)
+                    y2 = int(y2)
+                    y3 = int(y3)
+                    y4 = int(y4)
+
+                    center = Point((x1+x2)//2, (y1+y2)//2)
+                    radius = abs(x2-x1)/2  # Using only the X axis. Assuming a circle not an elipse
+                    start = Point((x3-center.X)/radius, (y3-center.Y)/radius)
+                    stop = Point((x4-center.X)/radius, (y4-center.Y)/radius)
+                    arc = Arc(center, radius=radius, start=start, stop=stop)
+                    self.arcs.append(arc)
+                elif line.startswith("RECTANGLE"):
+                    tag, weight, x1, y1, x2, y2 = line.split()
+                    x1 = int(x1)
+                    x2 = int(x2)
+                    y1 = int(y1)
+                    y2 = int(y2)
+                    rect = Rectangle(Point(x1, y1), Point(x2, y2))
+                    self.rectangles.append(rect)
                 else:
-                    raise NotImplementedError("Primitive not supported for ASC file\n"
+                    print("Primitive not supported for ASC file\n"
                                               f'"{line}"')
             if pin is not None:
                 self.pins.append(pin)
@@ -144,24 +171,50 @@ class AsyReader(object):
         symbol.items.append(QschTag("description:", self.attributes["Description"]))
         symbol.items.append(QschTag("shorted pins:", "false"))
         for line in self.lines:
+            x1 = int(line.V1.X * SCALE_X)
+            y1 = int(line.V1.Y * SCALE_Y)
+            x2 = int(line.V2.X * SCALE_X)
+            y2 = int(line.V2.Y * SCALE_Y)
             segment, _ = QschTag.parse(
-                f"«line ({line.V1.X * SCALE_X:.0f},{line.V1.Y * SCALE_Y:.0f}) "
-                f"({line.V2.X * SCALE_X:.0f},{line.V2.Y * SCALE_Y:.0f})"
-                f" 0 0 0x1000000 -1 -1»")
+                f"«line ({x1},{y1}) ({x2},{y2}) 0 0 0x1000000 -1 -1»")
             symbol.items.append(segment)
 
-        for arc in self.circles:
+        for circle in self.circles:
             # x1 = int((arc.center.X - arc.radius) * SCALE_X)
             # y1 = int((arc.center.Y - arc.radius) * SCALE_Y)
             # x2 = int((arc.center.X + arc.radius) * SCALE_X)
             # y2 = int((arc.center.Y + arc.radius) * SCALE_Y)
-            x1 = int(arc.V1.X * SCALE_X)
-            y1 = int(arc.V1.Y * SCALE_Y)
-            x2 = int(arc.V2.X * SCALE_X)
-            y2 = int(arc.V2.Y * SCALE_Y)
-            elipse_tag, _ = QschTag.parse(f"«ellipse ({x1},{y1}) ({x2},{y2}) 0 0 0 0x1000000 0x1000000 -1 -1»")
+            x1 = int(circle.V1.X * SCALE_X)
+            y1 = int(circle.V1.Y * SCALE_Y)
+            x2 = int(circle.V2.X * SCALE_X)
+            y2 = int(circle.V2.Y * SCALE_Y)
+            elipse_tag, _ = QschTag.parse(
+                f"«ellipse ({x1},{y1}) ({x2},{y2}) 0 0 0 0x1000000 0x1000000 -1 -1»"
+            )
             symbol.items.append(elipse_tag)
 
+        for rectangle in self.rectangles:
+            x1 = int(rectangle.V1.X * SCALE_X)
+            y1 = int(rectangle.V1.Y * SCALE_Y)
+            x2 = int(rectangle.V2.X * SCALE_X)
+            y2 = int(rectangle.V2.Y * SCALE_Y)
+            rectangle_tag, _ = QschTag.parse(
+                f"«rect ({x1},{y1}) ({x2},{y2}) 0 0 2 0x4000000 0x1000000 -1 0 -1»"
+            )
+            symbol.items.append(rectangle_tag)
+
+        for arc in self.arcs:
+            cx = int(arc.center.X * SCALE_X)
+            cy = int(arc.center.Y * SCALE_Y)
+            x1 = int((arc.center.X + arc.start.X * arc.radius) * SCALE_X)
+            y1 = int((arc.center.Y + arc.start.Y * arc.radius) * SCALE_Y)
+            x2 = int((arc.center.X + arc.stop.X * arc.radius) * SCALE_X)
+            y2 = int((arc.center.Y + arc.stop.Y * arc.radius) * SCALE_Y)
+
+            elipse_tag, _ = QschTag.parse(
+                f"«arc3p ({x1},{y1}) ({x2},{y2}) ({cx},{cy}) 0 2 0xff0000 -1 -1»"
+            )
+            symbol.items.append(elipse_tag)
         for i, attr in enumerate(self.windows):
             coord = attr.coord
             x = coord.X * SCALE_X

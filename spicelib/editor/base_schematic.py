@@ -186,15 +186,23 @@ class Line:
         return False
 
 
-# @dataclasses.dataclass
-# class Arc:
-#     """X1, Y1, X2, Y2 coordinates"""
-#     center: Point
-#     radius: float
-#     start_angle: float
-#     stop_angle: float
-#     style: str = ""
-#     # The Arcs are decorative, they don't have associated nets
+Rectangle = Line  # Rectangles have the same properties as Line: Defined as the line that crosses two opposing vertices
+Circle = Line  # Circles are defined by the rectangle that touches 4 points of a circle.
+
+
+@dataclasses.dataclass
+class Arc:
+    """Opting for a non-native representation of the arc as LTspice and Qspice have different
+    ways of storing Arc information. Start and Stop points are calculated as a fraction of the radius
+    for X and Y. This avoids having to deal with the calculation of sines and cosines and their inverse
+    into radians."""
+    center: Point
+    radius: float
+    start: Point
+    stop: Point
+    style: str = ""
+    # The Arcs are decorative, they don't have associated nets
+
 
 @dataclasses.dataclass
 class Text:
