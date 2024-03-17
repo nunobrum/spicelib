@@ -119,13 +119,13 @@ def main():
                     # Using an IO buffer to pass the file to the AsyEditor
                 else:
                     symbol_asc_file = find_file_in_directory(sym_root, comp.symbol + '.asy')
-                if symbol_asc_file is not None:
-                    print(f"Found {symbol_asc_file}")
-                    symbol_asc = AsyReader(symbol_asc_file)
-                    value = comp.attributes.get('Value', '<val>')
-                    symbol_tag = symbol_asc.to_qsch(comp.reference, value)
-                    symbol_stock[comp.symbol] = symbol_tag
-                    break
+                    if symbol_asc_file is not None:
+                        print(f"Found {symbol_asc_file}")
+                        symbol_asc = AsyReader(symbol_asc_file)
+                        value = comp.attributes.get('Value', '<val>')
+                        symbol_tag = symbol_asc.to_qsch(comp.reference, value)
+                        symbol_stock[comp.symbol] = symbol_tag
+                        break
 
         # if symbol_tree:
         #     name = symbol_tree.find("name").text
