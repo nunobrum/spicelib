@@ -24,7 +24,7 @@ copyright = '2023, Nuno Brum'
 author = 'Nuno Brum'
 
 # The full version, including alpha/beta/rc tags
-release = '0.7'
+release = '1.1.0'
 
 
 # -- General configuration ---------------------------------------------------
