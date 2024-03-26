@@ -195,7 +195,7 @@ class BaseEditor(ABC):
         self.save_netlist(run_netlist_file)
 
     @abstractmethod
-    def get_component(self, reference: str) -> Component:
+    def get_component(self, reference: str) -> Component:  # TODO: Consider getting a hierarchical design
         """Returns the Component object representing the given reference in the netlist."""
         ...
 

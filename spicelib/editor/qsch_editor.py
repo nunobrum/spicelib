@@ -41,6 +41,18 @@ QSCH_SYMBOL_TEXT_VALUE = 1
 QSCH_WIRE_POS1 = 1
 QSCH_WIRE_POS2 = 2
 QSCH_WIRE_NET = 3
+
+# «net (<x>,<y>) <s> <l> <p> "<netname>"»
+# (<x>,<y>) - Location of then Net identifier
+# <s> - Font Size (1 is default)
+# <l> - Location 7=Right 11=Left 13=Bottom 14=Top
+# <p> - 0=Net , 1=Port
+
+#  7 0111
+# 11 1011
+# 13 1101
+# 14 1110
+
 QSCH_NET_POS = 1
 QSCH_NET_ROTATION = "?"
 QSCH_NET_STR_ATTR = 5
@@ -87,9 +99,14 @@ class QschTag:
                 while stream[i] != '"':
                     i += 1
             elif stream[i] == '(':
-                # todo: handle nested parenthesis and also [] and {}
+                # todo: support also [] and {}
                 i += 1
-                while stream[i] != ')':
+                nested = 1
+                while nested > 0:
+                    if stream[i] == '(':
+                        nested += 1
+                    elif stream[i] == ')':
+                        nested -= 1
                     i += 1
             i += 1
         else:

@@ -169,11 +169,11 @@ def main():
         #     elif rotation == 'M0':
         #         comp.rotation = comp.rotation.mirror_x_axis()
         #     elif rotation == 'M90':
-        #         comp.rotation = comp.rotation  # TODO
+        #         comp.rotation = comp.rotation
         #     elif rotation == 'M180':
         #         comp.rotation = comp.rotation.M180
         #     elif rotation == 'M270':
-        #         comp.rotation = comp.rotation  # TODO
+        #         comp.rotation = comp.rotation
         #
         #     # typ = symbol_tree.find("type").text
         #     # description = symbol_tree.find("description").text
