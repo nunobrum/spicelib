@@ -251,7 +251,7 @@ class AscEditor(BaseSchematic):
     def get_component_info(self, reference) -> dict:
         """Returns the reference information as a dictionary"""
         component = self.get_component(reference)
-        info = {name: value for name, value in component.attributes if not name.startswith("WINDOW ")}
+        info = {name: value for name, value in component.attributes.items() if not name.startswith("WINDOW ")}
         info["InstName"] = reference  # For legacy purposes
         return info
 
