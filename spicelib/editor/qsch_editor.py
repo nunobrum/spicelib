@@ -346,14 +346,6 @@ class QschEditor(BaseSchematic):
             net = wire.get_attr(QSCH_WIRE_NET)
             self.wires.append(Line(Point(x1, y1), Point(x2, y2), net))
 
-    def get_component(self, component) -> SchematicComponent:
-        """Returns the component information as a dictionary.
-        """
-        if component not in self.components:
-            _logger.error(f"Component {component} not found in ASC file")
-            raise ComponentNotFoundError(f"Component {component} not found in ASC file")
-        return self.components[component]
-
     def _get_text_matching(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
         text_tags = self.schematic.get_items('text')

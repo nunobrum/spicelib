@@ -253,11 +253,11 @@ class BaseSchematic(BaseEditor):
         self.labels = deepcopy(editor.labels)
         self.directives = deepcopy(editor.directives)
 
-    def get_component(self, reference: str) -> SchematicComponent:
+    def get_component(self, reference: str) -> Union[SchematicComponent, 'BaseSchematic']:
         """Returns the SchematicComponent object representing the given reference in the schematic file"""
         if reference not in self.components:
             _logger.error(f"Component {reference} not found")
-            raise ComponentNotFoundError(f"Component {reference} not found in ASC file")
+            raise ComponentNotFoundError(f"Component {reference} not found in Schematic file")
         return self.components[reference]
 
     def get_component_position(self, reference: str) -> (Point, ERotation):

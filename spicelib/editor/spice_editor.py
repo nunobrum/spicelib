@@ -246,8 +246,16 @@ class SpiceCircuit(BaseEditor):
             line_no += 1
         return -1, None  # If it fails, it returns an invalid line number and No match
 
-    def _get_subckt(self, instance_name: str) -> 'SpiceCircuit':
-        """Internal function. Do not use."""
+    def get_subcircuit(self, instance_name: str) -> 'SpiceCircuit':
+        """
+        Returns an object representing a Subcircuit. This object can manipulate elements such as the SpiceEditor does.
+        :param instance_name: Reference of the subcircuit
+        :type instance_name: str
+        :returns: SpiceCircuit instance
+        :rtype: SpiceCircuit
+        :raises UnrecognizedSyntaxError: when an spice command is not recognized by spicelib
+        :raises ComponentNotFoundError: When the reference was not found
+        """
         global LibSearchPaths
         if SUBCKT_DIVIDER in instance_name:
             subckt_ref, sub_subckts = instance_name.split(SUBCKT_DIVIDER, 1)
@@ -302,7 +310,7 @@ class SpiceCircuit(BaseEditor):
                     break
         if sub_circuit:
             if SUBCKT_DIVIDER in instance_name:
-                return sub_circuit._get_subckt(sub_subckts)
+                return sub_circuit.get_subcircuit(sub_subckts)
             else:
                 return sub_circuit
         else:
@@ -445,14 +453,14 @@ class SpiceCircuit(BaseEditor):
         info['line'] = line_no  # adding the line number to the component information
         return info
 
-    def get_component(self, reference: str) -> Component:  # TODO: Consider getting a subcircuit as well
+    def get_component(self, reference: str) -> Union[Component, 'SpiceCircuit']:
         """
         Returns an object representing the given reference in the schematic file
 
         :param reference: Reference of the component
         :type reference: str
-        :return: The SchematicComponent object
-        :rtype: SchematicComponent
+        :return: The Component object or a SpiceSubcircuit in case of hierarchical design
+        :rtype: Component or SpiceSubcircuit
         :raises: ComponentNotFoundError - In case the component is not found
         :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
         :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
@@ -778,6 +786,23 @@ class SpiceEditor(SpiceCircuit):
     def circuit_file(self) -> Path:
         return self.netlist_file
 
+    def get_component_info(self, component) -> dict:
+        prefix = component[0]
+        if prefix == 'X' and  SUBCKT_DIVIDER in component:  # Relaces a component inside of a subciruit
+            # In this case the sub-circuit needs to be copied so that is copy is modified. A copy is created for each
+            # instance of a sub-circuit.
+            component_split = component.split(SUBCKT_DIVIDER)
+            modified_path = SUBCKT_DIVIDER.join(component_split[:-1])  # excludes last component
+            component = component_split[-1]  # This is the last component to modify
+
+            if modified_path in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
+                subcircuit = self.modified_subcircuits[modified_path]
+            else:
+                subcircuit = self.get_subcircuit(component)
+            return subcircuit.get_component_info(component)
+
+        return super().get_component_info(component)
+
     def _set_model_and_value(self, component, value):
         prefix = component[0]  # Using the first letter of the component to identify what is it
         if prefix == 'X' and SUBCKT_DIVIDER in component:  # Relaces a component inside of a subciruit
@@ -790,7 +815,7 @@ class SpiceEditor(SpiceCircuit):
             if modified_path in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
                 sub_circuit = self.modified_subcircuits[modified_path]
             else:
-                sub_circuit_original = self._get_subckt(modified_path)  # If not will look for it.
+                sub_circuit_original = self.get_subcircuit(modified_path)  # If not will look for it.
                 if sub_circuit_original:
                     new_name = sub_circuit_original.name() + '_' + '_'.join(
                         component_split[:-1])  # Creates a new name with the path appended
