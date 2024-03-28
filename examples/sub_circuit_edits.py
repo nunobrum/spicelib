@@ -1,13 +1,6 @@
 import os
 from spicelib.editor import SpiceEditor
 
-try:
-    import rich
-except ImportError:
-    import pip
-    pip.main(["install", "rich"])
-
-
 E = SpiceEditor('testfiles\\spice_edit_test.net')
 print("Circuit Nodes", E.get_all_nodes())
 E.add_library_search_paths([r"C:\SVN\Electronic_Libraries\LTSpice\lib"])

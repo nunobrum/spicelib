@@ -1,6 +1,11 @@
 # coding=utf-8
 import logging
-from rich.logging import RichHandler
+
+try:
+    from rich.logging import RichHandler
+except ImportError:
+    RichHandler = None
+
 import spicelib
 
 from spicelib import SimRunner, SpiceEditor
@@ -8,7 +13,8 @@ from time import sleep
 from random import random
 
 spicelib.set_log_level(logging.DEBUG)
-spicelib.add_log_handler(RichHandler())
+if RichHandler is not None:
+    spicelib.add_log_handler(RichHandler())
 
 
 from spicelib.simulators.ltspice_simulator import LTspice
