@@ -16,14 +16,16 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+import os.path
 from pathlib import Path
-from typing import Union, Tuple, List
+from typing import Union, Optional
 import re
 import logging
+from ..utils.file_search import find_file_in_directory
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component
 from .base_schematic import (BaseSchematic, Point, Line, Text, SchematicComponent, ERotation, HorAlign, VerAlign,
-                             TextTypeEnum)
+                             TextTypeEnum, Port)
 
 _logger = logging.getLogger("spicelib.AscEditor")
 
@@ -116,20 +118,21 @@ def asc_text_align_get(text: Text) -> str:
 
 class AscEditor(BaseSchematic):
     """Class made to update directly the LTspice ASC files"""
+    lib_paths = []  # This is a class variable, so it can be shared between all instances.
 
     def __init__(self, asc_file: str):
         super().__init__()
         self.version = 4
         self.sheet = "1 0 0"  # Three values are present on the SHEET clause
-        self._asc_file_path = Path(asc_file)
-        if not self._asc_file_path.exists():
+        self.asc_file_path = Path(asc_file)
+        if not self.asc_file_path.exists():
             raise FileNotFoundError(f"File {asc_file} not found")
         # read the file into memory
         self.reset_netlist()
 
     @property
     def circuit_file(self) -> Path:
-        return self._asc_file_path
+        return self.asc_file_path
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         if isinstance(run_netlist_file, str):
@@ -151,15 +154,21 @@ class AscEditor(BaseSchematic):
                 rotation = ASC_INV_ROTATION_DICT[component.rotation]
                 asc.write(f"SYMBOL {symbol} {posX} {posY} {rotation}" + END_LINE_TERM)
                 for attr, value in component.attributes.items():
-                    if attr.startswith('WINDOW') and isinstance(value, Text):
+                    if attr.startswith('_WINDOW') and isinstance(value, Text):
+                        num_ref = attr[len("_WINDOW_"):]
                         posX = value.coord.X
                         posY = value.coord.Y
                         alignment = asc_text_align_get(value)
                         size = value.size
-                        asc.write(f"{attr} {posX} {posY} {alignment} {size}" + END_LINE_TERM)
+                        asc.write(f"WINDOW {num_ref} {posX} {posY} {alignment} {size}" + END_LINE_TERM)
                 asc.write(f"SYMATTR InstName {component.reference}" + END_LINE_TERM)
+                if component.reference.startswith('X') and "_SUBCKT" in component.attributes:
+                    # writing the sub-circuit if it was updated
+                    sub_circuit: AscEditor = component.attributes["_SUBCKT"]
+                    if sub_circuit.updated:
+                        sub_circuit.save_netlist(sub_circuit.asc_file_path)
                 for attr, value in component.attributes.items():
-                    if not attr.startswith('WINDOW'):
+                    if not attr.startswith('_'):  # All these are not exported since they are only used internally
                         asc.write(f"SYMATTR {attr} {value}" + END_LINE_TERM)
             for directive in self.directives:
                 posX = directive.coord.X
@@ -174,8 +183,8 @@ class AscEditor(BaseSchematic):
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()
-        with open(self._asc_file_path, 'r') as asc_file:
-            _logger.info(f"Parsing ASC file {self._asc_file_path}")
+        with open(self.asc_file_path, 'r') as asc_file:
+            _logger.info(f"Parsing ASC file {self.asc_file_path}")
             component = None
             for line in asc_file:
                 if line.startswith("SYMBOL"):
@@ -197,7 +206,7 @@ class AscEditor(BaseSchematic):
                     coord = Point(int(posX), int(posY))
                     text = Text(coord=coord, text=num_ref, size=size, type=TextTypeEnum.ATTRIBUTE)
                     text = asc_text_align_set(text, alignment)
-                    component.attributes['WINDOW ' + num_ref] = text
+                    component.attributes['_WINDOW ' + num_ref] = text
 
                 elif line.startswith("SYMATTR"):
                     assert component is not None, "Syntax Error: SYMATTR clause without SYMBOL"
@@ -205,6 +214,9 @@ class AscEditor(BaseSchematic):
                     text = text.strip()  # Gets rid of the \n terminator
                     if ref == "InstName":
                         component.reference = text
+                        if component.reference.startswith('X'):  # This is a subcircuit
+                            # then create the attribute "SUBCKT"
+                            component.attributes["_SUBCKT"] = self._get_symbol_circuit(component.symbol)
                     else:
                         component.attributes[ref] = text
                 elif line.startswith("TEXT"):
@@ -241,6 +253,12 @@ class AscEditor(BaseSchematic):
                     self.version = version
                 elif line.startswith("SHEET "):
                     self.sheet = line[len("SHEET "):].strip()
+                elif line.startswith("IOPIN "):
+                    tag, posX, posY, direction = line.split()
+                    text = self.labels[-1]  # Assuming it is the last FLAG parsed
+                    assert text.coord.X == int(posX) and text.coord.Y == int(posY), "Syntax Error, getting a IOPIN withou an associated label"
+                    port = Port(text, direction)
+                    self.ports.append(port)
                 else:
                     raise NotImplementedError("Primitive not supported for ASC file\n" 
                                               f'"{line}"')
@@ -248,10 +266,21 @@ class AscEditor(BaseSchematic):
                 assert component.reference is not None, "Component InstName was not given"
                 self.components[component.reference] = component
 
+    def _get_symbol_circuit(self, symbol: str):
+        asc_filename = symbol + os.path.extsep + "asc"
+        asc_path = self._lib_file_find(asc_filename)
+        answer = AscEditor(asc_path)
+        return answer
+
+    def get_subcircuit(self, reference: str) -> 'AscEditor':
+        """Returns an AscEditor file corresponding to the symbol"""
+        sub = self.get_component(reference)
+        return sub.attributes["_SUBCKT"]
+
     def get_component_info(self, reference) -> dict:
         """Returns the reference information as a dictionary"""
         component = self.get_component(reference)
-        info = {name: value for name, value in component.attributes if not name.startswith("WINDOW ")}
+        info = component.attributes.copy()
         info["InstName"] = reference  # For legacy purposes
         return info
 
@@ -303,6 +332,7 @@ class AscEditor(BaseSchematic):
             directive = Text(coord=coord, text=text, size=2, type=TextTypeEnum.DIRECTIVE)
             _logger.info(f"Parameter {param} added with value {value}")
             self.directives.append(directive)
+        self.updated = True
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         component = self.get_component(device)
@@ -313,6 +343,7 @@ class AscEditor(BaseSchematic):
                 value_str = format_eng(value)
             component.attributes["Value"] = value_str
             _logger.info(f"Component {device} updated to {value_str}")
+            self.set_updated(device)
         else:
             _logger.error(f"Component {device} does not have a Value attribute")
             raise ComponentNotFoundError(f"Component {device} does not have a Value attribute")
@@ -321,6 +352,7 @@ class AscEditor(BaseSchematic):
         component = self.get_component(element)
         component.symbol = model
         _logger.info(f"Component {element} updated to {model}")
+        self.set_updated(element)
 
     def get_component_value(self, element: str) -> str:
         component = self.get_component(element)
@@ -335,7 +367,9 @@ class AscEditor(BaseSchematic):
         return [k for k in self.components.keys() if k[0] in prefixes]
 
     def remove_component(self, designator: str):
-        del self.components[designator]
+        sub_circuit, ref = self._get_parent(designator)
+        del sub_circuit.components[ref]
+        sub_circuit.updated = True
 
     def _get_text_space(self):
         """
@@ -371,6 +405,30 @@ class AscEditor(BaseSchematic):
 
         return min_x, max_y + 24  # Setting the text in the bottom left corner of the canvas
 
+    def add_library_paths(self, *paths):
+        """Adding paths for searching for symbols and libraries"""
+        self.lib_paths.extend(*paths)
+
+    def _lib_file_find(self, filename) -> Optional[str]:
+        for sym_root in self.lib_paths + [
+            # os.path.curdir,  # The current script directory
+            os.path.split(self.asc_file_path)[0],  # The directory where the script is located
+            os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
+            os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sym"),
+            # os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"), # TODO: implement this
+        ]:
+            print(f"   {os.path.abspath(sym_root)}")
+            if not os.path.exists(sym_root):  # Skipping invalid paths
+                continue
+            if sym_root.endswith('.zip'):
+                pass
+                # TODO: Using an IO buffer to pass the file to the AsyEditor
+            else:
+                file_found = find_file_in_directory(sym_root, filename)
+                if file_found is not None:
+                    return file_found
+        return None
+
     def add_instruction(self, instruction: str) -> None:
         instruction = instruction.strip()  # Clean any end of line terminators
         set_command = instruction.split()[0].upper()
@@ -385,6 +443,7 @@ class AscEditor(BaseSchematic):
                 directive_command = directive.text.split()[0].upper()
                 if directive_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
                     directive.text = instruction
+                    self.updated = True
                     return  # Job done, can exit this method
                 i += 1
         elif set_command.startswith('.PARAM'):
@@ -394,6 +453,7 @@ class AscEditor(BaseSchematic):
         coord = Point(x, y)
         directive = Text(coord=coord, text=instruction, size=2, type=TextTypeEnum.DIRECTIVE)
         self.directives.append(directive)
+        self.updated = True
 
     def remove_instruction(self, instruction: str) -> None:
         i = 0
@@ -402,6 +462,7 @@ class AscEditor(BaseSchematic):
                 text = self.directives[i].text
                 del self.directives[i]
                 _logger.info(f"Instruction {text} removed")
+                self.updated = True
                 return  # Job done, can exit this method
             i += 1
 
@@ -421,6 +482,8 @@ class AscEditor(BaseSchematic):
                 _logger.info(f"Instruction {instruction} removed")
             else:
                 i += 1
-        if not instr_removed:
+        if instr_removed:
+            self.updated = True
+        else:
             msg = f'Instructions matching "{search_pattern}" not found'
             _logger.error(msg)

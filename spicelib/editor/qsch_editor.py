@@ -32,9 +32,15 @@ __all__ = ('QschEditor', )
 _logger = logging.getLogger("qspice.QschEditor")
 
 QSCH_HEADER = (255, 216, 255, 219)
+
+# «text (<x>,<y>) <s> <r> 0 0x1000000 -1 -1 "sub_circuit"»
 QSCH_TEXT_POS = 1
-QSCH_TEXT_ROTATION = 2
+QSCH_TEXT_SIZE = 2
+QSCH_TEXT_ROTATION = 3  # 13="0 Degrees" 45="90 Degrees" 77="180 Degrees" 109="270 Degrees" r= 13+32*alpha/90
+QSCH_TEXT_COMMENT = 4  # 0="Normal Text" 1="Comment"
+QSCH_TEXT_COLOR = 5  # 0xdbbggrr  d=1 "Default" rr=Red gg=Green bb=Blue in hex format
 QSCH_TEXT_STR_ATTR = 8
+
 QSCH_COMPONENT_POS = 1
 QSCH_SYMBOL_TEXT_REFDES = 0
 QSCH_SYMBOL_TEXT_VALUE = 1
@@ -100,14 +106,13 @@ class QschTag:
                     i += 1
             elif stream[i] == '(':
                 # todo: support also [] and {}
-                i += 1
                 nested = 1
                 while nested > 0:
+                    i += 1
                     if stream[i] == '(':
                         nested += 1
                     elif stream[i] == ')':
                         nested -= 1
-                    i += 1
             i += 1
         else:
             raise IOError("Missing » when reading file")
@@ -158,10 +163,13 @@ class QschTag:
             raise ValueError("Object not supported in set_attr")
         self.tokens[index] = value_str
 
-    def get_text(self, label) -> str:
+    def get_text(self, label, default: str = None) -> str:
         a = self.get_items(label+':')
         if len(a) != 1:
-            raise IndexError(f"Label {label}: not found")
+            if default is None:
+                raise IndexError(f"Label '{label}' not found in:{self}")
+            else:
+                return default
         return a[0].tokens[1]
 
     def get_text_attr(self, index: int) -> str:
@@ -325,8 +333,8 @@ class QschEditor(BaseSchematic):
             x, y = tuple(component.get_attr(QSCH_COMPONENT_POS))
             sch_comp.position = Point(x, y)
             sch_comp.rotation = component.get_attr(QSCH_TEXT_ROTATION) / 45
-            sch_comp.attributes['type'] = symbol.get_text('type')
-            sch_comp.attributes['description'] = symbol.get_text('description'),
+            sch_comp.attributes['type'] = symbol.get_text('type', "X")  # Assuming a sub-circuit
+            sch_comp.attributes['description'] = symbol.get_text('description', "No Description")
             sch_comp.attributes['value'] = value
             sch_comp.attributes['tag'] = component
             self.components[refdes] = sch_comp
@@ -358,6 +366,11 @@ class QschEditor(BaseSchematic):
                     return tag, match
         else:
             return None, None
+
+    def get_subcircuit(self, reference: str) -> 'QschEditor':
+        subcircuit = self.get_component(reference)
+
+        return subcircuit
 
     def get_parameter(self, param: str) -> str:
         param_regex = re.compile(PARAM_REGEX % param, re.IGNORECASE)

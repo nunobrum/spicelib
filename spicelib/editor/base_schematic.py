@@ -24,7 +24,7 @@ import enum
 from typing import List, Callable, Union
 from collections import OrderedDict
 import logging
-from .base_editor import BaseEditor, Component, ComponentNotFoundError
+from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
 
 _logger = logging.getLogger("spicelib.BaseSchematic")
 
@@ -216,6 +216,12 @@ class Text:
     angle: ERotation = ERotation.R0
 
 
+@dataclasses.dataclass
+class Port:
+    text: Text
+    direction: str
+
+
 class SchematicComponent(Component):
     """Hols component information"""
 
@@ -237,6 +243,8 @@ class BaseSchematic(BaseEditor):
         self.wires: List[Line] = []
         self.labels: List[Text] = []
         self.directives: List[Text] = []
+        self.ports: List[Port] = []
+        self.updated = False  # indicates if an edit was done and the file has to be written back to disk
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """Resets the netlist to the original state"""
@@ -244,6 +252,7 @@ class BaseSchematic(BaseEditor):
         self.wires.clear()
         self.labels.clear()
         self.directives.clear()
+        self.updated = False
 
     def copy_from(self, editor: 'BaseSchematic') -> None:
         """Copies the contents of the given editor"""
@@ -253,12 +262,28 @@ class BaseSchematic(BaseEditor):
         self.labels = deepcopy(editor.labels)
         self.directives = deepcopy(editor.directives)
 
-    def get_component(self, reference: str) -> Union[SchematicComponent, 'BaseSchematic']:
+    def _get_parent(self, reference) -> ("BaseSchematic", str):
+        if SUBCKT_DIVIDER in reference:
+            sub_ref, sub_comp = reference.split(SUBCKT_DIVIDER, 1)
+
+            subckt = self.get_component(sub_ref)
+            subcircuit = subckt.attributes['_SUBCKT']
+            return subcircuit, sub_comp
+        else:
+            return self, reference
+
+    def set_updated(self, reference):
+        sub_circuit, _ = self._get_parent(reference)
+        sub_circuit.updated = True
+
+    def get_component(self, reference: str) -> SchematicComponent:
         """Returns the SchematicComponent object representing the given reference in the schematic file"""
-        if reference not in self.components:
+        sub_circuit, ref = self._get_parent(reference)
+
+        if ref not in sub_circuit.components:
             _logger.error(f"Component {reference} not found")
             raise ComponentNotFoundError(f"Component {reference} not found in Schematic file")
-        return self.components[reference]
+        return sub_circuit.components[ref]
 
     def get_component_position(self, reference: str) -> (Point, ERotation):
         """Returns the position and rotation of the component"""
@@ -270,6 +295,7 @@ class BaseSchematic(BaseEditor):
         comp = self.get_component(reference)
         comp.position = position
         comp.rotation = rotation
+        self.set_updated(reference)
 
     def add_component(self, component: SchematicComponent, **kwargs) -> None:
         if component.reference in self.components:
@@ -279,6 +305,7 @@ class BaseSchematic(BaseEditor):
             comp = SchematicComponent()
             comp.reference = component.reference
         self.components[component.reference] = comp
+        self.updated = True
 
     def scale(self, offset_x, offset_y, scale_x, scale_y: float,
               round_fun: Callable[[float], Union[int, float]] = None) -> None:
@@ -299,3 +326,4 @@ class BaseSchematic(BaseEditor):
         for directive in self.directives:
             directive.coord.X = round_fun(directive.coord.X * scale_x + offset_x)
             directive.coord.Y = round_fun(directive.coord.Y * scale_y + offset_y)
+        self.updated = True

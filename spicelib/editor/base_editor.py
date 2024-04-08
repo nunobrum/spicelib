@@ -27,6 +27,9 @@ import logging
 
 _logger = logging.getLogger("spicelib.BaseEditor")
 
+SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
+# Ex: Editor.set_component_value('XU1:R1', '1k')
+
 UNIQUE_SIMULATION_DOT_INSTRUCTIONS = ('.AC', '.DC', '.TRAN', '.NOISE', '.DC', '.TF')
 SPICE_DOT_INSTRUCTIONS = (
     '.BACKANNO',
@@ -195,8 +198,13 @@ class BaseEditor(ABC):
         self.save_netlist(run_netlist_file)
 
     @abstractmethod
-    def get_component(self, reference: str) -> Union[Component, 'BaseEditor']:
+    def get_component(self, reference: str) -> Component:
         """Returns the Component object representing the given reference in the netlist."""
+        ...
+
+    @abstractmethod
+    def get_subcircuit(self, reference: str) -> 'BaseEditor':
+        """Returns a hierarchical subdesign"""
         ...
 
     def get_component_attribute(self, reference: str, attribute: str) -> str:

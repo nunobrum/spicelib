@@ -22,7 +22,7 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 from typing import Union, List, Callable, Any, Tuple, Optional
@@ -32,8 +32,6 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 END_LINE_TERM = '\n'  #: This controls the end of line terminator used
-SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
-# Ex: Editor.set_component_value('XU1:R1', '1k')
 
 # A Spice netlist can only have one of the instructions below, otherwise an error will be raised
 
@@ -788,7 +786,7 @@ class SpiceEditor(SpiceCircuit):
 
     def get_component_info(self, component) -> dict:
         prefix = component[0]
-        if prefix == 'X' and  SUBCKT_DIVIDER in component:  # Relaces a component inside of a subciruit
+        if prefix == 'X' and SUBCKT_DIVIDER in component:  # Replaces a component inside of a subciruit
             # In this case the sub-circuit needs to be copied so that is copy is modified. A copy is created for each
             # instance of a sub-circuit.
             component_split = component.split(SUBCKT_DIVIDER)
