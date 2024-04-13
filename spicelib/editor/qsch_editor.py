@@ -237,7 +237,7 @@ class QschEditor(BaseSchematic):
                         texts = symbol_tag.get_items('text')
                         refdes = texts[0].get_text_attr(QSCH_TEXT_STR_ATTR)
                         nets = [self._find_net_at_pin(component_pos, orientation, pin) for pin in pins]
-                        if typ == 'R' or typ == 'D' or typ == 'C' or typ == 'L' or typ == 'V' or typ == 'I':
+                        if typ in ('R', 'D', 'C', 'L', 'V', 'I'):
                             value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
                             if len(texts) > 2:
                                 for i in range(2, len(texts)):
@@ -246,7 +246,7 @@ class QschEditor(BaseSchematic):
                                 netlist_file.write(f'{refdes} {" ".join(nets)} {value}\n')
                             else:
                                 netlist_file.write(f'{symbol}†{refdes} {" ".join(nets)} {value}\n')
-                        elif typ == 'QP' or typ == 'QN':
+                        elif typ in ('QP', 'QN', "MN", "NP"):
                             model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
                             netlist_file.write(f'{refdes} {" ".join(nets)} 0 {model} {symbol}\n')
                         else:
