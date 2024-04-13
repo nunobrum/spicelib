@@ -286,12 +286,16 @@ class QschEditor(BaseSchematic):
             y = comp_pos[1] + round(hyp * math.sin(theta), -2)
         else:
             raise ValueError(f"Invalid orientation: {orientation}")
-        for net in self.schematic.get_items('wire'):
-            if net.get_attr(1) == (x, y) or net.get_attr(2) == (x, y):
-                net_name = net.get_attr(3)  # Found the net
+        for net in self.schematic.get_items('net'):
+            if net.get_attr(1) == (x, y):
+                net_name = net.get_attr(5)  # Found the net
                 return '0' if net_name == 'GND' else net_name
-        else:
-            return '####'
+        for wire in self.schematic.get_items('wire'):
+            if wire.get_attr(1) == (x, y) or wire.get_attr(2) == (x, y):
+                net_name = wire.get_attr(3)  # Found the net
+                return '0' if net_name == 'GND' else net_name
+
+        raise QschReadingError(f"Failed to find the net for {pin} in component in position {comp_pos}")
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """Reads the QSCH file and parses it into memory.
