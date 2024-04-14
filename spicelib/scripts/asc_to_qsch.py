@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding=utf-8
-import logging
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -19,45 +18,43 @@ import logging
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os
+import logging
 import xml.etree.ElementTree as ET
 
 from spicelib.editor.asy_reader import AsyReader
-from spicelib.editor.base_schematic import ERotation
 from spicelib.editor.asc_editor import AscEditor
-from spicelib.editor.qsch_editor import QschEditor, QschTag
+from spicelib.editor.qsch_editor import QschEditor
+from spicelib.utils.file_search import find_file_in_directory
 
 _logger = logging.getLogger()
 
 
-def find_file_in_directory(directory, filename):
-    """
-    Searches for a file with the given filename in the specified directory and its subdirectories.
-    Returns the path to the file if found, or None if not found.
-    """
-    # First check whether there is a path tagged to the filename
-    path, filename = os.path.split(filename)
-    if path != '':
-        directory = os.path.join(directory, path)
-    for root, dirs, files in os.walk(directory):
-        if filename in files:
-            return os.path.join(root, filename)
-    return None
-
-
 def main():
     """Converts an ASC file to a QSCH schematic"""
-    import sys
     import os.path
+    from optparse import OptionParser
 
-    if len(sys.argv) < 2:
-        print("Usage: asc_to_qsch ASC_FILE [QSCH_FILE]")
-        sys.exit(-1)
+    opts = OptionParser(
+        usage="usage: %prog [options] ASC_FILE [QSCH_FILE]",
+        version="%prog 0.1")
 
-    asc_file = sys.argv[1]
-    if len(sys.argv) > 2:
-        qsch_file = sys.argv[2]
+    opts.add_option('-a', "--add", action="append", type="string", dest="path",
+                    help="Add a path for searching for symbols")
+
+    (options, args) = opts.parse_args()
+
+    if len(args) < 1:
+        opts.print_help()
+        exit(-1)
+
+    asc_file = args[0]
+    if len(args) > 1:
+        qsch_file = args[1]
     else:
         qsch_file = os.path.splitext(asc_file)[0] + ".qsch"
+
+    search_paths = [] if options.path is None else options.path
+    symbol_stock = {}
 
     print(f"Using {qsch_file} as output file")
 
@@ -89,29 +86,32 @@ def main():
     # The symbol_stock has native QSpice symbols and information on how to replace the LTSpice symbols by
     # QSpice ones. For now this is not operational
     for comp in asc_editor.components.values():
-        # TODO: symbol_tree = symbol_stock.get(comp.symbol)
-        symbol_tag = None
-        # if symbol_tree is None:
-        # Will try to get it from the sym folder
-        for sym_root in (
-            os.path.curdir,  # The current script directory
-            os.path.split(asc_file)[0],  # The directory where the scrip is located
-            os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
-            os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"),
-            "A stupid test directory that doesn't exist and that should be skipped"
-        ):
-            if not os.path.exists(sym_root):  # Skipping invalid paths
-                continue
-            if sym_root.endswith('.zip'):  # TODO: test if it is a file
-                pass  # TODO: implement this
-                # Using an IO buffer to pass the file to the AsyEditor
-            else:
-                symbol_asc_file = find_file_in_directory(sym_root, comp.symbol + '.asy')
-            if symbol_asc_file is not None:
-                symbol_asc = AsyReader(symbol_asc_file)
-                value = comp.attributes.get('Value', '<val>')
-                symbol_tag = symbol_asc.to_qsch(comp.reference, value)
-                break
+        symbol_tag = symbol_stock.get(comp.symbol, None)
+        if symbol_tag is None:
+            # Will try to get it from the sym folder
+            print(f"Searching for symbol {comp.symbol}...")
+            for sym_root in search_paths + [
+                # os.path.curdir,  # The current script directory
+                os.path.split(asc_file)[0],  # The directory where the scrip is located
+                os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
+                os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sym"),
+                # os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"), # TODO: implement this
+            ]:
+                print(f"   {os.path.abspath(sym_root)}")
+                if not os.path.exists(sym_root):  # Skipping invalid paths
+                    continue
+                if sym_root.endswith('.zip'):  # TODO: test if it is a file
+                    pass
+                    # Using an IO buffer to pass the file to the AsyEditor
+                else:
+                    symbol_asc_file = find_file_in_directory(sym_root, comp.symbol + '.asy')
+                    if symbol_asc_file is not None:
+                        print(f"Found {symbol_asc_file}")
+                        symbol_asc = AsyReader(symbol_asc_file)
+                        value = comp.attributes.get('Value', '<val>')
+                        symbol_tag = symbol_asc.to_qsch(comp.reference, value)
+                        symbol_stock[comp.symbol] = symbol_tag
+                        break
 
         # if symbol_tree:
         #     name = symbol_tree.find("name").text
@@ -155,11 +155,11 @@ def main():
         #     elif rotation == 'M0':
         #         comp.rotation = comp.rotation.mirror_x_axis()
         #     elif rotation == 'M90':
-        #         comp.rotation = comp.rotation  # TODO
+        #         comp.rotation = comp.rotation
         #     elif rotation == 'M180':
         #         comp.rotation = comp.rotation.M180
         #     elif rotation == 'M270':
-        #         comp.rotation = comp.rotation  # TODO
+        #         comp.rotation = comp.rotation
         #
         #     # typ = symbol_tree.find("type").text
         #     # description = symbol_tree.find("description").text
