@@ -1,0 +1,15 @@
+* C:\sandbox\spicelib\examples\testfiles\top_circuit.qsch
+X1 N01 N02 sub_circuit param1=9
+V1 N01 0 PULSE 0 10 1m 1n 1n 1m 2m 10
+R1 N02 0 100K
+
+.subckt sub_circuit IN OUT
+M1 OUT IN 0 0 NMOS NMOS
+R1 N01 OUT 100
+V1 N01 0 {param1}
+.param param1=11
+.lib C:\PROGRA~1\QSPICE\NMOS.txt
+.ends sub_circuit
+
+.tran 5m
+.end

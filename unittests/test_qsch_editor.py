@@ -46,7 +46,7 @@ def equalFiles(testcase, file1, file2):
         data2 = lines2[i].strip()
         if data1.startswith('*') and data2.startswith('*'):
             continue  # Skip comments
-        testcase.assertEqual(data1, data2, "Files are not equal")
+        testcase.assertEqual(data1, data2, f"Files \"{file1}\" and \"{file2}\" are not equal")
     
 
 class ASC_Editor_Test(unittest.TestCase):
@@ -101,6 +101,14 @@ class QschEditorRotation(unittest.TestCase):
             self.qsch.set_component_position('R1', (0, 0), rotation)
             self.qsch.save_netlist(temp_dir + f'qsch_rotation_set_{rotation}.qsch')
             equalFiles(self, temp_dir + f'qsch_rotation_set_{rotation}.qsch', golden_dir + f"qsch_rotation_set_{rotation}.qsch")
+
+
+class QschEditorSpiceGeneration(unittest.TestCase):
+
+    def test_hierarchical(self):
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "top_circuit.qsch")
+        self.edt.save_netlist(temp_dir + "top_circuit.net")
+        equalFiles(self, temp_dir + 'top_circuit.net', golden_dir + "top_circuit.net")
 
 
 if __name__ == '__main__':
