@@ -108,7 +108,10 @@ class QschEditorSpiceGeneration(unittest.TestCase):
     def test_hierarchical(self):
         self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "top_circuit.qsch")
         self.edt.save_netlist(temp_dir + "top_circuit.net")
-        equalFiles(self, temp_dir + 'top_circuit.net', golden_dir + "top_circuit.net")
+        if sys.platform.startswith("win"):
+            equalFiles(self, temp_dir + 'top_circuit.net', golden_dir + "top_circuit_win32.net")
+        else:
+            equalFiles(self, temp_dir + 'top_circuit.net', golden_dir + "top_circuit.net")
 
 
 if __name__ == '__main__':
