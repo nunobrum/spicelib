@@ -1,3 +1,4 @@
+# From https://stackoverflow.com/questions/23598289/how-to-get-windows-short-file-name-in-python
 import ctypes
 from ctypes import wintypes
 _GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW
@@ -7,6 +8,8 @@ _GetShortPathNameW.restype = wintypes.DWORD
 # GetShortPathName is used by first calling it without a destination buffer. It will return the number of characters
 # you need to make the destination buffer. You then call it again with a buffer of that size. If, due to a TOCTTOU
 # problem, the return value is still larger, keep trying until you've got it right. So:
+
+
 def get_short_path_name(long_name):
     """
     Gets the short path name of a given long path.
