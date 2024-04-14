@@ -424,8 +424,9 @@ class QschEditor(BaseSchematic):
             if refdes.startswith('X'):
                 sub_circuit_name = value + os.path.extsep + 'qsch'
                 sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name)
-                sub_schematic = QschEditor(sub_circuit_schematic_file)
-                sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
+                if sub_circuit_schematic_file:
+                    sub_schematic = QschEditor(sub_circuit_schematic_file)
+                    sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
 
         for net in self.schematic.get_items('net'):
             # process nets
