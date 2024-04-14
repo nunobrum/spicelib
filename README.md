@@ -491,6 +491,17 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 1.1.1
+  * Supporting hierarchical edits on both QSpice and LTspice schematics
+  * Skipping the need of the rich library on examples
+  * Giving feedback on the search for symbols on the ASC to QSCH conversion
+  * Improvement on Documentation
+  * Adding examples and unittests on hiearchical edits
+  * Giving access to hidden properties (asc_file_path in AscEditor and qsch_file_path in QschEditor)
+  * Refactoring save_netlist() method in QschEditor class
+  * Supporting arcs and rectangles on AsyReader
+  * Adding file_search.py containing utility functions for searching files
+  * Adding windows_short_names.py containing a code to get the 8.3 Windows short names.
 * Version 1.1.0
   * First usable version of a LTspice to Qspice schematic converter.
 * Version 1.0.4
