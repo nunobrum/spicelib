@@ -17,8 +17,10 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import math
+import os
+from collections import OrderedDict
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Optional, IO, TextIO
 import re
 import logging
 from .base_editor import (
@@ -26,6 +28,7 @@ from .base_editor import (
     PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 )
 from .base_schematic import BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum
+from ..utils.file_search import find_file_in_directory
 
 __all__ = ('QschEditor', )
 
@@ -33,17 +36,27 @@ _logger = logging.getLogger("qspice.QschEditor")
 
 QSCH_HEADER = (255, 216, 255, 219)
 
-# «text (<x>,<y>) <s> <r> 0 0x1000000 -1 -1 "sub_circuit"»
-QSCH_TEXT_POS = 1
-QSCH_TEXT_SIZE = 2
-QSCH_TEXT_ROTATION = 3  # 13="0 Degrees" 45="90 Degrees" 77="180 Degrees" 109="270 Degrees" r= 13+32*alpha/90
-QSCH_TEXT_COMMENT = 4  # 0="Normal Text" 1="Comment"
-QSCH_TEXT_COLOR = 5  # 0xdbbggrr  d=1 "Default" rr=Red gg=Green bb=Blue in hex format
-QSCH_TEXT_STR_ATTR = 8
 
+# «component (-1200,-100) 0 0
 QSCH_COMPONENT_POS = 1
+QSCH_COMPONENT_ROTATION = 2
+QSCH_COMPONENT_ENABLED = 3
+#    «symbol V
+#       «type: V»
+#       «description: Independent Voltage Source»
+#       «shorted pins: false»
+#       ... primitives : rect, line, zigzag, elipse, etc...
+#       «text (100,150) 1 7 0 0x1000000 -1 -1 "R1"»
+#       «text (100,-150) 1 7 0 0x1000000 -1 -1 "100K"»
 QSCH_SYMBOL_TEXT_REFDES = 0
 QSCH_SYMBOL_TEXT_VALUE = 1
+#       «pin (0,200) (0,0) 1 0 0 0x0 -1 "+"»
+QSCH_SYMBOL_PIN_POS1 = 1
+QSCH_SYMBOL_PIN_POS2 = 2
+QSCH_SYMBOL_PIN_NET = 8
+#    »
+# »
+#   «wire (-1200,100) (-500,100) "N01"»
 QSCH_WIRE_POS1 = 1
 QSCH_WIRE_POS2 = 2
 QSCH_WIRE_NET = 3
@@ -52,16 +65,22 @@ QSCH_WIRE_NET = 3
 # (<x>,<y>) - Location of then Net identifier
 # <s> - Font Size (1 is default)
 # <l> - Location 7=Right 11=Left 13=Bottom 14=Top
+#        7 0111
+#       11 1011
+#       13 1101
+#       14 1110
 # <p> - 0=Net , 1=Port
-
-#  7 0111
-# 11 1011
-# 13 1101
-# 14 1110
-
 QSCH_NET_POS = 1
 QSCH_NET_ROTATION = "?"
 QSCH_NET_STR_ATTR = 5
+
+#   «text (-800,-650) 1 7 0 0x1000000 -1 -1 "ï»¿.tran 5m"»
+QSCH_TEXT_POS = 1
+QSCH_TEXT_SIZE = 2
+QSCH_TEXT_ROTATION = 3  # 13="0 Degrees" 45="90 Degrees" 77="180 Degrees" 109="270 Degrees" r= 13+32*alpha/90
+QSCH_TEXT_COMMENT = 4  # 0="Normal Text" 1="Comment"
+QSCH_TEXT_COLOR = 5  # 0xdbbggrr  d=1 "Default" rr=Red gg=Green bb=Blue in hex format
+QSCH_TEXT_STR_ATTR = 8
 
 QSCH_TEXT_INSTR_QUALIFIER = "ï»¿"
 
@@ -188,6 +207,7 @@ class QschEditor(BaseSchematic):
     :type qsch_file: str
     :keyword create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
     """
+    lib_paths = []  # This is a class variable, so it can be shared between all instances.
 
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()
@@ -200,13 +220,103 @@ class QschEditor(BaseSchematic):
     def circuit_file(self) -> Path:
         return self._qsch_file_path
 
-    def save_as(self, qsch_file: Union[str, Path]) -> None:
-        with open(qsch_file, 'w', encoding="cp1252") as qsch_file:
-            _logger.info(f"Writing QSCH file {qsch_file}")
-            for c in QSCH_HEADER:
-                qsch_file.write(chr(c))
-            qsch_file.write(self.schematic.out(0))
-            qsch_file.write('\n')  # Terminates the new line
+    def save_as(self, qsch_filename: Union[str, Path]) -> None:
+        if self.updated or Path(qsch_filename) != self._qsch_file_path:
+            with open(qsch_filename, 'w', encoding="cp1252") as qsch_file:
+                _logger.info(f"Writing QSCH file {qsch_file}")
+                for c in QSCH_HEADER:
+                    qsch_file.write(chr(c))
+                qsch_file.write(self.schematic.out(0))
+                qsch_file.write('\n')  # Terminates the new line
+            if Path(qsch_filename) == self._qsch_file_path:
+                self.updated = False
+        # now checks if there are subcircuits that need to be saved
+        for component in self.components.values():
+            if "_SUBCKT" in component.attributes:
+                sub_circuit = component.attributes["_SUBCKT"]
+                if sub_circuit.updated:
+                    sub_circuit.save_as(sub_circuit._qsch_file_path)
+
+    def write_spice_to_file(self, netlist_file: TextIO):
+        libraries_to_include = []
+        subcircuits_to_write = OrderedDict()
+
+        for refdes, component in self.components.items():
+            component: SchematicComponent
+            item_tag = component.attributes['tag']
+            disabled = not component.attributes['enabled']
+
+            symbol_tags = item_tag.get_items('symbol')
+            if len(symbol_tags) != 1 or disabled:
+                continue
+            symbol_tag = symbol_tags[0]
+            if len(symbol_tag.tokens) > 1:
+                symbol = symbol_tag.get_text_attr(1)
+                typ = symbol_tag.get_text('type')
+            else:
+                symbol = 'X'
+                typ = 'X'
+
+            texts = symbol_tag.get_items('text')
+            nets = " ".join(component.ports)
+
+            if typ in ('R', 'D', 'C', 'L', 'V', 'I'):
+                value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if len(texts) > 2:
+                    for i in range(2, len(texts)):
+                        value += ' ' + texts[i].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if refdes.startswith(symbol):
+                    netlist_file.write(f'{refdes} {nets} {value}\n')
+                else:
+                    netlist_file.write(f'{symbol}†{refdes} {nets} {value}\n')
+            elif typ in ('QP', 'QN', "MN", "NP"):
+                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                netlist_file.write(f'{refdes} {nets} 0 {model} {symbol}\n')
+            elif typ == 'X':
+                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                # TODO: check what to do with the parameters
+                parameters = ""
+                if len(texts) > 2:
+                    for text in texts[2:]:
+                        parameters += f"\n+ {text.get_text_attr(QSCH_TEXT_STR_ATTR)}"
+
+                # schedule to write .SUBCKT clauses at the end
+                if model not in subcircuits_to_write:
+                    pins = symbol_tag.get_items("pin")
+                    sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
+                    subcircuits_to_write[model] = (
+                        component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
+                        sub_ports,  # and also storing the port position now, so to save time later.
+                    )
+                netlist_file.write(f'X{refdes} {nets} {model}{parameters}\n')
+            else:
+                _logger.error("Unsupported component type in schematic.\n"
+                              f'Not Found:{typ} {refdes} {component.position}')
+                netlist_file.write(f'Not Found:{typ} {refdes} {component.position}\n')
+
+            library_tags = symbol_tag.get_items('library')
+            for lib in library_tags:
+                library_name = lib.get_text_attr(2)
+                if library_name not in libraries_to_include:
+                    libraries_to_include.append(library_name)
+
+        for sub_circuit in subcircuits_to_write:
+            sub_circuit_schematic, ports = subcircuits_to_write[sub_circuit]
+            netlist_file.write("\n")
+            netlist_file.write(f".subckt {sub_circuit} {ports}\n")
+            sub_circuit_schematic.write_spice_to_file(netlist_file)
+            netlist_file.write(f".ends {sub_circuit}\n")
+            netlist_file.write("\n")
+
+        for directive in self.directives:
+            for line in directive.text.split('\\n'):
+                if directive.type == TextTypeEnum.COMMENT:
+                    netlist_file.write('* ')
+                netlist_file.write(line.strip() + '\n')
+
+        for library in libraries_to_include:
+            netlist_file.write(f'.lib {library}\n')
+        # Note: the .END or .ENDCKT must be inserted by the calling function
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         if isinstance(run_netlist_file, str):
@@ -218,54 +328,10 @@ class QschEditor(BaseSchematic):
         if run_netlist_file.suffix == '.qsch':
             self.save_as(run_netlist_file)
         elif run_netlist_file.suffix in ('.net', '.cir'):
-            libraries_to_include = []
             with open(run_netlist_file, 'w') as netlist_file:
                 _logger.info(f"Writing NET file {run_netlist_file}")
                 netlist_file.write(f'* Netlist generated by PyQSPICE from {self._qsch_file_path}\n')
-                for item in self.schematic.items:
-                    if item.tag == 'component':
-                        component_pos = item.get_attr(QSCH_COMPONENT_POS)
-                        orientation = item.get_attr(2)
-                        disabled = item.get_attr(3)
-                        symbol_tags = item.get_items('symbol')
-                        if len(symbol_tags) != 1 or disabled == 1:
-                            continue
-                        symbol_tag = symbol_tags[0]
-                        symbol = symbol_tag.get_text_attr(1)
-                        typ = symbol_tag.get_text('type')
-                        pins = symbol_tag.get_items('pin')
-                        texts = symbol_tag.get_items('text')
-                        refdes = texts[0].get_text_attr(QSCH_TEXT_STR_ATTR)
-                        nets = [self._find_net_at_pin(component_pos, orientation, pin) for pin in pins]
-                        if typ in ('R', 'D', 'C', 'L', 'V', 'I'):
-                            value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                            if len(texts) > 2:
-                                for i in range(2, len(texts)):
-                                    value += ' ' + texts[i].get_text_attr(QSCH_TEXT_STR_ATTR)
-                            if refdes.startswith(symbol):
-                                netlist_file.write(f'{refdes} {" ".join(nets)} {value}\n')
-                            else:
-                                netlist_file.write(f'{symbol}†{refdes} {" ".join(nets)} {value}\n')
-                        elif typ in ('QP', 'QN', "MN", "NP"):
-                            model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                            netlist_file.write(f'{refdes} {" ".join(nets)} 0 {model} {symbol}\n')
-                        else:
-                            netlist_file.write(f'Not Found:{typ} {refdes} {component_pos}\n')
-
-                        library_tags = symbol_tag.get_items('library')
-                        for lib in library_tags:
-                            library_name = lib.get_text_attr(2)
-                            if library_name not in libraries_to_include:
-                                libraries_to_include.append(library_name)
-                    elif item.tag == 'text':
-                        is_comment = item.get_attr(4) == 1
-                        text = item.get_attr(QSCH_TEXT_STR_ATTR).lstrip(QSCH_TEXT_INSTR_QUALIFIER)
-                        for line in text.split('\\n'):
-                            if is_comment:
-                                netlist_file.write('* ')
-                            netlist_file.write(line.strip() + '\n')
-                for library in libraries_to_include:
-                    netlist_file.write(f'.lib {library}\n')
+                self.write_spice_to_file(netlist_file)
                 netlist_file.write('.end\n')
 
     def _find_net_at_pin(self, comp_pos, orientation: int, pin: QschTag) -> str:
@@ -334,14 +400,23 @@ class QschEditor(BaseSchematic):
             value = texts[QSCH_SYMBOL_TEXT_VALUE].get_attr(QSCH_TEXT_STR_ATTR)
             sch_comp = SchematicComponent()
             sch_comp.reference = refdes
-            x, y = tuple(component.get_attr(QSCH_COMPONENT_POS))
+            x, y = position = component.get_attr(QSCH_COMPONENT_POS)
+            orientation = component.get_attr(QSCH_COMPONENT_ROTATION)
             sch_comp.position = Point(x, y)
-            sch_comp.rotation = component.get_attr(QSCH_TEXT_ROTATION) / 45
+            sch_comp.rotation = orientation * 45
             sch_comp.attributes['type'] = symbol.get_text('type', "X")  # Assuming a sub-circuit
             sch_comp.attributes['description'] = symbol.get_text('description', "No Description")
             sch_comp.attributes['value'] = value
             sch_comp.attributes['tag'] = component
+            sch_comp.attributes['enabled'] = component.get_attr(QSCH_COMPONENT_ENABLED) == 0
+            pins = symbol.get_items('pin')
+            sch_comp.ports = [self._find_net_at_pin(position, orientation, pin) for pin in pins]
             self.components[refdes] = sch_comp
+            if refdes.startswith('X'):
+                sub_circuit_name = value + os.path.extsep + 'qsch'
+                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name)
+                sub_schematic = QschEditor(sub_circuit_schematic_file)
+                sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
 
         for net in self.schematic.get_items('net'):
             # process nets
@@ -358,6 +433,32 @@ class QschEditor(BaseSchematic):
             net = wire.get_attr(QSCH_WIRE_NET)
             self.wires.append(Line(Point(x1, y1), Point(x2, y2), net))
 
+        for text_tag in self.schematic.get_items('text'):
+            x, y = text_tag.get_attr(QSCH_TEXT_POS)
+            point = Point(x, y)
+            text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+            text_size = text_tag.get_attr(QSCH_TEXT_SIZE)
+            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:
+                type_text = TextTypeEnum.COMMENT
+            elif text.startswith(QSCH_TEXT_INSTR_QUALIFIER):
+                type_text = TextTypeEnum.DIRECTIVE
+                text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)  # Eliminates the qualifer from the text.
+            else:
+                type_text = TextTypeEnum.NULL
+
+            # angle = text_tag.get_attr(QSCH_TEXT_ROTATION)  # TODO: Implement text Rotation
+
+            text_obj = Text(
+                    point,
+                    text,
+                    text_size,
+                    type_text,
+                    # textAlignment,
+                    # verticalAlignment,
+                    # angle=angle,
+                )
+            self.directives.append(text_obj)
+
     def _get_text_matching(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
         text_tags = self.schematic.get_items('text')
@@ -371,10 +472,26 @@ class QschEditor(BaseSchematic):
         else:
             return None, None
 
+    def _qsch_file_find(self, filename) -> Optional[str]:
+        for sym_root in self.lib_paths + [
+            # os.path.curdir,  # The current script directory
+            os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
+            os.path.expanduser(r"C:\Program Files\QSPICE"),
+            os.path.expanduser(r"~\Documents\QSPICE"),
+        ]:
+            print(f"   {os.path.abspath(sym_root)}")
+            if not os.path.exists(sym_root):  # Skipping invalid paths
+                continue
+            file_found = find_file_in_directory(sym_root, filename)
+            if file_found is not None:
+                return file_found
+        return None
+
     def get_subcircuit(self, reference: str) -> 'QschEditor':
         subcircuit = self.get_component(reference)
-
-        return subcircuit
+        if '_SUBCKT' in subcircuit.attributes:  # Optimization: if it was already stored, return it
+            return subcircuit.attributes['_SUBCKT']
+        raise AttributeError(f"An associated subcircuit was not found for {reference}")
 
     def get_parameter(self, param: str) -> str:
         param_regex = re.compile(PARAM_REGEX % param, re.IGNORECASE)
@@ -410,6 +527,7 @@ class QschEditor(BaseSchematic):
             self.schematic.items.append(tag)
             _logger.info(f"Parameter {param} added with value {value}")
             _logger.debug(f"Text added to {tag.get_attr(QSCH_TEXT_POS)} Added: {tag.get_attr(QSCH_TEXT_STR_ATTR)}")
+        self.updated = True
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         if isinstance(value, str):
@@ -419,15 +537,21 @@ class QschEditor(BaseSchematic):
         self.set_element_model(device, value_str)
 
     def set_element_model(self, device: str, model: str) -> None:
-        comp = self.get_component(device)
+        sub_circuit, ref = self._get_parent(device)
+        if ref not in sub_circuit.components:
+            _logger.error(f"Component {ref} not found")
+            raise ComponentNotFoundError(f"Component {ref} not found in Schematic file")
+
+        comp = sub_circuit.get_component(ref)
         component: QschTag = comp.attributes['tag']
         symbol: QschTag = component.get_items('symbol')[0]
         texts = symbol.get_items('text')
-        assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == device
+        assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == ref
         texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
-        self.components[device].attributes['value'] = model
+        sub_circuit.components[ref].attributes['value'] = model
         _logger.info(f"Component {device} updated to {model}")
         _logger.debug(f"Component at :{component.get_attr(1)} Updated")
+        sub_circuit.updated = True
 
     def get_component_value(self, element: str) -> str:
         component = self.get_component(element)

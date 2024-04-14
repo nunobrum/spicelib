@@ -1,11 +1,15 @@
 import os
 from spicelib.editor.qsch_editor import QschEditor
 
-E = QschEditor('testfiles\\Parent.sub_circuit.qsch')
+E = QschEditor('testfiles\\top_circuit.qsch')
 # E = QschEditor('testfiles\\TRAN.qsch')
 print(E.get_components())
 print(E.get_components('R'))
 print(E.get_subcircuit('X1').get_components())
+# reading component values
+for E_comp in E.get_subcircuit('X1').get_components():
+    comp_designator = 'X1:' + E_comp
+    print(f"X1:{comp_designator} = {E.get_component_value(comp_designator)}")
 print("Setting X1:R1 to 100")
 E.set_component_value("X1:R1", 100)
 print(E.get_component_value('R1'))
@@ -20,5 +24,7 @@ E.set_parameters(
     test_exiting_param_set4=27,
     test_add_parameter=34.45, )
 S = E.get_subcircuit('X1')
-S.asc_file_path = "testfiles\\subcircuit_edit.asc" # Only for test purposes
-E.save_netlist("testfiles\\top_circuit_edit.asc")
+S.asc_file_path = "testfiles\\subcircuit_edit.qsch"  # Only for test purposes
+S.write_netlist("testfiles\\subcircuit_qsch.net")
+E.save_netlist("testfiles\\top_circuit_edit.qsch")
+E.save_netlist("testfiles\\top_circuit_edit_qsch.net")
