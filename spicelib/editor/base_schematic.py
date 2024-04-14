@@ -261,6 +261,7 @@ class BaseSchematic(BaseEditor):
         self.wires = deepcopy(editor.wires)
         self.labels = deepcopy(editor.labels)
         self.directives = deepcopy(editor.directives)
+        self.updated = True
 
     def _get_parent(self, reference) -> ("BaseSchematic", str):
         if SUBCKT_DIVIDER in reference:
