@@ -18,6 +18,7 @@
 # -------------------------------------------------------------------------------
 import math
 import os
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Union, List, Optional, IO, TextIO
@@ -318,8 +319,12 @@ class QschEditor(BaseSchematic):
             if library_path is None:
                 netlist_file.write(f'.lib {library}\n')
             else:
-                from spicelib.utils.windows_short_names import get_short_path_name
-                netlist_file.write(f'.lib {get_short_path_name(os.path.abspath(library_path))}\n')
+                if sys.platform.startswith("win"):
+                    from spicelib.utils.windows_short_names import get_short_path_name
+                    netlist_file.write(f'.lib {get_short_path_name(os.path.abspath(library_path))}\n')
+                else:
+                    netlist_file.write(f'.lib {os.path.abspath(library_path)}\n')
+
         # Note: the .END or .ENDCKT must be inserted by the calling function
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
