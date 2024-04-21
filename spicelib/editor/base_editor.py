@@ -457,10 +457,12 @@ class BaseEditor(ABC):
 
         For example:
 
-        .. code-block:: text
-                  .tran 10m ; makes a transient simulation
-                  .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms" ; Establishes a measuring
-                  .step run 1 100, 1 ; makes the simulation run 100 times
+            .. code-block:: text
+
+                .tran 10m ; makes a transient simulation
+                .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms" ; Establishes a measuring
+                .step run 1 100, 1 ; makes the simulation run 100 times
+
 
         :param instruction:
             Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,

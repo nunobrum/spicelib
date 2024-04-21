@@ -1,19 +1,22 @@
-Histogram.py
-============
-This module uses matplotlib to plot an histogram of a gaussian distribution and calculates the project n-sigma interval.
+Histogram.exe
+=============
+This tool uses matplotlib to plot an histogram of a gaussian distribution and calculates the project n-sigma interval.
 
 The data can either collected from the clipboard or from a text file. Use the following command line text to call
 this module.
 
-.. code-block:: text
-
-    python -m spicelib.Histogram [options] [data_file] TRACE
-
-The help can be obtained by calling the script without arguments
+The histogram.exe can be used directly from a command line if the Python's Scripts folder is included in the PATH
+environment variable. If not, the full path to the executable must be provided.
 
 .. code-block:: text
 
-    Usage: Histogram.py [options] LOG_FILE TRACE
+    histogram.exe [options] [data_file] TRACE
+
+The help can be obtained by calling the script without arguments.
+
+.. code-block:: text
+
+    Usage: Histogram.exe [options] LOG_FILE TRACE
 
     Options:
       --version             show program's version number and exit
@@ -37,4 +40,3 @@ The help can be obtained by calling the script without arguments
       -C, --clipboard       If the data from the clipboard is to be used.
       -i IMAGEFILE, --image=IMAGEFILE
                             Name of the image File. extension 'png'
-

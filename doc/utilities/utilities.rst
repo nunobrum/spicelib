@@ -11,5 +11,5 @@ E.g.: ``python -m spicelib.Histogram``
    :maxdepth: 1
 
    ltsteps
-   Histogram
-
+   histogram
+   readme_update

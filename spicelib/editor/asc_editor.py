@@ -372,6 +372,7 @@ class AscEditor(BaseSchematic):
         return min_x, max_y + 24  # Setting the text in the bottom left corner of the canvas
 
     def add_instruction(self, instruction: str) -> None:
+        # docstring inherited from BaseEditor
         instruction = instruction.strip()  # Clean any end of line terminators
         set_command = instruction.split()[0].upper()
 
