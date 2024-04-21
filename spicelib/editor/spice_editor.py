@@ -22,7 +22,7 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 from typing import Union, List, Callable, Any, Tuple, Optional
@@ -32,8 +32,6 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 END_LINE_TERM = '\n'  #: This controls the end of line terminator used
-SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
-# Ex: Editor.set_component_value('XU1:R1', '1k')
 
 # A Spice netlist can only have one of the instructions below, otherwise an error will be raised
 
@@ -246,8 +244,16 @@ class SpiceCircuit(BaseEditor):
             line_no += 1
         return -1, None  # If it fails, it returns an invalid line number and No match
 
-    def _get_subckt(self, instance_name: str) -> 'SpiceCircuit':
-        """Internal function. Do not use."""
+    def get_subcircuit(self, instance_name: str) -> 'SpiceCircuit':
+        """
+        Returns an object representing a Subcircuit. This object can manipulate elements such as the SpiceEditor does.
+        :param instance_name: Reference of the subcircuit
+        :type instance_name: str
+        :returns: SpiceCircuit instance
+        :rtype: SpiceCircuit
+        :raises UnrecognizedSyntaxError: when an spice command is not recognized by spicelib
+        :raises ComponentNotFoundError: When the reference was not found
+        """
         global LibSearchPaths
         if SUBCKT_DIVIDER in instance_name:
             subckt_ref, sub_subckts = instance_name.split(SUBCKT_DIVIDER, 1)
@@ -302,7 +308,7 @@ class SpiceCircuit(BaseEditor):
                     break
         if sub_circuit:
             if SUBCKT_DIVIDER in instance_name:
-                return sub_circuit._get_subckt(sub_subckts)
+                return sub_circuit.get_subcircuit(sub_subckts)
             else:
                 return sub_circuit
         else:
@@ -445,14 +451,14 @@ class SpiceCircuit(BaseEditor):
         info['line'] = line_no  # adding the line number to the component information
         return info
 
-    def get_component(self, reference: str) -> Component:
+    def get_component(self, reference: str) -> Union[Component, 'SpiceCircuit']:
         """
         Returns an object representing the given reference in the schematic file
 
         :param reference: Reference of the component
         :type reference: str
-        :return: The SchematicComponent object
-        :rtype: SchematicComponent
+        :return: The Component object or a SpiceSubcircuit in case of hierarchical design
+        :rtype: Component or SpiceSubcircuit
         :raises: ComponentNotFoundError - In case the component is not found
         :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
         :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
@@ -778,6 +784,23 @@ class SpiceEditor(SpiceCircuit):
     def circuit_file(self) -> Path:
         return self.netlist_file
 
+    def get_component_info(self, component) -> dict:
+        prefix = component[0]
+        if prefix == 'X' and SUBCKT_DIVIDER in component:  # Replaces a component inside of a subciruit
+            # In this case the sub-circuit needs to be copied so that is copy is modified. A copy is created for each
+            # instance of a sub-circuit.
+            component_split = component.split(SUBCKT_DIVIDER)
+            modified_path = SUBCKT_DIVIDER.join(component_split[:-1])  # excludes last component
+            component = component_split[-1]  # This is the last component to modify
+
+            if modified_path in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
+                subcircuit = self.modified_subcircuits[modified_path]
+            else:
+                subcircuit = self.get_subcircuit(component)
+            return subcircuit.get_component_info(component)
+
+        return super().get_component_info(component)
+
     def _set_model_and_value(self, component, value):
         prefix = component[0]  # Using the first letter of the component to identify what is it
         if prefix == 'X' and SUBCKT_DIVIDER in component:  # Relaces a component inside of a subciruit
@@ -790,7 +813,7 @@ class SpiceEditor(SpiceCircuit):
             if modified_path in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
                 sub_circuit = self.modified_subcircuits[modified_path]
             else:
-                sub_circuit_original = self._get_subckt(modified_path)  # If not will look for it.
+                sub_circuit_original = self.get_subcircuit(modified_path)  # If not will look for it.
                 if sub_circuit_original:
                     new_name = sub_circuit_original.name() + '_' + '_'.join(
                         component_split[:-1])  # Creates a new name with the path appended
@@ -982,41 +1005,3 @@ class SpiceEditor(SpiceCircuit):
         from ..sim.sim_runner import SimRunner
         Sim = SimRunner(simulator=simulator)
         return Sim.run(self, wait_resource=wait_resource, callback=callback, timeout=timeout, run_filename=run_filename)
-
-
-if __name__ == '__main__':
-    E = SpiceEditor(os.path.abspath('..\\tests\\PI_Filter_resampled.net'))
-    E.add_instruction(".nodeset V(N001)=0")
-    E.save_netlist('..\\tests\\PI_Filter_resampled_mod.net')
-    E = SpiceEditor('..\\tests\\Editor_Test.net')
-    print("Circuit Nodes", E.get_all_nodes())
-    E.add_library_search_paths([r"C:\SVN\Electronic_Libraries\LTSpice\lib"])
-    E.set_element_model("XU2", 324)
-    E.set_component_value("XU1:XDUT:R77", 200)
-    print(E.get_component_value('R1'))
-    print("Setting R1 to 10k")
-    E.set_component_value('R1', 10000)
-    print("Setting parameter I1 1.23k")
-    E.set_parameter("I1", "1.23k")
-    print(E.get_parameter('I1'))
-    print("Setting {freq*(10/5.0})")
-    E.set_parameters(I2="{freq*(10/5.0})")
-    print(E.get_parameter('I2'))
-    print(E.get_components())
-    print(E.get_components('RC'))
-    print("Setting C1 to 1µF")
-    E.set_component_value("C1", '1µF')
-    print("Setting C4 to 22nF")
-    E.set_component_value("C4", 22e-9)
-    print("Setting C3 to 120nF")
-    E.set_component_value("C3", '120n')
-    print(E.get_component_floatvalue("C1"))
-    print(E.get_component_floatvalue("C3"))
-    print(E.get_component_floatvalue("C4"))
-    E.set_parameters(
-        test_exiting_param_set1=24,
-        test_exiting_param_set2=25,
-        test_exiting_param_set3=26,
-        test_exiting_param_set4=27,
-        test_add_parameter=34.45, )
-    E.save_netlist("..\\tests\\test_spice_editor.net")
