@@ -274,7 +274,7 @@ wca.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides t
 wca.set_tolerance('R4', 0.0)  # 5% tolerance for R1 only. This only overrides the default tolerance for R1
 
 # Tolerances can be set for parameters as well.
-# wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
+wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
 
 # Finally the netlist is saved to a file
 wca.save_netlist('./testfiles/sallenkey_wc.asc')
@@ -491,6 +491,19 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 1.1.1
+  * Supporting hierarchical edits on both QSpice and LTspice schematics
+  * Skipping the need of the rich library on examples
+  * Giving feedback on the search for symbols on the ASC to QSCH conversion
+  * Improvement on Documentation
+  * Adding examples and unittests on hiearchical edits
+  * Giving access to hidden properties (asc_file_path in AscEditor and qsch_file_path in QschEditor)
+  * Refactoring save_netlist() method in QschEditor class
+  * Supporting arcs and rectangles on AsyReader
+  * Adding file_search.py containing utility functions for searching files
+  * Adding windows_short_names.py containing a code to get the 8.3 Windows short names.
+* Version 1.1.0
+  * First usable version of a LTspice to Qspice schematic converter.
 * Version 1.0.4
   * Adding the missing the asc_to_qsch_data.xml to the package
   * Adding a MANIFEST.in to the project

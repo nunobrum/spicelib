@@ -22,7 +22,7 @@ wca.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides t
 wca.set_tolerance('R4', 0.0)  # 5% tolerance for R1 only. This only overrides the default tolerance for R1
 
 # Tolerances can be set for parameters as well.
-# wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
+wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
 
 # Finally the netlist is saved to a file
 wca.save_netlist('./testfiles/sallenkey_wc.asc')
@@ -37,7 +37,7 @@ print("Worst case results:")
 for param in ('fcut', 'fcut_FROM'):
     print(f"{param}: min:{logs.min_measure_value(param)} max:{logs.max_measure_value(param)}")
 
-## All components sensitivity
+# All components sensitivity
 sens = wca.make_sensitivity_analysis('fcut', '*')  # Makes the sensitivity analysis for all components
 print(sens)
 
@@ -48,11 +48,12 @@ print("=====================================")
 wca.clear_simulation_data()  # Clears the simulation data
 wca.reset_netlist()  # Resets the netlist to the original
 wca.run_analysis()  # Makes the Worst Case Analysis
-min, max = wca.get_min_max_measure_value('fcut')
-print(f"fcut: min:{min} max:{max}")
+min_fcut, max_fcut = wca.get_min_max_measure_value('fcut')
+print(f"fcut: min:{min_fcut} max:{max_fcut}")
 sens = wca.make_sensitivity_analysis('fcut', 'R1')  # Makes the sensitivity analysis for R1
 print(sens)
-## All components sensitivity
+
+# All components sensitivity
 sens = wca.make_sensitivity_analysis('fcut', '*')  # Makes the sensitivity analysis for all components
 print(sens)
 wca.cleanup_files()  # Deletes the temporary files
