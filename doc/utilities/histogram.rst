@@ -1,4 +1,4 @@
-Histogram.exe
+histogram.exe
 =============
 This tool uses matplotlib to plot an histogram of a gaussian distribution and calculates the project n-sigma interval.
 
