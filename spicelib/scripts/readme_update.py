@@ -9,9 +9,16 @@ from shutil import copyfile
 
 # Read the README.md on the path indicated on the command line arguments
 filename = sys.argv[1]
-
-readme_md = open(filename).readlines()
-
+print(f"Reading \"{filename}\"", end="...")
+try:
+    readme_md = open(filename).readlines()
+except FileNotFoundError:
+    print("File not found")
+    exit(1)
+except Exception as e:
+    print(f"Error reading file: {e}")
+    exit(1)
+print(f"{len(readme_md)} lines read")
 in_statement_regex = re.compile(r"-- in (?P<path>.*?)(?P<loc>\s\[.*\])?$")
 
 block_start = -1
@@ -27,6 +34,7 @@ while line_no < len(readme_md):
             m = in_statement_regex.search(readme_md[line_no + 1])
             # find the file to include
             if m:
+                print(f"Updating code on lines {block_start+1}:{line_no + 1}")
                 include_relpath = m.group("path")
                 include_path = os.path.abspath(os.path.join(os.curdir, include_relpath))
                 include_text = open(include_path, "r", encoding="utf-8").readlines()
@@ -56,9 +64,13 @@ while line_no < len(readme_md):
                 new_lines = len(lines_to_plug)
                 readme_md[block_start + 1:line_no] = lines_to_plug
                 line_no += new_lines - existing_lines
+        block_start = -1
     line_no += 1
 
 # Finally write back the readme.md but first create a backup
-copyfile(filename, filename.replace(".md", ".bak"))
+backup_filename = filename.replace(".md", ".bak")
+print(f"Creating backup {backup_filename}")
+copyfile(filename, backup_filename)
+print(f"Writing {len(readme_md)} lines to {filename}")
 open(filename, 'w').writelines(readme_md)
 exit(0)

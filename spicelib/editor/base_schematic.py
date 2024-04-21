@@ -255,7 +255,7 @@ class BaseSchematic(BaseEditor):
         self.updated = False
 
     def copy_from(self, editor: 'BaseSchematic') -> None:
-        """Copies the contents of the given editor"""
+        """Clones the contents of the given editor"""
         from copy import deepcopy
         self.components = deepcopy(editor.components)
         self.wires = deepcopy(editor.wires)
@@ -278,7 +278,13 @@ class BaseSchematic(BaseEditor):
         sub_circuit.updated = True
 
     def get_component(self, reference: str) -> SchematicComponent:
-        """Returns the SchematicComponent object representing the given reference in the schematic file"""
+        """
+        Returns the SchematicComponent object representing the given reference in the schematic file.
+
+        :param reference: The reference of the component
+        :return: The SchematicComponent object
+        :raises ComponentNotFoundError: If the component is not found.
+        """
         sub_circuit, ref = self._get_parent(reference)
 
         if ref not in sub_circuit.components:
@@ -292,7 +298,15 @@ class BaseSchematic(BaseEditor):
         return comp.position, comp.rotation
 
     def set_component_position(self, reference: str, position: Point, rotation: ERotation) -> None:
-        """Sets the position of the component"""
+        """Sets the position and rotation of the component.
+
+        :param reference: The reference of the component
+        :type reference: str
+        :param position: The new position of the component
+        :type position: Point
+        :param rotation: The new rotation of the component
+        :type rotation: ERotation
+        """
         comp = self.get_component(reference)
         comp.position = position
         comp.rotation = rotation

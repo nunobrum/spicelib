@@ -172,13 +172,13 @@ class BaseEditor(ABC):
     @property
     @abstractmethod
     def circuit_file(self) -> Path:
-        """Returns the netlist as a string"""
+        """Returns the path of the circuit file."""
         ...
 
     @abstractmethod
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
-        Resets the netlist to the original state.
+        Reverts all changes done to the netlist. If create_blank is set to True, then the netlist is blanked.
 
         :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be
                              reset to the original state.
@@ -187,7 +187,13 @@ class BaseEditor(ABC):
 
     @abstractmethod
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
-        """Writes the netlist to a file"""
+        """
+        Saves the current state of the netlist to a file.
+
+        :param run_netlist_file: File name of the netlist file.
+        :type run_netlist_file: Path or str
+        :returns: Nothing
+        """
         ...
 
     def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
@@ -454,13 +460,17 @@ class BaseEditor(ABC):
 
     @abstractmethod
     def add_instruction(self, instruction: str) -> None:
-        """Serves to add SPICE instructions to the simulation netlist. For example:
+        """
+        Adds a SPICE instruction to the netlist.
 
-        .. code-block:: text
+        For example:
 
-                  .tran 10m ; makes a transient simulation
-                  .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms" ; Establishes a measuring
-                  .step run 1 100, 1 ; makes the simulation run 100 times
+            .. code-block:: text
+
+                .tran 10m ; makes a transient simulation
+                .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms" ; Establishes a measuring
+                .step run 1 100, 1 ; makes the simulation run 100 times
+
 
         :param instruction:
             Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
@@ -472,8 +482,12 @@ class BaseEditor(ABC):
 
     @abstractmethod
     def remove_instruction(self, instruction) -> None:
-        """Usage a previously added instructions.
-        Example: ::
+        """
+        Removes a SPICE instruction from the netlist.
+
+        Example:
+
+        .. code-block:: python
 
             editor.remove_instruction(".STEP run -1 1023 1")
 
@@ -488,9 +502,15 @@ class BaseEditor(ABC):
 
     @abstractmethod
     def remove_Xinstruction(self, search_pattern: str) -> None:
-        """Removes a list of instructions from the SPICE NETLIST.
-        Example:
-        ::
+        """
+        Removes a SPICE instruction from the netlist based on a search pattern. This is a more flexible way to remove
+        instructions from the netlist. The search pattern is a regular expression that will be used to match the
+        instructions to be removed. The search pattern will be applied to each line of the netlist and if the pattern
+        matches, the line will be removed.
+
+        Example: The code below will remove all AC analysis instructions from the netlist.
+
+        .. code-block:: python
 
             editor.remove_Xinstruction("\.AC.*")
 
@@ -501,9 +521,11 @@ class BaseEditor(ABC):
         ...
 
     def add_instructions(self, *instructions) -> None:
-        """Adds a list of instructions to the SPICE NETLIST.
+        """
+        Adds a list of instructions to the SPICE NETLIST.
+
         Example:
-        ::
+        .. code-block:: python
 
             editor.add_instructions(
                 ".STEP run -1 1023 1",

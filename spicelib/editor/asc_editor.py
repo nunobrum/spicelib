@@ -430,6 +430,7 @@ class AscEditor(BaseSchematic):
         return None
 
     def add_instruction(self, instruction: str) -> None:
+        # docstring inherited from BaseEditor
         instruction = instruction.strip()  # Clean any end of line terminators
         set_command = instruction.split()[0].upper()
 

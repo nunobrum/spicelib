@@ -274,7 +274,7 @@ wca.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides t
 wca.set_tolerance('R4', 0.0)  # 5% tolerance for R1 only. This only overrides the default tolerance for R1
 
 # Tolerances can be set for parameters as well.
-# wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
+wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
 
 # Finally the netlist is saved to a file
 wca.save_netlist('./testfiles/sallenkey_wc.asc')
