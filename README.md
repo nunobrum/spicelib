@@ -491,6 +491,8 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 1.1.2
+  * Fixes on the readme_update.py script. Was not supporting spaces after the [] 
 * Version 1.1.1
   * Supporting hierarchical edits on both QSpice and LTspice schematics
   * Skipping the need of the rich library on examples
