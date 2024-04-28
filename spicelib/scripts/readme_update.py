@@ -19,7 +19,7 @@ except Exception as e:
     print(f"Error reading file: {e}")
     exit(1)
 print(f"{len(readme_md)} lines read")
-in_statement_regex = re.compile(r"-- in (?P<path>.*?)(?P<loc>\s\[.*\])?$")
+in_statement_regex = re.compile(r"-- in (?P<path>.*?)(?P<loc>\s\[.*\])?\s*$")
 
 block_start = -1
 line_no = 0
