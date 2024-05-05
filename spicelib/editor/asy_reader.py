@@ -23,8 +23,7 @@ from pathlib import Path
 from typing import Union
 
 from .base_schematic import Point, Text, TextTypeEnum, Line, Circle, Rectangle, Arc, HorAlign, ERotation, VerAlign
-from .asc_editor import asc_text_align_set, TEXT_REGEX, LT_ATTRIBUTE_NUMBERS, LT_ATTRIBUTE_NUMBERS_INV, \
-    WEIGHT_CONVERSION_TABLE
+from .ltspice_utils import asc_text_align_set
 
 from .qsch_editor import QschTag
 
@@ -236,3 +235,27 @@ class AsyReader(object):
             symbol.items.append(pin_tag)
 
         return symbol
+
+    def is_subcircuit(self):
+        return self.symbol_type == 'BLOCK' or self.attributes.get('Prefix') == 'X'
+
+    def get_library(self):
+        return self.attributes.get('SpiceModel')
+
+    def get_model(self) -> str:
+        if 'Value' in self.attributes:
+            return self.attributes.get('Value')
+        elif 'Value2' in self.attributes:
+            return self.attributes.get('Value2')
+        raise ValueError("No Value or Value2 attribute found")
+
+    def get_value(self) -> Union[int, float, str]:
+        value = self.get_model()
+        try:
+            ans = int(value)
+        except ValueError:
+            try:
+                ans = float(value)
+            except ValueError:
+                ans = value.strip()  # Removes the leading trailing spaces
+        return ans

@@ -18,6 +18,7 @@
 #
 # -------------------------------------------------------------------------------
 import os
+import zipfile
 
 
 def find_file_in_directory(directory, filename):
@@ -32,4 +33,29 @@ def find_file_in_directory(directory, filename):
     for root, dirs, files in os.walk(directory):
         if filename in files:
             return os.path.join(root, filename)
+    return None
+
+
+def search_file_in_containers(filename, *containers):
+    """
+    Searches for a file with the given filename in the specified containers.
+    Returns the path to the file if found, or None if not found.
+
+    """
+    for container in containers:
+        print(f"Searching for {filename} in {os.path.abspath(container)}")
+        if os.path.exists(container):  # Skipping invalid paths
+            if container.endswith('.zip'):
+                # Search in zip files
+                with zipfile.ZipFile(container, 'r') as zip_ref:
+                    files = zip_ref.namelist()
+                    if filename in files:
+                        temp_dir = os.path.join('.', 'spice_lib_temp')
+                        if not os.path.exists(temp_dir):
+                            os.makedirs(temp_dir)
+                        return zip_ref.extract(filename, path=temp_dir)
+            else:
+                file_found = find_file_in_directory(container, filename)
+                if file_found is not None:
+                    return file_found
     return None

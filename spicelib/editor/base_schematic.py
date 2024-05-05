@@ -287,10 +287,13 @@ class BaseSchematic(BaseEditor):
         """
         sub_circuit, ref = self._get_parent(reference)
 
-        if ref not in sub_circuit.components:
-            _logger.error(f"Component {reference} not found")
-            raise ComponentNotFoundError(f"Component {reference} not found in Schematic file")
-        return sub_circuit.components[ref]
+        if sub_circuit != self:  # The component is in a subcircuit
+            return sub_circuit.get_component(ref)
+        else:
+            if ref not in sub_circuit.components:
+                _logger.error(f"Component {reference} not found")
+                raise ComponentNotFoundError(f"Component {reference} not found in Schematic file")
+            return sub_circuit.components[ref]
 
     def get_component_position(self, reference: str) -> (Point, ERotation):
         """Returns the position and rotation of the component"""

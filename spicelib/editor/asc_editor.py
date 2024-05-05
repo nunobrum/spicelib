@@ -21,99 +21,17 @@ from pathlib import Path
 from typing import Union, Optional
 import re
 import logging
-from ..utils.file_search import find_file_in_directory
-from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component
-from .base_schematic import (BaseSchematic, Point, Line, Text, SchematicComponent, ERotation, HorAlign, VerAlign,
-                             TextTypeEnum, Port)
+
+from .ltspice_utils import TEXT_REGEX, TEXT_REGEX_X, TEXT_REGEX_Y, TEXT_REGEX_ALIGN, TEXT_REGEX_SIZE, TEXT_REGEX_TYPE, \
+    TEXT_REGEX_TEXT, END_LINE_TERM, ASC_ROTATION_DICT, ASC_INV_ROTATION_DICT, asc_text_align_set, asc_text_align_get
+from .spice_editor import SpiceEditor
+from ..utils.file_search import search_file_in_containers
+from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+from .base_schematic import (BaseSchematic, Point, Line, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
+from .asy_reader import AsyReader
 
 _logger = logging.getLogger("spicelib.AscEditor")
-
-TEXT_REGEX = re.compile(r"TEXT (-?\d+)\s+(-?\d+)\s+(Left|Right|Top|Bottom)\s(\d+)\s*(?P<type>[!;])(?P<text>.*)",
-                        re.IGNORECASE)
-TEXT_REGEX_X = 1
-TEXT_REGEX_Y = 2
-TEXT_REGEX_ALIGN = 3
-TEXT_REGEX_SIZE = 4
-TEXT_REGEX_TYPE = 5
-TEXT_REGEX_TEXT = 6
-
-END_LINE_TERM = "\n"
-
-
-ASC_ROTATION_DICT = {
-    'R0': ERotation.R0,
-    'R90': ERotation.R90,
-    'R180': ERotation.R180,
-    'R270': ERotation.R270,
-    'M0': ERotation.M0,
-    'M90': ERotation.M90,
-    'M180': ERotation.M180,
-    'M270': ERotation.M270,
-}
-
-ASC_INV_ROTATION_DICT = {val: key for key, val in ASC_ROTATION_DICT.items()}
-
-LT_ATTRIBUTE_NUMBERS = {
-    'Prefix': 0,
-    'Type': 1,
-    'Value': 3,
-    'Value2': 123,
-    'SpiceModel': 38,
-    'ModelFile': 'X',
-    'Def_Sub': 'X',
-    'SpiceLine': 39,
-    'SpiceLine2': 40,
-}
-
-LT_ATTRIBUTE_NUMBERS_INV = {val: key for key, val in LT_ATTRIBUTE_NUMBERS.items()}
-
-WEIGHT_CONVERSION_TABLE = ('Thin', 'Normal', 'Thick')
-
-
-def asc_text_align_set(text: Text, alignment: str):
-    if alignment == 'Left':
-        text.textAlignment = HorAlign.LEFT
-        text.verticalAlignment = VerAlign.CENTER
-    elif alignment == 'Center':
-        text.textAlignment = HorAlign.CENTER
-        text.verticalAlignment = VerAlign.CENTER
-    elif alignment == 'Right':
-        text.textAlignment = HorAlign.RIGHT
-        text.verticalAlignment = VerAlign.CENTER
-    elif alignment == 'VTop':
-        text.textAlignment = HorAlign.CENTER
-        text.verticalAlignment = VerAlign.TOP
-    elif alignment == 'VCenter':
-        text.textAlignment = HorAlign.CENTER
-        text.verticalAlignment = VerAlign.CENTER
-    elif alignment == 'VBottom':
-        text.textAlignment = HorAlign.LEFT
-        text.verticalAlignment = VerAlign.BOTTOM
-    else:
-        # Default
-        text.textAlignment = HorAlign.LEFT
-        text.verticalAlignment = VerAlign.CENTER
-    return text
-
-
-def asc_text_align_get(text: Text) -> str:
-    if text.verticalAlignment == VerAlign.CENTER:
-        if text.textAlignment == HorAlign.RIGHT:
-            return 'Right'
-        elif text.textAlignment == HorAlign.CENTER:
-            return 'Center'
-        else:
-            return 'Left'
-    else:
-        if text.verticalAlignment == VerAlign.TOP:
-            return 'VTop'
-        elif text.verticalAlignment == VerAlign.CENTER:
-            return 'VCenter'
-        elif text.verticalAlignment == VerAlign.BOTTOM:
-            return 'VBottom'
-        else:
-            return 'Left'
 
 
 class AscEditor(BaseSchematic):
@@ -214,9 +132,10 @@ class AscEditor(BaseSchematic):
                     text = text.strip()  # Gets rid of the \n terminator
                     if ref == "InstName":
                         component.reference = text
-                        if component.reference.startswith('X'):  # This is a subcircuit
+                        symbol = self._get_symbol(component.symbol)
+                        if component.reference.startswith('X') or symbol.is_subcircuit():  # This is a subcircuit
                             # then create the attribute "SUBCKT"
-                            component.attributes["_SUBCKT"] = self._get_symbol_circuit(component.symbol)
+                            component.attributes["_SUBCKT"] = self._get_subcircuit(symbol)
                     else:
                         component.attributes[ref] = text
                 elif line.startswith("TEXT"):
@@ -266,10 +185,35 @@ class AscEditor(BaseSchematic):
                 assert component.reference is not None, "Component InstName was not given"
                 self.components[component.reference] = component
 
-    def _get_symbol_circuit(self, symbol: str):
-        asc_filename = symbol + os.path.extsep + "asc"
-        asc_path = self._lib_file_find(asc_filename)
-        answer = AscEditor(asc_path)
+    def _get_symbol(self, symbol: str) -> AsyReader:
+        asy_filename = symbol + os.path.extsep + "asy"
+        asy_path = self._asy_file_find(asy_filename)
+        answer = AsyReader(asy_path)
+        return answer
+
+    def _get_subcircuit(self, symbol: AsyReader) -> Union[SpiceEditor, 'AscEditor']:
+        # if it is a an ASC file, then we need to read it
+        model = symbol.get_model()
+        if symbol.symbol_type == "BLOCK":
+            asc_filename = model + os.path.extsep + "asc"
+            asc_path = search_file_in_containers(asc_filename,
+                                                 # The directory where the script is located
+                                                 os.path.split(self.asc_file_path)[0],
+                                                 # The current script directory
+                                                 os.path.curdir,
+                                                 # The library paths
+                                                 *self.lib_paths)
+            if asc_path is None:
+                raise FileNotFoundError(f"File {asc_filename} not found")
+            answer = AscEditor(asc_path)
+        elif symbol.symbol_type == "CELL":
+            lib = symbol.get_library()
+            lib_path = self._lib_file_find(lib)
+            if lib_path is None:
+                raise FileNotFoundError(f"File {lib} not found")
+            answer = SpiceEditor.find_subckt_in_lib(lib_path, model)
+        else:
+            raise ValueError(f"Symbol type {symbol.symbol_type} not supported")
         return answer
 
     def get_subcircuit(self, reference: str) -> 'AscEditor':
@@ -335,18 +279,29 @@ class AscEditor(BaseSchematic):
         self.updated = True
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
-        component = self.get_component(device)
-        if "Value" in component.attributes:
-            if isinstance(value, str):
-                value_str = value
-            else:
-                value_str = format_eng(value)
-            component.attributes["Value"] = value_str
-            _logger.info(f"Component {device} updated to {value_str}")
-            self.set_updated(device)
+        """
+        Sets the value of the component
+
+        :param device: The reference of the component
+        :param value: The new value
+        """
+        sub_circuit, ref = self._get_parent(device)
+
+        if sub_circuit != self:  # The component is in a subcircuit
+            return sub_circuit.set_component_value(ref, value)
         else:
-            _logger.error(f"Component {device} does not have a Value attribute")
-            raise ComponentNotFoundError(f"Component {device} does not have a Value attribute")
+            component = self.get_component(device)
+            if "Value" in component.attributes:
+                if isinstance(value, str):
+                    value_str = value
+                else:
+                    value_str = format_eng(value)
+                component.attributes["Value"] = value_str
+                _logger.info(f"Component {device} updated to {value_str}")
+                self.set_updated(device)
+            else:
+                _logger.error(f"Component {device} does not have a Value attribute")
+                raise ComponentNotFoundError(f"Component {device} does not have a Value attribute")
 
     def set_element_model(self, element: str, model: str) -> None:
         component = self.get_component(element)
@@ -410,24 +365,30 @@ class AscEditor(BaseSchematic):
         self.lib_paths.extend(*paths)
 
     def _lib_file_find(self, filename) -> Optional[str]:
-        for sym_root in self.lib_paths + [
-            # os.path.curdir,  # The current script directory
-            os.path.split(self.asc_file_path)[0],  # The directory where the script is located
-            os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
-            os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sym"),
-            # os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"), # TODO: implement this
-        ]:
-            print(f"   {os.path.abspath(sym_root)}")
-            if not os.path.exists(sym_root):  # Skipping invalid paths
-                continue
-            if sym_root.endswith('.zip'):
-                pass
-                # TODO: Using an IO buffer to pass the file to the AsyEditor
-            else:
-                file_found = find_file_in_directory(sym_root, filename)
-                if file_found is not None:
-                    return file_found
-        return None
+        file_found = search_file_in_containers(filename, *self.lib_paths)  # The library paths
+        if file_found is None:
+            file_found = search_file_in_containers(filename,
+                                                   os.path.split(self.asc_file_path)[0],
+                                                   os.path.curdir,  # The current script directory,
+                                                   os.path.split(self.asc_file_path)[0],
+                                                   # The directory where the script is located
+                                                   os.path.expanduser(r"~\AppData\Local\LTspice\lib\sub"),
+                                                   os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sub"),
+                                                   os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"),
+                                                   )
+        return file_found
+
+    def _asy_file_find(self, filename) -> Optional[str]:
+        file_found = search_file_in_containers(filename, *self.lib_paths)
+        if file_found is None:
+            file_found = search_file_in_containers(filename,
+                                                   os.path.curdir,  # The current script directory
+                                                   os.path.split(self.asc_file_path)[0],
+                                                   # The directory where the script is located
+                                                   os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
+                                                   os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sym"),
+                                                   )
+        return file_found
 
     def add_instruction(self, instruction: str) -> None:
         # docstring inherited from BaseEditor
