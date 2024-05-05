@@ -259,3 +259,8 @@ class AsyReader(object):
             except ValueError:
                 ans = value.strip()  # Removes the leading trailing spaces
         return ans
+
+    def get_schematic_file(self):
+        assert self._asy_file_path.suffix == '.asy', "File is not an asy file"
+        assert self.symbol_type == 'BLOCK', "File is not a subcircuit"
+        return self._asy_file_path.with_suffix('.asc')
