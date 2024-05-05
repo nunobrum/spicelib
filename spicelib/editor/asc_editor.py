@@ -24,7 +24,7 @@ import logging
 
 from .ltspice_utils import TEXT_REGEX, TEXT_REGEX_X, TEXT_REGEX_Y, TEXT_REGEX_ALIGN, TEXT_REGEX_SIZE, TEXT_REGEX_TYPE, \
     TEXT_REGEX_TEXT, END_LINE_TERM, ASC_ROTATION_DICT, ASC_INV_ROTATION_DICT, asc_text_align_set, asc_text_align_get
-from .spice_editor import SpiceEditor
+from .spice_editor import SpiceEditor, SpiceCircuit
 from ..utils.file_search import search_file_in_containers
 from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS
@@ -37,6 +37,7 @@ _logger = logging.getLogger("spicelib.AscEditor")
 class AscEditor(BaseSchematic):
     """Class made to update directly the LTspice ASC files"""
     lib_paths = []  # This is a class variable, so it can be shared between all instances.
+    symbol_cache = {}  # This is a class variable, so it can be shared between all instances.
 
     def __init__(self, asc_file: str):
         super().__init__()
@@ -193,20 +194,21 @@ class AscEditor(BaseSchematic):
 
     def _get_subcircuit(self, symbol: AsyReader) -> Union[SpiceEditor, 'AscEditor']:
         # if it is a an ASC file, then we need to read it
-        model = symbol.get_model()
         if symbol.symbol_type == "BLOCK":
-            asc_filename = model + os.path.extsep + "asc"
-            asc_path = search_file_in_containers(asc_filename,
-                                                 # The directory where the script is located
-                                                 os.path.split(self.asc_file_path)[0],
-                                                 # The current script directory
-                                                 os.path.curdir,
-                                                 # The library paths
-                                                 *self.lib_paths)
-            if asc_path is None:
-                raise FileNotFoundError(f"File {asc_filename} not found")
+            asc_filename = symbol.get_schematic_file()
+            if asc_filename.exists():
+                asc_path = asc_filename
+            else:
+                asc_path = search_file_in_containers(asc_filename.stem + os.path.extsep + "asc",
+                                                     # The directory where the script is located
+                                                     os.path.split(self.asc_file_path)[0],
+                                                     # The current script directory
+                                                     os.path.curdir,
+                                                     # The library paths
+                                                     *self.lib_paths)
             answer = AscEditor(asc_path)
         elif symbol.symbol_type == "CELL":
+            model = symbol.get_model()
             lib = symbol.get_library()
             lib_path = self._lib_file_find(lib)
             if lib_path is None:
@@ -288,6 +290,9 @@ class AscEditor(BaseSchematic):
         sub_circuit, ref = self._get_parent(device)
 
         if sub_circuit != self:  # The component is in a subcircuit
+            if isinstance(sub_circuit, SpiceCircuit):
+                _logger.warning(f"Component {device} is in an Spice subcircuit. "
+                                f"This function may not work as expected.")
             return sub_circuit.set_component_value(ref, value)
         else:
             component = self.get_component(device)
@@ -379,6 +384,9 @@ class AscEditor(BaseSchematic):
         return file_found
 
     def _asy_file_find(self, filename) -> Optional[str]:
+        if filename in self.symbol_cache:
+            return self.symbol_cache[filename]
+        _logger.info(f"Searching for symbol {filename}...")
         file_found = search_file_in_containers(filename, *self.lib_paths)
         if file_found is None:
             file_found = search_file_in_containers(filename,
@@ -388,6 +396,8 @@ class AscEditor(BaseSchematic):
                                                    os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
                                                    os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sym"),
                                                    )
+        if file_found is not None:
+            self.symbol_cache[filename] = file_found
         return file_found
 
     def add_instruction(self, instruction: str) -> None:

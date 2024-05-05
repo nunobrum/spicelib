@@ -43,7 +43,7 @@ def search_file_in_containers(filename, *containers):
 
     """
     for container in containers:
-        print(f"Searching for {filename} in {os.path.abspath(container)}")
+        # print(f"Searching for {filename} in {os.path.abspath(container)}")
         if os.path.exists(container):  # Skipping invalid paths
             if container.endswith('.zip'):
                 # Search in zip files
