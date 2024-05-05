@@ -193,9 +193,9 @@ class SimRunner(object):
 
     def __del__(self):
         """Class Destructor : Closes Everything"""
-        _logger.debug("Waiting for all spawned sim_tasks to finish.")
+        # _logger.debug("Waiting for all spawned sim_tasks to finish.")
         self.wait_completion(abort_all_on_timeout=True)  # Kill all pending simulations
-        _logger.debug("Exiting SimRunner")
+        # _logger.debug("Exiting SimRunner")
 
     def set_simulator(self, spice_tool: Type[Simulator]) -> None:
         """

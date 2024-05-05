@@ -84,7 +84,8 @@ REPLACE_REGXES = {
     '€': r"^(?P<designator>€\w+)(?P<nodes>(\s+\S+){32})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # QSPICE Unique component €
     '£': r"^(?P<designator>£\w+)(?P<nodes>(\s+\S+){64})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # QSPICE Unique component £
     'Ø': r"^(?P<designator>Ø\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>.*)(?P<params>(\s+\w+\s*=\s*[\d\w\{\}\(\)\-\+\*/]+)*)\s*\\?$",  # QSPICE Unique component Ø
-    '×': r"^(?P<designator>×\w+)(?P<nodes>(\s+\S+){4,16})\s+(?P<value>.*)(?P<params>(\w+\s+){1,8})\s*\\?$",  # QSPICE Unique component ×
+    '×': r"^(?P<designator>×\w+)(?P<nodes>(\s+\S+){4,16})\s+(?P<value>.*)(?P<params>(\w+\s+){1,8})\s*\\?$",  # QSPICE proprietaty component ×
+    'Ö': r"^(?P<designator>Ö\w+)(?P<nodes>(\s+\S+){5})\s+(?P<params>.*)\s*\\?$",  # LTspice proprietary component Ö
 }
 
 SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
@@ -121,7 +122,7 @@ def get_line_command(line) -> str:
                         j += 1
                     return line[i:j].upper()
                 else:
-                    raise SyntaxError('Unrecognized command in line "%s"' % line)
+                    raise SyntaxError('Unrecognized command in line "%s" of file %s' % line)
     elif isinstance(line, SpiceCircuit):
         return ".SUBCKT"
     else:
@@ -264,43 +265,28 @@ class SpiceCircuit(BaseEditor):
         else:
             raise UnrecognizedSyntaxError(sub_circuit_instance, REPLACE_REGXES['X'])
 
-        line_no = 0
-        libs_list = []
-        sub_circuit = None
-        while line_no < len(self.netlist):
-            line = self.netlist[line_no]
-            if isinstance(line, SpiceCircuit):
-                if line.name() == subcircuit_name:
-                    sub_circuit = line  # The circuit was already found
-                    break
-            else:
-                m = lib_inc_regex.match(line)
-                if m:  # For compatibility issues not using the walruss operator here
-                    libs_list.append(m.group(2))
-            line_no += 1
-        if sub_circuit is None:
-            # If we reached here is because the subciruit was not found. Search for it in declared libraries
-            libs_list_full_path = []
-            for lib in libs_list:
-                if os.path.exists(lib):
-                    libs_list_full_path.append(lib)
-                    continue
-                # TODO: This changes dependend of the simulator being used.
-                lib_filename = os.path.join(os.path.expanduser('~'), "Documents\\LTspiceXVII\\lib\\sub", lib)
-                if os.path.exists(lib_filename):
-                    libs_list_full_path.append(lib)
-                    continue
-                for path in LibSearchPaths:
-                    lib_filename = os.path.join(path, lib)
-                    if os.path.exists(lib_filename):
-                        libs_list_full_path.append(lib_filename)
-                        continue
+        # Search for the sub-circuit in the netlist
+        sub_circuit = SpiceEditor.find_subckt_in_lib(self.circuit_file, subcircuit_name)
 
-            # If it reached here, we have a valid lib_filename
-            for lib_path in libs_list_full_path:
-                sub_circuit = SpiceEditor.find_subckt_in_lib(lib_path, subcircuit_name)
-                if sub_circuit:
-                    break
+        if sub_circuit is None:  # If it was not found in the netlist, search on the declared libraries
+            # If we reached here is because the subcircuit was not found. Search for it in declared libraries
+            for line in self.netlist:
+                m = lib_inc_regex.match(line)
+                if m:  # If it is a library include
+                    lib = m.group(2)
+                    if os.path.exists(lib):
+                        lib_filename = os.path.join(os.path.expanduser('~'), "Documents\\LTspiceXVII\\lib\\sub", lib)
+                        if os.path.exists(lib_filename):
+                            sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
+                            if sub_circuit:
+                                break
+                    for path in LibSearchPaths:
+                        lib_filename = os.path.join(path, lib)
+                        if os.path.exists(lib_filename):
+                            sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
+                            if sub_circuit:
+                                break
+
         if sub_circuit:
             if SUBCKT_DIVIDER in instance_name:
                 return sub_circuit.get_subcircuit(sub_subckts)
@@ -471,7 +457,7 @@ class SpiceCircuit(BaseEditor):
         component_info = self.get_component_info(reference)
         component = Component()
         component.reference = reference
-        component.nodes = component_info['nodes']
+        component.ports = component_info['nodes'].split()
         for attr in component_info:
             if attr not in ('designator', 'nodes'):
                 component.attributes[attr] = component_info[attr]

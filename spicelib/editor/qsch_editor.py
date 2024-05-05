@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding=utf-8
 # -------------------------------------------------------------------------------
 #
@@ -30,6 +29,9 @@ from .base_editor import (
 )
 from .base_schematic import BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum
 from ..utils.file_search import find_file_in_directory
+
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 __all__ = ('QschEditor', )
 

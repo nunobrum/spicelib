@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# coding=utf-8
 import logging
 
 import spicelib
@@ -30,6 +32,14 @@ print("=====================================")
 # Now using the second method, where the simulations are ran one by one
 wca.clear_simulation_data()  # Clears the simulation data
 wca.reset_netlist()  # Resets the netlist to the original
-results = wca.run_analysis(measure='fcut')  # Makes the Worst Case Analysis
-print(results)
+nominal, min_value, max_comp_values, max_value, min_comp_values = wca.run_analysis(measure='fcut')  # Makes the Worst Case Analysis
+print("Nominal Value", nominal)
+print("Worst Case Min", min_value)
+print("Min Component Values")
+for comp, value in min_comp_values.items():
+    print(f"    {comp} = {value}")
+print("Worst Case Max", max_value)
+print("Max Component Values")
+for comp, value in max_comp_values.items():
+    print(f"    {comp} = {value}")
 wca.cleanup_files()  # Deletes the temporary files

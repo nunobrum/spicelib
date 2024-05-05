@@ -1,6 +1,4 @@
-#!/usr/bin/env python
 # coding=utf-8
-
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -18,12 +16,20 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
+__author__ = "Nuno Brum"
+__version__ = "0.1.0"
+
+
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from math import floor, log
 from pathlib import Path
 from typing import Union
 import logging
+
+
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 _logger = logging.getLogger("spicelib.BaseEditor")
 

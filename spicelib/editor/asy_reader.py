@@ -23,8 +23,7 @@ from pathlib import Path
 from typing import Union
 
 from .base_schematic import Point, Text, TextTypeEnum, Line, Circle, Rectangle, Arc, HorAlign, ERotation, VerAlign
-from .asc_editor import asc_text_align_set, TEXT_REGEX, LT_ATTRIBUTE_NUMBERS, LT_ATTRIBUTE_NUMBERS_INV, \
-    WEIGHT_CONVERSION_TABLE
+from .ltspice_utils import asc_text_align_set
 
 from .qsch_editor import QschTag
 
@@ -236,3 +235,45 @@ class AsyReader(object):
             symbol.items.append(pin_tag)
 
         return symbol
+
+    def is_subcircuit(self):
+        return self.symbol_type == 'BLOCK' or self.attributes.get('Prefix') == 'X'
+
+    def get_library(self) -> str:
+        """Returns the library name of the model. If not found, returns None."""
+        # Searching in this exact order
+        for attr in ('ModelFile', 'SpiceModel', 'SpiceLine', 'SpiceLine2', 'Def_Sub', 'Value', 'Value2'):
+            if attr in self.attributes and (self.attributes[attr].endswith('.lib') or
+                        self.attributes[attr].endswith('.sub') or
+                        self.attributes[attr].endswith('.cir')
+            ):
+                return self.attributes[attr]
+        return self.attributes.get('SpiceModel')
+
+    def get_model(self) -> str:
+        """Returns the model name of the component. If not found, returns None."""
+        # Searching in this exact order
+        for attr in ('Value', 'SpiceModel', 'Value2', 'ModelFile', 'SpiceLine', 'SpiceLine2', 'Def_Sub', ):
+            if attr in self.attributes:
+                return self.attributes[attr]
+        raise ValueError("No Value or Value2 attribute found")
+
+    def get_value(self) -> Union[int, float, str]:
+        """
+        Returns the value of the component. If not found, returns None.
+        If found it tries to convert the value to a number. If it fails, it returns the string.
+        """
+        value = self.get_model()
+        try:
+            ans = int(value)
+        except ValueError:
+            try:
+                ans = float(value)
+            except ValueError:
+                ans = value.strip()  # Removes the leading trailing spaces
+        return ans
+
+    def get_schematic_file(self):
+        assert self._asy_file_path.suffix == '.asy', "File is not an asy file"
+        assert self.symbol_type == 'BLOCK', "File is not a subcircuit"
+        return self._asy_file_path.with_suffix('.asc')

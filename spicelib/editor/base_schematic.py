@@ -1,8 +1,4 @@
-#!/usr/bin/env python
 # coding=utf-8
-import abc
-import dataclasses
-import enum
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -12,8 +8,8 @@ import enum
 #  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
-# Name:        base_editor.py
-# Purpose:     Abstract class that defines the protocol for the editors
+# Name:        base_schematic.py
+# Purpose:     Base classes for schematic editors
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
@@ -21,10 +17,15 @@ import enum
 # -------------------------------------------------------------------------------
 
 
+import dataclasses
+import enum
 from typing import List, Callable, Union
 from collections import OrderedDict
 import logging
 from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
+
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 _logger = logging.getLogger("spicelib.BaseSchematic")
 
@@ -287,10 +288,13 @@ class BaseSchematic(BaseEditor):
         """
         sub_circuit, ref = self._get_parent(reference)
 
-        if ref not in sub_circuit.components:
-            _logger.error(f"Component {reference} not found")
-            raise ComponentNotFoundError(f"Component {reference} not found in Schematic file")
-        return sub_circuit.components[ref]
+        if sub_circuit != self:  # The component is in a subcircuit
+            return sub_circuit.get_component(ref)
+        else:
+            if ref not in sub_circuit.components:
+                _logger.error(f"Component {reference} not found")
+                raise ComponentNotFoundError(f"Component {reference} not found in Schematic file")
+            return sub_circuit.components[ref]
 
     def get_component_position(self, reference: str) -> (Point, ERotation):
         """Returns the position and rotation of the component"""

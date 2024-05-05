@@ -1,3 +1,23 @@
+# -*- coding: utf-8 -*-
+# -------------------------------------------------------------------------------
+#
+#  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
+#  ██╔════╝██╔══██╗██║██╔════╝██╔════╝██║     ██║██╔══██╗
+#  ███████╗██████╔╝██║██║     █████╗  ██║     ██║██████╔╝
+#  ╚════██║██╔═══╝ ██║██║     ██╔══╝  ██║     ██║██╔══██╗
+#  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
+#  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
+#
+# Name:        windows_short_names.py
+# Purpose:     Functions to get the short path name of a file on Windows
+#
+# Author:      Nuno Brum (nuno.brum@gmail.com)
+#
+# Created:     28-03-2024
+# Licence:     refer to the LICENSE file
+#
+# -------------------------------------------------------------------------------
+
 # From https://stackoverflow.com/questions/23598289/how-to-get-windows-short-file-name-in-python
 import ctypes
 from ctypes import wintypes
