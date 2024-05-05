@@ -493,7 +493,7 @@ _Make sure to initialize the root logger before importing the library to be able
 ## History ##
 * Version 1.1.2
   * Fixes on the readme_update.py script. Was not supporting spaces after the []
-  * Solving issue 138. Hierarchical edits to ASC files are now supported.
+  * Solving issue PyLTspice Issue #138. Hierarchical edits to ASC files are now supported.
 * Version 1.1.1
   * Supporting hierarchical edits on both QSpice and LTspice schematics
   * Skipping the need of the rich library on examples
