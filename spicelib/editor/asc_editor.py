@@ -189,6 +189,8 @@ class AscEditor(BaseSchematic):
     def _get_symbol(self, symbol: str) -> AsyReader:
         asy_filename = symbol + os.path.extsep + "asy"
         asy_path = self._asy_file_find(asy_filename)
+        if asy_path is None:
+            raise FileNotFoundError(f"File {asy_filename} not found")
         answer = AsyReader(asy_path)
         return answer
 
@@ -206,6 +208,8 @@ class AscEditor(BaseSchematic):
                                                      os.path.curdir,
                                                      # The library paths
                                                      *self.lib_paths)
+            if asc_path is None:
+                raise FileNotFoundError(f"File {asc_filename} not found")
             answer = AscEditor(asc_path)
         elif symbol.symbol_type == "CELL":
             model = symbol.get_model()
