@@ -1,8 +1,4 @@
-#!/usr/bin/env python
 # coding=utf-8
-import abc
-import dataclasses
-import enum
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -12,8 +8,8 @@ import enum
 #  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
-# Name:        base_editor.py
-# Purpose:     Abstract class that defines the protocol for the editors
+# Name:        base_schematic.py
+# Purpose:     Base classes for schematic editors
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
@@ -21,10 +17,15 @@ import enum
 # -------------------------------------------------------------------------------
 
 
+import dataclasses
+import enum
 from typing import List, Callable, Union
 from collections import OrderedDict
 import logging
 from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
+
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 _logger = logging.getLogger("spicelib.BaseSchematic")
 

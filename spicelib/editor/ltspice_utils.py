@@ -1,7 +1,32 @@
+# -*- coding: utf-8 -*-
+# -------------------------------------------------------------------------------
+#
+#  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
+#  ██╔════╝██╔══██╗██║██╔════╝██╔════╝██║     ██║██╔══██╗
+#  ███████╗██████╔╝██║██║     █████╗  ██║     ██║██████╔╝
+#  ╚════██║██╔═══╝ ██║██║     ██╔══╝  ██║     ██║██╔══██╗
+#  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
+#  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
+#
+# Name:        ltspice_utils.py
+# Purpose:     Utility functions for LTSpice files
+#
+# Author:      Nuno Brum (nuno.brum@gmail.com)
+#
+# Created:     28-03-2024
+# Licence:     refer to the LICENSE file
+#
+# -------------------------------------------------------------------------------
+
 import re
 
 from .base_schematic import ERotation, Text, HorAlign, VerAlign
 
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
+
+
+# Regular expressions
 TEXT_REGEX = re.compile(r"TEXT (-?\d+)\s+(-?\d+)\s+(Left|Right|Top|Bottom)\s(\d+)\s*(?P<type>[!;])(?P<text>.*)",
                         re.IGNORECASE)
 TEXT_REGEX_X = 1

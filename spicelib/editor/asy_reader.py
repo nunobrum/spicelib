@@ -239,17 +239,30 @@ class AsyReader(object):
     def is_subcircuit(self):
         return self.symbol_type == 'BLOCK' or self.attributes.get('Prefix') == 'X'
 
-    def get_library(self):
+    def get_library(self) -> str:
+        """Returns the library name of the model. If not found, returns None."""
+        # Searching in this exact order
+        for attr in ('ModelFile', 'SpiceModel', 'SpiceLine', 'SpiceLine2', 'Def_Sub', 'Value', 'Value2'):
+            if attr in self.attributes and (self.attributes[attr].endswith('.lib') or
+                        self.attributes[attr].endswith('.sub') or
+                        self.attributes[attr].endswith('.cir')
+            ):
+                return self.attributes[attr]
         return self.attributes.get('SpiceModel')
 
     def get_model(self) -> str:
-        if 'Value' in self.attributes:
-            return self.attributes.get('Value')
-        elif 'Value2' in self.attributes:
-            return self.attributes.get('Value2')
+        """Returns the model name of the component. If not found, returns None."""
+        # Searching in this exact order
+        for attr in ('Value', 'SpiceModel', 'Value2', 'ModelFile', 'SpiceLine', 'SpiceLine2', 'Def_Sub', ):
+            if attr in self.attributes:
+                return self.attributes[attr]
         raise ValueError("No Value or Value2 attribute found")
 
     def get_value(self) -> Union[int, float, str]:
+        """
+        Returns the value of the component. If not found, returns None.
+        If found it tries to convert the value to a number. If it fails, it returns the string.
+        """
         value = self.get_model()
         try:
             ans = int(value)

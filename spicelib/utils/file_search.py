@@ -21,6 +21,10 @@ import os
 import zipfile
 
 
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
+
+
 def find_file_in_directory(directory, filename):
     """
     Searches for a file with the given filename in the specified directory and its subdirectories.

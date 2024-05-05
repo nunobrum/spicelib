@@ -21,7 +21,11 @@
 import math
 from typing import Union, Optional, Iterable
 
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
+
 __all__ = ['sweep', 'sweep_n', 'sweep_log', 'sweep_log_n']
+
 
 class BaseIterator(object):
     """Common implementation to all Iterator classes"""
@@ -95,7 +99,6 @@ def sweep_n(start: Union[int, float], stop: Union[int, float], N: int) -> Iterab
         [15, 12.5, 10.0, 7.5, 5.0, 2.5, 0.0, -2.5, -5.0, -7.5, -10.0, -12.5, -15.0]
         """
     return sweep(start, stop, (stop-start)/(N-1))
-
 
 
 class sweep_log(BaseIterator):
