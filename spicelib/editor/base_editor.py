@@ -363,6 +363,33 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
+    def set_component_parameters(self, element: str, **kwargs) -> None:
+        """
+        Adds one or more parameters to the component on the netlist. The argument is in the form of a key-value pair where each
+        parameter is the key and the value is value to be set in the netlist.
+
+        Usage 1: ::
+
+         editor.set_component_parameters(R1, value=330, temp=25)
+
+        Usage 2: ::
+
+         value_settings = {'value': 330, 'temp': 25}
+         editor.set_component_parameters(R1, **value_settings)
+
+        :param element: Reference of the circuit element to get the value in float format.
+        :type element: str
+
+        :key <param_name>:
+            The key is the parameter name and the value is the value to be set. Values can either be
+            strings; integers or floats
+
+        :return: Nothing
+        :raises: ComponentNotFoundError - In case one of the component is not found.
+        """
+        ...
+
+    @abstractmethod
     def get_component_value(self, element: str) -> str:
         """
         Returns the value of a component retrieved from the netlist.
@@ -372,6 +399,23 @@ class BaseEditor(ABC):
 
         :return: value of the circuit element .
         :rtype: str
+
+        :raises: ComponentNotFoundError - In case the component is not found
+
+                 NotImplementedError - for not supported operations
+        """
+        ...
+
+    @abstractmethod
+    def get_component_parameters(self, element: str) -> dict:
+        """
+        Returns the parameters of a component retrieved from the netlist.
+
+        :param element: Reference of the circuit element to get the parameters.
+        :type element: str
+
+        :return: parameters of the circuit element in dictionary format.
+        :rtype: dict
 
         :raises: ComponentNotFoundError - In case the component is not found
 
