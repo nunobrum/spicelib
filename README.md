@@ -491,6 +491,11 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : nuno.brum@gmail.com
 
 ## History ##
+* Version 1.1.3
+  * Implementing a set_component_parameter() method on the Editor classes 
+  * Bug Fixes: 
+    * AscEditor was hanging in comments. Issue #43
+    * Supporting other text orientations on the AscEditor. Issue #44
 * Version 1.1.2
   * Fixes on the readme_update.py script. Was not supporting spaces after the []
   * Solving issue PyLTspice Issue #138. Hierarchical edits to ASC files are now supported.

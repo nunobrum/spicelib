@@ -24,7 +24,18 @@ copyright = '2023, Nuno Brum'
 author = 'Nuno Brum'
 
 # The full version, including alpha/beta/rc tags
-release = '1.1.1'
+release = '1.1.3'
+
+try:
+	# Read the version from the .toml file
+	from toml import load
+	with open('../pyproject.toml') as f:
+		pyproject = load(f)
+		project = pyproject['project']['name']
+		release = pyproject['project']['version']
+		author = pyproject['project']['authors'][0]['name']
+except:
+	pass
 
 
 # -- General configuration ---------------------------------------------------
