@@ -415,6 +415,7 @@ class AscEditor(BaseSchematic):
             while i < len(self.directives):
                 directive = self.directives[i]
                 if directive.type == TextTypeEnum.COMMENT:
+                    i += 1
                     continue  # this is a comment
                 directive_command = directive.text.split()[0].upper()
                 if directive_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
