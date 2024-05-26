@@ -66,7 +66,10 @@ SPICE_DOT_INSTRUCTIONS = (
     '.WAVE',  # Write Selected Nodes to a .Wav File
 
 )
-PARAM_REGEX = r"(?<= )(?P<replace>%s(\s*=\s*)(?P<value>[\w\*\/\.\+\-\/\*\{\}\(\)\t ]*))(?<!\s)($|\s+)(?!\s*=)"
+
+
+def PARAM_REGEX(pname):
+    return r"(?P<name>" + pname + r")\s*[= ]\s*(?P<value>[\w\*\/\.\+\-\/\*\{\}\(\)%]*)"
 
 
 def format_eng(value) -> str:
@@ -220,7 +223,9 @@ class BaseEditor(ABC):
         ...
 
     def get_component_attribute(self, reference: str, attribute: str) -> str:
-        """Returns the value of the attribute of the component.
+        """Returns the value of the attribute of the component. Attributes are the values that are not related with
+        SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
+        User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
         :param reference: Reference of the component
         :type reference: str
         :param attribute: Name of the attribute to be retrieved
@@ -314,7 +319,7 @@ class BaseEditor(ABC):
     @abstractmethod
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
-        subcircuits, use the subcirciut designator prefix with ':' as separator (Example X1:R1)
+        sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
         Usage: ::
 
             editor.set_component_value('R1', '3.3k')
@@ -323,8 +328,8 @@ class BaseEditor(ABC):
         :param device: Reference of the circuit element to be updated.
         :type device: str
         :param value:
-            value to be be set on the given circuit element. Float and integer values will automatically
-            formatted as per the engineering notations 'k' for kilo, 'm', for mili and so on.
+            value to be set on the given circuit element. Float and integer values will automatically
+            formated as per the engineering notations 'k' for kilo, 'm', for mili and so on.
         :type value: str, int or float
         :raises:
             ComponentNotFoundError - In case the component is not found
@@ -365,8 +370,8 @@ class BaseEditor(ABC):
     @abstractmethod
     def set_component_parameters(self, element: str, **kwargs) -> None:
         """
-        Adds one or more parameters to the component on the netlist. The argument is in the form of a key-value pair where each
-        parameter is the key and the value is value to be set in the netlist.
+        Adds one or more parameters to the component on the netlist. The argument is in the form of a key-value pair
+        where each parameter is the key and the value is value to be set in the netlist.
 
         Usage 1: ::
 
@@ -388,6 +393,21 @@ class BaseEditor(ABC):
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
         ...
+
+    def set_component_attribute(self, reference: str, attribute: str, value: str) -> None:
+        """Sets the value of the attribute of the component. Attributes are the values that are not related with
+        SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
+        User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
+        :param reference: Reference of the component
+        :type reference: str
+        :param attribute: Name of the attribute to be set
+        :type attribute: str
+        :param value: Value of the attribute to be set
+        :type value: str
+        :return: Nothing
+        :raises: ComponentNotFoundError - In case the component is not found
+        """
+        self.get_component(reference).attributes[attribute] = value
 
     @abstractmethod
     def get_component_value(self, element: str) -> str:

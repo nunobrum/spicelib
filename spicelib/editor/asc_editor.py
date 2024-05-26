@@ -31,7 +31,13 @@ from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundEr
 from .base_schematic import (BaseSchematic, Point, Line, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
 from .asy_reader import AsyReader
 
+from ..log.logfile_data import try_convert_value
+
 _logger = logging.getLogger("spicelib.AscEditor")
+
+
+LTSPICE_PARAMETERS = ("Value", "Value2", "SpiceModel", "SpiceLine", "SpiceLine2")
+LTSPICE_ATTRIBUTES = ("InstName", "Def_Sub")
 
 
 class AscEditor(BaseSchematic):
@@ -254,7 +260,7 @@ class AscEditor(BaseSchematic):
         return None, None
 
     def get_parameter(self, param: str) -> str:
-        param_regex = re.compile(PARAM_REGEX % param, re.IGNORECASE)
+        param_regex = re.compile(PARAM_REGEX(param), re.IGNORECASE)
         match, directive = self._get_directive(".PARAM", param_regex)
         if match:
             return match.group('value')
@@ -262,7 +268,7 @@ class AscEditor(BaseSchematic):
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
-        param_regex = re.compile(PARAM_REGEX % param, re.IGNORECASE)
+        param_regex = re.compile(PARAM_REGEX(param), re.IGNORECASE)
         match, directive = self._get_directive(".PARAM", param_regex)
         if match:
             _logger.debug(f"Parameter {param} found in ASC file, updating it")
@@ -270,8 +276,8 @@ class AscEditor(BaseSchematic):
                 value_str = format_eng(value)
             else:
                 value_str = value
-            start, stop = match.span('replace')
-            directive.text = f"{directive.text[:start]}{param}={value_str}{directive.text[stop:]}"
+            start, stop = match.span('value')
+            directive.text = f"{directive.text[:start]}{value_str}{directive.text[stop:]}"
             _logger.info(f"Parameter {param} updated to {value_str}")
         else:
             # Was not found so we need to add it,
@@ -320,10 +326,58 @@ class AscEditor(BaseSchematic):
 
     def get_component_value(self, element: str) -> str:
         component = self.get_component(element)
-        if "Value" not in component.attributes:
+        values = [component.attributes[param_name] for param_name in ["Value", "Value2"]
+                  if param_name in component.attributes]
+        if len(values) == 0:
             _logger.error(f"Component {element} does not have a Value attribute")
             raise ComponentNotFoundError(f"Component {element} does not have a Value attribute")
-        return component.attributes["Value"]
+        return ' '.join(values)
+
+    def get_component_parameters(self, element: str) -> dict:
+        """
+        Returns the parameters of a component that are related with Spice operation.
+        That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2
+
+        :param element: Reference of the circuit element to get the parameters.
+        :type element: str
+
+        :return: parameters of the circuit element in dictionary format.
+        :rtype: dict
+
+        :raises: ComponentNotFoundError - In case the component is not found
+
+                 NotImplementedError - for not supported operations
+        """
+        component = self.get_component(element)
+        parameters = {}
+        search_regex = re.compile(PARAM_REGEX(r'\w+'), re.IGNORECASE)
+        for key, value in component.attributes.items():
+            if key in LTSPICE_PARAMETERS:
+                matches = search_regex.findall(value)
+                if matches:
+                    # This might contain one or more parameters
+                    for param_name, param_value in matches:
+                        parameters[param_name] = try_convert_value(param_value)
+                else:
+                    parameters[key] = value
+
+        return parameters
+
+    def set_component_parameters(self, element: str, **kwargs) -> None:
+        """
+        Sets the parameters of a component that are related with Spice operation.
+        That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2.
+        Other parameters are ignored.
+
+        :param element: Reference of the circuit element to set the parameters.
+        :type element: str
+        """
+        component = self.get_component(element)
+        for key, value in kwargs.items():
+            if key in LTSPICE_PARAMETERS:
+                component.attributes[key] = value
+        _logger.info(f"Component {element} updated with parameters {kwargs}")
+        self.set_updated(element)
 
     def get_components(self, prefixes='*') -> list:
         if prefixes == '*':

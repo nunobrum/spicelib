@@ -215,6 +215,7 @@ class Text:
     textAlignment: HorAlign = HorAlign.LEFT
     verticalAlignment: VerAlign = VerAlign.CENTER
     angle: ERotation = ERotation.R0
+    visible: bool = True
 
 
 @dataclasses.dataclass
