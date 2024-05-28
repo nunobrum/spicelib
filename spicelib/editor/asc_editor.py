@@ -19,6 +19,7 @@
 import os.path
 from pathlib import Path
 from typing import Union, Optional
+from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
 
@@ -45,13 +46,21 @@ class AscEditor(BaseSchematic):
     lib_paths = []  # This is a class variable, so it can be shared between all instances.
     symbol_cache = {}  # This is a class variable, so it can be shared between all instances.
 
-    def __init__(self, asc_file: str):
+    def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
         super().__init__()
         self.version = 4
         self.sheet = "1 0 0"  # Three values are present on the SHEET clause
         self.asc_file_path = Path(asc_file)
         if not self.asc_file_path.exists():
             raise FileNotFoundError(f"File {asc_file} not found")
+        # determine encoding
+        if encoding == 'autodetect':
+            try:
+                self.encoding = detect_encoding(self.asc_file_path, r'^\* ')  # Normally the file will start with a '*'
+            except EncodingDetectError as err:
+                raise err
+        else:
+            self.encoding = encoding        
         # read the file into memory
         self.reset_netlist()
 
@@ -63,7 +72,7 @@ class AscEditor(BaseSchematic):
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
         run_netlist_file = run_netlist_file.with_suffix(".asc")
-        with open(run_netlist_file, 'w') as asc:
+        with open(run_netlist_file, 'w', encoding=self.encoding) as asc:
             _logger.info(f"Writing ASC file {run_netlist_file}")
 
             asc.write(f"Version {self.version}" + END_LINE_TERM)
@@ -108,7 +117,7 @@ class AscEditor(BaseSchematic):
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()
-        with open(self.asc_file_path, 'r') as asc_file:
+        with open(self.asc_file_path, 'r', encoding=self.encoding) as asc_file:
             _logger.info(f"Parsing ASC file {self.asc_file_path}")
             component = None
             for line in asc_file:
