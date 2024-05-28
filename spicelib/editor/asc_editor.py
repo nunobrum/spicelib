@@ -56,7 +56,7 @@ class AscEditor(BaseSchematic):
         # determine encoding
         if encoding == 'autodetect':
             try:
-                self.encoding = detect_encoding(self.asc_file_path, r'^\* ')  # Normally the file will start with a '*'
+                self.encoding = detect_encoding(self.asc_file_path, r'^VERSION ', re_flags=re.IGNORECASE)  # Normally the file will start with 'VERSION '
             except EncodingDetectError as err:
                 raise err
         else:
