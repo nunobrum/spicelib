@@ -38,6 +38,7 @@ _logger = logging.getLogger("spicelib.AscEditor")
 
 
 LTSPICE_PARAMETERS = ("Value", "Value2", "SpiceModel", "SpiceLine", "SpiceLine2")
+LTSPICE_PARAMETERS_REDUCED = ("SpiceLine", "SpiceLine2")
 LTSPICE_ATTRIBUTES = ("InstName", "Def_Sub")
 
 
@@ -229,6 +230,9 @@ class AscEditor(BaseSchematic):
         elif symbol.symbol_type == "CELL":
             model = symbol.get_model()
             lib = symbol.get_library()
+            if lib is None:
+                # TODO: the library is often specified later on, so this may need to move.
+                return None
             lib_path = self._lib_file_find(lib)
             if lib_path is None:
                 raise FileNotFoundError(f"File {lib} not found")
@@ -342,13 +346,15 @@ class AscEditor(BaseSchematic):
             raise ComponentNotFoundError(f"Component {element} does not have a Value attribute")
         return ' '.join(values)
 
-    def get_component_parameters(self, element: str) -> dict:
+    def get_component_parameters(self, element: str, as_dicts: bool = False) -> dict:
         """
         Returns the parameters of a component that are related with Spice operation.
-        That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2
+        That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, plus all contents of SpiceLine, SpiceLine2
 
         :param element: Reference of the circuit element to get the parameters.
         :type element: str
+        :param as_dicts: will report the contents of SpiceLine and SpiceLine2 inside a SpiceLine/SpiceLine2 instead of separately.
+        :type as_dicts: bool
 
         :return: parameters of the circuit element in dictionary format.
         :rtype: dict
@@ -362,20 +368,27 @@ class AscEditor(BaseSchematic):
         search_regex = re.compile(PARAM_REGEX(r'\w+'), re.IGNORECASE)
         for key, value in component.attributes.items():
             if key in LTSPICE_PARAMETERS:
-                matches = search_regex.findall(value)
-                if matches:
-                    # This might contain one or more parameters
-                    for param_name, param_value in matches:
-                        parameters[param_name] = try_convert_value(param_value)
-                else:
-                    parameters[key] = value
+                parameters[key] = value
+                if key in LTSPICE_PARAMETERS_REDUCED:
+                    # if we have a structured attribute, return the full dict of it
+                    # this is compatible with set_component_parameters
+                    sub_parameters = {}                    
+                    matches = search_regex.findall(value)
+                    if matches:
+                        # This might contain one or more parameters
+                        for param_name, param_value in matches:
+                            sub_parameters[param_name] = try_convert_value(param_value)
+                        if as_dicts:
+                            parameters[key] = sub_parameters
+                        else:
+                            parameters.update(sub_parameters)
 
         return parameters
 
     def set_component_parameters(self, element: str, **kwargs) -> None:
         """
         Sets the parameters of a component that are related with Spice operation.
-        That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2.
+        That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, or any parameters are or could be in SpiceLine, SpiceLine2.
         Other parameters are ignored.
 
         :param element: Reference of the circuit element to set the parameters.
@@ -383,9 +396,34 @@ class AscEditor(BaseSchematic):
         """
         component = self.get_component(element)
         for key, value in kwargs.items():
-            if key in LTSPICE_PARAMETERS:
+            params = self.get_component_parameters(element, as_dicts=True)
+            if key.lower() in (p.lower() for p in params):
                 component.attributes[key] = value
-        _logger.info(f"Component {element} updated with parameters {kwargs}")
+                _logger.info(f"Component {element} updated with parameter {key}:{value}")
+            else:
+                foundme = False
+                for param_key in LTSPICE_PARAMETERS_REDUCED:
+                    if param_key in params:
+                        params[param_key][key] = value
+                        component.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in params[param_key].items()])
+                        _logger.info(f"Component {element} updated with parameter {key}:{value}")
+                        foundme = True
+                if not foundme:
+                    if key.lower() in (p.lower() for p in LTSPICE_PARAMETERS):
+                        # known parameter?
+                        component.attributes[key] = value
+                        _logger.info(f"Component {element} updated with parameter {key}:{value}")
+                    else:
+                        # nothing found, and not a known parameter, put it in SpiceLine
+                        param_key = LTSPICE_PARAMETERS_REDUCED[0]
+                        if param_key in params:
+                            # if SpiceLine exists: add to the dict
+                            params[param_key][key] = value
+                            component.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in value.items()])
+                        else:
+                            # if SpiceLine does not exist: create the dict
+                            component.attributes[param_key] = f'{key}={value}'
+                        _logger.info(f"Component {element} updated with parameter {key}:{value}")
         self.set_updated(element)
 
     def get_components(self, prefixes='*') -> list:
@@ -444,9 +482,9 @@ class AscEditor(BaseSchematic):
                                                    os.path.curdir,  # The current script directory,
                                                    os.path.split(self.asc_file_path)[0],
                                                    # The directory where the script is located
-                                                   os.path.expanduser(r"~\AppData\Local\LTspice\lib\sub"),
-                                                   os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sub"),
-                                                   os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"),
+                                                   os.path.expanduser("~/AppData/Local/LTspice/lib/sub"),
+                                                   os.path.expanduser("~/Documents/LtspiceXVII/lib/sub"),
+                                                   os.path.expanduser("~/AppData/Local/Programs/ADI/LTspice/lib.zip"),
                                                    )
         return file_found
 
@@ -460,8 +498,8 @@ class AscEditor(BaseSchematic):
                                                    os.path.curdir,  # The current script directory
                                                    os.path.split(self.asc_file_path)[0],
                                                    # The directory where the script is located
-                                                   os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
-                                                   os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sym"),
+                                                   os.path.expanduser("~/AppData/Local/LTspice/lib/sym"),
+                                                   os.path.expanduser("~/Documents/LtspiceXVII/lib/sym"),
                                                    )
         if file_found is not None:
             self.symbol_cache[filename] = file_found

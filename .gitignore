@@ -25,6 +25,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+unittests/temp/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -164,4 +165,7 @@ cython_debug/
 
 # Pip Installer 
 spicelib.egg-info
+
+# MacOS
 .DS_Store
+
