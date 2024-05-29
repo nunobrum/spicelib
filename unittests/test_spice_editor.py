@@ -37,7 +37,7 @@ if not os.path.exists(temp_dir):
 class SpiceEditor_Test(unittest.TestCase):
 
     def setUp(self):
-        self.edt = spicelib.editor.spice_editor.SpiceEditor(temp_dir + "DC sweep.net")
+        self.edt = spicelib.editor.spice_editor.SpiceEditor(test_dir + "DC sweep.net")
 
     def test_component_editing(self):
         self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here
