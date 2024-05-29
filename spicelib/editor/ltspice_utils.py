@@ -105,7 +105,12 @@ def asc_text_align_get(text: Text) -> str:
             else:
                 ans = 'Left'
         else:
-            ans = 'Left'
+            if text.verticalAlignment == VerAlign.TOP:
+                ans = 'Top'
+            elif text.verticalAlignment == VerAlign.BOTTOM:
+                ans = 'Bottom'
+            else:            
+                ans = 'Left'
 
     if text.angle == ERotation.R90:
         ans = 'V' + ans

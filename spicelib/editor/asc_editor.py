@@ -398,32 +398,42 @@ class AscEditor(BaseSchematic):
         for key, value in kwargs.items():
             params = self.get_component_parameters(element, as_dicts=True)
             if key.lower() in (p.lower() for p in params):
+                # I only have the LTSPICE_PARAMETERS as keys here, so when I match, i can overwrite
                 component.attributes[key] = value
                 _logger.info(f"Component {element} updated with parameter {key}:{value}")
             else:
                 foundme = False
+                # not found: look in the second level dicts
                 for param_key in LTSPICE_PARAMETERS_REDUCED:
                     if param_key in params:
-                        params[param_key][key] = value
-                        component.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in params[param_key].items()])
-                        _logger.info(f"Component {element} updated with parameter {key}:{value}")
-                        foundme = True
-                if not foundme:
-                    if key.lower() in (p.lower() for p in LTSPICE_PARAMETERS):
-                        # known parameter?
-                        component.attributes[key] = value
-                        _logger.info(f"Component {element} updated with parameter {key}:{value}")
-                    else:
-                        # nothing found, and not a known parameter, put it in SpiceLine
-                        param_key = LTSPICE_PARAMETERS_REDUCED[0]
-                        if param_key in params:
-                            # if SpiceLine exists: add to the dict
+                        if key.lower() in (p.lower() for p in params[param_key]):
+                            # found in the dict
+                            # update the dict
                             params[param_key][key] = value
-                            component.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in value.items()])
+                            # and make the line out of the dict
+                            component.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in params[param_key].items()])
+                            _logger.info(f"Component {element} updated with parameter {key}:{value}")
+                            foundme = True
+                if not foundme:
+                    if value is not None and len(value) > 0:
+                        # don't add if there's nothing to add
+                        # TODO: In theory, if I did find the parameter above and the target value is empty, I should remove the field in some cases, but Spice doesn't complain. So....
+                        if key.lower() in (p.lower() for p in LTSPICE_PARAMETERS):
+                            # known parameter, set the value
+                            component.attributes[key] = value
+                            _logger.info(f"Component {element} updated with parameter {key}:{value}")
                         else:
-                            # if SpiceLine does not exist: create the dict
-                            component.attributes[param_key] = f'{key}={value}'
-                        _logger.info(f"Component {element} updated with parameter {key}:{value}")
+                            # nothing found, and not a known parameter, put it in SpiceLine
+                            param_key = LTSPICE_PARAMETERS_REDUCED[0]
+                            if param_key in params:
+                                # if SpiceLine exists: add to the dict
+                                params[param_key][key] = value
+                                # and make the line out of the dict
+                                component.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in params[param_key].items()])
+                            else:
+                                # if SpiceLine does not exist: create the line
+                                component.attributes[param_key] = f'{key}={value}'
+                            _logger.info(f"Component {element} updated with parameter {key}:{value}")
         self.set_updated(element)
 
     def get_components(self, prefixes='*') -> list:
