@@ -549,7 +549,7 @@ class QschEditor(BaseSchematic):
             # os.path.curdir,  # The current script directory
             os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
             os.path.expanduser(r"C:\Program Files\QSPICE"),
-            os.path.expanduser(r"~\Documents\QSPICE"),
+            os.path.expanduser("~/Documents/QSPICE"),
         ]:
             print(f"   {os.path.abspath(sym_root)}")
             if not os.path.exists(sym_root):  # Skipping invalid paths

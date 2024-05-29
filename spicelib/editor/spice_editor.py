@@ -308,7 +308,7 @@ class SpiceCircuit(BaseEditor):
                 if m:  # If it is a library include
                     lib = m.group(2)
                     if os.path.exists(lib):
-                        lib_filename = os.path.join(os.path.expanduser('~'), "Documents\\LTspiceXVII\\lib\\sub", lib)
+                        lib_filename = os.path.join(os.path.expanduser('~'), "Documents/LTspiceXVII/lib/sub", lib)
                         if os.path.exists(lib_filename):
                             sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
                             if sub_circuit:
