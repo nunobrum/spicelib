@@ -50,7 +50,7 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.save_netlist(temp_dir + 'test_components_output_2.asc')
         self.equalFiles(temp_dir + 'test_components_output_2.asc', golden_dir + 'test_components_output_2.asc')
         r1_params = self.edt.get_component_parameters('R1')
-        for key, value in {'pwr': 0.1, 'tol': '1%'}.items():
+        for key, value in {'Tc1': 0, 'Tc2': 0}.items():
             self.assertEqual(r1_params[key], value, f"Tested R1 {key} Parameter")
         self.edt.remove_component('R1')
         self.edt.save_netlist(temp_dir + 'test_components_output_1.asc')
