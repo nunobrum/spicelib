@@ -246,6 +246,10 @@ class BaseSchematic(BaseEditor):
         self.labels: List[Text] = []
         self.directives: List[Text] = []
         self.ports: List[Port] = []
+        self.lines: List[Line] = []
+        self.rectangles: List[Rectangle] = []
+        self.circles: List[Circle] = []
+        self.arcs: List[Arc] = []
         self.updated = False  # indicates if an edit was done and the file has to be written back to disk
 
     def reset_netlist(self, create_blank: bool = False) -> None:
@@ -254,6 +258,10 @@ class BaseSchematic(BaseEditor):
         self.wires.clear()
         self.labels.clear()
         self.directives.clear()
+        self.lines.clear()
+        self.rectangles.clear()
+        self.circles.clear()
+        self.arcs.clear()
         self.updated = False
 
     def copy_from(self, editor: 'BaseSchematic') -> None:
@@ -265,7 +273,7 @@ class BaseSchematic(BaseEditor):
         self.directives = deepcopy(editor.directives)
         self.updated = True
 
-    def _get_parent(self, reference) -> ("BaseSchematic", str):
+    def _get_parent(self, reference) -> tuple["BaseSchematic", str]:
         if SUBCKT_DIVIDER in reference:
             sub_ref, sub_comp = reference.split(SUBCKT_DIVIDER, 1)
 
@@ -297,7 +305,7 @@ class BaseSchematic(BaseEditor):
                 raise ComponentNotFoundError(f"Component {reference} not found in Schematic file")
             return sub_circuit.components[ref]
 
-    def get_component_position(self, reference: str) -> (Point, ERotation):
+    def get_component_position(self, reference: str) -> tuple[Point, ERotation]:
         """Returns the position and rotation of the component"""
         comp = self.get_component(reference)
         return comp.position, comp.rotation

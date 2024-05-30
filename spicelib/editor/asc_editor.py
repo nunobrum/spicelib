@@ -29,7 +29,7 @@ from .spice_editor import SpiceEditor, SpiceCircuit
 from ..utils.file_search import search_file_in_containers
 from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS
-from .base_schematic import (BaseSchematic, Point, Line, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
+from .base_schematic import (BaseSchematic, Point, Line, Arc, Rectangle, Circle, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
 from .asy_reader import AsyReader
 
 from ..log.logfile_data import try_convert_value
@@ -115,6 +115,15 @@ class AscEditor(BaseSchematic):
                 else:
                     directive_type = ';'  # Otherwise assume it is a comment
                 asc.write(f"TEXT {posX} {posY} {alignment} {size} {directive_type}{directive.text}" + END_LINE_TERM)
+            for line in self.lines:
+                asc.write(f"LINE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{" " if line.style else ""}{line.style}" + END_LINE_TERM)
+            for line in self.rectangles:
+                asc.write(f"RECTANGLE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{" " if line.style else ""}{line.style}" + END_LINE_TERM)
+            for line in self.circles:
+                asc.write(f"CIRCLE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{" " if line.style else ""}{line.style}" + END_LINE_TERM)
+            for line in self.arcs:
+                # TODO see reset_netlist(), this is stored opaque for now.
+                asc.write(line.style + END_LINE_TERM)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()
@@ -192,9 +201,35 @@ class AscEditor(BaseSchematic):
                 elif line.startswith("IOPIN "):
                     tag, posX, posY, direction = line.split()
                     text = self.labels[-1]  # Assuming it is the last FLAG parsed
-                    assert text.coord.X == int(posX) and text.coord.Y == int(posY), "Syntax Error, getting a IOPIN withou an associated label"
+                    assert text.coord.X == int(posX) and text.coord.Y == int(posY), "Syntax Error, getting a IOPIN without an associated label"
                     port = Port(text, direction)
                     self.ports.append(port)
+                elif line.startswith("LINE") or line.startswith("RECTANGLE") or line.startswith("CIRCLE"):
+                    # format: LINE|RECTANGLE|CIRCLE Normal, x1, y1, x2, y2, [line_style]
+                    # TODO: maybe support something else than 'Normal', but LTSpice does not seem to do so.
+                    line_elements = line.split()
+                    assert len(line_elements) in (6, 7), "Syntax Error, line badly badly formatted"
+                    x1 = int(line_elements[2])
+                    y1 = int(line_elements[3])
+                    x2 = int(line_elements[4])
+                    y2 = int(line_elements[5])
+                    line_style = ""
+                    if len(line_elements) == 7:
+                        line_style = line_elements[6]
+                    if line.startswith("LINE"):
+                        wire = Line(Point(x1, y1), Point(x2, y2), line_style)
+                        self.lines.append(wire)
+                    if line.startswith("RECTANGLE"):
+                        wire = Rectangle(Point(x1, y1), Point(x2, y2), line_style)
+                        self.rectangles.append(wire)                        
+                    if line.startswith("CIRCLE"):
+                        wire = Circle(Point(x1, y1), Point(x2, y2), line_style)
+                        self.circles.append(wire)                        
+                elif line.startswith("ARC"):
+                    # TODO correctly disect and store the arc. For now: store opaque
+                    # I don't support editing yet, so why make it complicated
+                    arc = Arc(Point(0, 0), radius=0, start=Point(0, 0), stop=Point(0, 0), style=line)
+                    self.arcs.append(arc)
                 else:
                     raise NotImplementedError("Primitive not supported for ASC file\n" 
                                               f'"{line}"')
