@@ -389,51 +389,63 @@ class AscEditor(BaseSchematic):
         """
         Sets the parameters of a component that are related with Spice operation.
         That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, or any parameters are or could be in SpiceLine, SpiceLine2.
-        Other parameters are ignored.
+        Unknown parameters will be added to SpiceLine.
+        Setting None or empty string removes the parameter if possible.
 
         :param element: Reference of the circuit element to set the parameters.
         :type element: str
         """
         component = self.get_component(element)
         for key, value in kwargs.items():
+            # format the value
+            if value is None:
+                value = ""
+            if isinstance(value, str):
+                value_str = value.strip()
+            else:
+                value_str = format_eng(value)               
             params = self.get_component_parameters(element, as_dicts=True)
-            if key.lower() in (p.lower() for p in params):
+            if key in params:
                 # I only have the LTSPICE_PARAMETERS as keys here, so when I match, i can overwrite
-                component.attributes[key] = value
+                # I do not support delete here, as some of the keys are mandatory
+                component.attributes[key] = value_str
                 _logger.info(f"Component {element} updated with parameter {key}:{value}")
             else:
                 foundme = False
                 # not found: look in the second level dicts
                 for param_key in LTSPICE_PARAMETERS_REDUCED:
                     if param_key in params:
-                        if key.lower() in (p.lower() for p in params[param_key]):
+                        if key in params[param_key]:
                             # found in the dict
                             # update the dict
-                            params[param_key][key] = value
+                            if len(value_str) == 0:
+                                # remove if empty
+                                params[param_key].pop(key)
+                            else:
+                                params[param_key][key] = value_str
                             # and make the line out of the dict
                             component.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in params[param_key].items()])
-                            _logger.info(f"Component {element} updated with parameter {key}:{value}")
+                            _logger.info(f"Component {element} updated with parameter {key}:{value_str}")
                             foundme = True
                 if not foundme:
-                    if value is not None and len(value) > 0:
+                    if len(value_str) > 0:
                         # don't add if there's nothing to add
-                        # TODO: In theory, if I did find the parameter above and the target value is empty, I should remove the field in some cases, but Spice doesn't complain. So....
-                        if key.lower() in (p.lower() for p in LTSPICE_PARAMETERS):
+                        if key in LTSPICE_PARAMETERS:
                             # known parameter, set the value
-                            component.attributes[key] = value
-                            _logger.info(f"Component {element} updated with parameter {key}:{value}")
+                            component.attributes[key] = value_str
+                            _logger.info(f"Component {element} updated with parameter {key}:{value_str}")
                         else:
                             # nothing found, and not a known parameter, put it in SpiceLine
                             param_key = LTSPICE_PARAMETERS_REDUCED[0]
                             if param_key in params:
                                 # if SpiceLine exists: add to the dict
-                                params[param_key][key] = value
+                                params[param_key][key] = value_str
                                 # and make the line out of the dict
                                 component.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in params[param_key].items()])
                             else:
                                 # if SpiceLine does not exist: create the line
-                                component.attributes[param_key] = f'{key}={value}'
-                            _logger.info(f"Component {element} updated with parameter {key}:{value}")
+                                component.attributes[param_key] = f'{key}={value_str}'
+                            _logger.info(f"Component {element} updated with parameter {key}:{value_str}")
         self.set_updated(element)
 
     def get_components(self, prefixes='*') -> list:
