@@ -46,7 +46,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt.save_netlist(temp_dir + 'test_components_output.net')
         self.equalFiles(temp_dir + 'test_components_output.net', golden_dir + 'test_components_output.net')
         self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
-        self.edt.set_component_parameters('R1', Tc1=0, Tc2=0)
+        self.edt.set_component_parameters('R1', Tc1=0, Tc2=0, pwr=None)
         self.edt.save_netlist(temp_dir + 'test_components_output_2.net')
         self.equalFiles(temp_dir + 'test_components_output_2.net', golden_dir + 'test_components_output_2.net')
         r1_params = self.edt.get_component_parameters('R1')

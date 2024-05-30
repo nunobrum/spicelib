@@ -521,7 +521,21 @@ class SpiceCircuit(BaseEditor):
         params_str = match.group('params')
         params = self._parse_params(params_str)
 
-        params.update(kwargs)
+        for key, value in kwargs.items():
+            # format the value
+            if value is None:
+                value_str = None
+            elif isinstance(value, str):
+                value_str = value.strip()
+            else:
+                value_str = format_eng(value)
+            if value_str is None:
+                # remove those that must disappear
+                if key in params:
+                    params.pop(key)
+            else:
+                # create or update
+                params[key] = value_str 
         params_str = ' '.join([f'{key}={value}' for key, value in params.items()])
         start = match.start('params')
         end = match.end('params')

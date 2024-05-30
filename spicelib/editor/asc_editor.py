@@ -390,17 +390,33 @@ class AscEditor(BaseSchematic):
         Sets the parameters of a component that are related with Spice operation.
         That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, or any parameters are or could be in SpiceLine, SpiceLine2.
         Unknown parameters will be added to SpiceLine.
-        Setting None or empty string removes the parameter if possible.
+        Setting None removes the parameter if possible.
 
-        :param element: Reference of the circuit element to set the parameters.
+        Usage 1: ::
+
+         editor.set_component_parameters(R1, value=330, temp=25)
+
+        Usage 2: ::
+
+         value_settings = {'value': 330, 'temp': 25}
+         editor.set_component_parameters(R1, **value_settings)
+
+        :param element: Reference of the circuit element.
         :type element: str
+
+        :key <param_name>:
+            The key is the parameter name and the value is the value to be set. Values can either be
+            strings; integers or floats. When None is given, the parameter will be removed, if possible.
+
+        :return: Nothing
+        :raises: ComponentNotFoundError - In case one of the component is not found.
         """
         component = self.get_component(element)
         for key, value in kwargs.items():
             # format the value
             if value is None:
-                value = ""
-            if isinstance(value, str):
+                value_str = None
+            elif isinstance(value, str):
                 value_str = value.strip()
             else:
                 value_str = format_eng(value)               
@@ -418,7 +434,7 @@ class AscEditor(BaseSchematic):
                         if key in params[param_key]:
                             # found in the dict
                             # update the dict
-                            if len(value_str) == 0:
+                            if value_str is None:
                                 # remove if empty
                                 params[param_key].pop(key)
                             else:
@@ -428,7 +444,7 @@ class AscEditor(BaseSchematic):
                             _logger.info(f"Component {element} updated with parameter {key}:{value_str}")
                             foundme = True
                 if not foundme:
-                    if len(value_str) > 0:
+                    if value_str is not None:
                         # don't add if there's nothing to add
                         if key in LTSPICE_PARAMETERS:
                             # known parameter, set the value

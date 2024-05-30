@@ -382,12 +382,12 @@ class BaseEditor(ABC):
          value_settings = {'value': 330, 'temp': 25}
          editor.set_component_parameters(R1, **value_settings)
 
-        :param element: Reference of the circuit element to get the value in float format.
+        :param element: Reference of the circuit element.
         :type element: str
 
         :key <param_name>:
             The key is the parameter name and the value is the value to be set. Values can either be
-            strings; integers or floats
+            strings; integers or floats. When None is given, the parameter will be removed, if possible.
 
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
