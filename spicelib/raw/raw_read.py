@@ -447,6 +447,9 @@ class RawRead(object):
         else:
             if reading_qspice:  # QSPICE uses doubles for everything
                 numerical_type = 'double'
+
+            elif "double" in self.raw_params['Flags']: # Ltspice: .options numdgt = 7 sets this flag for double precision
+                numerical_type = 'double'               
             else:
                 numerical_type = 'real'
         i = header.index('Variables:')
