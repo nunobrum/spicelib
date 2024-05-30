@@ -179,6 +179,8 @@ class AscEditor(BaseSchematic):
                     assert text.coord.X == int(posX) and text.coord.Y == int(posY), "Syntax Error, getting a IOPIN withou an associated label"
                     port = Port(text, direction)
                     self.ports.append(port)
+                elif line.startswith("RECTANGLE "):
+                    pass
                 else:
                     raise NotImplementedError("Primitive not supported for ASC file\n" 
                                               f'"{line}"')
