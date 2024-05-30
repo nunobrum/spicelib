@@ -116,11 +116,11 @@ class AscEditor(BaseSchematic):
                     directive_type = ';'  # Otherwise assume it is a comment
                 asc.write(f"TEXT {posX} {posY} {alignment} {size} {directive_type}{directive.text}" + END_LINE_TERM)
             for line in self.lines:
-                asc.write(f"LINE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{" " if line.style else ""}{line.style}" + END_LINE_TERM)
+                asc.write(f"LINE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{' ' if line.style else ''}{line.style}" + END_LINE_TERM)
             for line in self.rectangles:
-                asc.write(f"RECTANGLE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{" " if line.style else ""}{line.style}" + END_LINE_TERM)
+                asc.write(f"RECTANGLE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{' ' if line.style else ''}{line.style}" + END_LINE_TERM)
             for line in self.circles:
-                asc.write(f"CIRCLE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{" " if line.style else ""}{line.style}" + END_LINE_TERM)
+                asc.write(f"CIRCLE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{' ' if line.style else ''}{line.style}" + END_LINE_TERM)
             for line in self.arcs:
                 # TODO see reset_netlist(), this is stored opaque for now.
                 asc.write(line.style + END_LINE_TERM)
