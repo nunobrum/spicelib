@@ -42,7 +42,7 @@ END_LINE_TERM = '\n'  #: This controls the end of line terminator used
 FLOAT_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
 
 # Regular expression for a number with decimal qualifier and unit
-NUMBER_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?(Meg|[kmuµnpf])?[a-zA-Z]*"
+NUMBER_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?(Meg|[kmuµnpfgt])?[a-zA-Z]*"
 
 # Parameters expression of the type: PARAM=value
 PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.]+)?)*)?"
@@ -56,7 +56,7 @@ REPLACE_REGEXS = {
     'A': r"",  # LTspice Only : Special Functions, Parameter substitution not supported
     'B': r"^(?P<designator>B§?[VI]?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Behavioral source
     'C': r"^(?P<designator>C§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s*" +
-         VALUE_RGX(FLOAT_RGX + "[muµnpf]?F?") +
+         VALUE_RGX(FLOAT_RGX + "[muµnpfgt]?F?") +
          PARAM_RGX + ".*$",  # Capacitor
     'D': r"^(?P<designator>D§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>\w+)" +
          PARAM_RGX + ".*$",  # Diode
@@ -72,9 +72,9 @@ REPLACE_REGEXS = {
     # This implementation replaces everything after the 2 first nets
     'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" + 
          PARAM_RGX + ".*$",  # JFET
-    'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpf]?).*$",
+    'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµgt]?).*$",
     # Mutual Inductance
-    'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>({)?(?(5).*}|([0-9\.E+-]+(Meg|[kmuµnpf])?H?))).*$",
+    'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>({)?(?(5).*}|([0-9\.E+-]+(Meg|[kmuµgt])?H?))).*$",
     # Inductance
     'M': r"^(?P<designator>M§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+).*$",
     # MOSFET TODO: Parameters substitution not supported
@@ -83,7 +83,7 @@ REPLACE_REGEXS = {
     'Q': r"^(?P<designator>Q§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*$",
     # Bipolar TODO: Parameters substitution not supported
     'R': r"^(?P<designator>R§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+" +
-         "(R=)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kRmuµnpf])?\d*") +
+         "(R=)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kRmuµnpfgt])?\d*") +
          PARAM_RGX + ".*$",  # Resistor
     'S': r"^(?P<designator>S§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Voltage Controlled Switch
     'T': r"^(?P<designator>T§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Lossless Transmission

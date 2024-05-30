@@ -26,6 +26,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 unittests/temp/
+examples/testfiles/temp/*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -168,4 +169,3 @@ spicelib.egg-info
 
 # MacOS
 .DS_Store
-
