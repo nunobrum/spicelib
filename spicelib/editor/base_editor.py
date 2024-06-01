@@ -593,7 +593,7 @@ class BaseEditor(ABC):
 
         .. code-block:: python
 
-            editor.remove_Xinstruction("\.AC.*")
+            editor.remove_Xinstruction("\\.AC.*")
 
         :param search_pattern: The list of instructions to remove. Each instruction is of the type 'str'
         :type search_pattern: str
