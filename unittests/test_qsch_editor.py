@@ -21,6 +21,7 @@
 import os
 import sys
 import unittest
+import logging
 
 sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
@@ -33,6 +34,10 @@ temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else '.
 
 if not os.path.exists(temp_dir):
     os.mkdir(temp_dir)
+
+
+# set the logger to print to console and at info level
+spicelib.set_log_level(logging.INFO)
 
 
 def equalFiles(testcase, file1, file2):
@@ -117,6 +122,19 @@ class QschEditorSpiceGeneration(unittest.TestCase):
             equalFiles(self, temp_dir + 'top_circuit.net', golden_dir + "top_circuit_win32.net")
         else:
             equalFiles(self, temp_dir + 'top_circuit.net', golden_dir + "top_circuit.net")
+
+
+class QschEditorFromAscConversion(unittest.TestCase):
+
+    def test_asc_to_qsch(self):
+        from spicelib.scripts.asc_to_qsch import convert_asc_to_qsch
+        convert_asc_to_qsch(test_dir + "DC sweep.asc", temp_dir + "DC_sweep_from_asc.qsch")
+        equalFiles(self, temp_dir + 'DC_sweep_from_asc.qsch', golden_dir + "DC_sweep_from_asc.qsch")
+
+    # def test_qsch_to_asc(self):
+    #     self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "DC sweep.qsch")
+    #     self.edt.save_asc(temp_dir + "DC sweep.asc")
+    #     equalFiles(self, temp_dir + 'DC sweep.asc', golden_dir + "DC sweep.asc")
 
 
 if __name__ == '__main__':

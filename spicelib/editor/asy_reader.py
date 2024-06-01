@@ -145,7 +145,7 @@ class AsyReader(object):
                     radius = abs(x2-x1)/2  # Using only the X axis. Assuming a circle not an elipse
                     start = Point((x3-center.X)/radius, (y3-center.Y)/radius)
                     stop = Point((x4-center.X)/radius, (y4-center.Y)/radius)
-                    arc = Shape("circle", [center, start, stop])
+                    arc = Shape("ARC", [center, start, stop])
                     self.shapes.append(arc)
                 elif line.startswith("RECTANGLE"):
                     tag, weight, x1, y1, x2, y2 = line.split()
@@ -153,7 +153,7 @@ class AsyReader(object):
                     x2 = int(x2)
                     y1 = int(y1)
                     y2 = int(y2)
-                    rect = Shape("rect", [Point(x1, y1), Point(x2, y2)])
+                    rect = Shape("RECTANGLE", [Point(x1, y1), Point(x2, y2)])
                     self.shapes.append(rect)
                 else:
                     print("Primitive not supported for ASC file\n"

@@ -964,7 +964,7 @@ class QschEditor(BaseSchematic):
                 self.schematic.items.append(wire_tag)
 
             for line in self.lines:
-                line_tag, _ = QschTag.parse('«line (2000,1300) (3150,-100) 0 0 0xff0000 -1 -1»')
+                line_tag, _ = QschTag.parse('«line (2000,1300) (3150,-100) 0 2 0xff0000 -1 -1»')
                 line_tag.set_attr(QSCH_LINE_POS1, (line.V1.X, line.V1.Y))
                 line_tag.set_attr(QSCH_LINE_POS2, (line.V2.X, line.V2.Y))
                 line_width = 0  # Default
@@ -972,35 +972,55 @@ class QschEditor(BaseSchematic):
                 color = 0xff0000  # Default : Blue Color
                 # TODO: Implement the style to width, type and color
                 # line_width, line_type, color = line.style.split(' ')
-                line_tag.set_attr(QSCH_LINE_WIDTH, line_width)
-                line_tag.set_attr(QSCH_LINE_TYPE, line_type)
-                line_tag.set_attr(QSCH_LINE_COLOR, color)
+                # line_tag.set_attr(QSCH_LINE_WIDTH, line_width)
+                # line_tag.set_attr(QSCH_LINE_TYPE, line_type)
+                # line_tag.set_attr(QSCH_LINE_COLOR, color)
                 self.schematic.items.append(line_tag)
 
             for shape in self.shapes:
-                if shape.name == "rect":
-                    shape_tag, _ = QschTag.parse('«rect (1850,1550) (3650,-400) 0 0 0 0x8000 0x1000000 -1 0 -1»')
+                # TODO: Implement the line type and width conversion from LTSpice to QSpice.
+                if shape.name == "RECTANGLE" or shape.name == "rect":
+                    shape_tag, _ = QschTag.parse('«rect (1850,1550) (3650,-400) 0 0 2 0xff0000 0x1000000 -1 0 -1»')
                     shape_tag.set_attr(QSCH_RECT_POS1, (shape.points[0].X, shape.points[0].Y))
                     shape_tag.set_attr(QSCH_RECT_POS2, (shape.points[1].X, shape.points[1].Y))
-                    shape_tag.set_attr(QSCH_RECT_LINE_TYPE, shape.style.pattern)
-                    shape_tag.set_attr(QSCH_RECT_LINE_WIDTH, shape.style.width)
-                    shape_tag.set_attr(QSCH_RECT_LINE_COLOR, shape.style.color)
-                    # TODO: Implement the fill color
-                elif shape.name == "ellipse":
+                    # shape_tag.set_attr(QSCH_RECT_LINE_TYPE, shape.line_style.pattern)
+                    # shape_tag.set_attr(QSCH_RECT_LINE_WIDTH, shape.line_style.width)
+                    # shape_tag.set_attr(QSCH_RECT_LINE_COLOR, shape.line_style.color)
+                elif shape.name == "CIRCLE" or shape.name == "ellipse":
                     shape_tag, _ = QschTag.parse('«ellipse (2100,1150) (2650,150) 0 0 2 0xff0000 0x1000000 -1 -1»')
                     shape_tag.set_attr(QSCH_ELLIPSE_POS1, (shape.points[0].X, shape.points[0].Y))
                     shape_tag.set_attr(QSCH_ELLIPSE_POS2, (shape.points[1].X, shape.points[1].Y))
-                    shape_tag.set_attr(QSCH_ELLIPSE_LINE_COLOR, shape.style.color)
-                    shape_tag.set_attr(QSCH_ELLIPSE_FILL_COLOR, shape.fill)
-                elif shape.name == "arc3p":
+                    # shape_tag.set_attr(QSCH_ELLIPSE_LINE_COLOR, shape.line_style.color)
+                    # shape_tag.set_attr(QSCH_ELLIPSE_FILL_COLOR, shape.fill)
+                elif shape.name == "ARC" or shape.name == "arc3p":
                     shape_tag, _ = QschTag.parse('«arc3p (2700,300) (2250,1200) (2500,800) 0 2 0xff0000 -1 -1»')
-                    shape_tag.set_attr(QSCH_ARC3P_POS1, (shape.points[0].X, shape.points[0].Y))
-                    shape_tag.set_attr(QSCH_ARC3P_POS2, (shape.points[1].X, shape.points[1].Y))
-                    shape_tag.set_attr(QSCH_ARC3P_POS3, (shape.points[2].X, shape.points[2].Y))
-                    shape_tag.set_attr(QSCH_ARC3P_LINE_COLOR, shape.style.color)
-
+                    # TODO: Implement the ARC shape correctly.
+                    # In LTSpice the First two points defines the bounding box of the arc and the following
+                    # two points define the start and end of the arc.
+                    # QSpice uses the first two points to define the start and end of the arc and the third point
+                    # to define the curvature of the arc.
+                    if shape.name == "ARC":
+                        assert len(shape.points) == 4, "Invalid LTSpice shape"
+                        center_x = int((shape.points[0].X + shape.points[1].X) / 2)
+                        center_y = int((shape.points[0].Y + shape.points[1].Y) / 2)
+                        start_angle = math.atan2(shape.points[2].Y - center_y, shape.points[2].X - center_x)
+                        end_angle = math.atan2(shape.points[3].Y - center_y, shape.points[3].X - center_x)
+                        ellipse_width = abs(shape.points[1].X - shape.points[0].X)
+                        ellipse_height = abs(shape.points[1].Y - shape.points[0].Y)
+                        start_point_x = int(center_x + ellipse_width/2 * math.cos(start_angle))
+                        start_point_y = int(center_y + ellipse_height/2 * math.sin(start_angle))
+                        end_point_x = int(center_x + ellipse_width/2 * math.cos(end_angle))
+                        end_point_y = int(center_y + ellipse_height/2 * math.sin(end_angle))
+                        shape_tag.set_attr(QSCH_ARC3P_POS1, (start_point_x, start_point_y))
+                        shape_tag.set_attr(QSCH_ARC3P_POS2, (end_point_x, end_point_y))
+                        shape_tag.set_attr(QSCH_ARC3P_POS3, (center_x, center_y))
+                    else:
+                        shape_tag.set_attr(QSCH_ARC3P_POS1, (shape.points[0].X, shape.points[0].Y))
+                        shape_tag.set_attr(QSCH_ARC3P_POS2, (shape.points[1].X, shape.points[1].Y))
+                        shape_tag.set_attr(QSCH_ARC3P_POS3, (shape.points[2].X, shape.points[2].Y))
+                        # shape_tag.set_attr(QSCH_ARC3P_LINE_COLOR, shape.line_style.color)
                 else:
-                    raise ValueError(f"Invalid shape {shape.name}")
+                    print(f"Invalid shape {shape.name}. Being ignored. Ask Developper to implement this")
 
                 self.schematic.items.append(shape_tag)
 

@@ -298,6 +298,8 @@ class BaseSchematic(BaseEditor):
         self.wires = deepcopy(editor.wires)
         self.labels = deepcopy(editor.labels)
         self.directives = deepcopy(editor.directives)
+        self.lines = deepcopy(editor.lines)
+        self.shapes = deepcopy(editor.shapes)
         self.updated = True
 
     def _get_parent(self, reference) -> Tuple["BaseSchematic", str]:
