@@ -27,7 +27,8 @@ from .base_editor import (
     format_eng, ComponentNotFoundError, ParameterNotFoundError,
     PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 )
-from .base_schematic import BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum
+from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
+                             LineStyle, Shape)
 from ..utils.file_search import find_file_in_directory
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
@@ -86,6 +87,80 @@ QSCH_TEXT_COLOR = 5  # 0xdbbggrr  d=1 "Default" rr=Red gg=Green bb=Blue in hex f
 QSCH_TEXT_STR_ATTR = 8
 
 QSCH_TEXT_INSTR_QUALIFIER = "ï»¿"
+
+# «line (2000,1300) (3150,-100) 1 1 0xff0000 -1 -1»
+QSCH_LINE_POS1 = 1
+QSCH_LINE_POS2 = 2
+QSCH_LINE_WIDTH = 3  # 0=Default 1=Thinnest ... 7=Thickest
+QSCH_LINE_TYPE = 4  # 0=Normal 1=Dashed 2=Dotted 3=DashDot 4=DashDotDot
+QSCH_LINE_COLOR = 5
+QSCH_LINE_UNKNOWN1 = 6
+QSCH_LINE_UNKNOWN2 = 7
+
+# «rect (1850,1550) (3650,-400) 0 0 0 0x8000 0x1000000 -1 0 -1»
+QSCH_RECT_POS1 = 1
+QSCH_RECT_POS2 = 2
+QSCH_RECT_UNKNOWN0 = 3
+QSCH_RECT_LINE_WIDTH = 4
+QSCH_RECT_LINE_TYPE = 5  # 0=Normal 1=Dashed 2=Dotted 3=DashDot 4=DashDotDot
+QSCH_RECT_LINE_COLOR = 6
+QSCH_RECT_FILL_COLOR = 7
+QSCH_RECT_UNKNOWN1 = 8
+QSCH_RECT_UNKNOWN2 = 9
+QSCH_RECT_UNKNOWN3 = 10
+
+#  «ellipse (2100,1150) (2650,150) 0 0 2 0xff0000 0x1000000 -1 -1»
+QSCH_ELLIPSE_POS1 = 1
+QSCH_ELLIPSE_POS2 = 2
+QSCH_ELLIPSE_UNKNOWN0 = 3
+QSCH_ELLIPSE_WIDTH = 4
+QSCH_ELLIPSE_LINE_TYPE = 5  # 0=Normal 1=Dashed 2=Dotted 3=DashDot 4=DashDotDot
+QSCH_ELLIPSE_LINE_COLOR = 6
+QSCH_ELLIPSE_FILL_COLOR = 7
+QSCH_ELLIPSE_UNKNOWN1 = 8
+QSCH_ELLIPSE_UNKNOWN2 = 9
+
+# «arc3p (2700,300) (2250,1200) (2500,800) 0 2 0xff0000 -1 -1»
+QSCH_ARC3P_POS1 = 1
+QSCH_ARC3P_POS2 = 2
+QSCH_ARC3P_POS3 = 3
+QSCH_ARC3P_UNKNOWN0 = 4
+QSCH_ARC3P_WIDTH = 5
+QSCH_ARC3P_LINE_COLOR = 6
+QSCH_ARC3P_UNKNOWN1 = 7
+QSCH_ARC3P_UNKNOWN2 = 8
+
+# «triangle (3050,1250) (3550,700) (3450,1400) 0 2 0xff0000 0x2000000 -1 -1»
+QSCH_TRIANGLE_POS1 = 1
+QSCH_TRIANGLE_POS2 = 2
+QSCH_TRIANGLE_POS3 = 3
+QSCH_TRIANGLE_UNKNOWN0 = 4
+QSCH_TRIANGLE_LINE_TYPE = 5  # 0=Normal 1=Dashed 2=Dotted 3=DashDot 4=DashDotDot
+QSCH_TRIANGLE_LINE_COLOR = 6
+QSCH_TRIANGLE_FILL_COLOR = 7
+QSCH_TRIANGLE_UNKNOWN1 = 8
+QSCH_TRIANGLE_UNKNOWN2 = 9
+
+# «coil (3050,400) (3450,600) 0 0 2 0xff0000 -1 -1»
+QSCH_COIL_POS1 = 1
+QSCH_COIL_POS2 = 2
+QSCH_COIL_UNKNOWN0 = 3
+QSCH_COIL_WIDTH = 4
+QSCH_COIL_LINE_TYPE = 5  # 0=Normal 1=Dashed 2=Dotted 3=DashDot 4=DashDotDot
+QSCH_COIL_LINE_COLOR = 6
+QSCH_COIL_UNKNOWN1 = 7
+QSCH_COIL_UNKNOWN2 = 8
+
+# «zigzag (3050,250) (3400,100) 0 0 2 0xff0000 -1 -1»
+QSCH_ZIGZAG_POS1 = 1
+QSCH_ZIGZAG_POS2 = 2
+QSCH_ZIGZAG_UNKNOWN0 = 3
+QSCH_ZIGZAG_WIDTH = 4
+QSCH_ZIGZAG_LINE_TYPE = 5  # 0=Normal 1=Dashed 2=Dotted 3=DashDot 4=DashDotDot
+QSCH_ZIGZAG_LINE_COLOR = 6
+QSCH_ZIGZAG_UNKNOWN1 = 7
+QSCH_ZIGZAG_UNKNOWN2 = 8
+
 
 
 class QschReadingError(IOError):
@@ -531,6 +606,16 @@ class QschEditor(BaseSchematic):
                 )
             self.directives.append(text_obj)
 
+        for line_tag in self.schematic.get_items('line'):
+            x1, y1 = line_tag.get_attr(QSCH_LINE_POS1)
+            x2, y2 = line_tag.get_attr(QSCH_LINE_POS2)
+            width = line_tag.get_attr(QSCH_LINE_WIDTH)
+            line_type = line_tag.get_attr(QSCH_LINE_TYPE)
+            color = line_tag.get_attr(QSCH_LINE_COLOR)
+            line = Line(Point(x1, y1), Point(x2, y2))
+            line.style = LineStyle(width, line_type, color)
+            self.lines.append(line)
+
     def _get_text_matching(self, command, search_expression: re.Pattern):
         command_upped = command.upper()
         text_tags = self.schematic.get_items('text')
@@ -549,7 +634,7 @@ class QschEditor(BaseSchematic):
             # os.path.curdir,  # The current script directory
             os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
             os.path.expanduser(r"C:\Program Files\QSPICE"),
-            os.path.expanduser(r"~\Documents\QSPICE"),
+            os.path.expanduser("~/Documents/QSPICE"),
         ]:
             print(f"   {os.path.abspath(sym_root)}")
             if not os.path.exists(sym_root):  # Skipping invalid paths
@@ -586,7 +671,7 @@ class QschEditor(BaseSchematic):
                 value_str = value
             text: str = tag.get_attr(QSCH_TEXT_STR_ATTR)
             match = param_regex.search(text)  # repeating the search, so we update the correct start/stop parameter
-            start, stop = match.span(param_regex.groupindex['replace'])
+            start, stop = match.span()
             text = text[:start] + "{}={}".format(param, value_str) + text[stop:]
             tag.set_attr(QSCH_TEXT_STR_ATTR, text)
             _logger.info(f"Parameter {param} updated to {value_str}")
@@ -877,6 +962,67 @@ class QschEditor(BaseSchematic):
                 wire_tag.set_attr(QSCH_WIRE_POS2, (wire.V2.X, wire.V2.Y))
                 # wire_tag.set_attr(QSCH_WIRE_NET, wire.net)
                 self.schematic.items.append(wire_tag)
+
+            for line in self.lines:
+                line_tag, _ = QschTag.parse('«line (2000,1300) (3150,-100) 0 2 0xff0000 -1 -1»')
+                line_tag.set_attr(QSCH_LINE_POS1, (line.V1.X, line.V1.Y))
+                line_tag.set_attr(QSCH_LINE_POS2, (line.V2.X, line.V2.Y))
+                line_width = 0  # Default
+                line_type = 0  # Default
+                color = 0xff0000  # Default : Blue Color
+                # TODO: Implement the style to width, type and color
+                # line_width, line_type, color = line.style.split(' ')
+                # line_tag.set_attr(QSCH_LINE_WIDTH, line_width)
+                # line_tag.set_attr(QSCH_LINE_TYPE, line_type)
+                # line_tag.set_attr(QSCH_LINE_COLOR, color)
+                self.schematic.items.append(line_tag)
+
+            for shape in self.shapes:
+                # TODO: Implement the line type and width conversion from LTSpice to QSpice.
+                if shape.name == "RECTANGLE" or shape.name == "rect":
+                    shape_tag, _ = QschTag.parse('«rect (1850,1550) (3650,-400) 0 0 2 0xff0000 0x1000000 -1 0 -1»')
+                    shape_tag.set_attr(QSCH_RECT_POS1, (shape.points[0].X, shape.points[0].Y))
+                    shape_tag.set_attr(QSCH_RECT_POS2, (shape.points[1].X, shape.points[1].Y))
+                    # shape_tag.set_attr(QSCH_RECT_LINE_TYPE, shape.line_style.pattern)
+                    # shape_tag.set_attr(QSCH_RECT_LINE_WIDTH, shape.line_style.width)
+                    # shape_tag.set_attr(QSCH_RECT_LINE_COLOR, shape.line_style.color)
+                elif shape.name == "CIRCLE" or shape.name == "ellipse":
+                    shape_tag, _ = QschTag.parse('«ellipse (2100,1150) (2650,150) 0 0 2 0xff0000 0x1000000 -1 -1»')
+                    shape_tag.set_attr(QSCH_ELLIPSE_POS1, (shape.points[0].X, shape.points[0].Y))
+                    shape_tag.set_attr(QSCH_ELLIPSE_POS2, (shape.points[1].X, shape.points[1].Y))
+                    # shape_tag.set_attr(QSCH_ELLIPSE_LINE_COLOR, shape.line_style.color)
+                    # shape_tag.set_attr(QSCH_ELLIPSE_FILL_COLOR, shape.fill)
+                elif shape.name == "ARC" or shape.name == "arc3p":
+                    shape_tag, _ = QschTag.parse('«arc3p (2700,300) (2250,1200) (2500,800) 0 2 0xff0000 -1 -1»')
+                    # TODO: Implement the ARC shape correctly.
+                    # In LTSpice the First two points defines the bounding box of the arc and the following
+                    # two points define the start and end of the arc.
+                    # QSpice uses the first two points to define the start and end of the arc and the third point
+                    # to define the curvature of the arc.
+                    if shape.name == "ARC":
+                        assert len(shape.points) == 4, "Invalid LTSpice shape"
+                        center_x = int((shape.points[0].X + shape.points[1].X) / 2)
+                        center_y = int((shape.points[0].Y + shape.points[1].Y) / 2)
+                        start_angle = math.atan2(shape.points[2].Y - center_y, shape.points[2].X - center_x)
+                        end_angle = math.atan2(shape.points[3].Y - center_y, shape.points[3].X - center_x)
+                        ellipse_width = abs(shape.points[1].X - shape.points[0].X)
+                        ellipse_height = abs(shape.points[1].Y - shape.points[0].Y)
+                        start_point_x = int(center_x + ellipse_width/2 * math.cos(start_angle))
+                        start_point_y = int(center_y + ellipse_height/2 * math.sin(start_angle))
+                        end_point_x = int(center_x + ellipse_width/2 * math.cos(end_angle))
+                        end_point_y = int(center_y + ellipse_height/2 * math.sin(end_angle))
+                        shape_tag.set_attr(QSCH_ARC3P_POS1, (start_point_x, start_point_y))
+                        shape_tag.set_attr(QSCH_ARC3P_POS2, (end_point_x, end_point_y))
+                        shape_tag.set_attr(QSCH_ARC3P_POS3, (center_x, center_y))
+                    else:
+                        shape_tag.set_attr(QSCH_ARC3P_POS1, (shape.points[0].X, shape.points[0].Y))
+                        shape_tag.set_attr(QSCH_ARC3P_POS2, (shape.points[1].X, shape.points[1].Y))
+                        shape_tag.set_attr(QSCH_ARC3P_POS3, (shape.points[2].X, shape.points[2].Y))
+                        # shape_tag.set_attr(QSCH_ARC3P_LINE_COLOR, shape.line_style.color)
+                else:
+                    print(f"Invalid shape {shape.name}. Being ignored. Ask Developper to implement this")
+
+                self.schematic.items.append(shape_tag)
 
             for text in self.directives:
                 text_tag, _ = QschTag.parse('«text (0,0) 1 7 0 0x1000000 -1 -1 "text"»')

@@ -54,10 +54,14 @@ def main():
         qsch_file = os.path.splitext(asc_file)[0] + ".qsch"
 
     search_paths = [] if options.path is None else options.path
-    symbol_stock = {}
 
     print(f"Using {qsch_file} as output file")
+    convert_asc_to_qsch(asc_file, qsch_file, search_paths)
 
+
+def convert_asc_to_qsch(asc_file, qsch_file, search_paths=[]):
+    """Converts an ASC file to a QSCH schematic"""
+    symbol_stock = {}
     # Open the ASC file
     asc_editor = AscEditor(asc_file)
 
@@ -93,8 +97,8 @@ def main():
             for sym_root in search_paths + [
                 # os.path.curdir,  # The current script directory
                 os.path.split(asc_file)[0],  # The directory where the scrip is located
-                os.path.expanduser(r"~\AppData\Local\LTspice\lib\sym"),
-                os.path.expanduser(r"~\Documents\LtspiceXVII\lib\sym"),
+                os.path.expanduser("~/AppData/Local/LTspice/lib/sym"),
+                os.path.expanduser("~/Documents/LtspiceXVII/lib/sym"),
                 # os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"), # TODO: implement this
             ]:
                 print(f"   {os.path.abspath(sym_root)}")

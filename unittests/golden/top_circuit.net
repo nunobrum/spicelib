@@ -1,6 +1,6 @@
 * C:\sandbox\spicelib\examples\testfiles\top_circuit.qsch
-X1 N01 N02 sub_circuit param1=9
-V1 N01 0 PULSE 0 10 1m 1n 1n 1m 2m 10
+X1 N01 N02 sub_circuit param1=9 param2=0
+V1 N01 0 PULSE 0 10 1m 1n 1n 1m 2m 10 AC 1 0
 R1 N02 0 100K
 
 .subckt sub_circuit IN OUT
