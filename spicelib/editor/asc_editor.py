@@ -29,7 +29,7 @@ from .spice_editor import SpiceEditor, SpiceCircuit
 from ..utils.file_search import search_file_in_containers
 from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS
-from .base_schematic import (BaseSchematic, Point, Line, Arc, Rectangle, Circle, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
+from .base_schematic import (BaseSchematic, Point, Line, Shape, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
 from .asy_reader import AsyReader
 
 from ..log.logfile_data import try_convert_value
@@ -116,14 +116,12 @@ class AscEditor(BaseSchematic):
                     directive_type = ';'  # Otherwise assume it is a comment
                 asc.write(f"TEXT {posX} {posY} {alignment} {size} {directive_type}{directive.text}" + END_LINE_TERM)
             for line in self.lines:
-                asc.write(f"LINE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{' ' if line.style else ''}{line.style}" + END_LINE_TERM)
-            for line in self.rectangles:
-                asc.write(f"RECTANGLE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{' ' if line.style else ''}{line.style}" + END_LINE_TERM)
-            for line in self.circles:
-                asc.write(f"CIRCLE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{' ' if line.style else ''}{line.style}" + END_LINE_TERM)
-            for line in self.arcs:
-                # TODO see reset_netlist(), this is stored opaque for now.
-                asc.write(line.style + END_LINE_TERM)
+                line_style = f' {line.style.pattern}' if line.style.pattern != "" else ""
+                asc.write(f"LINE Normal {line.V1.X} {line.V1.Y} {line.V2.X} {line.V2.Y}{line_style}" + END_LINE_TERM)
+            for shape in self.shapes:
+                line_style = f' {shape.line_style.pattern}' if shape.line_style.pattern != "" else ""
+                points = " ".join([f"{point.X} {point.Y}" for point in shape.points])
+                asc.write(f"{shape.name} Normal {points}{line_style}" + END_LINE_TERM)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()
@@ -206,30 +204,35 @@ class AscEditor(BaseSchematic):
                     self.ports.append(port)
                 elif line.startswith("LINE") or line.startswith("RECTANGLE") or line.startswith("CIRCLE"):
                     # format: LINE|RECTANGLE|CIRCLE Normal, x1, y1, x2, y2, [line_style]
-                    # TODO: maybe support something else than 'Normal', but LTSpice does not seem to do so.
+                    # Maybe support something else than 'Normal', but LTSpice does not seem to do so.
                     line_elements = line.split()
                     assert len(line_elements) in (6, 7), "Syntax Error, line badly badly formatted"
                     x1 = int(line_elements[2])
                     y1 = int(line_elements[3])
                     x2 = int(line_elements[4])
                     y2 = int(line_elements[5])
-                    line_style = ""
-                    if len(line_elements) == 7:
-                        line_style = line_elements[6]
                     if line.startswith("LINE"):
-                        wire = Line(Point(x1, y1), Point(x2, y2), line_style)
-                        self.lines.append(wire)
-                    if line.startswith("RECTANGLE"):
-                        wire = Rectangle(Point(x1, y1), Point(x2, y2), line_style)
-                        self.rectangles.append(wire)                        
-                    if line.startswith("CIRCLE"):
-                        wire = Circle(Point(x1, y1), Point(x2, y2), line_style)
-                        self.circles.append(wire)                        
+                        line = Line(Point(x1, y1), Point(x2, y2))
+                        if len(line_elements) == 7:
+                            line.style.pattern = line_elements[6]
+                        self.lines.append(line)
+                    if line_elements[0] in ("RECTANGLE", "CIRCLE"):
+                        shape = Shape(line_elements[0], [Point(x1, y1), Point(x2, y2)])
+                        if len(line_elements) == 7:
+                            shape.line_style.pattern = line_elements[6]
+                        self.shapes.append(shape)
+
                 elif line.startswith("ARC"):
-                    # TODO correctly disect and store the arc. For now: store opaque
                     # I don't support editing yet, so why make it complicated
-                    arc = Arc(Point(0, 0), radius=0, start=Point(0, 0), stop=Point(0, 0), style=line)
-                    self.arcs.append(arc)
+                    # format: ARC Normal, x1, y1, x2, y2, x3, y3, x4, y4 [line_style]
+                    # Maybe support something else than 'Normal', but LTSpice does not seem to do so.
+                    line_elements = line.split()
+                    assert len(line_elements) in (10, 11), "Syntax Error, line badly formatted"
+                    points = [Point(int(line_elements[i]), int(line_elements[i+1])) for i in range(2, 9, 2)]
+                    arc = Shape("ARC", points)
+                    if len(line_elements) == 11:
+                        arc.line_style.pattern = line_elements[10]
+                    self.shapes.append(arc)
                 else:
                     raise NotImplementedError("Primitive not supported for ASC file\n" 
                                               f'"{line}"')

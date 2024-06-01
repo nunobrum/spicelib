@@ -134,20 +134,30 @@ class TextTypeEnum(enum.IntEnum):
     PIN = enum.auto()  # pin label
 
 
-@dataclasses.dataclass
+class LineStyle:
+    def __init__(self, width: str = "", color: str = "", pattern: str = ""):
+        self.width: str = width
+        self.color: str = color
+        self.pattern: str = pattern
+
+
 class Point:
     """X, Y coordinates"""
-    X: float
-    Y: float
+    def __init__(self, X: float, Y: float):
+        self.X = X
+        self.Y = Y
 
 
-@dataclasses.dataclass
 class Line:
     """X1, Y1, X2, Y2 coordinates"""
-    V1: Point
-    V2: Point
-    style: str = ""
-    net: str = ""
+    def __init__(self, v1: Point, v2: Point, style: LineStyle = None, net: str = ""):
+        self.V1 = v1
+        self.V2 = v2
+        if style is None:
+            self.style = LineStyle()
+        else:
+            self.style = style
+        self.net = net
 
     def touches(self, point: Point) -> bool:
         """Returns True if the line passes through the given point"""
@@ -187,22 +197,43 @@ class Line:
         return False
 
 
-Rectangle = Line  # Rectangles have the same properties as Line: Defined as the line that crosses two opposing vertices
-Circle = Line  # Circles are defined by the rectangle that touches 4 points of a circle.
+class Shape:
+    """Polygon object. The shape is defined by a list of points. It can define a closed or open shape.
+    The closed shape is defined by the first and last points being the same. In this case, it can have a fill.
+    It is used to define polygons, arcs, circles or more complex shapes like the ones found in QSPICE"""
+    def __init__(self, name: str, points: List[Point], line_style: LineStyle = None, fill: str = ""):
+        self.name = name
+        self.points = points
+        if line_style is None:
+            self.line_style = LineStyle()
+        else:
+            self.line_style = line_style
+        self.fill = fill
 
+# Rectangle = Shape
+# Rectangle is a special case of a Shape. Rectangle is defined by two points that define the diagonal
+# of the rectangle.
 
-@dataclasses.dataclass
-class Arc:
-    """Opting for a non-native representation of the arc as LTspice and Qspice have different
-    ways of storing Arc information. Start and Stop points are calculated as a fraction of the radius
-    for X and Y. This avoids having to deal with the calculation of sines and cosines and their inverse
-    into radians."""
-    center: Point
-    radius: float
-    start: Point
-    stop: Point
-    style: str = ""
-    # The Arcs are decorative, they don't have associated nets
+# Circle = Shape  # Circle is a special case of a Shape. Circle is defined by the rectangle that encloses it.
+
+# Arc = Shape
+# Arc is a special case of a Shape. Since different tools have different ways of defining arcs, we will use
+# # the Shape class to define them. We will only store the list of points that are provided by the tool.
+
+#  TODO: The following code is commented out because it is not used in the current implementation. It is kept here for
+# when we decode how ARCs are stored and we could use it to update them.
+# @dataclasses.dataclass
+# class Arc:
+#     """Opting for a non-native representation of the arc as LTspice and Qspice have different
+#     ways of storing Arc information. Start and Stop points are calculated as a fraction of the radius
+#     for X and Y. This avoids having to deal with the calculation of sines and cosines and their inverse
+#     into radians."""
+#     center: Point
+#     radius: float
+#     start: Point = Point(0, 0)
+#     stop: Point = Point(0, 0)
+#     style: LineStyle = LineStyle()
+#     # The Arcs are decorative, they don't have associated nets
 
 
 @dataclasses.dataclass
@@ -247,9 +278,7 @@ class BaseSchematic(BaseEditor):
         self.directives: List[Text] = []
         self.ports: List[Port] = []
         self.lines: List[Line] = []
-        self.rectangles: List[Rectangle] = []
-        self.circles: List[Circle] = []
-        self.arcs: List[Arc] = []
+        self.shapes: List[Shape] = []
         self.updated = False  # indicates if an edit was done and the file has to be written back to disk
 
     def reset_netlist(self, create_blank: bool = False) -> None:
@@ -259,9 +288,7 @@ class BaseSchematic(BaseEditor):
         self.labels.clear()
         self.directives.clear()
         self.lines.clear()
-        self.rectangles.clear()
-        self.circles.clear()
-        self.arcs.clear()
+        self.shapes.clear()
         self.updated = False
 
     def copy_from(self, editor: 'BaseSchematic') -> None:
@@ -354,4 +381,16 @@ class BaseSchematic(BaseEditor):
         for directive in self.directives:
             directive.coord.X = round_fun(directive.coord.X * scale_x + offset_x)
             directive.coord.Y = round_fun(directive.coord.Y * scale_y + offset_y)
+        for port in self.ports:
+            port.text.coord.X = round_fun(port.text.coord.X * scale_x + offset_x)
+            port.text.coord.Y = round_fun(port.text.coord.Y * scale_y + offset_y)
+        for line in self.lines:
+            line.V1.X = round_fun(line.V1.X * scale_x + offset_x)
+            line.V1.Y = round_fun(line.V1.Y * scale_y + offset_y)
+            line.V2.X = round_fun(line.V2.X * scale_x + offset_x)
+            line.V2.Y = round_fun(line.V2.Y * scale_y + offset_y)
+        for shape in self.shapes:
+            for point in shape.points:
+                point.X = round_fun(point.X * scale_x + offset_x)
+                point.Y = round_fun(point.Y * scale_y + offset_y)
         self.updated = True
