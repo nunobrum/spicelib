@@ -10,7 +10,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        asy_reader.py
-# Purpose:     Class to parse and then translate LTspice symbol files
+# Purpose:     Class to parse and then translate LTSpice symbol files
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
@@ -22,7 +22,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Union
 
-from .base_schematic import Point, Text, TextTypeEnum, Line, Circle, Rectangle, Arc, HorAlign, ERotation, VerAlign
+from .base_schematic import Point, Text, TextTypeEnum, Line, Shape, HorAlign, ERotation, VerAlign
 from .ltspice_utils import asc_text_align_set
 
 from .qsch_editor import QschTag
@@ -41,9 +41,7 @@ class AsyReader(object):
         self.symbol_type = None
         self.pins = []
         self.lines = []
-        self.arcs = []
-        self.circles = []
-        self.rectangles = []
+        self.shapes = []
         self.attributes = OrderedDict()
         self._asy_file_path = Path(asy_file)
         self.windows = []
@@ -74,11 +72,12 @@ class AsyReader(object):
                     tag, weight, x1, y1, x2, y2 = line.split()
                     v1 = Point(int(x1), int(y1))
                     v2 = Point(int(x2), int(y2))
-                    segment = Line(v1, v2, style=f"{{weight:{weight}}}")
+                    segment = Line(v1, v2)
+                    segment.style.weight = f"{weight}"
                     self.lines.append(segment)
                 elif line.startswith("CIRCLE"):
                     tag, weight, x1, y1, x2, y2 = line.split()
-                    # In LTspice the circle is set using the top left and bottom right points of the rectangle that
+                    # In LTSpice the circle is set using the top left and bottom right points of the rectangle that
                     # encloses the circle
                     x1 = int(x1)
                     x2 = int(x2)
@@ -87,8 +86,8 @@ class AsyReader(object):
                     # distance = (x2-x1)  # Always assuming a circle
                     # circle = Arc(Point((x1+x2)/2, (y1+y2)/2), radius=distance/2, start_angle=0, stop_angle=360,
                     #              style=f"{{style:1, weight:{weight}}}")
-                    circle = Circle(Point(x1, y1), Point(x2, y2))
-                    self.circles.append(circle)
+                    circle = Shape("CIRCLE", [Point(x1, y1), Point(x2, y2)])
+                    self.shapes.append(circle)
                 elif line.startswith("Version"):
                     tag, version = line.split()
                     assert version in ["4"], f"Unsupported version : {version}"
@@ -132,7 +131,7 @@ class AsyReader(object):
                     pin = Text(coord, "", type=TextTypeEnum.PIN, size=int(offset),
                                textAlignment=text_alignment, verticalAlignment=vertical_alignment, angle=angle)
                 elif line.startswith("ARC"):
-                    tag, weight, x1, y1, x2, y2, x3, y3, x4, y4  = line.split()
+                    tag, weight, x1, y1, x2, y2, x3, y3, x4, y4 = line.split()
                     x1 = int(x1)
                     x2 = int(x2)
                     x3 = int(x3)
@@ -143,22 +142,22 @@ class AsyReader(object):
                     y4 = int(y4)
 
                     center = Point((x1+x2)//2, (y1+y2)//2)
-                    radius = abs(x2-x1)/2  # Using only the X axis. Assuming a circle not an elipse
+                    radius = abs(x2-x1)/2  # Using only the X axis. Assuming a circle not an ellipse
                     start = Point((x3-center.X)/radius, (y3-center.Y)/radius)
                     stop = Point((x4-center.X)/radius, (y4-center.Y)/radius)
-                    arc = Arc(center, radius=radius, start=start, stop=stop)
-                    self.arcs.append(arc)
+                    arc = Shape("ARC", [center, start, stop])
+                    self.shapes.append(arc)
                 elif line.startswith("RECTANGLE"):
                     tag, weight, x1, y1, x2, y2 = line.split()
                     x1 = int(x1)
                     x2 = int(x2)
                     y1 = int(y1)
                     y2 = int(y2)
-                    rect = Rectangle(Point(x1, y1), Point(x2, y2))
-                    self.rectangles.append(rect)
+                    rect = Shape("RECTANGLE", [Point(x1, y1), Point(x2, y2)])
+                    self.shapes.append(rect)
                 else:
                     print("Primitive not supported for ASC file\n"
-                                              f'"{line}"')
+                          f'"{line}"')
             if pin is not None:
                 self.pins.append(pin)
 
@@ -178,42 +177,37 @@ class AsyReader(object):
                 f"«line ({x1},{y1}) ({x2},{y2}) 0 0 0x1000000 -1 -1»")
             symbol.items.append(segment)
 
-        for circle in self.circles:
-            # x1 = int((arc.center.X - arc.radius) * SCALE_X)
-            # y1 = int((arc.center.Y - arc.radius) * SCALE_Y)
-            # x2 = int((arc.center.X + arc.radius) * SCALE_X)
-            # y2 = int((arc.center.Y + arc.radius) * SCALE_Y)
-            x1 = int(circle.V1.X * SCALE_X)
-            y1 = int(circle.V1.Y * SCALE_Y)
-            x2 = int(circle.V2.X * SCALE_X)
-            y2 = int(circle.V2.Y * SCALE_Y)
-            elipse_tag, _ = QschTag.parse(
-                f"«ellipse ({x1},{y1}) ({x2},{y2}) 0 0 0 0x1000000 0x1000000 -1 -1»"
-            )
-            symbol.items.append(elipse_tag)
+        for shape in self.shapes:
+            if shape.name == "RECTANGLE":
+                x1 = int(shape.points[0].X * SCALE_X)
+                y1 = int(shape.points[0].Y * SCALE_Y)
+                x2 = int(shape.points[1].X * SCALE_X)
+                y2 = int(shape.points[1].Y * SCALE_Y)
+                shape_tag, _ = QschTag.parse(
+                    f"«rect ({x1},{y1}) ({x2},{y2}) 0 0 0 0x4000000 0x1000000 -1 0 -1»"
+                )
+            elif shape.name == "ARC":
+                x1 = int(shape.points[0].X * SCALE_X)
+                y1 = int(shape.points[0].Y * SCALE_Y)
+                x2 = int(shape.points[1].X * SCALE_X)
+                y2 = int(shape.points[1].Y * SCALE_Y)
+                x3 = int(shape.points[2].X * SCALE_X)
+                y3 = int(shape.points[2].Y * SCALE_Y)
+                shape_tag, _ = QschTag.parse(
+                    f"«arc3p ({x1},{y1}) ({x2},{y2}) ({x3},{y3}) 0 0 0xff0000 -1 -1»"
+                )
+            elif shape.name == "CIRCLE" or shape.name == "ellipse":
+                x1 = int(shape.points[0].X * SCALE_X)
+                y1 = int(shape.points[0].Y * SCALE_Y)
+                x2 = int(shape.points[1].X * SCALE_X)
+                y2 = int(shape.points[1].Y * SCALE_Y)
+                shape_tag, _ = QschTag.parse(
+                    f"«ellipse ({x1},{y1}) ({x2},{y2}) 0 0 0 0x1000000 0x1000000 -1 -1»"
+                )
+            else:
+                raise ValueError(f"Shape {shape.name} not supported")
+            symbol.items.append(shape_tag)
 
-        for rectangle in self.rectangles:
-            x1 = int(rectangle.V1.X * SCALE_X)
-            y1 = int(rectangle.V1.Y * SCALE_Y)
-            x2 = int(rectangle.V2.X * SCALE_X)
-            y2 = int(rectangle.V2.Y * SCALE_Y)
-            rectangle_tag, _ = QschTag.parse(
-                f"«rect ({x1},{y1}) ({x2},{y2}) 0 0 0 0x4000000 0x1000000 -1 0 -1»"
-            )
-            symbol.items.append(rectangle_tag)
-
-        for arc in self.arcs:
-            cx = int(arc.center.X * SCALE_X)
-            cy = int(arc.center.Y * SCALE_Y)
-            x1 = int((arc.center.X + arc.start.X * arc.radius) * SCALE_X)
-            y1 = int((arc.center.Y + arc.start.Y * arc.radius) * SCALE_Y)
-            x2 = int((arc.center.X + arc.stop.X * arc.radius) * SCALE_X)
-            y2 = int((arc.center.Y + arc.stop.Y * arc.radius) * SCALE_Y)
-
-            elipse_tag, _ = QschTag.parse(
-                f"«arc3p ({x1},{y1}) ({x2},{y2}) ({cx},{cy}) 0 0 0xff0000 -1 -1»"
-            )
-            symbol.items.append(elipse_tag)
         for i, attr in enumerate(self.windows):
             coord = attr.coord
             x = coord.X * SCALE_X
@@ -244,9 +238,8 @@ class AsyReader(object):
         # Searching in this exact order
         for attr in ('ModelFile', 'SpiceModel', 'SpiceLine', 'SpiceLine2', 'Def_Sub', 'Value', 'Value2'):
             if attr in self.attributes and (self.attributes[attr].endswith('.lib') or
-                        self.attributes[attr].endswith('.sub') or
-                        self.attributes[attr].endswith('.cir')
-            ):
+                                            self.attributes[attr].endswith('.sub') or
+                                            self.attributes[attr].endswith('.cir')):
                 return self.attributes[attr]
         return self.attributes.get('SpiceModel')
 
@@ -275,5 +268,5 @@ class AsyReader(object):
 
     def get_schematic_file(self):
         assert self._asy_file_path.suffix == '.asy', "File is not an asy file"
-        assert self.symbol_type == 'BLOCK', "File is not a subcircuit"
+        assert self.symbol_type == 'BLOCK', "File is not a sub-circuit"
         return self._asy_file_path.with_suffix('.asc')

@@ -1,16 +1,15 @@
 * C:\sandbox\spicelib\examples\testfiles\DC sweep.asc
 Vin in 0 1
-R1 in out 10k tol=1% pwr=0.1
+R1 in out 33k tol=1% Tc1=0 Tc2=0
 R2 out 0 {res}
 D1 out 0 D
 .model D D
 .lib C:\Users\nunob\AppData\Local\LTspice\lib\cmp\standard.dio
-.ac dec 10 1 100k
+.dc Vin 1 10 9
 .param res=10k
 .step temp 0 100 50
 * .step param res 1k 16k 5k
 .op
 .param temp = 0
-.save V(vout)
 .backanno
 .end

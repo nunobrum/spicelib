@@ -66,7 +66,10 @@ SPICE_DOT_INSTRUCTIONS = (
     '.WAVE',  # Write Selected Nodes to a .Wav File
 
 )
-PARAM_REGEX = r"(?<= )(?P<replace>%s(\s*=\s*)(?P<value>[\w\*\/\.\+\-\/\*\{\}\(\)\t ]*))(?<!\s)($|\s+)(?!\s*=)"
+
+
+def PARAM_REGEX(pname):
+    return r"(?P<name>" + pname + r")\s*[= ]\s*(?P<value>[\w\*\/\.\+\-\/\*\{\}\(\)%]*)"
 
 
 def format_eng(value) -> str:
@@ -79,6 +82,8 @@ def format_eng(value) -> str:
         * m for mili (10E-3)
         * k for kilo (10E+3)
         * Meg for Mega (10E+6)
+        * g for giga (10E+9)
+        * t for tera (10E+12)
 
 
     :param value: float value to format
@@ -97,6 +102,10 @@ def format_eng(value) -> str:
         suffix = "k"
     elif e == 2:
         suffix = 'Meg'
+    elif e == 3:
+        suffix = 'g'
+    elif e == 4:
+        suffix = 't'
     else:
         return '{:E}'.format(value)
     return '{:g}{:}'.format(value * 1000 ** -e, suffix)
@@ -111,9 +120,11 @@ def scan_eng(value: str) -> float:
         * n for nano (10E-9)
         * u or µ for micro (10E-6)
         * m for mili (10E-3)
-        * k or K for kilo (10E+3)
-        * Meg for Mega (10E+6)
-
+        * k for kilo (10E+3)
+        * meg for Mega (10E+6)
+        * g for giga (10E+9)
+        * t for tera (10E+12)
+        
     The extra unit qualifiers such as V for volts or F for Farads are ignored.
 
 
@@ -133,7 +144,11 @@ def scan_eng(value: str) -> float:
     suffix = value[x:]  # this is the non-numeric part at the end
     f = float(value[:x])  # this is the numeric part. Can raise ValueError.
     if suffix:
-        if suffix[0] in "fpnuµmkK":
+        suffix = suffix.lower()
+        # By industry convention, SPICE is not case sensitive
+        if suffix.startswith("meg"):
+            return f * 1E+6
+        elif suffix[0] in "fpnuµmkgt":
             return f * {
                 'f': 1.0e-15,
                 'p': 1.0e-12,
@@ -142,10 +157,9 @@ def scan_eng(value: str) -> float:
                 'µ': 1.0e-06,
                 'm': 1.0e-03,
                 'k': 1.0e+03,
-                'K': 1.0e+03,  # LTSpice uses the capital K for Kilo
+                'g': 1.0e+09,
+                't': 1.0e+12,
             }[suffix[0]]
-        elif suffix.upper().startswith("MEG"):
-            return f * 1E+6
     return f
 
 
@@ -220,7 +234,9 @@ class BaseEditor(ABC):
         ...
 
     def get_component_attribute(self, reference: str, attribute: str) -> str:
-        """Returns the value of the attribute of the component.
+        """Returns the value of the attribute of the component. Attributes are the values that are not related with
+        SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
+        User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
         :param reference: Reference of the component
         :type reference: str
         :param attribute: Name of the attribute to be retrieved
@@ -314,7 +330,7 @@ class BaseEditor(ABC):
     @abstractmethod
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
-        subcircuits, use the subcirciut designator prefix with ':' as separator (Example X1:R1)
+        sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
         Usage: ::
 
             editor.set_component_value('R1', '3.3k')
@@ -323,8 +339,8 @@ class BaseEditor(ABC):
         :param device: Reference of the circuit element to be updated.
         :type device: str
         :param value:
-            value to be be set on the given circuit element. Float and integer values will automatically
-            formatted as per the engineering notations 'k' for kilo, 'm', for mili and so on.
+            value to be set on the given circuit element. Float and integer values will automatically
+            formated as per the engineering notations 'k' for kilo, 'm', for mili and so on.
         :type value: str, int or float
         :raises:
             ComponentNotFoundError - In case the component is not found
@@ -363,6 +379,48 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
+    def set_component_parameters(self, element: str, **kwargs) -> None:
+        """
+        Adds one or more parameters to the component on the netlist. The argument is in the form of a key-value pair
+        where each parameter is the key and the value is value to be set in the netlist.
+
+        Usage 1: ::
+
+         editor.set_component_parameters(R1, value=330, temp=25)
+
+        Usage 2: ::
+
+         value_settings = {'value': 330, 'temp': 25}
+         editor.set_component_parameters(R1, **value_settings)
+
+        :param element: Reference of the circuit element.
+        :type element: str
+
+        :key <param_name>:
+            The key is the parameter name and the value is the value to be set. Values can either be
+            strings; integers or floats. When None is given, the parameter will be removed, if possible.
+
+        :return: Nothing
+        :raises: ComponentNotFoundError - In case one of the component is not found.
+        """
+        ...
+
+    def set_component_attribute(self, reference: str, attribute: str, value: str) -> None:
+        """Sets the value of the attribute of the component. Attributes are the values that are not related with
+        SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
+        User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
+        :param reference: Reference of the component
+        :type reference: str
+        :param attribute: Name of the attribute to be set
+        :type attribute: str
+        :param value: Value of the attribute to be set
+        :type value: str
+        :return: Nothing
+        :raises: ComponentNotFoundError - In case the component is not found
+        """
+        self.get_component(reference).attributes[attribute] = value
+
+    @abstractmethod
     def get_component_value(self, element: str) -> str:
         """
         Returns the value of a component retrieved from the netlist.
@@ -372,6 +430,23 @@ class BaseEditor(ABC):
 
         :return: value of the circuit element .
         :rtype: str
+
+        :raises: ComponentNotFoundError - In case the component is not found
+
+                 NotImplementedError - for not supported operations
+        """
+        ...
+
+    @abstractmethod
+    def get_component_parameters(self, element: str) -> dict:
+        """
+        Returns the parameters of a component retrieved from the netlist.
+
+        :param element: Reference of the circuit element to get the parameters.
+        :type element: str
+
+        :return: parameters of the circuit element in dictionary format.
+        :rtype: dict
 
         :raises: ComponentNotFoundError - In case the component is not found
 
@@ -518,7 +593,7 @@ class BaseEditor(ABC):
 
         .. code-block:: python
 
-            editor.remove_Xinstruction("\.AC.*")
+            editor.remove_Xinstruction("\\.AC.*")
 
         :param search_pattern: The list of instructions to remove. Each instruction is of the type 'str'
         :type search_pattern: str

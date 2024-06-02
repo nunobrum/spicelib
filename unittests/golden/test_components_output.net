@@ -1,6 +1,6 @@
 * C:\sandbox\spicelib\examples\testfiles\DC sweep.asc
 Vin in 0 1
-R1 in out 33k
+R1 in out 33k tol=1% pwr=0.1
 R2 out 0 {res}
 D1 out 0 D
 .model D D

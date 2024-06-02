@@ -23,12 +23,15 @@ import re
 from .base_schematic import ERotation, Text, HorAlign, VerAlign
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
-__copyright__ = "Copyright 2021, Fribourg Switzerland"
+__copyright__ = "Copyright 2024, Fribourg Switzerland"
 
 
 # Regular expressions
-TEXT_REGEX = re.compile(r"TEXT (-?\d+)\s+(-?\d+)\s+(Left|Right|Top|Bottom)\s(\d+)\s*(?P<type>[!;])(?P<text>.*)",
-                        re.IGNORECASE)
+TEXT_REGEX = re.compile(
+    r"TEXT (-?\d+)\s+(-?\d+)\s+V?(Left|Right|Top|Bottom|Center|Invisible)\s(\d+)\s*(?P<type>[!;])(?P<text>.*)",
+    re.IGNORECASE
+)
+
 TEXT_REGEX_X = 1
 TEXT_REGEX_Y = 2
 TEXT_REGEX_ALIGN = 3
@@ -63,45 +66,52 @@ WEIGHT_CONVERSION_TABLE = ('Thin', 'Normal', 'Thick')
 
 
 def asc_text_align_set(text: Text, alignment: str):
-    if alignment == 'Left':
+    """Sets the alignment of the text in the ASC format"""
+    # Default
+    text.textAlignment = HorAlign.CENTER
+    text.verticalAlignment = VerAlign.CENTER
+    if alignment == 'Left' or alignment == 'VLeft':
         text.textAlignment = HorAlign.LEFT
-        text.verticalAlignment = VerAlign.CENTER
-    elif alignment == 'Center':
-        text.textAlignment = HorAlign.CENTER
-        text.verticalAlignment = VerAlign.CENTER
-    elif alignment == 'Right':
+    elif alignment == 'Center' or alignment == 'VCenter':
+        pass
+    elif alignment == 'Right' or alignment == 'VRight':
         text.textAlignment = HorAlign.RIGHT
-        text.verticalAlignment = VerAlign.CENTER
-    elif alignment == 'VTop':
-        text.textAlignment = HorAlign.CENTER
+    elif alignment == 'Top' or alignment == 'VTop':
         text.verticalAlignment = VerAlign.TOP
-    elif alignment == 'VCenter':
-        text.textAlignment = HorAlign.CENTER
-        text.verticalAlignment = VerAlign.CENTER
-    elif alignment == 'VBottom':
-        text.textAlignment = HorAlign.LEFT
+    elif alignment == 'Bottom' or alignment == 'VBottom':
         text.verticalAlignment = VerAlign.BOTTOM
+    elif alignment == 'Invisible' or alignment == 'VInvisible':
+        text.visible = False
     else:
-        # Default
-        text.textAlignment = HorAlign.LEFT
-        text.verticalAlignment = VerAlign.CENTER
+        raise ValueError(f"Invalid alignment {alignment}")
+
+    if alignment.startswith('V'):
+        text.angle = ERotation.R90
+    else:
+        text.angle = ERotation.R0
     return text
 
 
 def asc_text_align_get(text: Text) -> str:
-    if text.verticalAlignment == VerAlign.CENTER:
-        if text.textAlignment == HorAlign.RIGHT:
-            return 'Right'
-        elif text.textAlignment == HorAlign.CENTER:
-            return 'Center'
-        else:
-            return 'Left'
+    """Returns the alignment of the text in the ASC format"""
+    if not text.visible:
+        ans = 'Invisible'
     else:
-        if text.verticalAlignment == VerAlign.TOP:
-            return 'VTop'
-        elif text.verticalAlignment == VerAlign.CENTER:
-            return 'VCenter'
-        elif text.verticalAlignment == VerAlign.BOTTOM:
-            return 'VBottom'
+        if text.verticalAlignment == VerAlign.CENTER:
+            if text.textAlignment == HorAlign.RIGHT:
+                ans = 'Right'
+            elif text.textAlignment == HorAlign.CENTER:
+                ans = 'Center'
+            else:
+                ans = 'Left'
         else:
-            return 'Left'
+            if text.verticalAlignment == VerAlign.TOP:
+                ans = 'Top'
+            elif text.verticalAlignment == VerAlign.BOTTOM:
+                ans = 'Bottom'
+            else:            
+                ans = 'Left'
+
+    if text.angle == ERotation.R90:
+        ans = 'V' + ans
+    return ans
