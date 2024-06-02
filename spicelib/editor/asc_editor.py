@@ -18,7 +18,7 @@
 # -------------------------------------------------------------------------------
 import os.path
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
@@ -228,7 +228,7 @@ class AscEditor(BaseSchematic):
                     # Maybe support something else than 'Normal', but LTSpice does not seem to do so.
                     line_elements = line.split()
                     assert len(line_elements) in (10, 11), "Syntax Error, line badly formatted"
-                    points = [Point(int(line_elements[i]), int(line_elements[i+1])) for i in range(2, 9, 2)]
+                    points = [Point(int(line_elements[i]), int(line_elements[i + 1])) for i in range(2, 9, 2)]
                     arc = Shape("ARC", points)
                     if len(line_elements) == 11:
                         arc.line_style.pattern = line_elements[10]
@@ -291,7 +291,7 @@ class AscEditor(BaseSchematic):
         info["InstName"] = reference  # For legacy purposes
         return info
 
-    def get_component_position(self, reference: str) -> (Point, ERotation):
+    def get_component_position(self, reference: str) -> Tuple[Point, ERotation]:
         component = self.get_component(reference)
         return component.position, component.rotation
 

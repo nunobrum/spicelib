@@ -20,7 +20,7 @@ import os
 import sys
 from collections import OrderedDict
 from pathlib import Path
-from typing import Union, List, Optional, IO, TextIO, Tuple
+from typing import Union, List, Optional, TextIO, Tuple
 import re
 import logging
 from .base_editor import (
@@ -180,7 +180,7 @@ class QschTag:
                 self.tokens.append(str(token))
 
     @classmethod
-    def parse(cls, stream: str, start: int = 0) -> ('QschTag', int):
+    def parse(cls, stream: str, start: int = 0) -> Tuple['QschTag', int]:
         """
         Parses a tag from the stream starting at the given position. The stream should be a string.
 
@@ -238,7 +238,7 @@ class QschTag:
         spaces = '  ' * level
         if len(self.items):
             return (f"{spaces}«{' '.join(self.tokens)}\n"
-                    f"{''.join(tag.out(level+1) for tag in self.items)}"
+                    f"{''.join(tag.out(level + 1) for tag in self.items)}"
                     f"{spaces}»\n")
         else:
             return f"{'  ' * level}«{' '.join(self.tokens)}»\n"
@@ -304,7 +304,7 @@ class QschTag:
         """
         Returns the text of the first child tag that matches the given label.
         """
-        a = self.get_items(label+':')
+        a = self.get_items(label + ':')
         if len(a) != 1:
             if default is None:
                 raise IndexError(f"Label '{label}' not found in:{self}")
@@ -596,14 +596,14 @@ class QschEditor(BaseSchematic):
             # angle = text_tag.get_attr(QSCH_TEXT_ROTATION)  # TODO: Implement text Rotation
 
             text_obj = Text(
-                    point,
-                    text,
-                    text_size,
-                    type_text,
-                    # textAlignment,
-                    # verticalAlignment,
-                    # angle=angle,
-                )
+                point,
+                text,
+                text_size,
+                type_text,
+                # textAlignment,
+                # verticalAlignment,
+                # angle=angle,
+            )
             self.directives.append(text_obj)
 
         for line_tag in self.schematic.get_items('line'):
@@ -806,7 +806,7 @@ class QschEditor(BaseSchematic):
                         symbol.items.append(new_tag)
                     sub_circuit.updated = True
 
-    def get_component_position(self, reference: str) -> (Point, ERotation):
+    def get_component_position(self, reference: str) -> Tuple[Point, ERotation]:
         # docstring inherited from BaseSchematic
         component = self.get_component(reference)
         return component.position, component.rotation
@@ -832,7 +832,7 @@ class QschEditor(BaseSchematic):
             if mirror:
                 rot += 8
         else:
-             raise ValueError("Invalid rotation parameter")
+            raise ValueError("Invalid rotation parameter")
 
         comp_tag.set_attr(QSCH_COMPONENT_POS, position)
         comp_tag.set_attr(QSCH_COMPONENT_ROTATION, rot)
@@ -967,10 +967,10 @@ class QschEditor(BaseSchematic):
                 line_tag, _ = QschTag.parse('«line (2000,1300) (3150,-100) 0 2 0xff0000 -1 -1»')
                 line_tag.set_attr(QSCH_LINE_POS1, (line.V1.X, line.V1.Y))
                 line_tag.set_attr(QSCH_LINE_POS2, (line.V2.X, line.V2.Y))
-                line_width = 0  # Default
-                line_type = 0  # Default
-                color = 0xff0000  # Default : Blue Color
                 # TODO: Implement the style to width, type and color
+                # line_width = 0  # Default
+                # line_type = 0  # Default
+                # color = 0xff0000  # Default : Blue Color
                 # line_width, line_type, color = line.style.split(' ')
                 # line_tag.set_attr(QSCH_LINE_WIDTH, line_width)
                 # line_tag.set_attr(QSCH_LINE_TYPE, line_type)
@@ -1007,10 +1007,10 @@ class QschEditor(BaseSchematic):
                         end_angle = math.atan2(shape.points[3].Y - center_y, shape.points[3].X - center_x)
                         ellipse_width = abs(shape.points[1].X - shape.points[0].X)
                         ellipse_height = abs(shape.points[1].Y - shape.points[0].Y)
-                        start_point_x = int(center_x + ellipse_width/2 * math.cos(start_angle))
-                        start_point_y = int(center_y + ellipse_height/2 * math.sin(start_angle))
-                        end_point_x = int(center_x + ellipse_width/2 * math.cos(end_angle))
-                        end_point_y = int(center_y + ellipse_height/2 * math.sin(end_angle))
+                        start_point_x = int(center_x + ellipse_width / 2 * math.cos(start_angle))
+                        start_point_y = int(center_y + ellipse_height / 2 * math.sin(start_angle))
+                        end_point_x = int(center_x + ellipse_width / 2 * math.cos(end_angle))
+                        end_point_y = int(center_y + ellipse_height / 2 * math.sin(end_angle))
                         shape_tag.set_attr(QSCH_ARC3P_POS1, (start_point_x, start_point_y))
                         shape_tag.set_attr(QSCH_ARC3P_POS2, (end_point_x, end_point_y))
                         shape_tag.set_attr(QSCH_ARC3P_POS3, (center_x, center_y))
