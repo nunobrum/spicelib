@@ -66,7 +66,7 @@ class AsyReader(object):
                         text = ""
                     else:
                         continue
-                    text.text = text.text.strip()  # Gets rid of the \n terminator
+                    text = text.strip()  # Gets rid of the \n terminator
                     self.attributes[ref] = text
                 elif line.startswith("LINE"):
                     tag, weight, x1, y1, x2, y2 = line.split()
