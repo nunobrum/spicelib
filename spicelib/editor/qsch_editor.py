@@ -34,7 +34,7 @@ from ..utils.file_search import find_file_in_directory
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
-__all__ = ('QschEditor', )
+__all__ = ('QschEditor', 'QschTag', 'QschReadingError')
 
 _logger = logging.getLogger("qspice.QschEditor")
 

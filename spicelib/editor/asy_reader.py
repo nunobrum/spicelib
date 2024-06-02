@@ -10,7 +10,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        asy_reader.py
-# Purpose:     Class to parse and then translate LTspice symbol files
+# Purpose:     Class to parse and then translate LTSpice symbol files
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
@@ -66,7 +66,7 @@ class AsyReader(object):
                         text = ""
                     else:
                         continue
-                    text = text.strip()  # Gets rid of the \n terminator
+                    text.text = text.text.strip()  # Gets rid of the \n terminator
                     self.attributes[ref] = text
                 elif line.startswith("LINE"):
                     tag, weight, x1, y1, x2, y2 = line.split()
@@ -77,7 +77,7 @@ class AsyReader(object):
                     self.lines.append(segment)
                 elif line.startswith("CIRCLE"):
                     tag, weight, x1, y1, x2, y2 = line.split()
-                    # In LTspice the circle is set using the top left and bottom right points of the rectangle that
+                    # In LTSpice the circle is set using the top left and bottom right points of the rectangle that
                     # encloses the circle
                     x1 = int(x1)
                     x2 = int(x2)
@@ -131,7 +131,7 @@ class AsyReader(object):
                     pin = Text(coord, "", type=TextTypeEnum.PIN, size=int(offset),
                                textAlignment=text_alignment, verticalAlignment=vertical_alignment, angle=angle)
                 elif line.startswith("ARC"):
-                    tag, weight, x1, y1, x2, y2, x3, y3, x4, y4  = line.split()
+                    tag, weight, x1, y1, x2, y2, x3, y3, x4, y4 = line.split()
                     x1 = int(x1)
                     x2 = int(x2)
                     x3 = int(x3)
@@ -142,7 +142,7 @@ class AsyReader(object):
                     y4 = int(y4)
 
                     center = Point((x1+x2)//2, (y1+y2)//2)
-                    radius = abs(x2-x1)/2  # Using only the X axis. Assuming a circle not an elipse
+                    radius = abs(x2-x1)/2  # Using only the X axis. Assuming a circle not an ellipse
                     start = Point((x3-center.X)/radius, (y3-center.Y)/radius)
                     stop = Point((x4-center.X)/radius, (y4-center.Y)/radius)
                     arc = Shape("ARC", [center, start, stop])
@@ -157,7 +157,7 @@ class AsyReader(object):
                     self.shapes.append(rect)
                 else:
                     print("Primitive not supported for ASC file\n"
-                                              f'"{line}"')
+                          f'"{line}"')
             if pin is not None:
                 self.pins.append(pin)
 
@@ -178,15 +178,7 @@ class AsyReader(object):
             symbol.items.append(segment)
 
         for shape in self.shapes:
-            if shape.name == "ELIPSE":
-                x1 = int(shape.points[0].X * SCALE_X)
-                y1 = int(shape.points[0].Y * SCALE_Y)
-                x2 = int(shape.points[1].X * SCALE_X)
-                y2 = int(shape.points[1].Y * SCALE_Y)
-                shape_tag, _ = QschTag.parse(
-                    f"«ellipse ({x1},{y1}) ({x2},{y2}) 0 0 0 0x1000000 0x1000000 -1 -1»"
-                )
-            elif shape.name == "RECTANGLE":
+            if shape.name == "RECTANGLE":
                 x1 = int(shape.points[0].X * SCALE_X)
                 y1 = int(shape.points[0].Y * SCALE_Y)
                 x2 = int(shape.points[1].X * SCALE_X)
@@ -204,7 +196,7 @@ class AsyReader(object):
                 shape_tag, _ = QschTag.parse(
                     f"«arc3p ({x1},{y1}) ({x2},{y2}) ({x3},{y3}) 0 0 0xff0000 -1 -1»"
                 )
-            elif shape.name == "CIRCLE":
+            elif shape.name == "CIRCLE" or shape.name == "ellipse":
                 x1 = int(shape.points[0].X * SCALE_X)
                 y1 = int(shape.points[0].Y * SCALE_Y)
                 x2 = int(shape.points[1].X * SCALE_X)
@@ -246,9 +238,8 @@ class AsyReader(object):
         # Searching in this exact order
         for attr in ('ModelFile', 'SpiceModel', 'SpiceLine', 'SpiceLine2', 'Def_Sub', 'Value', 'Value2'):
             if attr in self.attributes and (self.attributes[attr].endswith('.lib') or
-                        self.attributes[attr].endswith('.sub') or
-                        self.attributes[attr].endswith('.cir')
-            ):
+                                            self.attributes[attr].endswith('.sub') or
+                                            self.attributes[attr].endswith('.cir')):
                 return self.attributes[attr]
         return self.attributes.get('SpiceModel')
 
@@ -277,5 +268,5 @@ class AsyReader(object):
 
     def get_schematic_file(self):
         assert self._asy_file_path.suffix == '.asy', "File is not an asy file"
-        assert self.symbol_type == 'BLOCK', "File is not a subcircuit"
+        assert self.symbol_type == 'BLOCK', "File is not a sub-circuit"
         return self._asy_file_path.with_suffix('.asc')
