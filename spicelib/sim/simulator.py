@@ -66,6 +66,9 @@ class Simulator(ABC):
             process_name = "<name of the process within the system>"
 
 
+    If you use MacOS, you can choose either one of the 2 above. If you are on Intel, running LTSpice under wine (therefore: like under Linux) is preferred.
+
+
     The subclasses should then implement at least the run() function as a classmethod.
     
     .. code-block:: python
