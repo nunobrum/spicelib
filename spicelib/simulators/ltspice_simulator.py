@@ -171,6 +171,9 @@ class LTspice(Simulator):
             raise SpiceSimulatorError("Simulator executable not found.")
         if sys.platform == 'darwin':
             cmd_run = cls.spice_exe + ['-b'] + [netlist_file] + cmd_line_switches
+        elif sys.platform == 'linux':
+            # Add drive letter 'Z' to absolute path of a netlist file
+            cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + ['Z:' + netlist_file] + cmd_line_switches
         else:
             cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + [netlist_file] + cmd_line_switches
         # start execution
