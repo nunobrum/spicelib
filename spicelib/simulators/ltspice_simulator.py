@@ -21,7 +21,7 @@
 import sys
 import os
 
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Union
 import logging
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
@@ -83,7 +83,7 @@ class LTspice(Simulator):
                 #    '/Users/myuser/.wine/drive_c/users/myuser/AppData/...' for spice_exe_win_paths[0]    
                 # or '/Users/myuser/.wine/drive_c/Program Files/...'        for spice_exe_win_paths[2]  
                 # Note that in the user path versions (spice_exe_win_paths[0] and [1]), I have 2 expansions of the user name.
-                exe = exe.replace("\\", "/")  # make os.path.expanduser and os.path.join work
+                exe = PureWindowsPath(exe).as_posix()   # make os.path.expanduser and os.path.join work
                 if exe.startswith("~"):
                     exe = "C:/users/" + os.path.expandvars("${USER}" + exe[1:])
                 # Now I have a "windows" path (but with forward slashes). Make it into a path under wine.
@@ -93,7 +93,7 @@ class LTspice(Simulator):
                     spice_exe = ["wine", exe]
                     # process_name is used for kill_all_spice()
                     if sys.platform == "darwin":
-                        # For MacOS wine, there will be no process called "LTspice.exe". Use "wine-preloader"
+                        # For MacOS wine, there will be no process called "wine". Use "wine-preloader"
                         process_name = "wine-preloader"
                     else:
                         process_name = Path(exe).name  
@@ -129,32 +129,32 @@ class LTspice(Simulator):
         _logger.debug(f"Using LTspice installed under wine in : '{spice_exe}' ")
 
     ltspice_args = {
-        'alt': ['-alt'],  # Set solver to Alternate.
-        'ascii': ['-ascii'],  # Use ASCII.raw files. Seriously degrades program performance.
-        # 'batch': ['-b <path>'], # Used by run command: Run in batch mode.E.g. "ltspice.exe-b deck.cir" will leave the data infile deck.raw
-        'big': ['-big'],  # Start as a maximized window.
-        'encrypt': ['-encrypt'],
+        'alt'                : ['-alt'],  # Set solver to Alternate.
+        'ascii'              : ['-ascii'],  # Use ASCII.raw files. Seriously degrades program performance.
+        # 'batch'            : ['-b <path>'], # Used by run command: Run in batch mode.E.g. "ltspice.exe-b deck.cir" will leave the data infile deck.raw
+        'big'                : ['-big'],  # Start as a maximized window.
+        'encrypt'            : ['-encrypt'],
         # Encrypt a model library.For 3rd parties wishing to allow people to use libraries without
         # revealing implementation details. Not used by AnalogDevices models.
-        'fastaccess': ['-FastAccess'],  # Batch conversion of a binary.rawfile to Fast Access format.
+        'fastaccess'         : ['-FastAccess'],  # Batch conversion of a binary.rawfile to Fast Access format.
         'FixUpSchematicFonts': ['-FixUpSchematicFonts'],
         # Convert the font size field of very old user - authored schematic text to the modern default.
-        'FixUpSymbolFonts': ['-FixUpSymbolFonts'],
+        'FixUpSymbolFonts'   : ['-FixUpSymbolFonts'],
         # Convert the font size field of very old user - authored symbols to the modern default.
         # See Changelog.txt for application hints.
-        'ini': ['- ini', '<path>'],  # Specify an .ini file to use other than %APPDATA%\LTspice.ini
-        'I': ['-I<path>'],  # Specify a path to insert in the symbol and file search paths.
+        'ini'                : ['- ini', '<path>'],  # Specify an .ini file to use other than %APPDATA%\LTspice.ini
+        'I'                  : ['-I<path>'],  # Specify a path to insert in the symbol and file search paths.
         # Must be the last specified option.
         # No space between "-I" and < path > is allowed.
-        'max': ['-max'],  # Synonym for -big
-        'netlist': ['-netlist'],  # Batch conversion of a schematic to a netlist.
-        'norm': ['-norm'],  # Set solver to Normal.
+        'max'                : ['-max'],  # Synonym for -big
+        'netlist'            : ['-netlist'],  # Batch conversion of a schematic to a netlist.
+        'norm'               : ['-norm'],  # Set solver to Normal.
         'PCBnetlist': ['-PCBnetlist'],  # Batch conversion of a schematic to a PCB format netlist.
-        # 'run': ['-Run', '-b', '{path}'],  # Start simulating the schematic opened on the command line without
+        # 'run'              : ['-Run', '-b', '{path}'],  # Start simulating the schematic opened on the command line without
         # pressing the Run button.
-        'SOI': ['-SOI'],  # Allow MOSFET's to have up to 7 nodes even in subcircuit expansion.
-        'sync': ['-sync'],  # Update component libraries
-        'uninstall': ['-uninstall'],  # Please don't. Executes one step of the uninstallation process.
+        'SOI'                : ['-SOI'],  # Allow MOSFET's to have up to 7 nodes even in subcircuit expansion.
+        'sync'               : ['-sync'],  # Update component libraries
+        'uninstall'          : ['-uninstall'],  # Please don't. Executes one step of the uninstallation process.
     }
 
     @classmethod
@@ -223,7 +223,26 @@ class LTspice(Simulator):
             raise ValueError("Invalid switch for class ")
 
     @classmethod
-    def run(cls, netlist_file, cmd_line_switches, timeout):
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None):
+        """Executes a LTspice simulation run.
+
+        :param netlist_file: path to the netlist file
+        :type netlist_file: Union[str, Path]
+        :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
+        :type cmd_line_switches: list, optional
+        :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
+        :type timeout: float, optional
+        :param stdout: file handle to stdout. See subprocess.run(), defaults to None
+        :type stdout: _FILE, optional
+        :param stderr: file handle to stdout. See subprocess.run(), defaults to None
+        :type stderr: _FILE, optional
+        :raises SpiceSimulatorError: when the executable is not found.
+        :raises NotImplementedError: when the requested execution is not possible on this platform.
+        :return: return code from the process
+        :rtype: int
+        """
+        netlist_file = Path(netlist_file)
+        
         if not cls.spice_exe:
             _logger.error("================== ALERT! ====================")
             _logger.error("Unable to find a LTspice executable.")
@@ -237,20 +256,35 @@ class LTspice(Simulator):
                 if netlist_file.lower().endswith(".asc"):
                     raise NotImplementedError("MacOS native LTspice cannot run simulations on '.asc' files. Simulate '.net' or '.cir' files or use LTspice under wine.")
                 
-                cmd_run = cls.spice_exe + ['-b'] + [netlist_file] + cmd_line_switches
+                cmd_run = cls.spice_exe + ['-b'] + [netlist_file.as_posix()] + cmd_line_switches
             else:
                 # wine
                 # Drive letter 'Z' is the link from wine to the host platform's root directory. 
                 # Z: is needed for netlists with absolute paths, but will also work with relative paths.
-                cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + ['Z:' + netlist_file] + cmd_line_switches
+                cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + ['Z:' + netlist_file.as_posix()] + cmd_line_switches
         else:
             # Windows (well, also aix, wasi, emscripten,... where it will fail.)
-            cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + [netlist_file] + cmd_line_switches
+            cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + [netlist_file.as_posix()] + cmd_line_switches
         # start execution
-        return run_function(cmd_run, timeout=timeout)
+        return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
 
     @classmethod
-    def create_netlist(cls, circuit_file: Union[str, Path], cmd_line_switches=None) -> Path:
+    def create_netlist(cls, circuit_file: Union[str, Path], cmd_line_switches: list = None, stdout=None, stderr=None) -> Path:
+        """Create a netlist out of the circuit file
+
+        :param circuit_file: path to the circuit file
+        :type circuit_file: Union[str, Path]
+        :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
+        :type cmd_line_switches: list, optional
+        :param stdout: file handle to stdout. See subprocess.run(), defaults to None
+        :type stdout: _FILE, optional
+        :param stderr: file handle to stdout. See subprocess.run(), defaults to None
+        :type stderr: _FILE, optional
+        :raises NotImplementedError: when the requested execution is not possible on this platform.
+        :raises RuntimeError: when the netlist cannot be created
+        :return: path to the netlist produced
+        :rtype: Path
+        """
         # prepare instructions, two stages used to enable edits on the netlist w/o open GUI
         # see: https://www.mikrocontroller.net/topic/480647?goto=5965300#5965300
         if cmd_line_switches is None:
@@ -264,7 +298,7 @@ class LTspice(Simulator):
             raise NotImplementedError("MacOS native LTspice does not have netlist generation capabilities. Use LTspice under wine.")
         
         cmd_netlist = cls.spice_exe + ['-netlist'] + [circuit_file.as_posix()] + cmd_line_switches
-        error = run_function(cmd_netlist)
+        error = run_function(cmd_netlist, stdout=stdout, stderr=stderr)
 
         if error == 0:
             netlist = circuit_file.with_suffix('.net')
