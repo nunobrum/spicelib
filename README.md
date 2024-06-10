@@ -208,14 +208,14 @@ AscEditor has some limitations and differences with regards to SpiceEditor.
   
     `AscEditor.get_component_parameters()` will show the native attributes, and tries to disect 'SpiceLine' and 'SpiceLine2', just like `SpiceEditor.get_component_parameters()` would do. This means for example for:
 
-  * a Voltage source of DC 2 V, with small signal analysis AC amplitude of 1V:
+  * a Voltage source of DC 2V, with small signal analysis AC amplitude of 1V and a series resistance of 3 ohm:
     * `AscEditor.get_component_value()` and `SpiceEditor.get_component_value()` -> `'2 AC 1'`
-    * `AscEditor.get_component_parameters()` -> `{'Value': '2', 'Value2': 'AC 1'}`
-    * `SpiceEditor.get_component_parameters()` -> `{}`
+    * `AscEditor.get_component_parameters()` -> `{'Value': '2', 'Value2': 'AC 1', 'SpiceLine': 'Rser=3', 'Rser': 3}`
+    * `SpiceEditor.get_component_parameters()` -> `{'Rser': 3}`
     * Please note that if you want to remove the small signal analysis AC amplitude, you MUST use
       * `AscEditor.set_component_parameters(..,'Value2','')`, as `set_component_value()` will only affect 'Value'
       * `SpiceEditor.set_component_value(..,'2')`
-  * a Resistance of 1 Ohm, 2% tolerance, 3W power rating:
+  * a Resistance of 1 ohm, 2% tolerance, 3W power rating:
     * `AscEditor.get_component_value()` and `SpiceEditor.get_component_value()` -> `1`
     * `AscEditor.get_component_parameters()` -> `{'Value': '1', 'SpiceLine': 'tol=2 pwr=3', 'tol': 2, 'pwr': 3}`
     * `SpiceEditor.get_component_parameters()` -> `{'tol': 2, 'pwr': 3}`
