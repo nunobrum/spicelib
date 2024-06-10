@@ -43,14 +43,8 @@ There are three types of files that are handled by this module.
                  2	1.99689
 
 
-<<<<<<< HEAD:doc/utilities/LTSteps.rst
-The ltsteps.exe is installed on the Scripts folder on your python installation folder or virtual environment.
-Add the Scripts path to your PATH environment variable in order to be able to use this tool in any other location on
-your system.
-=======
 The ltsteps.exe can be used directly from a command line if the Python's Scripts folder is included in the PATH 
 environment variable. If not, the full path to the executable must be provided.
->>>>>>> doc_improvements:doc/utilities/ltsteps.rst
 
 .. code-block:: text
 
