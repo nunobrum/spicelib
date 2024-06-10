@@ -80,6 +80,8 @@ More comprehensive documentation can be found in <https://spicelib.readthedocs.i
 GNU V3 License
 (refer to the LICENSE file)
 
+## Main modules ##
+
 ### RawRead ###
 
 The example below reads the data from a Spice Simulation called
@@ -340,7 +342,9 @@ print("Total number of measures found :", data.measure_count)
 
 The second possibility is to use the module directly on the command line
 
-# Command Line Interface #
+## Command Line Interface ##
+
+The following tools will be installed when you install the library via pip. The extension '.exe' is only available on Windows, on MacOS or Linux, the commands will have the same name, but without '.exe'. The executables are simple links to python scripts with the same name, of which the majority can be found in the package's 'scripts' directory.
 
 ### ltsteps.exe ###
 
@@ -404,6 +408,14 @@ Options:
                         Example: -d ";"
 ```
 
+### rawplot.exe ###
+
+Uses matplotlib to plot the data in the raw file.
+
+```bash
+Usage: rawplot.py RAW_FILE TRACE_NAME
+```
+
 ### run_server.exe ###
 
 This module is used to run a server that can be used to run simulations in a remote machine. The server will run in the
@@ -461,7 +473,20 @@ optional arguments:
                         Maximum number of parallel simulations. Default is 4
 ```
 
-### SemiDevOpReader.py ###
+### asc_to_qsch.exe ###
+
+Converts LTspice schematics into Qspice schematics.
+
+```bash
+Usage: asc_to_qsch [options] ASC_FILE [QSCH_FILE]
+
+Options:
+  --version            show program's version number and exit
+  -h, --help           show this help message and exit
+  -a PATH, --add=PATH  Add a path for searching for symbols
+```
+
+### log\semi_dev_op_reader.py ###
 
 This module is used to read from LTSpice log files Semiconductor Devices Operating Point Information. A more detailed
 documentation is directly included in the source file docstrings.
