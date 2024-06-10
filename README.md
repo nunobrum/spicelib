@@ -204,7 +204,7 @@ simulation can be run from there.
 
 AscEditor has some limitations and differences with regards to SpiceEditor.
 
-* As is visible in the LTspice GUI, it groups all component properties in different 'attributes' like 'Value', 'Value2', 'SpiceLine', 'SpiceLine2'. Netlists do not have that concept, and place everything in one big list, that SpiceEditor subsequently separates in 'value' and 'parameters' for most components. For AscEditor, LTspice distributes the parameters over all 4 attributes, with varying syntax. You must be aware of how LTspice handles the parameter placement if you use AscEditor.
+* As is visible in the LTspice GUI, it groups all component properties/parameters in different 'attributes' like 'Value', 'Value2', 'SpiceLine', 'SpiceLine2'. Netlists do not have that concept, and place everything in one big list, that SpiceEditor subsequently separates in 'value' and 'parameters' for most components. To complicate things, LTspice distributes the parameters over all 4 attributes, with varying syntax. You must be aware of how LTspice handles the parameter placement if you use AscEditor.
   
     `AscEditor.get_component_parameters()` will show the native attributes, and tries to disect 'SpiceLine' and 'SpiceLine2', just like `SpiceEditor.get_component_parameters()` would do. This means for example for:
 
@@ -221,11 +221,13 @@ AscEditor has some limitations and differences with regards to SpiceEditor.
     * `SpiceEditor.get_component_parameters()` -> `{'tol': 2, 'pwr': 3}`
     * with both editors, you can use `...set_component_parameters(.., tol=5)`
 * When adressing components, SpiceEditor requires you to include the prefix in the component name, like `XU1` for an opamp. AscEditor will require `U1`.
-* AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters.
+* AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any of the underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters.
 
-    This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters. It is however possible for AscEditor to set or modify them with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`
+    This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`. 
 
-Resumed, it is better to use SpiceEditor than AscEditor, as it is more straightforward.
+    Note here that you must know in that attribute to place the parameter, and make sure that you know all the other parameters in that attribute. If the attribute is in 'SpiceLine' however (as with the majority of the simpler components), you may address the parameter individually (see the resistor example above).
+
+Resumed, it is better to use SpiceEditor than AscEditor, as it is more straightforward. On MacOS, it is recommended to use LTspice under wine, or to export the netlist manually, as MacOS's LTspice does not support automated export of netlists.
 
 ### Simulation Analysis Toolkit ###
 
