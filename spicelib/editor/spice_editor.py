@@ -512,15 +512,21 @@ class SpiceCircuit(BaseEditor):
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
-        params_str = match.group('params')
-        return self._parse_params(params_str)
+        if match and match.groupdict().get('params'):
+            params_str = match.group('params')
+            return self._parse_params(params_str)
+        else:
+            return {}
 
     def set_component_parameters(self, reference: str, **kwargs) -> None:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
-        params_str = match.group('params')
-        params = self._parse_params(params_str)
-
+        if match and match.groupdict().get('params'):
+            params_str = match.group('params')
+            params = self._parse_params(params_str)
+        else:
+            params = {}
+            
         for key, value in kwargs.items():
             # format the value
             if value is None:

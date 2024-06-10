@@ -30,6 +30,7 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   * `add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")`
   * `remove_instruction(".STEP run -1 1023 1")  # Removes previously added instruction`
   * `reset_netlist() # Resets all edits done to the netlist.`
+  * `set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters`
 
 * __sim_runner.py__
   A python script that can be used to run LTSpice simulations in batch mode without having to open the LTSpice GUI.
@@ -153,6 +154,7 @@ netlist = SpiceEditor('./testfiles/Batch_Test.net')
 netlist.set_parameters(res=0, cap=100e-6)
 netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
 netlist.set_component_value('R1', '4k')
+netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)  # Set component temperature, Tc 50ppm, remove power rating
 netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a define simulation
 netlist.add_instructions(
@@ -197,6 +199,18 @@ if enter == '':
 The example above is using the SpiceEditor to create and modify a spice netlist, but it is also possible to use the
 AscEditor to directly modify the .asc file. The edited .asc file can then be opened by the LTSpice GUI and the
 simulation can be run from there.
+
+#### Limitations and specifics of AscEditor ####
+
+AscEditor has some limitations and differences with regards to SpiceEditor.
+
+* As is visible in the LTspice GUI, it groups all component properties in different 'attributes' like 'Value', 'Value2', 'SpiceLine', 'SpiceLine2'. Netlists do not have that concept, and place everything in one big list, that `SpiceEditor` separates in 'parameters' (anything that is key-value), and 'value' (everything else, concatenated). `AscEditor.get_component_parameters()` will show the groups, and try to disect 'SpiceLine' and 'SpiceLine2', like `SpiceEditor.get_component_parameters()` would do. This means for example for a Voltage source DC 2 V, with AC amplitude of 1V, and Serial resistance of 3:
+  * `AscEditor.get_component_value()` : `'2 AC 1'`
+  * `AscEditor.get_component_parameters()` will return `{'Value': '2', 'Value2': 'AC 1', 'SpiceLine': 'Rser=3', 'Rser': 3}`
+  * `SpiceEditor.get_component_value()` : `'2 AC 1'`
+  * `SpiceEditor.get_component_parameters()` will return `{'Rser': 3}`
+* When adressing components, `SpiceEditor` requires you to include the prefix in the component name, like `XU1` for an opamp. `AscEditor` will require `U1`.
+* AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters. This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they are modified. `SpiceEditor.get_component_parameters()` will show all parameters. It is however possible for AscEditor to set or modify them with `AscEditor.get_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`
 
 ### Simulation Analysis Toolkit ###
 
