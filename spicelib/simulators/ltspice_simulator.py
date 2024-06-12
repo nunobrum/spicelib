@@ -232,9 +232,9 @@ class LTspice(Simulator):
         :type cmd_line_switches: list, optional
         :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
         :type timeout: float, optional
-        :param stdout: file handle to stdout. See subprocess.run(), defaults to None
+        :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), and an existing file object with a valid file descriptor. With the default settings of None, no redirection will occur. 
         :type stdout: _FILE, optional
-        :param stderr: file handle to stderr. See subprocess.run(), defaults to None
+        :param stderr: Like stdout, but affecting the command's error output.
         :type stderr: _FILE, optional
         :raises SpiceSimulatorError: when the executable is not found.
         :raises NotImplementedError: when the requested execution is not possible on this platform.
@@ -276,9 +276,9 @@ class LTspice(Simulator):
         :type circuit_file: Union[str, Path]
         :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
         :type cmd_line_switches: list, optional
-        :param stdout: file handle to stdout. See subprocess.run(), defaults to None
+        :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), and an existing file object with a valid file descriptor. With the default settings of None, no redirection will occur. 
         :type stdout: _FILE, optional
-        :param stderr: file handle to stderr. See subprocess.run(), defaults to None
+        :param stderr: Like stdout, but affecting the command's error output.
         :type stderr: _FILE, optional
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :raises RuntimeError: when the netlist cannot be created
