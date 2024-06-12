@@ -234,7 +234,7 @@ class LTspice(Simulator):
         :type timeout: float, optional
         :param stdout: file handle to stdout. See subprocess.run(), defaults to None
         :type stdout: _FILE, optional
-        :param stderr: file handle to stdout. See subprocess.run(), defaults to None
+        :param stderr: file handle to stderr. See subprocess.run(), defaults to None
         :type stderr: _FILE, optional
         :raises SpiceSimulatorError: when the executable is not found.
         :raises NotImplementedError: when the requested execution is not possible on this platform.
@@ -278,7 +278,7 @@ class LTspice(Simulator):
         :type cmd_line_switches: list, optional
         :param stdout: file handle to stdout. See subprocess.run(), defaults to None
         :type stdout: _FILE, optional
-        :param stderr: file handle to stdout. See subprocess.run(), defaults to None
+        :param stderr: file handle to stderr. See subprocess.run(), defaults to None
         :type stderr: _FILE, optional
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :raises RuntimeError: when the netlist cannot be created
