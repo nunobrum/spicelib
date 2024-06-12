@@ -88,7 +88,7 @@ REPLACE_REGEXS = {
     'S': r"^(?P<designator>S§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Voltage Controlled Switch
     'T': r"^(?P<designator>T§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Lossless Transmission
     'U': r"^(?P<designator>U§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>.*)$",  # Uniform RC-line
-    'V': r"^(?P<designator>V§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Voltage Source
+    'V': r"^(?P<designator>V§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>(\s*\w+[^=\s]*(?=\s))*)" + PARAM_RGX + ".*$",  # Voltage Source
     # This implementation replaces everything after the 2 first nets
     'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Current Controlled Switch
     # This implementation replaces everything after the 2 first nets
@@ -512,15 +512,21 @@ class SpiceCircuit(BaseEditor):
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
-        params_str = match.group('params')
-        return self._parse_params(params_str)
+        if match and match.groupdict().get('params'):
+            params_str = match.group('params')
+            return self._parse_params(params_str)
+        else:
+            return {}
 
     def set_component_parameters(self, reference: str, **kwargs) -> None:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
-        params_str = match.group('params')
-        params = self._parse_params(params_str)
-
+        if match and match.groupdict().get('params'):
+            params_str = match.group('params')
+            params = self._parse_params(params_str)
+        else:
+            params = {}
+            
         for key, value in kwargs.items():
             # format the value
             if value is None:

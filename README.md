@@ -1,10 +1,11 @@
 # README #
 
 spicelib is a toolchain of python utilities design to interact with spice simulators, as for example:
-  * LTspice
-  * NGSpice
-  * QSPICE
-  * Xyce
+
+* LTspice
+* NGSpice
+* QSPICE
+* Xyce
 
 ## What is contained in this repository ##
 
@@ -23,28 +24,29 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   parameters as well as the simulation commands. These methods allow to update a netlist without having to open the
   schematic in LTSpice. The simulations can then be run in batch mode (see sim_runner.py).
 
-    - `set_element_model('D1', '1N4148') # Replaces the Diode D1 with the model 1N4148`
-    - `set_component_value('R2', '33k') # Replaces the value of R2 by 33k`
-    - `set_parameters(run=1, TEMP=80) # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80`
-    - `add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")`
-    - `remove_instruction(".STEP run -1 1023 1")  # Removes previously added instruction`
-    - `reset_netlist() # Resets all edits done to the netlist.`
+  * `set_element_model('D1', '1N4148') # Replaces the Diode D1 with the model 1N4148`
+  * `set_component_value('R2', '33k') # Replaces the value of R2 by 33k`
+  * `set_parameters(run=1, TEMP=80) # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80`
+  * `add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")`
+  * `remove_instruction(".STEP run -1 1023 1")  # Removes previously added instruction`
+  * `reset_netlist() # Resets all edits done to the netlist.`
+  * `set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters`
 
 * __sim_runner.py__
   A python script that can be used to run LTSpice simulations in batch mode without having to open the LTSpice GUI.
   This in cooperation with the classes defined in spice_editor.py or asc_editor.py is useful because:
 
-    - Can overcome the limitation of only stepping 3 parameters
-    - Different types of simulations .TRAN .AC .NOISE can be run in a single batch
-    - The RAW Files are smaller and easier to treat
-    - When used with the RawRead.py and ltsteps.py, validation of the circuit can be done automatically.
-    - Different models can be simulated in a single batch, by using the following instructions:
+  * Can overcome the limitation of only stepping 3 parameters
+  * Different types of simulations .TRAN .AC .NOISE can be run in a single batch
+  * The RAW Files are smaller and easier to treat
+  * When used with the RawRead.py and ltsteps.py, validation of the circuit can be done automatically.
+  * Different models can be simulated in a single batch, by using the following instructions:
 
   Note: It was only tested with Windows based installations.
 
 * __Analysis Toolkit__
   A set of tools that prepare an LTSpice netlist for a Montecarlo or Worst Case Analysis. The device tolerances are set
-  by the user and the netlist is updated accordingly. The netlist can then be used with the sim_runner.py to run a 
+  by the user and the netlist is updated accordingly. The netlist can then be used with the sim_runner.py to run a
   batch of simulations or with the LTSpice GUI.
 
 * __histogram.exe__
@@ -57,27 +59,29 @@ spicelib is a toolchain of python utilities design to interact with spice simula
 
 ### Updating spicelib ###
 
-`pip install --upgrade spicelib `
+`pip install --upgrade spicelib`
 
 ### Using GITHub ###
 
-`git clone https://github.com/nunobrum/spicelib.git `
+`git clone https://github.com/nunobrum/spicelib.git`
 
 If using this method it would be good to add the path where you cloned the site to python path.
 
-`import sys `  
-`sys.path.append(<path to spicelib>) `
+`import sys`  
+`sys.path.append(<path to spicelib>)`
 
 ## How to use ##
 
 Here follows a quick outlook on how to use each of the tools.
 
-More comprehensive documentation can be found in https://spicelib.readthedocs.io/en/latest/
+More comprehensive documentation can be found in <https://spicelib.readthedocs.io/en/latest/>
 
 ## LICENSE ##
 
 GNU V3 License
 (refer to the LICENSE file)
+
+## Main modules ##
 
 ### RawRead ###
 
@@ -103,8 +107,9 @@ for step in range(len(steps)):
 
 plt.legend()  # order a legend
 plt.show()
- ``` 
--- in examples/raw_read_example.py   
+ ```
+
+-- in examples/raw_read_example.py
 
 ### RawWrite ###
 
@@ -123,6 +128,7 @@ LW.add_trace(vy)
 LW.add_trace(vz)
 LW.save("./testfiles/teste_snippet1.raw")
  ```
+
 -- in examples/raw_write_example.py [Example 1]
 
 ### SpiceEditor, AscEditor and SimRunner.py ###
@@ -148,6 +154,7 @@ netlist = SpiceEditor('./testfiles/Batch_Test.net')
 netlist.set_parameters(res=0, cap=100e-6)
 netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
 netlist.set_component_value('R1', '4k')
+netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)  # Set component temperature, Tc 50ppm, remove power rating
 netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a define simulation
 netlist.add_instructions(
@@ -186,11 +193,36 @@ enter = input("Press enter to delete created files")
 if enter == '':
     LTC.file_cleanup()
 ```
+
 -- in examples/sim_runner_example.py
 
 The example above is using the SpiceEditor to create and modify a spice netlist, but it is also possible to use the
 AscEditor to directly modify the .asc file. The edited .asc file can then be opened by the LTSpice GUI and the
 simulation can be run from there.
+
+#### Limitations and specifics of AscEditor ####
+
+AscEditor has some limitations and differences with regards to SpiceEditor.
+
+* As is visible in the LTspice GUI, it groups all component properties/parameters in different 'attributes' like 'Value', 'Value2', 'SpiceLine', 'SpiceLine2'. Netlists do not have that concept, and place everything in one big list, that SpiceEditor subsequently separates in 'value' and 'parameters' for most components. To complicate things, LTspice distributes the parameters over all 4 attributes, with varying syntax. You must be aware of how LTspice handles the parameter placement if you use AscEditor.
+  
+    `AscEditor.get_component_parameters()` will show the native attributes, and tries to disect 'SpiceLine' and 'SpiceLine2', just like `SpiceEditor.get_component_parameters()` would do.
+     This means for example for a Voltage source of DC 2V, with small signal analysis AC amplitude of 1V and a series resistance of 3 ohm:
+    * `AscEditor.get_component_value()` and `SpiceEditor.get_component_value()` -> `'2 AC 1'`
+    * `AscEditor.get_component_parameters()` -> `{'Value': '2', 'Value2': 'AC 1', 'SpiceLine': 'Rser=3', 'Rser': 3}`
+    * `SpiceEditor.get_component_parameters()` -> `{'Rser': 3}`
+    * Please note that if you want to remove the small signal analysis AC amplitude, you MUST use
+      * `AscEditor.set_component_parameters(..,'Value2','')`, as `set_component_value()` will only affect 'Value'
+      * `SpiceEditor.set_component_value(..,'2')`
+    * with both editors, you can use `...set_component_parameters(.., Rser=5)`
+* When adressing components, SpiceEditor requires you to include the prefix in the component name, like `XU1` for an opamp. AscEditor will require `U1`.
+* AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any of the underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters.
+
+    This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`. 
+
+    Note here that you must know the correct attribute holding that parameter, and make sure that you know and set all the other parameters in that attribute. If the attribute is in 'SpiceLine' however (as with the majority of the simpler components), you may address the parameter individually (see the voltage source example above).
+
+Resumed, it is better to use SpiceEditor than AscEditor, as it is more straightforward. On MacOS, it is recommended to use LTspice under wine, or to export the netlist manually, as MacOS's LTspice does not support automated export of netlists.
 
 ### Simulation Analysis Toolkit ###
 
@@ -201,8 +233,8 @@ Let's consider the following circuit:
 
 ![Sallen-Key Amplifier](./doc/modules/sallenkey.png "Sallen-Key Amplifier")
 
-When performing a Monte Carlo simulation on this circuit, we need to manually modify the value of each component, 
-and then add the .step command for making several runs on the same circuit. 
+When performing a Monte Carlo simulation on this circuit, we need to manually modify the value of each component,
+and then add the .step command for making several runs on the same circuit.
 To simplify this process, the AscEditor class can be used as exemplified below:
 
 ```python
@@ -230,6 +262,7 @@ mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulatio
 # Finally the netlist is saved to a file. This file contians all the instructions to run the simulation in LTspice
 mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
 ```
+
 -- in examples/run_montecarlo.py [Example 1]
 
 When opening the created sallenkey_mc.net file, we can see that the following circuit.
@@ -237,16 +270,16 @@ When opening the created sallenkey_mc.net file, we can see that the following ci
 ![Sallen-Key Amplifier with Montecarlo](./doc/modules/sallenkey_mc.png "Sallen-Key Amplifier with Montecarlo")
 
 The following updates were made to the circuit:
-- The value of each component was replaced by a function that generates a random value within the specified tolerance.
-- The .step param run command was added to the netlist. Starts at -1 which it's the nominal value simulation, and 
-finishes that the number of simulations specified in the prepare_testbench() method.
-- A default value for the run parameter was added. This is useful if the .step param run is commented out.
-- The R1 tolerance is different from the other resistors. This is because the tolerance was explicitly set for R1.
-- The Vos parameter was added to the .param list. This is because the parameter was explicitly set using the
+
+* The value of each component was replaced by a function that generates a random value within the specified tolerance.
+* The .step param run command was added to the netlist. Starts at -1 which it's the nominal value simulation, and
+ finishes that the number of simulations specified in the prepare_testbench() method.
+* A default value for the run parameter was added. This is useful if the .step param run is commented out.
+* The R1 tolerance is different from the other resistors. This is because the tolerance was explicitly set for R1.
+* The Vos parameter was added to the .param list. This is because the parameter was explicitly set using the
 set_parameter_deviation method.
-- Functions utol, ntol and urng were added to the .func list. These functions are used to generate random values.
-Uniform distributions use the LTSpice built-in mc(x, tol) and flat(x) functions, while normal distributions use the 
-gauss(x) function.
+* Functions utol, ntol and urng were added to the .func list. These functions are used to generate random values.
+Uniform distributions use the LTSpice built-in mc(x, tol) and flat(x) functions, while normal distributions use the gauss(x) function.
 
 Similarly, the worst case analysis can also be setup by using the class WorstCaseAnalysis, as exemplified below:
 
@@ -279,6 +312,7 @@ wca.set_parameter_deviation('Vos', 3e-4, 5e-3)
 # Finally the netlist is saved to a file
 wca.save_netlist('./testfiles/sallenkey_wc.asc')
 ```
+
 -- in examples/run_worst_case.py [Example 1]
 
 When opening the created sallenkey_wc.net file, we can see that the following circuit.
@@ -286,19 +320,19 @@ When opening the created sallenkey_wc.net file, we can see that the following ci
 ![Sallen-Key Amplifier with WCA](./doc/modules/sallenkey_wc.png "Sallen-Key Amplifier with WCA")
 
 The following updates were made to the circuit:
-- The value of each component was replaced by a function that generates a nominal, minimum and maximum value depending
+
+* The value of each component was replaced by a function that generates a nominal, minimum and maximum value depending
 on the run parameter and is assigned a unique index number. (R1=0, Vos=1, R2=2, ... V2=7, VIN=8)
 The unique number corresponds to the bit position of the run parameter. Bit 0 corresponds to the minimum value and
 bit 1 corresponds to the maximum value. Calculating all possible permutations of maximum and minimum values for each
 component, we get 2**9 = 512 possible combinations. This maps into a 9 bit binary number, which is the run parameter.
-- The .step param run command was added to the netlist. It starts at -1 which it's the nominal value simulation, then 0
-which corresponds to the minimum value for each component, then it makes all combinations of minimum and maximum values 
-until 511, which is the simulation with all maximum values.
-- A default value for the run parameter was added. This is useful if the .step param run is commented out.
-- The R1 tolerance is different from the other resistors. This is because the tolerance was explicitly set for R1.
-- The wc() function is added to the circuit. This function is used to calculate the worst case value for each component,
+* The .step param run command was added to the netlist. It starts at -1 which it's the nominal value simulation, then 0
+which corresponds to the minimum value for each component, then it makes all combinations of minimum and maximum values until 511, which is the simulation with all maximum values.
+* A default value for the run parameter was added. This is useful if the .step param run is commented out.
+* The R1 tolerance is different from the other resistors. This is because the tolerance was explicitly set for R1.
+* The wc() function is added to the circuit. This function is used to calculate the worst case value for each component,
 given a tolerance value and its respective index.
-- The wc1() function is added to the circuit. This function is used to calculate the worst case value for each component,
+* The wc1() function is added to the circuit. This function is used to calculate the worst case value for each component,
 given a minimum and maximum value and its respective index.
 
 ### ltsteps.py ###
@@ -329,24 +363,31 @@ for i in range(data.step_count):
 
 print("Total number of measures found :", data.measure_count)
 ```
+
 -- in examples/ltsteps_example.py
 
 The second possibility is to use the module directly on the command line
 
-# Command Line Interface #
+## Command Line Interface ##
+
+The following tools will be installed when you install the library via pip. The extension '.exe' is only available on Windows, on MacOS or Linux, the commands will have the same name, but without '.exe'. The executables are simple links to python scripts with the same name, of which the majority can be found in the package's 'scripts' directory.
 
 ### ltsteps.exe ###
 
-The <filename> can be either be a log file (.log), a data export file (.txt) or a measurement output file (.meas)
+```bash
+Usage: ltsteps.py [filename]
+```
+
+The `filename` can be either be a log file (.log), a data export file (.txt) or a measurement output file (.meas)
 This will process all the data and export it automatically into a text file with the extension (tlog, tsv, tmeas)
-where the data read is formatted into a more convenient tab separated format. In case the <logfile> is not provided, the
+where the data read is formatted into a more convenient tab separated format. In case the `filename` is not provided, the
 script will scan the directory and process the newest log, txt or out file found.
 
 ### histogram.exe ###
 
 This module uses the data inside on the filename to produce a histogram image.
 
- ```
+ ```bash
 Usage: Histogram.py [options] LOG_FILE TRACE
 
 Options:
@@ -377,7 +418,7 @@ Options:
 
 A tool to convert .raw files into csv or Excel files.
 
-```
+```bash
 Usage: raw_convert.exe [options] <rawfile> <trace_list>
 
 Options:
@@ -391,6 +432,14 @@ Options:
   -s SEPARATOR, --sep=SEPARATOR
                         Value separator for CSV output. Default: "\t" <TAB>
                         Example: -d ";"
+```
+
+### rawplot.exe ###
+
+Uses matplotlib to plot the data in the raw file.
+
+```bash
+Usage: rawplot.py RAW_FILE TRACE_NAME
 ```
 
 ### run_server.exe ###
@@ -427,6 +476,7 @@ for runid in server:  # Ma
 
 server.close_session()
 ```
+
 -- in examples/sim_client_example.py [SimClient Example]
 
 ```bash
@@ -449,22 +499,33 @@ optional arguments:
                         Maximum number of parallel simulations. Default is 4
 ```
 
+### asc_to_qsch.exe ###
 
-### SemiDevOpReader.py ###
+Converts LTspice schematics into Qspice schematics.
+
+```bash
+Usage: asc_to_qsch [options] ASC_FILE [QSCH_FILE]
+
+Options:
+  --version            show program's version number and exit
+  -h, --help           show this help message and exit
+  -a PATH, --add=PATH  Add a path for searching for symbols
+```
+
+### log\semi_dev_op_reader.py ###
 
 This module is used to read from LTSpice log files Semiconductor Devices Operating Point Information. A more detailed
 documentation is directly included in the source file docstrings.
 
-## Debug Logging
+## Debug Logging ##
 
 The library uses the standard `logging` module. Three convenience functions have been added for easily changing logging
 settings across the entire library. `spicelib.all_loggers()` returns a list of all the logger's
 names, `spicelib.set_log_level(logging.DEBUG)`
 would set the library's logging level to debug, and `spicelib.add_log_handler(my_handler)` would add `my_handler` as a
-handler for
-all loggers.
+handler for all loggers.
 
-### Single Module Logging
+### Single Module Logging ###
 
 It is also possible to set the logging settings for a single module by using its name acquired from
 the `spicelib.all_loggers()`
@@ -488,19 +549,19 @@ _Make sure to initialize the root logger before importing the library to be able
 
 * Tools website : [https://www.nunobrum.com/pyltspice.html](https://www.nunobrum.com/pyltspice.html)
 * Repo owner : [me@nunobrum.com](me@nunobrum.com)
-* Alternative contact : nuno.brum@gmail.com
+* Alternative contact : <nuno.brum@gmail.com>
 
 ## History ##
 
 * Version 1.1.3
-  * Implementing a set_component_parameters() and get_component_parameters() method on the Editor classes. 
+  * Implementing a set_component_parameters() and get_component_parameters() method on the Editor classes.
     This method allows to set and get the parameters of a component.
   * Bug Fixes:
     * AscEditor was hanging in comments. Issue #43
     * Supporting other text orientations on the AscEditor. Issue #44
     * Allow other encodings in AscEditor. Issues #45 and #48
   * Supporting lines, rectangles, circles and arcs in AscEditor.
-  * Improving the regex for the component values in the SpiceEditor. 
+  * Improving the regex for the component values in the SpiceEditor.
 * Version 1.1.2
   * Fixes on the readme_update.py script. Was not supporting spaces after the []
   * Solving issue PyLTspice Issue #138. Hierarchical edits to ASC files are now supported.
@@ -524,7 +585,7 @@ _Make sure to initialize the root logger before importing the library to be able
 * Version 1.0.3
   * Correcting the generation of a .net from the QschEditor.
 * Version 1.0.2
-  * Correction on the log file data export. Each column is guaranteed to have its own title. 
+  * Correction on the log file data export. Each column is guaranteed to have its own title.
   * Fixes on the generation of netlists from QSPICE Schematic files
 * Version 1.0.1
   * Timeout always default to No timeout.
@@ -547,21 +608,21 @@ _Make sure to initialize the root logger before importing the library to be able
   * Implementing the Sensitivity Analysis.
   * Improving the sim_analysis so to be able to analyse simulation results.
   * Renamed editors .write_netlist() to .save_netlist(). The former is kept
-    for legacy purposes. 
+    for legacy purposes.
   * Improving the get_measure_value() method to be able to return the value
     of a measure in a specific step.
 * Version 0.6
   * Implementing a conversion from Qspice Schematics .qsch to spice files
-  * Improving the Analysis Toolkit to support adding instructions directly 
+  * Improving the Analysis Toolkit to support adding instructions directly
   to the WorstCase and Montecarlo classes.
   * Using dataclasses to store the fourier information on LTSpiceLogReader.
-  * Exporting fourier data into a separate log file: <logfile>.fourier
+  * Exporting fourier data into a separate log file: `logfile`.fourier
   * Making LTComplex a subclass of Python built-in complex class.
 * Version 0.5
   * Reading QSPICE .AC and .OP simulation results from qraw files
   * Parsing of QSPICE log and measure files
   * Enabling the Histogram.py to read log files directly (only for LTSpice)
-  * Fixing a bug on the LTSpiceLogReader class that was not correctly exporting 
+  * Fixing a bug on the LTSpiceLogReader class that was not correctly exporting
   the data when there fourier data was present.
   * Enabling the creation of blank netlists (Thanks to @rliangcn)
   * Correction on the Mac OSX process name for LTSpice (Thanks to Wynand M.)
@@ -569,6 +630,5 @@ _Make sure to initialize the root logger before importing the library to be able
   * Implementing the callback argument in the SimRunner class.
   * Moved simulator classes into a separate package.
 * Version 0.3
-  * Cloning and renaming from PyLTSpice 4.1.2 
+  * Cloning and renaming from PyLTSpice 4.1.2
   * Starting at 0.3 to align with the spicelib in PyPi
-
