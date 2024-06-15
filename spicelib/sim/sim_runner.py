@@ -107,7 +107,7 @@ import shutil
 import inspect  # Library used to get the arguments of the callback function
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Union, Type, Protocol
+from typing import Callable, Union, Type, Protocol, Tuple
 import logging
 
 from .process_callback import ProcessCallback
@@ -320,7 +320,7 @@ class SimRunner(object):
                                  )
             if isinstance(callback_args, tuple):
                 # Convert into a dictionary
-                return {param : callback_args[pos - 2] for pos, param in enumerate(args) if pos > 1}
+                return {param: callback_args[pos - 2] for pos, param in enumerate(args) if pos > 1}
             else:
                 return callback_args
 
@@ -397,7 +397,7 @@ class SimRunner(object):
             return None
 
     def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: str = None,
-                timeout: float = None) -> (str, str):
+                timeout: float = None) -> Tuple[str, str]:
         """
         Executes a simulation run with the conditions set by the user.
         Conditions are set by the set_parameter, set_component_value or add_instruction functions.
@@ -472,7 +472,16 @@ class SimRunner(object):
                 self.completed_tasks.append(task)
 
     def kill_all_ltspice(self):
-        """Function to terminate LTSpice in windows"""
+        """
+        *(Deprecated)* Use kill_all_spice method instead
+        
+        This is only here for compatibility with previous code.
+        
+        Function to terminate LTSpice"""
+        self.kill_all_spice()
+        
+    def kill_all_spice(self):
+        """Function to terminate xxSpice processes"""
         simulator = Simulator
         process_name = simulator.process_name
         import psutil
@@ -480,7 +489,7 @@ class SimRunner(object):
             # check whether the process name matches
 
             if proc.name() == process_name:
-                _logger.info("killing ngspice", proc.pid)
+                _logger.info("killing Spice", proc.pid)
                 proc.kill()
 
     def _maximum_stop_time(self):
@@ -525,7 +534,7 @@ class SimRunner(object):
             if stop_time is not None:  # This can happen if timeout was set as none everywhere
                 if clock_function() > stop_time:
                     if abort_all_on_timeout:
-                        self.kill_all_ltspice()
+                        self.kill_all_spice()
                     return False
 
         return self.failSim == 0

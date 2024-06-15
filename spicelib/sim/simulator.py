@@ -25,17 +25,17 @@ from pathlib import Path
 import subprocess
 
 if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-    def run_function(command, timeout=None):
+    def run_function(command, timeout=None, stdout=None, stderr=None):
         """Normalizing OS subprocess function calls between different platforms. This function is used for python 3.6
         and higher versions."""
-        result = subprocess.run(command, timeout=timeout)
+        result = subprocess.run(command, timeout=timeout, stdout=stdout, stderr=stderr)
         return result.returncode
 
 else:
-    def run_function(command, timeout=None):
+    def run_function(command, timeout=None, stdout=None, stderr=None):
         """Normalizing OS subprocess function calls between different platforms. This is the old function that was used
         for python version prior to 3.6"""
-        return subprocess.call(command, timeout=timeout)
+        return subprocess.call(command, timeout=timeout, stdout=stdout, stderr=stderr)
 
 
 class SpiceSimulatorError(Exception):
@@ -64,6 +64,9 @@ class Simulator(ABC):
         class MySpiceLinuxInstallation(Simulator):
             spice_exe = ['<wine_command', '<path to the spice executable>']
             process_name = "<name of the process within the system>"
+
+
+    If you use MacOS, you can choose either one of the 2 above. If you are on Intel, running LTSpice under wine (therefore: like under Linux) is preferred.
 
 
     The subclasses should then implement at least the run() function as a classmethod.
@@ -98,7 +101,11 @@ class Simulator(ABC):
         if plib_path_to_exe.exists():
             if process_name is None:
                 if sys.platform == 'darwin':
-                    cls.process_name = plib_path_to_exe.stem
+                    if "wine" in path_to_exe:
+                        # For MacOS wine, there will be no process called "wine". Use "wine-preloader"
+                        cls.process_name = "wine-preloader"
+                    else:
+                        cls.process_name = plib_path_to_exe.stem
                 else:
                     cls.process_name = plib_path_to_exe.name
             else:

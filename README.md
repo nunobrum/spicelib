@@ -169,7 +169,15 @@ for opamp in ('AD712', 'AD820'):
         netlist.set_component_value('V1', supply_voltage)
         netlist.set_component_value('V2', -supply_voltage)
         print("simulating OpAmp", opamp, "Voltage", supply_voltage)
-        LTC.run(netlist)
+
+        # small example on how to use options, here how to force the solver
+        opts = []
+        if alt_solver:
+            opts.append('-alt')
+        else:
+            opts.append('-norm')
+
+        LTC.run(netlist, opts)
 
 for raw, log in LTC:
     print("Raw file: %s, Log file: %s" % (raw, log))
@@ -199,6 +207,40 @@ if enter == '':
 The example above is using the SpiceEditor to create and modify a spice netlist, but it is also possible to use the
 AscEditor to directly modify the .asc file. The edited .asc file can then be opened by the LTSpice GUI and the
 simulation can be run from there.
+
+#### Windows, Linuc and MacOS compatibility ####
+
+The LTspice class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
+
+To see what paths are detected:
+
+```python
+runner = SimRunner(output_folder='./tmp', simulator=LTspice)
+print(runner.simulator.spice_exe)
+print(runner.simulator.process_name)
+```
+
+If you want, can set your own paths, via the two variables shown above, or directly upon instantiation:
+
+```python
+class MySpiceInstallation(LTspice):
+    spice_exe = ['wine64', simulator]
+    process_name = "LTspice.exe"
+
+AscEditor.add_library_paths(AscEditor, [r"/mypath/lib/sub",
+                                        r"/mypath/lib/sym",
+                                        r"/mypath/lib/sym/OpAmps",
+                                        r"/mypath/lib/cmp"])
+runner = SimRunner(output_folder='./tmp', simulator=MySpiceInstallation)
+```
+
+When you use wine (on Linux or MacOS), you may want to redirect the output of `run()`, as it prints a lot of 'normal' error messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
+
+```python
+# force command output to a separate file
+with open(processlogfile, "w") as outfile:
+    runner.run(netlist, timeout=None, stdout=outfile, stderr=subprocess.STDOUT)
+```
 
 #### Limitations and specifics of AscEditor ####
 
