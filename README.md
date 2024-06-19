@@ -208,7 +208,7 @@ The example above is using the SpiceEditor to create and modify a spice netlist,
 AscEditor to directly modify the .asc file. The edited .asc file can then be opened by the LTSpice GUI and the
 simulation can be run from there.
 
-#### Windows, Linuc and MacOS compatibility ####
+#### Windows, Linux and MacOS compatibility ####
 
 The LTspice class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
 
