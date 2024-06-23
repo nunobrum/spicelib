@@ -46,6 +46,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")  # add assertion here
         self.assertEqual(self.edt['R1'].value_str, '10k', "Tested R1 Value")
         self.assertEqual(self.edt['R1'].value, 10000, "Tested R1 Numeric Value")
+        self.assertListEqual(self.edt['R1'].ports, ['in', 'out'], "Tested R1 Nodes")
         self.edt.set_component_value('R1', '33k')
         self.assertEqual(self.edt['R1'].value_str, '33k', "Tested R1 Value")
         self.edt.save_netlist(temp_dir + 'test_components_output.net')
@@ -112,7 +113,7 @@ class SpiceEditor_Test(unittest.TestCase):
             if isinstance(value, str):
                 value_test = value_str
             else:
-                value_test = to_float(value_str)
+                value_test = to_float(value_str, accept_invalid=False)
             if msg:
                 self.assertEqual(value_test, value, msg)
             else:

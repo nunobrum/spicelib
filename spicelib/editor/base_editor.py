@@ -286,11 +286,13 @@ class Component(Primitive):
 
     @property
     def value(self):
-        return to_float(self.value_str, accept_invalid=False)
+        return to_float(self.value_str, accept_invalid=True)
 
     @value.setter
     def value(self, value):
-        self.value_str = format_eng(value)
+        if isinstance(value, (int, float)):
+            self.value_str = format_eng(value)
+        self.value_str = value
 
     def __str__(self):
         return f"{self.reference} = {self.value}"
