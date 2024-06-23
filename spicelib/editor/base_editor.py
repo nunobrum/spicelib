@@ -163,6 +163,86 @@ def scan_eng(value: str) -> float:
     return f
 
 
+def parse_value(value, accept_invalid: bool = True) -> (float, str):
+    _MULT = {
+        'f': 1E-15,
+        'p': 1E-12,
+        'n': 1E-9,
+        'u': 1E-6,
+        'U': 1E-6,
+        'm': 1E-3,
+        'M': 1E-3,
+        'k': 1E+3,
+        'K': 1E+3,  # For much of the world, K is the same as k. That is a sad fact of life. K is Kelvin in SI
+        'Meg': 1E+6,
+        'g': 1E+9,
+        't': 1E+12,
+        # These units can be used as decimal points in the number definition. Ex: 10R5 is 10.5 Ohms. In LTSpice
+        # the units can be used in any number definition. For example 10H5 is 10.5 Henrys but also can be used in
+        # resistors value definition. LTSpice doesn't care about the unit in the component value definition.
+        'Ω': 1,  # This is the Ohm symbol. It is supported by LTspice
+        'R': 1,  # This also represents the Ohm symbol. Can be used a decimal point. Ex: 10R2 is 10.2 Ohms
+        'V': 1,  # Volts
+        'A': 1,  # Amperes (Current)
+        'F': 1,  # Farads (Capacitance)
+        'H': 1,  # Henry (Inductance)
+        '%': 0.01,  # Percent. 10% is 0.1. 1%6 is 0.016
+    }
+
+    value = value.strip()  # Removing trailing and leading spaces
+    l = len(value)
+
+    multiplier = 1.0
+
+    i = 0
+    while i < l and (value[i] in "0123456789.+-"):  # Includes spaces
+        i += 1
+    if i == 0:
+        if accept_invalid:
+            return value
+        else:
+            raise ValueError("Doesn't start with a number")
+
+    if 0 < i < l and (value[i] == 'E' or value[i] == 'e'):
+        # if it is a number in scientific format, it doesn't have 1000x qualifiers (Ex: p, u, k, etc...)
+        i += 1
+        while i < l and (value[i] in "0123456789+-"):  # Includes spaces
+            i += 1
+        j = k = i
+    else:
+        # this first part should be able to be converted into float
+        k = i  # Stores the position of the end of the number
+        # Consume any spaces that may exist between the number and the unit
+        while i < l and (value[i] in " \t"):
+            i += 1
+
+        if i < l:  # Still has characters to consume
+            if value[i] in _MULT:
+                if value[i:].upper().startswith('MEG'):  # to 1E+06 qualifier 'Meg'
+                    i += 3
+                    multiplier = _MULT['Meg']
+                else:
+                    multiplier = _MULT[value[i]]
+                    i += 1
+
+            # This part is done to support numbers with the format 1k7 or 1R8
+            j = i
+            while i < l and (value[i] in "0123456789"):
+                i += 1
+        else:
+            j = i
+
+    try:
+        if j < i:  # There is a suffix number
+            value = float(value[:k] + "." + value[j:i]) * multiplier
+        else:
+            value = float(value[:k]) * multiplier
+    except ValueError as err:
+        if not accept_invalid:
+            raise err
+    return value
+
+
 class ComponentNotFoundError(Exception):
     """Component Not Found Error"""
 

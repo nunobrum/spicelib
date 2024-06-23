@@ -26,6 +26,7 @@ sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
 
 import spicelib
+from spicelib.editor.base_editor import parse_value
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
@@ -88,6 +89,35 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(len(lines1), len(lines2), "Files have different number of lines")
         for i, lines in enumerate(zip(lines1, lines2)):
             self.assertEqual(lines[0], lines[1], "Line %d" % i)
+
+    def test_regexes(self):
+        """Validates the RegEx expressions on the Spice Editor file"""
+        from spicelib.editor.spice_editor import component_replace_regexs
+        from spicelib.editor.base_editor import scan_eng
+        # Resistors
+        regex_r = component_replace_regexs['R']
+        self.assertIsNone(regex_r.match('X12 N1 N2 10k'), "Invalid prefix")
+
+        def check_value(regex, line, value, msg=None):
+            r = regex_r.match(line)
+            self.assertIsNotNone(r, "Accepted regex")
+            value_str = r.group('value')
+            if isinstance(value, str):
+                value_test = value_str
+            else:
+                value_test = parse_value(value_str)
+            if msg:
+                self.assertEqual(value_test, value, msg)
+            else:
+                self.assertEqual(value_test, value, f"Pass {value} for {line}")
+
+        check_value(regex_r, "Rq N1 N2 10k", '10k')
+        check_value(regex_r, "Rq N1 N2 10R3", 10.3)
+        check_value(regex_r, "Rq N1 N2 10k5", 10500)
+        check_value(regex_r, "Rq N1 N2 10K6", 10600)
+        check_value(regex_r, "Rq N1 N2 11Meg", 11E6)
+        check_value(regex_r, "Rq N1 N2 10Meg5", 10.5e6)
+        check_value(regex_r, "Rq N1 N2 {param1 + Param2}", "{param1 + Param2}")
 
 
 if __name__ == '__main__':
