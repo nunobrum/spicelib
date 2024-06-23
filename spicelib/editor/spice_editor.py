@@ -179,6 +179,17 @@ def _is_unique_instruction(instruction):
     return cmd in UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 
 
+def _parse_params(params_str: str) -> dict:
+    """
+    Parses the parameters string and returns a dictionary with the parameters.
+    """
+    params = OrderedDict()
+    for param in params_str.split():
+        key, value = param.split('=')
+        params[key] = try_convert_value(value)
+    return params
+
+
 class UnrecognizedSyntaxError(Exception):
     """Line doesn't match expected Spice syntax"""
 
@@ -188,6 +199,84 @@ class UnrecognizedSyntaxError(Exception):
 
 class MissingExpectedClauseError(Exception):
     """Missing expected clause in Spice netlist"""
+
+
+class SpiceComponent(Component):
+    """
+    Represents a SPICE component in the netlist. It allows the manipulation of the parameters and the value of the
+    component.
+    """
+
+    def __init__(self, parent, line_no):
+        line = parent.netlist[line_no]
+        super().__init__(line)
+        self.parent = parent
+        self.update_attributes_from_line_no(line_no)
+
+    def update_attributes_from_line_no(self, line_no):
+        self.line = self.parent.netlist[line_no]
+        prefix = self.line[0]
+        regex = component_replace_regexs.get(prefix, None)
+        if regex is None:
+            error_msg = f"Component must start with one of these letters: {','.join(REPLACE_REGEXS.keys())}\n" \
+                        f"Got {self.line}"
+            _logger.error(error_msg)
+            raise NotImplementedError(error_msg)
+        match = regex.match(self.line)
+        if match is None:
+            raise UnrecognizedSyntaxError(self.line, regex.pattern)
+
+        info = match.groupdict()
+        self.attributes.clear()
+        for attr in info:
+            if attr == 'designator':
+                self.reference = info[attr]
+            elif attr == 'nodes':
+                self.ports = info[attr].split()
+            elif attr == 'params':
+                self.attributes['params'] = _parse_params(info[attr])
+            else:
+                self.attributes[attr] = info[attr]
+
+    def update_from_reference(self):
+        line_no = self.parent.get_line_starting_with(self.reference)
+        self.update_attributes_from_line_no(line_no)
+
+    @property
+    def params(self):
+        self.update_from_reference()
+        if 'params' not in self.attributes:
+            return {}
+        return self.attributes['params']
+
+    def set_params(self, **kwargs):
+        self.parent.set_component_parameters(self.reference, **kwargs)
+
+    @property
+    def value_str(self):
+        self.update_from_reference()
+        return super().value_str
+
+    @value_str.setter
+    def value_str(self, value):
+        self.parent.set_component_value(self.reference, value)
+
+    def __getitem__(self, item):
+        self.update_from_reference()
+        try:
+            return super().__getattr__(item)
+        except AttributeError:
+            # If the attribute is not found, then it is a parameter
+            return self.params[item]
+
+    def __setitem__(self, key, value):
+        if key == 'value':
+            if isinstance(value, str):
+                self.value_str = value
+            else:
+                self.value = value
+        else:
+            self.set_params(**{key: value})
 
 
 class SpiceCircuit(BaseEditor):
@@ -201,7 +290,7 @@ class SpiceCircuit(BaseEditor):
         super().__init__()
         self.netlist = []
 
-    def _get_line_starting_with(self, substr: str) -> int:
+    def get_line_starting_with(self, substr: str) -> int:
         """Internal function. Do not use."""
         # This function returns the line number that starts with the substr string.
         # If the line is not found, then -1 is returned.
@@ -283,7 +372,7 @@ class SpiceCircuit(BaseEditor):
         else:
             subckt_ref = instance_name
 
-        line_no = self._get_line_starting_with(subckt_ref)
+        line_no = self.get_line_starting_with(subckt_ref)
         sub_circuit_instance = self.netlist[line_no]
         regex = component_replace_regexs['X']  # The sub-circuit instance regex
         m = regex.search(sub_circuit_instance)
@@ -338,7 +427,7 @@ class SpiceCircuit(BaseEditor):
                         f"Got {reference}"
             _logger.error(error_msg)
             raise NotImplementedError(error_msg)
-        line_no = self._get_line_starting_with(reference)
+        line_no = self.get_line_starting_with(reference)
         line = self.netlist[line_no]
         match = regex.match(line)
         if match is None:
@@ -440,14 +529,14 @@ class SpiceCircuit(BaseEditor):
             self.netlist.append('.SUBCKT %s%s' % (new_name, END_LINE_TERM))
             self.netlist.append('.ENDS %s%s' % (new_name, END_LINE_TERM))
 
-    def get_component_info(self, reference) -> dict:
+    def get_component(self, reference: str) -> Union[SpiceComponent, 'SpiceCircuit']:
         """
-        Retrieves the component information as defined in the corresponding REGEX. The line number is also added.
+        Returns an object representing the given reference in the schematic file.
 
         :param reference: Reference of the component
         :type reference: str
-        :return: Dictionary with the component information
-        :rtype: dict
+        :return: The SpiceComponent object or a SpiceSubcircuit in case of hierarchical design
+        :rtype: SpiceComponent or SpiceCircuit
         :raises: ComponentNotFoundError - In case the component is not found
         :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
         :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
@@ -455,31 +544,47 @@ class SpiceCircuit(BaseEditor):
         if SUBCKT_DIVIDER in reference:
             raise NotImplementedError("This method doesn't support hierarchical access. "
                                       "Please use set_component_value() and get_component_value() methods.")
-        line_no, match = self._get_component_line_and_regex(reference)
-        info = match.groupdict()
-        info['line'] = line_no  # adding the line number to the component information
-        return info
+        line_no = self.get_line_starting_with(reference)
+        return SpiceComponent(self, line_no)
 
-    def get_component(self, reference: str) -> Union[Component, 'SpiceCircuit']:
+    def __getitem__(self, key):
         """
-        Returns an object representing the given reference in the schematic file.
+        This method allows the user to get the value of a component using the syntax:
+        component = circuit['R1']
+        """
+        return self.get_component(key)
 
-        :param reference: Reference of the component
-        :type reference: str
-        :return: The Component object or a SpiceSubcircuit in case of hierarchical design
-        :rtype: Component or SpiceCircuit
-        :raises: ComponentNotFoundError - In case the component is not found
-        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
-        :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
+    def __delitem__(self, key):
         """
-        component_info = self.get_component_info(reference)
-        component = Component()
-        component.reference = reference
-        component.ports = component_info['nodes'].split()
-        for attr in component_info:
-            if attr not in ('designator', 'nodes'):
-                component.attributes[attr] = component_info[attr]
-        return component
+        This method allows the user to delete a component using the syntax:
+        del circuit['R1']
+        """
+        self.delete_component(key)
+
+    def __contains__(self, key):
+        """
+        This method allows the user to check if a component is in the circuit using the syntax:
+        'R1' in circuit
+        """
+        try:
+            self.get_component(key)
+            return True
+        except ComponentNotFoundError:
+            return False
+
+    def __iter__(self):
+        """
+        This method allows the user to iterate over the components in the circuit using the syntax:
+        for component in circuit:
+            print(component)
+        """
+        for line_no, line in enumerate(self.netlist):
+            if isinstance(line, SpiceCircuit):
+                yield from line
+            else:
+                cmd = get_line_command(line)
+                if cmd in REPLACE_REGEXS:
+                    yield SpiceComponent(self, line_no)
 
     def get_component_attribute(self, reference: str, attribute: str) -> Optional[str]:
         """
@@ -495,26 +600,16 @@ class SpiceCircuit(BaseEditor):
         :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX.
         :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
         """
-        component_info = self.get_component_info(reference)
-        return component_info.get(attribute, None)
+        component = self.get_component(reference)
+        return component.attributes.get(attribute, None)
 
-    @staticmethod
-    def _parse_params(params_str: str) -> dict:
-        """
-        Parses the parameters string and returns a dictionary with the parameters.
-        """
-        params = OrderedDict()
-        for param in params_str.split():
-            key, value = param.split('=')
-            params[key] = try_convert_value(value)
-        return params
 
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
         if match and match.groupdict().get('params'):
             params_str = match.group('params')
-            return self._parse_params(params_str)
+            return _parse_params(params_str)
         else:
             return {}
 
@@ -523,7 +618,7 @@ class SpiceCircuit(BaseEditor):
         line_no, match = self._get_component_line_and_regex(reference)
         if match and match.groupdict().get('params'):
             params_str = match.group('params')
-            params = self._parse_params(params_str)
+            params = _parse_params(params_str)
         else:
             params = {}
             
@@ -663,7 +758,7 @@ class SpiceCircuit(BaseEditor):
 
                  NotImplementedError - for not supported operations
         """
-        return self.get_component_info(reference)['value']
+        return self.get_component(reference).value_str
 
     def get_component_nodes(self, reference: str) -> List[str]:
         """
@@ -674,7 +769,7 @@ class SpiceCircuit(BaseEditor):
         :return: List of nodes
         :rtype: list
         """
-        nodes = self.get_component_info(reference)['nodes']
+        nodes = self.get_component(reference).attributes['nodes']
         nodes = nodes.split()  # Remove any spaces if they exist. This considers \r \n \t characters as well
         return nodes
 
@@ -723,9 +818,9 @@ class SpiceCircuit(BaseEditor):
         :return: Nothing
         """
         if 'insert_before' in kwargs:
-            line_no = self._get_line_starting_with(kwargs['insert_before'])
+            line_no = self.get_line_starting_with(kwargs['insert_before'])
         elif 'insert_after' in kwargs:
-            line_no = self._get_line_starting_with(kwargs['insert_after'])
+            line_no = self.get_line_starting_with(kwargs['insert_after'])
         else:
             # Insert before backanno instruction
             try:
@@ -751,7 +846,7 @@ class SpiceCircuit(BaseEditor):
         :return: Nothing
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
-        line = self._get_line_starting_with(designator)
+        line = self.get_line_starting_with(designator)
         self.netlist[line] = ''  # Blanks the line
 
     @staticmethod
@@ -850,7 +945,7 @@ class SpiceEditor(SpiceCircuit):
     def circuit_file(self) -> Path:
         return self.netlist_file
 
-    def get_component_info(self, component) -> dict:
+    def get_component(self, component) -> Union[SpiceComponent, SpiceCircuit]:
         prefix = component[0]
         if prefix == 'X' and SUBCKT_DIVIDER in component:  # Replaces a component inside of a subciruit
             # In this case the sub-circuit needs to be copied so that is copy is modified. A copy is created for each
@@ -863,9 +958,9 @@ class SpiceEditor(SpiceCircuit):
                 subcircuit = self.modified_subcircuits[modified_path]
             else:
                 subcircuit = self.get_subcircuit(component)
-            return subcircuit.get_component_info(component)
+            return subcircuit.get_component(component)
 
-        return super().get_component_info(component)
+        return super().get_component(component)
 
     def _set_model_and_value(self, reference, value):
         """

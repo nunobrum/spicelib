@@ -26,7 +26,7 @@ sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
 
 import spicelib
-from spicelib.editor.base_editor import parse_value
+from spicelib.editor.base_editor import to_float
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
@@ -34,6 +34,7 @@ temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else '.
 
 if not os.path.exists(temp_dir):
     os.mkdir(temp_dir)
+
 
 class SpiceEditor_Test(unittest.TestCase):
 
@@ -43,16 +44,22 @@ class SpiceEditor_Test(unittest.TestCase):
     def test_component_editing(self):
         self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here
         self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")  # add assertion here
+        self.assertEqual(self.edt['R1'].value_str, '10k', "Tested R1 Value")
+        self.assertEqual(self.edt['R1'].value, 10000, "Tested R1 Numeric Value")
         self.edt.set_component_value('R1', '33k')
+        self.assertEqual(self.edt['R1'].value_str, '33k', "Tested R1 Value")
         self.edt.save_netlist(temp_dir + 'test_components_output.net')
         self.equalFiles(temp_dir + 'test_components_output.net', golden_dir + 'test_components_output.net')
         self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
         self.edt.set_component_parameters('R1', Tc1=0, Tc2=0, pwr=None)
+        self.assertEqual(self.edt['R1']['Tc1'], 0, "Tested R1 Tc1 Parameter")
+        self.assertEqual(self.edt['R1']['Tc2'], 0, "Tested R1 Tc2 Parameter")
         self.edt.save_netlist(temp_dir + 'test_components_output_2.net')
         self.equalFiles(temp_dir + 'test_components_output_2.net', golden_dir + 'test_components_output_2.net')
         r1_params = self.edt.get_component_parameters('R1')
         for key, value in {'Tc1': 0, 'Tc2': 0}.items():
             self.assertEqual(r1_params[key], value, f"Tested R1 {key} Parameter")
+            self.assertEqual(self.edt['R1'][key], value, f"Tested R1 {key} Parameter")
         self.edt.remove_component('R1')
         self.edt.save_netlist(temp_dir + 'test_components_output_1.net')
         self.equalFiles(temp_dir + 'test_components_output_1.net', golden_dir + 'test_components_output_1.net')
@@ -105,7 +112,7 @@ class SpiceEditor_Test(unittest.TestCase):
             if isinstance(value, str):
                 value_test = value_str
             else:
-                value_test = parse_value(value_str)
+                value_test = to_float(value_str)
             if msg:
                 self.assertEqual(value_test, value, msg)
             else:

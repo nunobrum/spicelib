@@ -16,9 +16,9 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-__author__ = "Nuno Brum"
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __version__ = "0.1.0"
-
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -27,9 +27,6 @@ from pathlib import Path
 from typing import Union
 import logging
 
-
-__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
-__copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 _logger = logging.getLogger("spicelib.BaseEditor")
 
@@ -163,7 +160,7 @@ def scan_eng(value: str) -> float:
     return f
 
 
-def parse_value(value, accept_invalid: bool = True) -> (float, str):
+def to_float(value, accept_invalid: bool = True) -> (float, str):
     _MULT = {
         'f': 1E-15,
         'p': 1E-12,
@@ -190,12 +187,12 @@ def parse_value(value, accept_invalid: bool = True) -> (float, str):
     }
 
     value = value.strip()  # Removing trailing and leading spaces
-    l = len(value)
+    length = len(value)
 
     multiplier = 1.0
 
     i = 0
-    while i < l and (value[i] in "0123456789.+-"):  # Includes spaces
+    while i < length and (value[i] in "0123456789.+-"):  # Includes spaces
         i += 1
     if i == 0:
         if accept_invalid:
@@ -203,20 +200,20 @@ def parse_value(value, accept_invalid: bool = True) -> (float, str):
         else:
             raise ValueError("Doesn't start with a number")
 
-    if 0 < i < l and (value[i] == 'E' or value[i] == 'e'):
+    if 0 < i < length and (value[i] == 'E' or value[i] == 'e'):
         # if it is a number in scientific format, it doesn't have 1000x qualifiers (Ex: p, u, k, etc...)
         i += 1
-        while i < l and (value[i] in "0123456789+-"):  # Includes spaces
+        while i < length and (value[i] in "0123456789+-"):  # Includes spaces
             i += 1
         j = k = i
     else:
         # this first part should be able to be converted into float
         k = i  # Stores the position of the end of the number
         # Consume any spaces that may exist between the number and the unit
-        while i < l and (value[i] in " \t"):
+        while i < length and (value[i] in " \t"):
             i += 1
 
-        if i < l:  # Still has characters to consume
+        if i < length:  # Still has characters to consume
             if value[i] in _MULT:
                 if value[i:].upper().startswith('MEG'):  # to 1E+06 qualifier 'Meg'
                     i += 3
@@ -227,7 +224,7 @@ def parse_value(value, accept_invalid: bool = True) -> (float, str):
 
             # This part is done to support numbers with the format 1k7 or 1R8
             j = i
-            while i < l and (value[i] in "0123456789"):
+            while i < length and (value[i] in "0123456789"):
                 i += 1
         else:
             j = i
@@ -254,13 +251,55 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
-class Component(object):
-    """Hols component information"""
+class Primitive(object):
+    """Holds the information of a primitive element in the netlist. This is a base class for the Component and is
+    used to hold the information of the netlist primitives, such as .PARAM, .OPTIONS, .IC, .NODESET, .GLOBAL, etc.
+    """
 
-    def __init__(self):
+    def __init__(self, line: str):
+        self.line = line
+
+    def append(self, line):
+        self.line += line
+
+    def __str__(self):
+        return self.line
+
+
+class Component(Primitive):
+    """Holds component information"""
+
+    def __init__(self, line: str):
+        super().__init__(line)
         self.reference = ""
         self.attributes = OrderedDict()
         self.ports = []
+        self.parent = None
+
+    @property
+    def value_str(self):
+        return self.attributes.get('value', None)
+
+    @value_str.setter
+    def value_str(self, value):
+        self.attributes['value'] = value
+
+    @property
+    def value(self):
+        return to_float(self.value_str, accept_invalid=False)
+
+    @value.setter
+    def value(self, value):
+        self.value_str = format_eng(value)
+
+    def __str__(self):
+        return f"{self.reference} = {self.value}"
+
+    def __getitem__(self, item):
+        return self.attributes[item]
+
+    def __setitem__(self, key, value):
+        self.attributes[key] = value
 
 
 class BaseEditor(ABC):
@@ -313,6 +352,12 @@ class BaseEditor(ABC):
         """Returns a hierarchical subdesign"""
         ...
 
+    def __getitem__(self, item) -> Component:
+        return self.get_component(item)
+
+    def __setitem__(self, key, value):
+        self.set_component_value(key, value)
+
     def get_component_attribute(self, reference: str, attribute: str) -> str:
         """Returns the value of the attribute of the component. Attributes are the values that are not related with
         SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
@@ -338,20 +383,6 @@ class BaseEditor(ABC):
                  KeyError - In case the port is not found
         """
         return self.get_component(reference).ports
-
-    def get_component_info(self, reference) -> dict:
-        """
-        Retrieves the component information. This is a dictionary with the component information. This method is
-        deprecated and will be removed in future versions. Use get_component_attribute instead.
-
-        :param reference: Reference of the component
-        :type reference: str
-        :return: Dictionary with the component information
-        :rtype: dict
-        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX. NotImplementedError of there
-                 isn't an associated regular expression for the component prefix.
-        """
-        return self.get_component(reference).attributes
 
     @abstractmethod
     def get_parameter(self, param: str) -> str:
