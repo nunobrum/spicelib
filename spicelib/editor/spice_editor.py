@@ -213,7 +213,7 @@ class SpiceComponent(Component):
         self.parent = parent
         self.update_attributes_from_line_no(line_no)
 
-    def update_attributes_from_line_no(self, line_no):
+    def update_attributes_from_line_no(self, line_no) -> re.match:
         self.line = self.parent.netlist[line_no]
         prefix = self.line[0]
         regex = component_replace_regexs.get(prefix, None)
@@ -237,6 +237,7 @@ class SpiceComponent(Component):
                 self.attributes['params'] = _parse_params(info[attr])
             else:
                 self.attributes[attr] = info[attr]
+        return match
 
     def update_from_reference(self):
         line_no = self.parent.get_line_starting_with(self.reference)
@@ -250,7 +251,35 @@ class SpiceComponent(Component):
         return self.attributes['params']
 
     def set_params(self, **kwargs):
-        self.parent.set_component_parameters(self.reference, **kwargs)
+        line_no = self.parent.get_line_starting_with(self.reference)
+        match = self.update_attributes_from_line_no(line_no)
+
+        if match and match.groupdict().get('params'):
+            params_str = match.group('params')
+            params = _parse_params(params_str)
+        else:
+            params = {}
+
+        for key, value in kwargs.items():
+            # format the value
+            if value is None:
+                value_str = None
+            elif isinstance(value, str):
+                value_str = value.strip()
+            else:
+                value_str = format_eng(value)
+            if value_str is None:
+                # remove those that must disappear
+                if key in params:
+                    params.pop(key)
+            else:
+                # create or update
+                params[key] = value_str
+        params_str = ' '.join([f'{key}={value}' for key, value in params.items()])
+        start = match.start('params')
+        end = match.end('params')
+        # Update the line in the netlist
+        self.parent.netlist[line_no] = self.line[:start] + ' ' + params_str + self.line[end:]
 
     @property
     def value_str(self):
@@ -606,42 +635,19 @@ class SpiceCircuit(BaseEditor):
 
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
-        line_no, match = self._get_component_line_and_regex(reference)
-        if match and match.groupdict().get('params'):
-            params_str = match.group('params')
-            return _parse_params(params_str)
+        comp = self.get_component(reference)
+        if isinstance(comp, SpiceComponent):
+            return comp.params
         else:
-            return {}
+            raise NotImplementedError("Sub-circuit parameters are not supported")
 
     def set_component_parameters(self, reference: str, **kwargs) -> None:
         # docstring inherited from BaseEditor
-        line_no, match = self._get_component_line_and_regex(reference)
-        if match and match.groupdict().get('params'):
-            params_str = match.group('params')
-            params = _parse_params(params_str)
+        comp = self.get_component(reference)
+        if isinstance(comp, SpiceComponent):
+            comp.set_params(**kwargs)
         else:
-            params = {}
-            
-        for key, value in kwargs.items():
-            # format the value
-            if value is None:
-                value_str = None
-            elif isinstance(value, str):
-                value_str = value.strip()
-            else:
-                value_str = format_eng(value)
-            if value_str is None:
-                # remove those that must disappear
-                if key in params:
-                    params.pop(key)
-            else:
-                # create or update
-                params[key] = value_str 
-        params_str = ' '.join([f'{key}={value}' for key, value in params.items()])
-        start = match.start('params')
-        end = match.end('params')
-        line = self.netlist[line_no]
-        self.netlist[line_no] = line[:start] + ' ' + params_str + line[end:]
+            raise NotImplementedError("Sub-circuit parameters are not supported")
 
     def get_parameter(self, param: str) -> str:
         """
