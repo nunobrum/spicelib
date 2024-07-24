@@ -202,6 +202,8 @@ class AscEditor(BaseSchematic):
                     assert text.coord.X == int(posX) and text.coord.Y == int(posY), "Syntax Error, getting a IOPIN without an associated label"
                     port = Port(text, direction)
                     self.ports.append(port)
+                
+                # the following is identical to the code in asy_reader.py. If you modify it, do so in both places.
                 elif line.startswith("LINE") or line.startswith("RECTANGLE") or line.startswith("CIRCLE"):
                     # format: LINE|RECTANGLE|CIRCLE Normal, x1, y1, x2, y2, [line_style]
                     # Maybe support something else than 'Normal', but LTSpice does not seem to do so.
