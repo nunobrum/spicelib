@@ -88,14 +88,26 @@ REPLACE_REGEXS = {
     'S': r"^(?P<designator>S§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Voltage Controlled Switch
     'T': r"^(?P<designator>T§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Lossless Transmission
     'U': r"^(?P<designator>U§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>.*)$",  # Uniform RC-line
+    
     'V': r"^(?P<designator>V§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>(\s*\w*[^=\s]*(?=\s))*)" + PARAM_RGX + ".*$",  # Voltage Source
-    # This implementation replaces everything after the 2 first nets
+    # ex: V1 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
+    
     'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Current Controlled Switch
     # This implementation replaces everything after the 2 first nets
-    'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99}?)\s+(?P<value>\w+)"
-         r"(\s+params:)?" + PARAM_RGX + ".*$",
-    # Sub-circuit
+    
+    'X': r"^(?P<designator>X§?\w+)"
+         r"\s+(?P<nodes>[^\s=]+(?:\s+[^\s=]+)*)"
+         r"\s+(?P<value>[^\s=]+(?:\s+[^\s=]+)*)"
+         r"\s*(?P<params>(?:\s+\S+\s*=\s*[^=\s]+)*)$",  # Sub-circuit. The value is the last before any key-value parameters
+    # This is structured differently than the others as it will accept any number of nodes. 
+    # But it only supports 1 value without any spaces in it (unlike V for example).
+    # ex: XU1 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
+    #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=1 bla_sp2 = 1
+    #     XU1 in out1 -V +V out1 GND OPAx189_float
+    # TODO: we should standardize on one style of regex for all components, and support multiple types of the sub-circuit.
+    
     'Z': r"^(?P<designator>Z§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+).*$",
+    
     # MESFET and IBGT. TODO: Parameters substitution not supported
     '@': r"^(?P<designator>@§?\d+)(?P<nodes>(\s+\S+){2})\s?(?P<params>(.*)*)$",
     # Frequency Noise Analysis (FRA) wiggler
