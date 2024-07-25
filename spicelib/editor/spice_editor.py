@@ -95,10 +95,8 @@ REPLACE_REGEXS = {
     'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Current Controlled Switch
     # This implementation replaces everything after the 2 first nets
     
-    'X': r"^(?P<designator>X§?\w+)"
-         r"\s+(?P<nodes>[^\s=]+(?:\s+[^\s=]+)*)"
-         r"\s+(?P<value>[^\s=]+(?:\s+[^\s=]+)*)"
-         r"\s*(?P<params>(?:\s+\S+\s*=\s*[^=\s]+)*)$",  # Sub-circuit. The value is the last before any key-value parameters
+    'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>([^\s=]+(?:\s+[^\s=]+)*))"
+         r"(?P<params>(?:\s+\S+\s*=\s*[^=\s]+)*)\s*$",  # Sub-circuit. The value is the last before any key-value parameters
     # This is structured differently than the others as it will accept any number of nodes. 
     # But it only supports 1 value without any spaces in it (unlike V for example).
     # ex: XU1 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
