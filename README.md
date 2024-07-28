@@ -594,7 +594,9 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : <nuno.brum@gmail.com>
 
 ## History ##
-
+* Version 1.1.4
+  * Fix on line patterns on the AsyEditor (#PR 65)
+  * Fix on the X (.SUBCKT) components regex (#PR 66)
 * Version 1.1.3
   * Implementing a set_component_parameters() and get_component_parameters() method on the Editor classes.
     This method allows to set and get the parameters of a component.
