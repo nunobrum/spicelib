@@ -68,26 +68,6 @@ class AsyReader(object):
                         continue
                     text = text.strip()  # Gets rid of the \n terminator
                     self.attributes[ref] = text
-                elif line.startswith("LINE"):
-                    tag, weight, x1, y1, x2, y2 = line.split()
-                    v1 = Point(int(x1), int(y1))
-                    v2 = Point(int(x2), int(y2))
-                    segment = Line(v1, v2)
-                    segment.style.weight = f"{weight}"
-                    self.lines.append(segment)
-                elif line.startswith("CIRCLE"):
-                    tag, weight, x1, y1, x2, y2 = line.split()
-                    # In LTSpice the circle is set using the top left and bottom right points of the rectangle that
-                    # encloses the circle
-                    x1 = int(x1)
-                    x2 = int(x2)
-                    y1 = int(y1)
-                    y2 = int(y2)
-                    # distance = (x2-x1)  # Always assuming a circle
-                    # circle = Arc(Point((x1+x2)/2, (y1+y2)/2), radius=distance/2, start_angle=0, stop_angle=360,
-                    #              style=f"{{style:1, weight:{weight}}}")
-                    circle = Shape("CIRCLE", [Point(x1, y1), Point(x2, y2)])
-                    self.shapes.append(circle)
                 elif line.startswith("Version"):
                     tag, version = line.split()
                     assert version in ["4"], f"Unsupported version : {version}"
@@ -130,34 +110,42 @@ class AsyReader(object):
 
                     pin = Text(coord, "", type=TextTypeEnum.PIN, size=int(offset),
                                textAlignment=text_alignment, verticalAlignment=vertical_alignment, angle=angle)
+                
+                # the following is identical to the code in asc_reader.py. If you modify it, do so in both places.
+                elif line.startswith("LINE") or line.startswith("RECTANGLE") or line.startswith("CIRCLE"):
+                    # format: LINE|RECTANGLE|CIRCLE Normal, x1, y1, x2, y2, [line_style]
+                    # Maybe support something else than 'Normal', but LTSpice does not seem to do so.
+                    line_elements = line.split()
+                    assert len(line_elements) in (6, 7), "Syntax Error, line badly badly formatted"
+                    x1 = int(line_elements[2])
+                    y1 = int(line_elements[3])
+                    x2 = int(line_elements[4])
+                    y2 = int(line_elements[5])
+                    if line.startswith("LINE"):
+                        line = Line(Point(x1, y1), Point(x2, y2))
+                        if len(line_elements) == 7:
+                            line.style.pattern = line_elements[6]
+                        self.lines.append(line)
+                    if line_elements[0] in ("RECTANGLE", "CIRCLE"):
+                        shape = Shape(line_elements[0], [Point(x1, y1), Point(x2, y2)])
+                        if len(line_elements) == 7:
+                            shape.line_style.pattern = line_elements[6]
+                        self.shapes.append(shape)
+                        
                 elif line.startswith("ARC"):
-                    tag, weight, x1, y1, x2, y2, x3, y3, x4, y4 = line.split()
-                    x1 = int(x1)
-                    x2 = int(x2)
-                    x3 = int(x3)
-                    x4 = int(x4)
-                    y1 = int(y1)
-                    y2 = int(y2)
-                    y3 = int(y3)
-                    y4 = int(y4)
-
-                    center = Point((x1+x2)//2, (y1+y2)//2)
-                    radius = abs(x2-x1)/2  # Using only the X axis. Assuming a circle not an ellipse
-                    start = Point((x3-center.X)/radius, (y3-center.Y)/radius)
-                    stop = Point((x4-center.X)/radius, (y4-center.Y)/radius)
-                    arc = Shape("ARC", [center, start, stop])
+                    # I don't support editing yet, so why make it complicated
+                    # format: ARC Normal, x1, y1, x2, y2, x3, y3, x4, y4 [line_style]
+                    # Maybe support something else than 'Normal', but LTSpice does not seem to do so.
+                    line_elements = line.split()
+                    assert len(line_elements) in (10, 11), "Syntax Error, line badly formatted"
+                    points = [Point(int(line_elements[i]), int(line_elements[i + 1])) for i in range(2, 9, 2)]
+                    arc = Shape("ARC", points)
+                    if len(line_elements) == 11:
+                        arc.line_style.pattern = line_elements[10]
                     self.shapes.append(arc)
-                elif line.startswith("RECTANGLE"):
-                    tag, weight, x1, y1, x2, y2 = line.split()
-                    x1 = int(x1)
-                    x2 = int(x2)
-                    y1 = int(y1)
-                    y2 = int(y2)
-                    rect = Shape("RECTANGLE", [Point(x1, y1), Point(x2, y2)])
-                    self.shapes.append(rect)
                 else:
-                    print("Primitive not supported for ASC file\n"
-                          f'"{line}"')
+                    raise NotImplementedError("Primitive not supported for ASY file\n" 
+                                              f'"{line}"')
             if pin is not None:
                 self.pins.append(pin)
 
@@ -187,12 +175,29 @@ class AsyReader(object):
                     f"«rect ({x1},{y1}) ({x2},{y2}) 0 0 0 0x4000000 0x1000000 -1 0 -1»"
                 )
             elif shape.name == "ARC":
-                x1 = int(shape.points[0].X * SCALE_X)
-                y1 = int(shape.points[0].Y * SCALE_Y)
-                x2 = int(shape.points[1].X * SCALE_X)
-                y2 = int(shape.points[1].Y * SCALE_Y)
-                x3 = int(shape.points[2].X * SCALE_X)
-                y3 = int(shape.points[2].Y * SCALE_Y)
+                # translate from 4 points style of ltspice to 3 points style of qsch
+                points = shape.points
+                
+                x1 = points[0].X
+                x2 = points[1].X
+                x3 = points[2].X
+                x4 = points[3].X
+                y1 = points[0].Y
+                y2 = points[1].Y
+                y3 = points[2].Y
+                y4 = points[3].Y
+                          
+                center = Point((x1 + x2) // 2, (y1 + y2) // 2)
+                radius = abs(x2 - x1) / 2  # Using only the X axis. Assuming a circle not an ellipse
+                start = Point((x3 - center.X) / radius, (y3 - center.Y) / radius)
+                stop = Point((x4 - center.X) / radius, (y4 - center.Y) / radius)
+                # overwriting the points with the new ones
+                x1 = int(center.X * SCALE_X)
+                y1 = int(center.Y * SCALE_Y)
+                x2 = int(start.X * SCALE_X)
+                y2 = int(start.Y * SCALE_Y)
+                x3 = int(stop.X * SCALE_X)
+                y3 = int(stop.Y * SCALE_Y)
                 shape_tag, _ = QschTag.parse(
                     f"«arc3p ({x1},{y1}) ({x2},{y2}) ({x3},{y3}) 0 0 0xff0000 -1 -1»"
                 )
