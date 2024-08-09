@@ -243,9 +243,7 @@ class AscEditor(BaseSchematic):
                 self.components[component.reference] = component
 
     def _get_symbol(self, symbol: str) -> AsyReader:
-        # ltspice is case insensitive, so I convert the symbol name to lower case to facilitate matching. 
-        # The file search is case insensitive.
-        asy_filename = symbol.lower() + os.path.extsep + "asy"
+        asy_filename = symbol + os.path.extsep + "asy"
         asy_path = self._asy_file_find(asy_filename)
         if asy_path is None:
             raise FileNotFoundError(f"File {asy_filename} not found")
