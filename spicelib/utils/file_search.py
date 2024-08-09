@@ -35,8 +35,10 @@ def find_file_in_directory(directory, filename):
     if path != '':
         directory = os.path.join(directory, path)
     for root, dirs, files in os.walk(directory):
-        if filename in files:
-            return os.path.join(root, filename)
+        # match case insensitive, but store the file system's file name, as the file system may be case sensitive
+        for filefound in files:
+            if filename.lower() == filefound.lower():
+                return os.path.join(root, filefound)
     return None
 
 
@@ -53,11 +55,13 @@ def search_file_in_containers(filename, *containers):
                 # Search in zip files
                 with zipfile.ZipFile(container, 'r') as zip_ref:
                     files = zip_ref.namelist()
-                    if filename in files:
-                        temp_dir = os.path.join('.', 'spice_lib_temp')
-                        if not os.path.exists(temp_dir):
-                            os.makedirs(temp_dir)
-                        return zip_ref.extract(filename, path=temp_dir)
+                    for filefound in files:
+                        # match case insensitive, but store the file system's file name, as the file system may be case sensitive
+                        if filename.lower() == filefound.lower():
+                            temp_dir = os.path.join('.', 'spice_lib_temp')
+                            if not os.path.exists(temp_dir):
+                                os.makedirs(temp_dir)
+                            return zip_ref.extract(filefound, path=temp_dir)
             else:
                 file_found = find_file_in_directory(container, filename)
                 if file_found is not None:
