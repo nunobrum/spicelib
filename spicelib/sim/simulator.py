@@ -95,7 +95,7 @@ class Simulator(ABC):
         :type path_to_exe: pathlib.Path or str
         :param process_name: assigning a process_name to be used for killing phantom processes
         :return: a class instance representing the Spice simulator
-        :rtype: LTspice
+        :rtype: Simulator
         """
         plib_path_to_exe = Path(path_to_exe)
         if plib_path_to_exe.exists():
@@ -139,3 +139,16 @@ class Simulator(ABC):
             if Path(cls.spice_exe[0]).exists():
                 return True
         return False
+    
+    @classmethod
+    def get_library_paths(cls) -> list:
+        """
+        Return the directories that contain the libraries, as derived from the simulator's executable path and platform.
+        spice_exe must be set before calling this method.
+
+        :return: the list of paths where the libraries should be located.
+        :rtype: list
+        """
+        # default: nothing
+        return []
+    
