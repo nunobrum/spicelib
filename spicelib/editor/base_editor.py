@@ -189,9 +189,9 @@ class BaseEditor(ABC):
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
     """
-    custom_lib_paths = []  # This is a class variable, so it can be shared between all instances.
-    # TODO: add standard library paths for the different simulators
-    # TODO: implement setting of the standard library paths from init and from the outside.
+    custom_lib_paths = []  # This is a class variable, so it will be shared between all instances.
+    simulator_lib_paths = []  # This is a class variable, so it will be shared between all instances.
+    # TODO: implement setting of the simulator_lib_paths from init and from the outside.
 
     @property
     @abstractmethod
@@ -661,8 +661,11 @@ class BaseEditor(ABC):
         :return: Nothing
         :rtype: None        
         """
+        # empty the list
+        cls.custom_lib_paths = []
+        # and then fill it with the new paths
         if isinstance(paths, str):
             cls.custom_lib_paths.append(paths)
         elif isinstance(paths, list):
             cls.custom_lib_paths.extend(paths)        
-        return
+

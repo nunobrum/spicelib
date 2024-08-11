@@ -29,7 +29,7 @@ from .base_editor import (
 )
 from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
                              LineStyle, Shape)
-from ..utils.file_search import find_file_in_directory
+from ..utils.file_search import search_file_in_containers
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
@@ -329,6 +329,10 @@ class QschEditor(BaseSchematic):
     :type qsch_file: str
     :keyword create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
     """
+    # initialise the simulator_lib_paths with typical locations found for Qspice
+    # you can (and should, if you use wine), with `prepare_for_simulator()`
+    simulator_lib_paths = ["C:/Program Files/QSPICE",
+                           os.path.expanduser("~/Documents/QSPICE")]
     
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()
@@ -629,19 +633,9 @@ class QschEditor(BaseSchematic):
             return None, None
 
     def _qsch_file_find(self, filename) -> Optional[str]:
-        for sym_root in self.custom_lib_paths + [
-            # os.path.curdir,  # The current script directory
-            os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
-            os.path.expanduser(r"C:\Program Files\QSPICE"),
-            os.path.expanduser("~/Documents/QSPICE"),
-        ]:
-            print(f"   {os.path.abspath(sym_root)}")
-            if not os.path.exists(sym_root):  # Skipping invalid paths
-                continue
-            file_found = find_file_in_directory(sym_root, filename)
-            if file_found is not None:
-                return file_found
-        return None
+        return search_file_in_containers(*self.custom_lib_paths,
+                                         os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
+                                         *self.simulator_lib_paths)
 
     def get_subcircuit(self, reference: str) -> 'QschEditor':
         subcircuit = self.get_component(reference)

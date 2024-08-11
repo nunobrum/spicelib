@@ -45,7 +45,13 @@ LTSPICE_ATTRIBUTES = ("InstName", "Def_Sub")
 class AscEditor(BaseSchematic):
     """Class made to update directly the LTspice ASC files"""
     symbol_cache = {}  # This is a class variable, so it can be shared between all instances.
-
+    
+    # initialise the simulator_lib_paths with typical locations found for LTSpice
+    # you can (and should, if you use wine), with `prepare_for_simulator()`
+    simulator_lib_paths = [os.path.expanduser("~/AppData/Local/LTspice/lib"),
+                           os.path.expanduser("~/Documents/LtspiceXVII/lib/"),
+                           os.path.expanduser("~/Local Settings/Application Data/LTspice/lib")]
+    
     def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
         super().__init__()
         self.version = 4
@@ -60,7 +66,7 @@ class AscEditor(BaseSchematic):
             except EncodingDetectError as err:
                 raise err
         else:
-            self.encoding = encoding        
+            self.encoding = encoding  
         # read the file into memory
         self.reset_netlist()
 
@@ -256,13 +262,12 @@ class AscEditor(BaseSchematic):
             if asc_filename.exists():
                 asc_path = asc_filename
             else:
-                asc_path = search_file_in_containers(asc_filename.stem + os.path.extsep + "asc",
-                                                     # The directory where the script is located
-                                                     os.path.split(self.asc_file_path)[0],
-                                                     # The current script directory
+                # TODO: should we add simulator_lib_paths to the search?
+                asc_path = search_file_in_containers(asc_filename.stem + os.path.extsep + "asc",  # The directory where the script is located
+                                                     os.path.split(self.asc_file_path)[0],  # The current script directory
                                                      os.path.curdir,
-                                                     # The custom library paths
-                                                     *self.custom_lib_paths)
+                                                     *self.custom_lib_paths  # The custom library paths. They are last here, contrary to other places... Why?
+                                                     )
             if asc_path is None:
                 raise FileNotFoundError(f"File {asc_filename} not found")
             answer = AscEditor(asc_path)
@@ -555,32 +560,31 @@ class AscEditor(BaseSchematic):
         self.set_custom_library_paths(*paths)
 
     def _lib_file_find(self, filename) -> Optional[str]:
-        file_found = search_file_in_containers(filename, *self.custom_lib_paths)  # The library paths
-        if file_found is None:
-            file_found = search_file_in_containers(filename,
-                                                   os.path.split(self.asc_file_path)[0],
-                                                   os.path.curdir,  # The current script directory,
-                                                   os.path.split(self.asc_file_path)[0],
-                                                   # The directory where the script is located
-                                                   os.path.expanduser("~/AppData/Local/LTspice/lib/sub"),
-                                                   os.path.expanduser("~/Documents/LtspiceXVII/lib/sub"),
-                                                   os.path.expanduser("~/AppData/Local/Programs/ADI/LTspice/lib.zip"),
-                                                   )
+        # create list of directories to search, based on the simulator_lib_paths. Just add "/sub" to the path
+        my_lib_paths = [os.path.join(x, "sub") for x in self.simulator_lib_paths]
+        # find the file
+        file_found = search_file_in_containers(*self.custom_lib_paths,
+                                               filename,
+                                               os.path.split(self.asc_file_path)[0],  # The directory where the file is located
+                                               os.path.curdir,  # The current script directory,
+                                               *my_lib_paths,  # The simulator's library paths, adapted for the occasion
+                                               os.path.expanduser("~/AppData/Local/Programs/ADI/LTspice/lib.zip")  # TODO: is this needed? This risk being outdated
+                                               )
         return file_found
 
     def _asy_file_find(self, filename) -> Optional[str]:
         if filename in self.symbol_cache:
             return self.symbol_cache[filename]
         _logger.info(f"Searching for symbol {filename}...")
-        file_found = search_file_in_containers(filename, *self.custom_lib_paths)
-        if file_found is None:
-            file_found = search_file_in_containers(filename,
-                                                   os.path.curdir,  # The current script directory
-                                                   os.path.split(self.asc_file_path)[0],
-                                                   # The directory where the script is located
-                                                   os.path.expanduser("~/AppData/Local/LTspice/lib/sym"),
-                                                   os.path.expanduser("~/Documents/LtspiceXVII/lib/sym"),
-                                                   )
+        # create list of directories to search, based on the simulator_lib_paths. Just add "/sym" to the path
+        my_lib_paths = [os.path.join(x, "sym") for x in self.simulator_lib_paths]
+        # find the file            
+        file_found = search_file_in_containers(*self.custom_lib_paths,
+                                               filename,
+                                               os.path.split(self.asc_file_path)[0],  # The directory where the file is located
+                                               os.path.curdir,  # The current script directory
+                                               *my_lib_paths  # The simulator's library paths, adapted for the occasion
+                                               )
         if file_found is not None:
             self.symbol_cache[filename] = file_found
         return file_found

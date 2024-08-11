@@ -66,7 +66,7 @@ def search_file_in_containers(filename, *containers):
     return None
 
 
-def expand_and_check_local_path(path: str, exe_path: str = None) -> str:
+def expand_and_check_local_dir(path: str, exe_path: str = None) -> str:
     """
     Expands a directory path to become an absolute path, while taking into account a potential use under wine (under MacOS and Linux). 
     Will also check if that directory exists.
@@ -112,7 +112,8 @@ def expand_and_check_local_path(path: str, exe_path: str = None) -> str:
     # and in all cases, terminate with the expansion of the ~
     if path.startswith("~"):
         path = os.path.expanduser(path)
-    # check existance
-    if not os.path.exists(path):
-        return None
-    return path
+        
+    # check existance and if it is a directory
+    if os.path.exists(path) and os.path.isdir(path):
+        return path
+    return None
