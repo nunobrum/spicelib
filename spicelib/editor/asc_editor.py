@@ -22,6 +22,7 @@ from typing import Union, Optional, Tuple
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
+from deprecated import deprecated
 
 from .ltspice_utils import TEXT_REGEX, TEXT_REGEX_X, TEXT_REGEX_Y, TEXT_REGEX_ALIGN, TEXT_REGEX_SIZE, TEXT_REGEX_TYPE, \
     TEXT_REGEX_TEXT, END_LINE_TERM, ASC_ROTATION_DICT, ASC_INV_ROTATION_DICT, asc_text_align_set, asc_text_align_get
@@ -44,7 +45,6 @@ LTSPICE_ATTRIBUTES = ("InstName", "Def_Sub")
 
 class AscEditor(BaseSchematic):
     """Class made to update directly the LTspice ASC files"""
-    lib_paths = []  # This is a class variable, so it can be shared between all instances.
     symbol_cache = {}  # This is a class variable, so it can be shared between all instances.
 
     def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
@@ -262,8 +262,8 @@ class AscEditor(BaseSchematic):
                                                      os.path.split(self.asc_file_path)[0],
                                                      # The current script directory
                                                      os.path.curdir,
-                                                     # The library paths
-                                                     *self.lib_paths)
+                                                     # The custom library paths
+                                                     *self.custom_lib_paths)
             if asc_path is None:
                 raise FileNotFoundError(f"File {asc_filename} not found")
             answer = AscEditor(asc_path)
@@ -548,12 +548,16 @@ class AscEditor(BaseSchematic):
 
         return min_x, max_y + 24  # Setting the text in the bottom left corner of the canvas
 
+    @deprecated("Use the class method `set_custom_library_paths()` instead.")
     def add_library_paths(self, *paths):
-        """Adding paths for searching for symbols and libraries"""
-        self.lib_paths.extend(*paths)
+        """
+        *(Deprecated)* Use the class method `set_custom_library_paths()` instead.
+        
+        Adding paths for searching for symbols and libraries"""
+        self.set_custom_library_paths(*paths)
 
     def _lib_file_find(self, filename) -> Optional[str]:
-        file_found = search_file_in_containers(filename, *self.lib_paths)  # The library paths
+        file_found = search_file_in_containers(filename, *self.custom_lib_paths)  # The library paths
         if file_found is None:
             file_found = search_file_in_containers(filename,
                                                    os.path.split(self.asc_file_path)[0],
@@ -570,7 +574,7 @@ class AscEditor(BaseSchematic):
         if filename in self.symbol_cache:
             return self.symbol_cache[filename]
         _logger.info(f"Searching for symbol {filename}...")
-        file_found = search_file_in_containers(filename, *self.lib_paths)
+        file_found = search_file_in_containers(filename, *self.custom_lib_paths)
         if file_found is None:
             file_found = search_file_in_containers(filename,
                                                    os.path.curdir,  # The current script directory

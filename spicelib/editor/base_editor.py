@@ -189,6 +189,9 @@ class BaseEditor(ABC):
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
     """
+    custom_lib_paths = []  # This is a class variable, so it can be shared between all instances.
+    # TODO: add standard library paths for the different simulators
+    # TODO: implement setting of the standard library paths from init and from the outside.
 
     @property
     @abstractmethod
@@ -633,7 +636,7 @@ class BaseEditor(ABC):
         * when the editor can be used with different simulators, that have different library paths.
         
         Note:
-        * you can always also set the library paths manually via set_custom_library_paths()
+        * you can always also set the library paths manually via `set_custom_library_paths()`
         * this method is a class method and will affect all instances of the class
         
         :param simulator: Simulator object from which the library paths will be taken.
@@ -649,7 +652,7 @@ class BaseEditor(ABC):
         """
         Set the given library search paths to the list of directories to search when needed.
         It will delete any previous list of custom paths, but will not affect the default paths 
-        (be it from init() or from prepare_for_simulator()).
+        (be it from `init()` or from `prepare_for_simulator()`).
         
         Note that this method is a class method and will affect all instances of the class.
 
@@ -658,9 +661,8 @@ class BaseEditor(ABC):
         :return: Nothing
         :rtype: None        
         """
-        # typical implementation would be:
-        # if isinstance(paths, str):
-        #     cls.lib_paths.append(paths)
-        # elif isinstance(paths, list):
-        #     cls.lib_paths += paths
+        if isinstance(paths, str):
+            cls.custom_lib_paths.append(paths)
+        elif isinstance(paths, list):
+            cls.custom_lib_paths.extend(paths)        
         return

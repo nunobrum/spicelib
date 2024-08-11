@@ -329,8 +329,7 @@ class QschEditor(BaseSchematic):
     :type qsch_file: str
     :keyword create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
     """
-    lib_paths = []  # This is a class variable, so it can be shared between all instances.
-
+    
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()
         self._qsch_file_path = Path(qsch_file)
@@ -630,7 +629,7 @@ class QschEditor(BaseSchematic):
             return None, None
 
     def _qsch_file_find(self, filename) -> Optional[str]:
-        for sym_root in self.lib_paths + [
+        for sym_root in self.custom_lib_paths + [
             # os.path.curdir,  # The current script directory
             os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
             os.path.expanduser(r"C:\Program Files\QSPICE"),

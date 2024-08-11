@@ -22,6 +22,7 @@
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import List
 import subprocess
 
 if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
@@ -141,13 +142,13 @@ class Simulator(ABC):
         return False
     
     @classmethod
-    def get_library_paths(cls) -> list:
+    def get_library_paths(cls) -> List[str]:
         """
         Return the directories that contain the libraries, as derived from the simulator's executable path and platform.
         spice_exe must be set before calling this method.
 
         :return: the list of paths where the libraries should be located.
-        :rtype: list
+        :rtype: List[str]
         """
         # default: nothing
         return []
