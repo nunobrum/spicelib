@@ -21,7 +21,6 @@ from collections import OrderedDict
 from pathlib import Path
 import re
 import logging
-from deprecated import deprecated    
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER
@@ -768,7 +767,6 @@ class SpiceCircuit(BaseEditor):
         self.netlist[line] = ''  # Blanks the line
 
     @staticmethod
-    @deprecated("Use the class method `set_custom_library_paths()` instead.") 
     def add_library_search_paths(paths: Union[str, List[str]]) -> None:
         """
         *(Deprecated)* Use the class method `set_custom_library_paths()` instead.

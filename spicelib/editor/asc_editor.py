@@ -22,7 +22,6 @@ from typing import Union, Optional, Tuple
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
-from deprecated import deprecated
 
 from .ltspice_utils import TEXT_REGEX, TEXT_REGEX_X, TEXT_REGEX_Y, TEXT_REGEX_ALIGN, TEXT_REGEX_SIZE, TEXT_REGEX_TYPE, \
     TEXT_REGEX_TEXT, END_LINE_TERM, ASC_ROTATION_DICT, ASC_INV_ROTATION_DICT, asc_text_align_set, asc_text_align_get
@@ -548,7 +547,6 @@ class AscEditor(BaseSchematic):
 
         return min_x, max_y + 24  # Setting the text in the bottom left corner of the canvas
 
-    @deprecated("Use the class method `set_custom_library_paths()` instead.")
     def add_library_paths(self, *paths):
         """
         *(Deprecated)* Use the class method `set_custom_library_paths()` instead.
