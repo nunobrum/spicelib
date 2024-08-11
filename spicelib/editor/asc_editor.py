@@ -263,9 +263,9 @@ class AscEditor(BaseSchematic):
                 asc_path = asc_filename
             else:
                 # TODO: should we add simulator_lib_paths to the search?
-                asc_path = search_file_in_containers(asc_filename.stem + os.path.extsep + "asc",  # The directory where the script is located
+                asc_path = search_file_in_containers(asc_filename.stem + os.path.extsep + "asc",  # file to search
                                                      os.path.split(self.asc_file_path)[0],  # The current script directory
-                                                     os.path.curdir,
+                                                     os.path.curdir,  # The directory where the script is located
                                                      *self.custom_lib_paths  # The custom library paths. They are last here, contrary to other places... Why?
                                                      )
             if asc_path is None:
@@ -563,8 +563,8 @@ class AscEditor(BaseSchematic):
         # create list of directories to search, based on the simulator_lib_paths. Just add "/sub" to the path
         my_lib_paths = [os.path.join(x, "sub") for x in self.simulator_lib_paths]
         # find the file
-        file_found = search_file_in_containers(*self.custom_lib_paths,
-                                               filename,
+        file_found = search_file_in_containers(filename, 
+                                               *self.custom_lib_paths,
                                                os.path.split(self.asc_file_path)[0],  # The directory where the file is located
                                                os.path.curdir,  # The current script directory,
                                                *my_lib_paths,  # The simulator's library paths, adapted for the occasion
@@ -579,8 +579,8 @@ class AscEditor(BaseSchematic):
         # create list of directories to search, based on the simulator_lib_paths. Just add "/sym" to the path
         my_lib_paths = [os.path.join(x, "sym") for x in self.simulator_lib_paths]
         # find the file            
-        file_found = search_file_in_containers(*self.custom_lib_paths,
-                                               filename,
+        file_found = search_file_in_containers(filename,
+                                               *self.custom_lib_paths,
                                                os.path.split(self.asc_file_path)[0],  # The directory where the file is located
                                                os.path.curdir,  # The current script directory
                                                *my_lib_paths  # The simulator's library paths, adapted for the occasion

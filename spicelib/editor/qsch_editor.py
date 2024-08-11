@@ -633,7 +633,8 @@ class QschEditor(BaseSchematic):
             return None, None
 
     def _qsch_file_find(self, filename) -> Optional[str]:
-        return search_file_in_containers(*self.custom_lib_paths,
+        return search_file_in_containers(filename, 
+                                         *self.custom_lib_paths,
                                          os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
                                          *self.simulator_lib_paths)
 
