@@ -23,9 +23,9 @@ import os
 
 from pathlib import Path
 import logging
-_logger = logging.getLogger("spicelib.QSpiceSimulator")
-
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
+
+_logger = logging.getLogger("spicelib.QSpiceSimulator")
 
 
 class Qspice(Simulator):
@@ -52,7 +52,7 @@ class Qspice(Simulator):
         
     if sys.platform == "linux" or sys.platform == "darwin":
         # status mid 2024: Qspice has limited support for running under linux+wine, and none for MacOS+wine
-        # TODO: when the situation gets more mature, add supoport for wine. See LTspice for an example.
+        # TODO: when the situation gets more mature, add support for wine. See LTspice for an example.
         spice_exe = []
         process_name = None
     else:  # Windows (well, also aix, wasi, emscripten,... where it will fail.)
