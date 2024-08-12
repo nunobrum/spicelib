@@ -29,6 +29,7 @@ from .base_editor import (
 )
 from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
                              LineStyle, Shape)
+from ..simulators.qspice_simulator import Qspice
 from ..utils.file_search import search_file_in_containers
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
@@ -331,8 +332,7 @@ class QschEditor(BaseSchematic):
     """
     # initialise the simulator_lib_paths with typical locations found for Qspice
     # you can (and should, if you use wine), with `prepare_for_simulator()`
-    simulator_lib_paths = ["C:/Program Files/QSPICE",
-                           os.path.expanduser("~/Documents/QSPICE")]
+    simulator_lib_paths = Qspice.get_library_paths()    
     
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()

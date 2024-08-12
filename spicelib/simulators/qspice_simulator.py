@@ -33,15 +33,19 @@ class Qspice(Simulator):
     simulations."""
     raw_extension = '.qraw'  # In QSPICE all traces have double precision. This means that qraw files are not compatible
     # with LTSPICE
+    # TODO: set the default paths, and allow search like with LTspice
+    # spice_exe_win_paths = []
+    
+    # the default lib paths, as used by get_library_paths
+    _default_lib_paths = ["C:/Program Files/QSPICE",
+                          "~/Documents/QSPICE"]
 
     """Searches on the any usual locations for a simulator"""
-    if sys.platform == "linux":
+    if sys.platform == "linux" or sys.platform == "darwin":
         spice_exe = []
-        _logger.warning("QSPICE is not available for Linux")
-    elif sys.platform == "darwin":
-        spice_exe = []
-        _logger.warning("QSPICE is not available for MacOS")
-    else:  # Windows
+        process_name = None
+    else:  # Windows (well, also aix, wasi, emscripten,... where it will fail.)
+        process_name = "QSPICE64.exe"
         for exe in (  # Placed in order of preference. The first to be found will be used.
                 os.path.expanduser(r"~\AppData\Local\Programs\Qspice\QSPICE64.exe"),
                 r"C:\Program Files\QSPICE\QSPICE64.exe",
@@ -52,9 +56,7 @@ class Qspice(Simulator):
                 break
         else:
             spice_exe = []
-            _logger.warning("QSPICE not found in the usual locations. Please install it and try again.")
-
-        process_name = "QSPICE64.exe"
+            process_name = None
 
     qspice_args = {
         'ASCII'     : ['-ASCII'],  # Use ASCII file format for the output data(.qraw) file.
