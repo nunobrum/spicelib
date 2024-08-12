@@ -33,30 +33,44 @@ class Qspice(Simulator):
     simulations."""
     raw_extension = '.qraw'  # In QSPICE all traces have double precision. This means that qraw files are not compatible
     # with LTSPICE
-    # TODO: set the default paths, and allow search like with LTspice
-    # spice_exe_win_paths = []
+    
+    # windows paths (that are also valid for wine)
+    # Please note that os.path.expanduser and os.path.join are sensitive to the style of slash.
+    # Placed in order of preference. The first to be found will be used.
+    _spice_exe_win_paths = ["~/Qspice/QSPICE64.exe",
+                            "~/AppData/Local/Programs/Qspice/QSPICE64.exe",
+                            "C:/Program Files/QSPICE/QSPICE64.exe"]
     
     # the default lib paths, as used by get_library_paths
     _default_lib_paths = ["C:/Program Files/QSPICE",
                           "~/Documents/QSPICE"]
 
     """Searches on the any usual locations for a simulator"""
+    # defaults:
+    spice_exe = []
+    process_name = None  
+        
     if sys.platform == "linux" or sys.platform == "darwin":
+        # status mid 2024: Qspice has limited support for running under linux+wine, and none for MacOS+wine
+        # TODO: when the situation gets more mature, add supoport for wine. See LTspice for an example.
         spice_exe = []
         process_name = None
     else:  # Windows (well, also aix, wasi, emscripten,... where it will fail.)
-        process_name = "QSPICE64.exe"
-        for exe in (  # Placed in order of preference. The first to be found will be used.
-                os.path.expanduser(r"~\AppData\Local\Programs\Qspice\QSPICE64.exe"),
-                r"C:\Program Files\QSPICE\QSPICE64.exe",
-        ):
+        for exe in _spice_exe_win_paths:
+            if exe.startswith("~"):
+                # expand here, as I use _spice_exe_win_paths also for linux, and expanding earlier will fail
+                exe = os.path.expanduser(exe)
             if os.path.exists(exe):
-                _logger.debug(f"Using Qspice installed in : '{exe}' ")
                 spice_exe = [exe]
-                break
-        else:
-            spice_exe = []
-            process_name = None
+                process_name = Path(exe).name
+                break        
+
+    # fall through        
+    if len(spice_exe) == 0:
+        spice_exe = []
+        process_name = None
+    else:
+        _logger.debug(f"Found Qspice installed in: '{spice_exe}' ")
 
     qspice_args = {
         'ASCII'     : ['-ASCII'],  # Use ASCII file format for the output data(.qraw) file.

@@ -37,25 +37,25 @@ class LTspice(Simulator):
     # windows paths (that are also valid for wine)
     # Please note that os.path.expanduser and os.path.join are sensitive to the style of slash.
     # Placed in order of preference. The first to be found will be used.
-    spice_exe_win_paths = [r"~\AppData\Local\Programs\ADI\LTspice\LTspice.exe",
-                           r"~\Local Settings\Application Data\Programs\ADI\LTspice\LTspice.exe",
-                           r"C:\Program Files\ADI\LTspice\LTspice.exe",
-                           r"C:\Program Files\LTC\LTspiceXVII\XVIIx64.exe",
-                           r"C:\Program Files (x86)\LTC\LTspiceIV\scad3.exe"
-                           ]
+    _spice_exe_win_paths = ["~/AppData/Local/Programs/ADI/LTspice/LTspice.exe",
+                            "~/Local Settings/Application Data/Programs/ADI/LTspice/LTspice.exe",
+                            "C:/Program Files/ADI/LTspice/LTspice.exe",
+                            "C:/Program Files/LTC/LTspiceXVII/XVIIx64.exe",
+                            "C:/Program Files (x86)/LTC/LTspiceIV/scad3.exe"
+                            ]
     
     # the default lib paths, as used by get_library_paths
     _default_lib_paths = ["~/AppData/Local/LTspice/lib",
                           "~/Documents/LtspiceXVII/lib/",
                           "~/Local Settings/Application Data/LTspice/lib"]
     
+    # defaults:
+    spice_exe = []
+    process_name = None       
+    
     if sys.platform == "linux" or sys.platform == "darwin":
         # Linux: look for wine and ltspice under wine.
         # MacOS: give preference to wine. If not found: look for native LTspice
-        
-        # defaults:
-        spice_exe = []
-        process_name = None        
         
         # Anything specified in environment variables?
         spice_folder = os.environ.get("LTSPICEFOLDER")
@@ -76,19 +76,18 @@ class LTspice(Simulator):
         else:
             # This is still "linux or darwin"
             # no environment variables was given. Do a search.
-            for exe in spice_exe_win_paths:
+            for exe in _spice_exe_win_paths:
                 # make the file path wine compatible
                 # Note that wine also accepts paths like 'C:\users\myuser\...'.
                 # BUT, if I do that, I would not be able to check for the presence of the exe.
                 # So: expand everything.                 
                 # Linux would use this: 
-                #    '/home/myuser/.wine/drive_c/users/myuser/AppData/...'  for spice_exe_win_paths[0]
-                # or '/home/myuser/.wine/drive_c/Program Files/...'         for spice_exe_win_paths[2]
+                #    '/home/myuser/.wine/drive_c/users/myuser/AppData/...'  for _spice_exe_win_paths[0]
+                # or '/home/myuser/.wine/drive_c/Program Files/...'         for _spice_exe_win_paths[2]
                 # MacOS would use this: 
-                #    '/Users/myuser/.wine/drive_c/users/myuser/AppData/...' for spice_exe_win_paths[0]    
-                # or '/Users/myuser/.wine/drive_c/Program Files/...'        for spice_exe_win_paths[2]  
-                # Note that in the user path versions (spice_exe_win_paths[0] and [1]), I have 2 expansions of the user name.
-                exe = PureWindowsPath(exe).as_posix()   # make os.path.expanduser and os.path.join work
+                #    '/Users/myuser/.wine/drive_c/users/myuser/AppData/...' for _spice_exe_win_paths[0]    
+                # or '/Users/myuser/.wine/drive_c/Program Files/...'        for _spice_exe_win_paths[2]  
+                # Note that in the user path versions (_spice_exe_win_paths[0] and [1]), I have 2 expansions of the user name.
                 if exe.startswith("~"):
                     exe = "C:/users/" + os.path.expandvars("${USER}" + exe[1:])
                 # Now I have a "windows" path (but with forward slashes). Make it into a path under wine.
@@ -116,9 +115,9 @@ class LTspice(Simulator):
                         process_name = "LTspice"
                                 
     else:  # Windows (well, also aix, wasi, emscripten,... where it will fail.)
-        for exe in spice_exe_win_paths:
+        for exe in _spice_exe_win_paths:
             if exe.startswith("~"):
-                # expand here, as I use spice_exe_win_paths also for linux, and expanding earlier will fail
+                # expand here, as I use _spice_exe_win_paths also for linux, and expanding earlier will fail
                 exe = os.path.expanduser(exe)
             if os.path.exists(exe):
                 spice_exe = [exe]
