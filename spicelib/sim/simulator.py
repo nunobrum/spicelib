@@ -26,6 +26,7 @@ from typing import Optional, List
 import subprocess
 import os
 import logging
+import shutil
 
 _logger = logging.getLogger("spicelib.Simulator")
 
@@ -105,7 +106,7 @@ class Simulator(ABC):
         :rtype: Simulator
         """
         plib_path_to_exe = Path(path_to_exe)
-        if plib_path_to_exe.exists():
+        if plib_path_to_exe.exists() or shutil.which(plib_path_to_exe):
             if process_name is None:
                 if sys.platform == 'darwin':
                     if "wine" in path_to_exe:
@@ -143,10 +144,11 @@ class Simulator(ABC):
         """This method checks if the simulator exists in the system. It will return a boolean value indicating if the
         simulator is installed or not."""
         if cls.spice_exe and len(cls.spice_exe) > 0:
-            # get the first or last element of the list, as it may be a wine command
+            # check if file exists
             if Path(cls.spice_exe[0]).exists():
                 return True
-            if Path(cls.spice_exe[-1]).exists():
+            # check if file in path
+            if shutil.which(cls.spice_exe[0]):
                 return True
         return False
     
