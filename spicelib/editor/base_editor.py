@@ -643,8 +643,9 @@ class BaseEditor(ABC):
         :type simulator: Simulator
         :returns: Nothing
         """
-        # any implementation here should call the simulator.get_library_paths() method
-        # and then distribute/construct the paths to the correct class or instance variables.
+        if simulator is None:
+            raise NotImplementedError("The prepare_for_simulator method requires a simulator object")
+        cls.simulator_lib_paths = simulator.get_library_paths()
         return
     
     @classmethod

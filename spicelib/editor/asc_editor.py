@@ -26,6 +26,7 @@ import logging
 from .ltspice_utils import TEXT_REGEX, TEXT_REGEX_X, TEXT_REGEX_Y, TEXT_REGEX_ALIGN, TEXT_REGEX_SIZE, TEXT_REGEX_TYPE, \
     TEXT_REGEX_TEXT, END_LINE_TERM, ASC_ROTATION_DICT, ASC_INV_ROTATION_DICT, asc_text_align_set, asc_text_align_get
 from .spice_editor import SpiceEditor, SpiceCircuit
+from ..simulators.ltspice_simulator import LTspice
 from ..utils.file_search import search_file_in_containers
 from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS
@@ -47,10 +48,8 @@ class AscEditor(BaseSchematic):
     symbol_cache = {}  # This is a class variable, so it can be shared between all instances.
     
     # initialise the simulator_lib_paths with typical locations found for LTSpice
-    # you can (and should, if you use wine), with `prepare_for_simulator()`
-    simulator_lib_paths = [os.path.expanduser("~/AppData/Local/LTspice/lib"),
-                           os.path.expanduser("~/Documents/LtspiceXVII/lib/"),
-                           os.path.expanduser("~/Local Settings/Application Data/LTspice/lib")]
+    # you can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths
+    simulator_lib_paths = LTspice.get_library_paths()
     
     def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
         super().__init__()

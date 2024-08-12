@@ -44,6 +44,11 @@ class LTspice(Simulator):
                            r"C:\Program Files (x86)\LTC\LTspiceIV\scad3.exe"
                            ]
     
+    # the default lib paths, as used by get_library_paths
+    _default_lib_paths = ["~/AppData/Local/LTspice/lib",
+                          "~/Documents/LtspiceXVII/lib/",
+                          "~/Local Settings/Application Data/LTspice/lib"]
+    
     if sys.platform == "linux" or sys.platform == "darwin":
         # Linux: look for wine and ltspice under wine.
         # MacOS: give preference to wine. If not found: look for native LTspice
@@ -124,9 +129,8 @@ class LTspice(Simulator):
     if len(spice_exe) == 0:
         spice_exe = []
         process_name = None
-        _logger.warning("LTspice executable not found. Please install LTspice from Analog Devices.")
     else:
-        _logger.debug(f"Using LTspice installed under wine in : '{spice_exe}' ")
+        _logger.debug(f"Found LTspice installed in: '{spice_exe}' ")
 
     ltspice_args = {
         'alt'                : ['-alt'],  # Set solver to Alternate.
@@ -250,6 +254,7 @@ class LTspice(Simulator):
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
             raise SpiceSimulatorError("Simulator executable not found.")
+        
         if sys.platform == "linux" or sys.platform == "darwin":
             if cls.using_macos_native_sim():
                 # native MacOS simulator, which has its limitations
