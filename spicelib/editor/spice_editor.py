@@ -28,6 +28,7 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
 from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 from ..log.logfile_data import try_convert_value
+from ..simulators.ltspice_simulator import LTspice
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 
@@ -209,6 +210,10 @@ class SpiceCircuit(BaseEditor):
     them, it serves as base for the top level netlist. This hierarchical approach helps to encapsulate
     and protect parameters and components from edits made at a higher level.
     """
+    
+    # initialise the simulator_lib_paths with typical locations found for LTspice
+    # you can (and should, if you use wine or use anything else than LTspice), with `prepare_for_simulator()`
+    simulator_lib_paths = LTspice.get_library_paths()    
 
     def __init__(self):
         super().__init__()
@@ -320,11 +325,15 @@ class SpiceCircuit(BaseEditor):
                 if m:  # If it is a library include
                     lib = m.group(2)
                     if os.path.exists(lib):
-                        lib_filename = os.path.join(os.path.expanduser('~'), "Documents/LTspiceXVII/lib/sub", lib)
-                        if os.path.exists(lib_filename):
-                            sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
-                            if sub_circuit:
-                                break
+                        # TODO: this is geared towards LTspice ("/sub"). We should have a more general way to find the sub-circuit
+                        # find the file
+                        for path in self.simulator_lib_paths:
+                            lib_filename = os.path.join(path, "sub", lib)
+                            if os.path.exists(lib_filename):
+                                sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
+                                if sub_circuit:
+                                    break
+
                     for path in self.custom_lib_paths:
                         lib_filename = os.path.join(path, lib)
                         if os.path.exists(lib_filename):

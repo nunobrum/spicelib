@@ -88,8 +88,8 @@ class Simulator(ABC):
     The ``run_function()`` can be imported from the simulator.py with
     ``from spicelib.sim.simulator import run_function`` instruction.
     """
-    spice_exe = []
-    process_name = ""
+    spice_exe = []  # if using a loader (like wine), make sure that the last in the array is the real simulator.
+    process_name = ""  # the name of the process in the task manager
     raw_extension = '.raw'
     # the default lib paths, as used by get_library_paths
     _default_lib_paths = []
@@ -143,7 +143,10 @@ class Simulator(ABC):
         """This method checks if the simulator exists in the system. It will return a boolean value indicating if the
         simulator is installed or not."""
         if cls.spice_exe and len(cls.spice_exe) > 0:
+            # get the first or last element of the list, as it may be a wine command
             if Path(cls.spice_exe[0]).exists():
+                return True
+            if Path(cls.spice_exe[-1]).exists():
                 return True
         return False
     
@@ -160,6 +163,7 @@ class Simulator(ABC):
         myexe = None
         # get the executable
         if cls.spice_exe and len(cls.spice_exe) > 0:
+            # TODO: this will fail if the simulator executable is not in the last element of the list
             if os.path.exists(cls.spice_exe[-1]):            
                 myexe = cls.spice_exe[-1]
         _logger.debug(f"Using Spice executable path '{myexe}' to determine the correct library paths.")
