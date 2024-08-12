@@ -208,9 +208,11 @@ The example above is using the SpiceEditor to create and modify a spice netlist,
 AscEditor to directly modify the .asc file. The edited .asc file can then be opened by the LTSpice GUI and the
 simulation can be run from there.
 
-#### Windows, Linux and MacOS compatibility ####
+#### Windows, Linux and MacOS compatibility, and paths ####
 
 The LTspice class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
+
+For the other simulators, linux support is coming.
 
 To see what paths are detected:
 
@@ -218,20 +220,41 @@ To see what paths are detected:
 runner = SimRunner(output_folder='./tmp', simulator=LTspice)
 print(runner.simulator.spice_exe)
 print(runner.simulator.process_name)
+print(runner.get_library_paths())  # this is deduced from `spice_exe`
 ```
 
-If you want, can set your own paths, via the two variables shown above, or directly upon instantiation:
+If you want, you can set your own **executable paths**, via the two variables shown above. You can also use `simulator.create_from()`.
+
+The **library paths** are detected based upon simulator, and if that simulator runs under wine or not.
+After you have set the simulator path, you will want to inform your editor of that via `editor.prepare_for_simulator()`.
+If you want, you can also add extra library search paths via `editor.set_custom_library_paths()`.
+
+Example:
 
 ```python
-class MySpiceInstallation(LTspice):
-    spice_exe = ['wine64', simulator]
-    process_name = "LTspice.exe"
+# set my own simulator paths
 
-AscEditor.add_library_paths(AscEditor, [r"/mypath/lib/sub",
-                                        r"/mypath/lib/sym",
-                                        r"/mypath/lib/sym/OpAmps",
-                                        r"/mypath/lib/cmp"])
+# OPTION 1: via subclassing
+class MySpiceInstallation(LTspice):
+    spice_exe = ['wine', '/custompath/LTspice.exe']
+    process_name = 'wine'
+
 runner = SimRunner(output_folder='./tmp', simulator=MySpiceInstallation)
+
+# OPTION 2: or via direct creation. If you do not specify the process_name, it will be guessed.
+runner = SimRunner(output_folder='./tmp', 
+                   simulator=LTspice.create_from('wine /custompath/LTspice.exe')
+                  )
+
+# In case of non standard paths, it is preferred to inform your editor of it, so it can guess the library paths. 
+AscEditor.prepare_for_simulator(MySpiceInstallation)
+
+# You can also add your own library paths to the search paths
+AscEditor.set_custom_library_paths(["/mypath/lib/sub",
+                                    "/mypath/lib/sym",
+                                    "/mypath/lib/sym/OpAmps",
+                                    "/mypath/lib/cmp"])
+
 ```
 
 When you use wine (on Linux or MacOS), you may want to redirect the output of `run()`, as it prints a lot of 'normal' error messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:

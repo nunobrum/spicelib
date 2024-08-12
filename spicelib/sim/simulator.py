@@ -21,12 +21,13 @@
 
 import sys
 from abc import ABC, abstractmethod
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Optional, List
 import subprocess
 import os
 import logging
 import shutil
+import shlex
 
 _logger = logging.getLogger("spicelib.Simulator")
 
@@ -99,17 +100,36 @@ class Simulator(ABC):
     def create_from(cls, path_to_exe, process_name=None):
         """
         Creates a simulator class from a path to the simulator executable
+        
         :param path_to_exe:
-        :type path_to_exe: pathlib.Path or str
-        :param process_name: assigning a process_name to be used for killing phantom processes
+        :type path_to_exe: pathlib.Path or str. If it is a string, it supports multiple sections, 
+            like with for loaders like wine, but MUST be in posix format in that case, and 
+            the last section MUST be the simulator executable.
+        :param process_name: the process_name to be used for killing phantom processes. If not provided, it will be 
         :return: a class instance representing the Spice simulator
         :rtype: Simulator
         """
-        plib_path_to_exe = Path(path_to_exe)
+        plib_path_to_exe = None
+        exe_parts = []
+        if isinstance(path_to_exe, Path):
+            plib_path_to_exe = path_to_exe
+            exe_parts = [plib_path_to_exe.as_posix()]
+        else:
+            if '\\' in path_to_exe:  # this probably a windows path. Don't be smart here.
+                # make the path into a posix path. Rather complicated gymnastics, but it works.
+                plib_path_to_exe = Path(PureWindowsPath(path_to_exe).as_posix())
+                exe_parts = [plib_path_to_exe.as_posix()]
+            else:
+                # try to extract the parts
+                exe_parts = shlex.split(path_to_exe)
+                if len(exe_parts) > 0:
+                    plib_path_to_exe = Path(exe_parts[0])
+                    exe_parts[0] = plib_path_to_exe.as_posix()
+                
         if plib_path_to_exe.exists() or shutil.which(plib_path_to_exe):
             if process_name is None:
                 if sys.platform == 'darwin':
-                    if "wine" in path_to_exe:
+                    if "wine" in exe_parts[0]:
                         # For MacOS wine, there will be no process called "wine". Use "wine-preloader"
                         cls.process_name = "wine-preloader"
                     else:
@@ -118,7 +138,7 @@ class Simulator(ABC):
                     cls.process_name = plib_path_to_exe.name
             else:
                 cls.process_name = process_name
-            cls.spice_exe = [plib_path_to_exe.as_posix()]
+            cls.spice_exe = exe_parts
             return cls
         else:
             raise FileNotFoundError(f"Provided exe file was not found '{path_to_exe}'")
