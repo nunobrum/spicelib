@@ -11,7 +11,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        xyce_simulator.py
-# Purpose:     Tool used to launch NGspice simulations in batch mode.
+# Purpose:     Tool used to launch xyce simulations in batch mode.
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
