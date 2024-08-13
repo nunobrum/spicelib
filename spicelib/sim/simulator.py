@@ -93,7 +93,7 @@ class Simulator(ABC):
     spice_exe = []  # if using a loader (like wine), make sure that the last in the array is the real simulator.
     process_name = ""  # the name of the process in the task manager
     raw_extension = '.raw'
-    # the default lib paths, as used by get_library_paths
+    # the default lib paths, as used by get_default_library_paths
     _default_lib_paths = []
 
     @classmethod
@@ -103,7 +103,7 @@ class Simulator(ABC):
         
         :param path_to_exe:
         :type path_to_exe: pathlib.Path or str. If it is a string, it supports multiple sections, 
-            like with for loaders like wine, but MUST be in posix format in that case, and 
+            allowing loaders like wine, but MUST be in posix format in that case, and 
             the last section MUST be the simulator executable.
         :param process_name: the process_name to be used for killing phantom processes. If not provided, it will be 
         :return: a class instance representing the Spice simulator
@@ -117,6 +117,7 @@ class Simulator(ABC):
         else:
             if '\\' in path_to_exe:  # this probably a windows path. Don't be smart here.
                 # make the path into a posix path. Rather complicated gymnastics, but it works.
+                # I do not support multiple sections here, as it is not likely needed.
                 plib_path_to_exe = Path(PureWindowsPath(path_to_exe).as_posix())
                 exe_parts = [plib_path_to_exe.as_posix()]
             else:
@@ -173,10 +174,13 @@ class Simulator(ABC):
         return False
     
     @classmethod
-    def get_library_paths(cls) -> List[str]:
+    def get_default_library_paths(cls) -> List[str]:
         """
-        Return the directories that contain the libraries, as derived from the simulator's executable path and platform.
+        Return the directories that contain the standard simulator's libraries, 
+        as derived from the simulator's executable path and platform.
         spice_exe must be set before calling this method.
+        
+        This is companion with `set_custom_library_paths()`
 
         :return: the list of paths where the libraries should be located.
         :rtype: List[str]
@@ -185,7 +189,7 @@ class Simulator(ABC):
         myexe = None
         # get the executable
         if cls.spice_exe and len(cls.spice_exe) > 0:
-            # TODO: this will fail if the simulator executable is not in the last element of the list
+            # TODO: this will fail if the simulator executable is not in the last element of the list. Maybe make this more robust.
             if os.path.exists(cls.spice_exe[-1]):            
                 myexe = cls.spice_exe[-1]
         _logger.debug(f"Using Spice executable path '{myexe}' to determine the correct library paths.")

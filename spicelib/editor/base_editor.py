@@ -645,7 +645,7 @@ class BaseEditor(ABC):
         """
         if simulator is None:
             raise NotImplementedError("The prepare_for_simulator method requires a simulator object")
-        cls.simulator_lib_paths = simulator.get_library_paths()
+        cls.simulator_lib_paths = simulator.get_default_library_paths()
         return
     
     @classmethod

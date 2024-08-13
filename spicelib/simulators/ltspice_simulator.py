@@ -44,7 +44,7 @@ class LTspice(Simulator):
                             "C:/Program Files (x86)/LTC/LTspiceIV/scad3.exe"
                             ]
     
-    # the default lib paths, as used by get_library_paths
+    # the default lib paths, as used by get_default_library_paths
     _default_lib_paths = ["~/AppData/Local/LTspice/lib",
                           "~/Documents/LtspiceXVII/lib/",
                           "~/Local Settings/Application Data/LTspice/lib"]
@@ -107,7 +107,7 @@ class LTspice(Simulator):
                     break
             else:
                 # The else block will not be executed if the loop is stopped by a break statement.
-                # in case of MacOS, try the native LTspice
+                # in case of MacOS, try the native LTspice as last resort
                 if sys.platform == "darwin":
                     exe = '/Applications/LTspice.app/Contents/MacOS/LTspice'
                     if os.path.exists(exe):

@@ -49,7 +49,7 @@ class AscEditor(BaseSchematic):
     
     # initialise the simulator_lib_paths with typical locations found for LTSpice
     # you can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths
-    simulator_lib_paths = LTspice.get_library_paths()
+    simulator_lib_paths = LTspice.get_default_library_paths()
     
     def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
         super().__init__()

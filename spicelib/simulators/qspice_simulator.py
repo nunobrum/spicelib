@@ -41,7 +41,7 @@ class Qspice(Simulator):
                             "~/AppData/Local/Programs/Qspice/QSPICE64.exe",
                             "C:/Program Files/QSPICE/QSPICE64.exe"]
     
-    # the default lib paths, as used by get_library_paths
+    # the default lib paths, as used by get_default_library_paths
     _default_lib_paths = ["C:/Program Files/QSPICE",
                           "~/Documents/QSPICE"]
 

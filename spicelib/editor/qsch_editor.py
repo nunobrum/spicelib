@@ -332,7 +332,7 @@ class QschEditor(BaseSchematic):
     """
     # initialise the simulator_lib_paths with typical locations found for Qspice
     # you can (and should, if you use wine), with `prepare_for_simulator()`
-    simulator_lib_paths = Qspice.get_library_paths()    
+    simulator_lib_paths = Qspice.get_default_library_paths()    
     
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()

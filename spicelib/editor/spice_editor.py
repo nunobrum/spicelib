@@ -213,7 +213,7 @@ class SpiceCircuit(BaseEditor):
     
     # initialise the simulator_lib_paths with typical locations found for LTspice
     # you can (and should, if you use wine or use anything else than LTspice), with `prepare_for_simulator()`
-    simulator_lib_paths = LTspice.get_library_paths()    
+    simulator_lib_paths = LTspice.get_default_library_paths()    
 
     def __init__(self):
         super().__init__()
