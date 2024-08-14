@@ -20,8 +20,9 @@
 # -------------------------------------------------------------------------------
 
 from pathlib import Path
+from typing import Union
 import logging
-from ..sim.simulator import Simulator, run_function
+from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
 import os
 import shutil
 
@@ -51,15 +52,21 @@ class NGspiceSimulator(Simulator):
             exe = os.path.expanduser(exe)
         if os.path.exists(exe):
             spice_exe = [exe]
-            process_name = Path(exe).name
             break
         else:
             # check if file in path
             full_exe = shutil.which(exe)
             if full_exe:
                 spice_exe = [exe]
-                process_name = Path(exe).name  # under Windows, this will include the ".exe" extension, as wanted.
                 break
+            
+    # fall through        
+    if len(spice_exe) == 0:
+        spice_exe = []
+        process_name = None
+    else:
+        process_name = Simulator.guess_process_name(spice_exe[0])
+        _logger.debug(f"Found ngspice installed in: '{spice_exe}' ")
     
     ngspice_args = {
         '-a'            : ['-a'],
@@ -93,6 +100,7 @@ class NGspiceSimulator(Simulator):
         '--version'     : ['--version'],  # output version information and exit
     }
     default_run_switches = ['-b', '-o', '-r', '-a']
+    compatibility_mode = 'kiltpsa'
 
     @classmethod
     def valid_switch(cls, switch, parameter='') -> list:
@@ -108,16 +116,18 @@ class NGspiceSimulator(Simulator):
         :rtype: list
         """
         ret = []  # This is an empty switch
+        parameter = parameter.strip()
         if switch in cls.ngspice_args:
             if switch in cls.default_run_switches:
                 _logger.info(f"Switch {switch} is already in the default switches")
                 return ret
+            if cls.set_compatibility_mode and (switch == '-D' or switch == '--define') and parameter.lower().startswith("ngbehavior"):
+                _logger.info(f"Switch {switch} {parameter} is already in the default switches, use 'set_compatibility_mode' instead")
+                return ret                
             switch_list = cls.ngspice_args[switch]
             if len(switch_list) == 2:
                 param_token = switch_list[1]
-                if param_token == '<FILE>':
-                    ret = [switch_list[0], parameter]
-                elif param_token == '<TERM>':
+                if param_token == '<FILE>' or param_token == '<TERM>' or (param_token == 'var_value' and '=' in parameter):
                     ret = [switch_list[0], parameter]
                 else:
                     _logger.warning(f"Invalid parameter {parameter} for switch '{switch}'")
@@ -128,25 +138,69 @@ class NGspiceSimulator(Simulator):
         return ret
 
     @classmethod
-    def run(cls, netlist_file, cmd_line_switches, timeout):
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None):
+        """Executes a NGspice simulation run.
+
+        :param netlist_file: path to the netlist file
+        :type netlist_file: Union[str, Path]
+        :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
+        :type cmd_line_switches: list, optional
+        :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
+        :type timeout: float, optional
+        :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), and an existing file object with a valid file descriptor. With the default settings of None, no redirection will occur. 
+        :type stdout: _FILE, optional
+        :param stderr: Like stdout, but affecting the command's error output.
+        :type stderr: _FILE, optional
+        :raises SpiceSimulatorError: when the executable is not found.
+        :raises NotImplementedError: when the requested execution is not possible on this platform.
+        :return: return code from the process
+        :rtype: int
+        """
+        if not cls.spice_exe:
+            _logger.error("================== ALERT! ====================")
+            _logger.error("Unable to find the NGSPICE executable.")
+            _logger.error("A specific location of the NGSPICE can be set")
+            _logger.error("using the create_from(<location>) class method")
+            _logger.error("==============================================")
+            raise SpiceSimulatorError("Simulator executable not found.")    
+        
+        if cmd_line_switches is None:
+            cmd_line_switches = []
+        elif isinstance(cmd_line_switches, str):
+            cmd_line_switches = [cmd_line_switches]
+        netlist_file = Path(netlist_file)        
+            
         logfile = Path(netlist_file).with_suffix('.log').as_posix()
         rawfile = Path(netlist_file).with_suffix('.raw').as_posix()
-        cmd_run = cls.spice_exe + cmd_line_switches + ['-b'] + ['-o'] + [logfile] + ['-r'] + [rawfile] + [netlist_file]
+        extra_switches = []
+        if cls.compatibility_mode:
+            extra_switches = ['-D', f"ngbehavior={cls.compatibility_mode}"]
+        #TODO: -a seems useless with -b, however it is still defined in the default switches. Need to check if it is really needed.
+        cmd_run = cls.spice_exe + cmd_line_switches + extra_switches + ['-b'] + ['-o'] + [logfile] + ['-r'] + [rawfile] + [netlist_file]
         # start execution
-        return run_function(cmd_run, timeout=timeout)
+        return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
     
-    #TODO: add compatibility mode. It has become mandatory in recent ngspice versions.
-    # A good default seems to be "kiltspa" (KiCad, LTspice, PSPICE, netlists)
-    # The following compatibility modes are available (as of mid 2024, ngspice v43):
-    # --------------------------------------
-    # | a   | complete netlist transformed
-    # | ps  | PSPICE compatibility
-    # | hs  | HSPICE compatibility
-    # | spe | Spectre compatibility
-    # | lt  | LTSPICE compatibility
-    # | s3  | Spice3 compatibility
-    # | ll  | all (currently not used)
-    # | ki  | KiCad compatibility
-    # | eg  | EAGLE compatibility
-    # | mc  | for ’make check’
-    # --------------------------------------
+    @classmethod
+    def set_compatibility_mode(cls, mode: str):
+        """
+        Set the compatibility mode. It has become mandatory in recent ngspice versions, as the default 'all' is no longer valid.
+        
+        A good default seems to be "kiltpsa" (KiCad, LTspice, PSPICE, netlists)
+        
+        The following compatibility modes are available (as of mid 2024, ngspice v43):
+        * a : complete netlist transformed
+        * ps : PSPICE compatibility
+        * hs : HSPICE compatibility
+        * spe : Spectre compatibility
+        * lt : LTSPICE compatibility
+        * s3 : Spice3 compatibility
+        * ll : all (currently not used)
+        * ki : KiCad compatibility
+        * eg : EAGLE compatibility
+        * mc : for ’make check’
+        
+        :param mode: the compatibility mode to be set. Set to None to remove the compatibility setting.
+        :type mode: str
+        """
+        cls.compatibility_mode = mode
+

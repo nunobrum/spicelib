@@ -253,7 +253,7 @@ class MySpiceInstallation(LTspice):
 
 runner = SimRunner(output_folder='./tmp', simulator=MySpiceInstallation)
 
-# OPTION 2: or via direct creation. If you do not specify the process_name, it will be guessed.
+# OPTION 2: or via direct creation. If you do not specify the process_name, it will be guessed via `simulator.guess_process_name()`.
 runner = SimRunner(output_folder='./tmp', 
                    simulator=LTspice.create_from('wine /custompath/LTspice.exe')
                   )
@@ -273,7 +273,7 @@ AscEditor.set_custom_library_paths(["/mypath/lib/sub",
 
 #### Runner log redirection ####
 
-When you use wine (on Linux or MacOS), you may want to redirect the output of `run()`, as it prints a lot of 'normal' error messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
+When you use wine (on Linux or MacOS) or a simulator like ngspice, you may want to redirect the output of `run()`, as it prints a lot of messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
 
 ```python
 # force command output to a separate file

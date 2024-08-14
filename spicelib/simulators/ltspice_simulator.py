@@ -21,7 +21,7 @@
 import sys
 import os
 
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Union
 import logging
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
@@ -95,12 +95,6 @@ class LTspice(Simulator):
                 
                 if os.path.exists(exe):
                     spice_exe = ["wine", exe]
-                    # process_name is used for kill_all_spice()
-                    if sys.platform == "darwin":
-                        # For MacOS wine, there will be no process called "wine". Use "wine-preloader"
-                        process_name = "wine-preloader"
-                    else:
-                        process_name = Path(exe).name  
                     # Note that one easy method of killing a wine process is to run "wineserver -k", 
                     # but we kill via psutil....kill(), as that would also fit non-wine executions.
                     
@@ -112,7 +106,6 @@ class LTspice(Simulator):
                     exe = '/Applications/LTspice.app/Contents/MacOS/LTspice'
                     if os.path.exists(exe):
                         spice_exe = [exe]
-                        process_name = "LTspice"
                                 
     else:  # Windows (well, also aix, wasi, emscripten,... where it will fail.)
         for exe in _spice_exe_win_paths:
@@ -121,7 +114,6 @@ class LTspice(Simulator):
                 exe = os.path.expanduser(exe)
             if os.path.exists(exe):
                 spice_exe = [exe]
-                process_name = Path(exe).name
                 break
             
     # fall through        
@@ -129,6 +121,7 @@ class LTspice(Simulator):
         spice_exe = []
         process_name = None
     else:
+        process_name = Simulator.guess_process_name(spice_exe[0])
         _logger.debug(f"Found LTspice installed in: '{spice_exe}' ")
 
     ltspice_args = {
@@ -244,8 +237,6 @@ class LTspice(Simulator):
         :return: return code from the process
         :rtype: int
         """
-        netlist_file = Path(netlist_file)
-        
         if not cls.spice_exe:
             _logger.error("================== ALERT! ====================")
             _logger.error("Unable to find a LTspice executable.")
@@ -253,6 +244,12 @@ class LTspice(Simulator):
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
             raise SpiceSimulatorError("Simulator executable not found.")
+        
+        if cmd_line_switches is None:
+            cmd_line_switches = []
+        elif isinstance(cmd_line_switches, str):
+            cmd_line_switches = [cmd_line_switches]
+        netlist_file = Path(netlist_file)        
         
         if sys.platform == "linux" or sys.platform == "darwin":
             if cls.using_macos_native_sim():
