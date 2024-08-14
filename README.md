@@ -222,7 +222,7 @@ A large variety of standard paths are automatically detected. To see what paths 
 runner = SimRunner(output_folder='./tmp', simulator=LTspice)
 print(runner.simulator.spice_exe)
 print(runner.simulator.process_name)
-print(runner.simulator.get_default_library_paths())  # this is deduced from `spice_exe`
+print(runner.simulator.get_default_library_paths())  # the default library paths of that simulator. This is deduced from `spice_exe`
 ```
 
 If you want, you can set your own **executable paths**, via the two variables shown above:
@@ -232,8 +232,13 @@ If you want, you can set your own **executable paths**, via the two variables sh
 
 You can also use `simulator.create_from()`.
 
-The **library paths** are detected based upon the simulator, and if that simulator runs under wine or not. Each simulator exposes its libraries via `simulator.get_default_library_paths()`.
-After you have set the simulator path, you will want to inform your editor of that change via `editor.prepare_for_simulator()`.
+The **library paths** are needed for the editors. However, the default library paths depend on the simulator used, its installation path, and if that simulator runs under wine or not. The function `editor.prepare_for_simulator()` allows you to tell the editor what simulator is used, and its library paths. This not always needed however:
+
+* `AscEditor` and `SpiceEditor` presume that LTspice is used.
+* `QschEditor` presumes that Qspice is used.
+
+ This will of course not work out if you use the editors on other simulators (as can be the case with `SpiceEditor`), or if you have manually set the simulator's executable path. In those cases you will want to inform your editor of that change via `editor.prepare_for_simulator()`.
+
 If you want, you can also add extra library search paths via `editor.set_custom_library_paths()`.
 
 **Example**:
