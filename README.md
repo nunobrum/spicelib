@@ -244,7 +244,7 @@ If you want, you can also add extra library search paths via `editor.set_custom_
 **Example**:
 
 ```python
-# set my own simulator paths
+# ** simulator executable paths
 
 # OPTION 1: via subclassing
 class MySpiceInstallation(LTspice):
@@ -258,7 +258,9 @@ runner = SimRunner(output_folder='./tmp',
                    simulator=LTspice.create_from('wine /custompath/LTspice.exe')
                   )
 
-# In case of non standard paths, it is preferred to inform your editor of it, so it can better guess the library paths. 
+# ** Editor library paths
+
+# In case of non standard paths, or a change of the default simulator, it is preferred to inform your editor of it, so it can better guess the library paths. 
 AscEditor.prepare_for_simulator(MySpiceInstallation)
 
 # You can also add your own library paths to the search paths
