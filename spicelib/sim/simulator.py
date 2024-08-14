@@ -225,10 +225,12 @@ class Simulator(ABC):
         :rtype: Optional[str]
         """
         c_drive = None
+        # See if I'm under wine
         if sys.platform == "linux" or sys.platform == "darwin":
             if exe_path and "/drive_c/" in exe_path:
                 # this is very likely a wine path
                 c_drive = exe_path.split("/drive_c/")[0] + "/drive_c/"
+        # if so: Translate C drive to the wine root
         if c_drive is not None:
             # this must be linux or darwin, with wine
             if path.startswith("~"):
@@ -245,7 +247,9 @@ class Simulator(ABC):
             if path.startswith("C:/") or path.startswith("c:/"):
                 path = c_drive + path[3:]  # should start with C:. If not, something is wrong. 
             # note that in theory, the exe path can be relative to the user's home directory, so...
-        # and in all cases, terminate with the expansion of the ~
+            
+        # and in all cases (Windows, MacOS, linux,...):
+        # terminate with the expansion of the ~
         if path.startswith("~"):
             path = os.path.expanduser(path)
             

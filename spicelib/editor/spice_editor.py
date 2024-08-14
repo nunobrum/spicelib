@@ -27,6 +27,7 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
 
 from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
+from ..utils.file_search import search_file_in_containers
 from ..log.logfile_data import try_convert_value
 from ..simulators.ltspice_simulator import LTspice
 
@@ -324,22 +325,15 @@ class SpiceCircuit(BaseEditor):
                 m = lib_inc_regex.match(line)
                 if m:  # If it is a library include
                     lib = m.group(2)
-                    if os.path.exists(lib):
-                        # TODO: this is geared towards LTspice ("/sub"). We should have a more general way to find the sub-circuit
-                        # find the file
-                        for path in self.simulator_lib_paths:
-                            lib_filename = os.path.join(path, "sub", lib)
-                            if os.path.exists(lib_filename):
-                                sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
-                                if sub_circuit:
-                                    break
-
-                    for path in self.custom_lib_paths:
-                        lib_filename = os.path.join(path, lib)
-                        if os.path.exists(lib_filename):
-                            sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
-                            if sub_circuit:
-                                break
+                    lib_filename = search_file_in_containers(lib,
+                                                             os.path.split(self.circuit_file)[0],  # The directory where the file is located
+                                                             os.path.curdir,  # The current script directory,
+                                                             *self.simulator_lib_paths,  # The simulator's library paths
+                                                             *self.custom_lib_paths)  # The custom library paths              
+                    if lib_filename:
+                        sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
+                        if sub_circuit:
+                            break
 
         if sub_circuit:
             if SUBCKT_DIVIDER in instance_name:

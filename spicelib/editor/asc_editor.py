@@ -563,10 +563,10 @@ class AscEditor(BaseSchematic):
         my_lib_paths = [os.path.join(x, "sub") for x in self.simulator_lib_paths]
         # find the file
         file_found = search_file_in_containers(filename, 
-                                               *self.custom_lib_paths,
                                                os.path.split(self.asc_file_path)[0],  # The directory where the file is located
                                                os.path.curdir,  # The current script directory,
                                                *my_lib_paths,  # The simulator's library paths, adapted for the occasion
+                                               *self.custom_lib_paths,
                                                os.path.expanduser("~/AppData/Local/Programs/ADI/LTspice/lib.zip")  # TODO: is this needed? This risk being outdated
                                                )
         return file_found
@@ -578,11 +578,11 @@ class AscEditor(BaseSchematic):
         # create list of directories to search, based on the simulator_lib_paths. Just add "/sym" to the path
         my_lib_paths = [os.path.join(x, "sym") for x in self.simulator_lib_paths]
         # find the file            
-        file_found = search_file_in_containers(filename,
-                                               *self.custom_lib_paths,
+        file_found = search_file_in_containers(filename, 
                                                os.path.split(self.asc_file_path)[0],  # The directory where the file is located
-                                               os.path.curdir,  # The current script directory
-                                               *my_lib_paths  # The simulator's library paths, adapted for the occasion
+                                               os.path.curdir,  # The current script directory,
+                                               *my_lib_paths,  # The simulator's library paths, adapted for the occasion
+                                               *self.custom_lib_paths
                                                )
         if file_found is not None:
             self.symbol_cache[filename] = file_found

@@ -21,15 +21,46 @@
 
 from pathlib import Path
 import logging
-_logger = logging.getLogger("spicelib.NGSpiceSimulator")
-
 from ..sim.simulator import Simulator, run_function
+import os
+import shutil
+
+_logger = logging.getLogger("spicelib.NGSpiceSimulator")
 
 
 class NGspiceSimulator(Simulator):
     """Stores the simulator location and command line options and runs simulations."""
-    spice_exe = ["C:/Apps/NGSpice64/bin/ngspice.exe"]
-    process_name = "ngspice.exe"
+    # Placed in order of preference. The first to be found will be used.
+    _spice_exe_paths = ["C:/Apps/NGSpice64/bin/ngspice.exe",  # Windows
+                        "C:/Spice64/ngspice.exe",  # Windows, older style
+                        "/usr/local/bin/ngspice",  # MacOS and linux
+                        "ngspice"  # linux, when in path
+                        ]
+    
+    # the default lib paths, as used by get_default_library_paths
+    # none
+    _default_lib_paths = []
+    
+    # defaults:
+    spice_exe = []
+    process_name = None      
+    
+    # determine the executable to use
+    for exe in _spice_exe_paths:
+        if exe.startswith("~"):
+            exe = os.path.expanduser(exe)
+        if os.path.exists(exe):
+            spice_exe = [exe]
+            process_name = Path(exe).name
+            break
+        else:
+            # check if file in path
+            full_exe = shutil.which(exe)
+            if full_exe:
+                spice_exe = [exe]
+                process_name = Path(exe).name  # under Windows, this will include the ".exe" extension, as wanted.
+                break
+    
     ngspice_args = {
         '-a'            : ['-a'],
         '--autorun'     : ['--autorun'],  # run the loaded netlist
@@ -103,3 +134,19 @@ class NGspiceSimulator(Simulator):
         cmd_run = cls.spice_exe + cmd_line_switches + ['-b'] + ['-o'] + [logfile] + ['-r'] + [rawfile] + [netlist_file]
         # start execution
         return run_function(cmd_run, timeout=timeout)
+    
+    #TODO: add compatibility mode. It has become mandatory in recent ngspice versions.
+    # A good default seems to be "kiltspa" (KiCad, LTspice, PSPICE, netlists)
+    # The following compatibility modes are available (as of mid 2024, ngspice v43):
+    # --------------------------------------
+    # | a   | complete netlist transformed
+    # | ps  | PSPICE compatibility
+    # | hs  | HSPICE compatibility
+    # | spe | Spectre compatibility
+    # | lt  | LTSPICE compatibility
+    # | s3  | Spice3 compatibility
+    # | ll  | all (currently not used)
+    # | ki  | KiCad compatibility
+    # | eg  | EAGLE compatibility
+    # | mc  | for ’make check’
+    # --------------------------------------
