@@ -35,6 +35,7 @@ if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
     def run_function(command, timeout=None, stdout=None, stderr=None):
         """Normalizing OS subprocess function calls between different platforms. This function is used for python 3.6
         and higher versions."""
+        _logger.debug(f"Running command: {command}, with timeout: {timeout}")
         result = subprocess.run(command, timeout=timeout, stdout=stdout, stderr=stderr)
         return result.returncode
 
@@ -42,6 +43,7 @@ else:
     def run_function(command, timeout=None, stdout=None, stderr=None):
         """Normalizing OS subprocess function calls between different platforms. This is the old function that was used
         for python version prior to 3.6"""
+        _logger.debug(f"Running command: {command}, with timeout: {timeout}")
         return subprocess.call(command, timeout=timeout, stdout=stdout, stderr=stderr)
 
 
@@ -129,20 +131,27 @@ class Simulator(ABC):
                 
         if plib_path_to_exe.exists() or shutil.which(plib_path_to_exe):
             if process_name is None:
-                if sys.platform == 'darwin':
-                    if "wine" in exe_parts[0]:
-                        # For MacOS wine, there will be no process called "wine". Use "wine-preloader"
-                        cls.process_name = "wine-preloader"
-                    else:
-                        cls.process_name = plib_path_to_exe.stem
-                else:
-                    cls.process_name = plib_path_to_exe.name
+                cls.process_name = cls.guess_process_name(cls.exe_parts[0])
             else:
                 cls.process_name = process_name
             cls.spice_exe = exe_parts
             return cls
         else:
             raise FileNotFoundError(f"Provided exe file was not found '{path_to_exe}'")
+        
+    @staticmethod
+    def guess_process_name(exe: str) -> str:
+        """Guess the process name based on the executable path"""
+        if not exe:
+            return ""
+        if sys.platform == 'darwin':
+            if "wine" in exe:
+                # For MacOS wine, there will be no process called "wine". Use "wine-preloader"
+                return "wine-preloader"
+            else:
+                return Path(exe).stem
+        else:
+            return Path(exe).name
 
     def __init__(self):
         raise SpiceSimulatorError("This class is not supposed to be instanced.")
