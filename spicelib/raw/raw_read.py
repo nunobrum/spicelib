@@ -394,7 +394,7 @@ class RawRead(object):
         else:
             raise RuntimeError("Unrecognized encoding")
         if self.verbose:
-            _logger.debug(f"Reading the file with encoding: '{self.encoding}' ")
+            _logger.debug(f"Reading the file with encoding: '{self.encoding}'")
         # Storing the filename as part of the dictionary
         self.raw_params = OrderedDict(Filename=raw_filename)  # Initializing the dict that contains all raw file info
         self.backannotations = []  # Storing backannotations
@@ -437,7 +437,12 @@ class RawRead(object):
         self.nVariables = int(self.raw_params['No. Variables'], 10)
 
         has_axis = self.raw_params['Plotname'] not in ('Operating Point', 'Transfer Function',)
-        reading_qspice = 'QSPICE' in self.raw_params['Command']
+        
+        reading_ltspice = 'Command' in self.raw_params and 'ltspice' in self.raw_params['Command'].lower()
+        reading_qspice = 'Command' in self.raw_params and 'qspice' in self.raw_params['Command'].lower()
+        reading_ngspice = 'Command' in self.raw_params and 'ngspice' in self.raw_params['Command'].lower()  # this is not reliable, it sometimes does not have "command"
+        # TODO: make sure I cover xyce
+        
         self._traces = []
         self.steps = None
         self.axis = None  # Creating the axis
@@ -447,9 +452,10 @@ class RawRead(object):
         else:
             if reading_qspice:  # QSPICE uses doubles for everything
                 numerical_type = 'double'
-
-            elif "double" in self.raw_params['Flags']: # Ltspice: .options numdgt = 7 sets this flag for double precision
-                numerical_type = 'double'               
+            elif reading_ngspice or not (reading_ltspice or reading_qspice):  # ngspice probably. Uses doubles.
+                numerical_type = 'double'
+            elif reading_ltspice and "double" in self.raw_params['Flags']:  # LTspice: .options numdgt = 7 sets this flag for double precision
+                numerical_type = 'double'
             else:
                 numerical_type = 'real'
         i = header.index('Variables:')
@@ -488,9 +494,7 @@ class RawRead(object):
             return
 
         if self.verbose:
-            _logger.info("File contains {} traces, reading {}".format(ivar,
-                                                                      len([trace for trace in self._traces
-                                                                           if not isinstance(trace, DummyTrace)])))
+            _logger.info(f"File contains {ivar} traces, reading {len([trace for trace in self._traces if not isinstance(trace, DummyTrace)])}.")
 
         if self.raw_type == "Binary:":
             # Will start the reading of binary values
@@ -525,8 +529,7 @@ class RawRead(object):
                 scan_functions.append(fun)
             if calc_block_size != self.block_size:
                 raise RuntimeError(
-                    "Error in calculating the block size. Expected {} bytes, but found {} bytes".format(
-                        calc_block_size, self.block_size))
+                    f"Error in calculating the block size. Expected {calc_block_size} bytes, but found {self.block_size} bytes. ")
 
             if "fastaccess" in self.raw_params["Flags"]:
                 if self.verbose:
@@ -603,7 +606,7 @@ class RawRead(object):
             try:
                 self._load_step_information(raw_filename)
             except SpiceReadException as err:
-                _logger.warning(str(err) + "\nError in auto-detecting steps in '%s'" % raw_filename)
+                _logger.warning(f"{str(err)}\nError in auto-detecting steps in '{raw_filename}'")
                 if has_axis:
                     number_of_steps = 0
                     for v in self.axis.data:
@@ -796,7 +799,7 @@ class RawRead(object):
                     step_dict = {}
                     step = int(match.group(1))
                     stepset = match.group(2)
-                    _logger.debug(f"Found step {step} with stepset {stepset}")
+                    _logger.debug(f"Found step {step} with stepset {stepset}.")
 
                     tokens = stepset.strip('\r\n').split(' ')
                     for tok in tokens:
@@ -865,7 +868,7 @@ class RawRead(object):
         :param columns: List of traces to use as columns. Default is all traces
         :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
-        :type kwargs: \*\*dict
+        :type kwargs: **dict
         :return: A pandas DataFrame
         :rtype: pandas.DataFrame
         """
@@ -967,7 +970,7 @@ class RawRead(object):
         :param step: Step number to retrieve. If not given, it
         :type step: int
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
-        :type kwargs: \*\*dict
+        :type kwargs: **dict
         """
         try:
             import pandas as pd
