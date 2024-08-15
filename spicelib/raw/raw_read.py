@@ -435,6 +435,8 @@ class RawRead(object):
                 self.raw_params[k] = v.strip()
         self.nPoints = int(self.raw_params['No. Points'], 10)
         self.nVariables = int(self.raw_params['No. Variables'], 10)
+        if self.nPoints == 0 or self.nVariables == 0:
+            raise RuntimeError(f"Invalid RAW file. No points or variables found: Points: {self.nPoints}, Variables: {self.nVariables}.")
 
         has_axis = self.raw_params['Plotname'] not in ('Operating Point', 'Transfer Function',)
         
@@ -461,7 +463,11 @@ class RawRead(object):
         i = header.index('Variables:')
         ivar = 0
         for line in header[i + 1:-1]:  # Parse the variable names
-            idx, name, var_type = line.lstrip().split('\t')
+            line_elmts = line.lstrip().split('\t')
+            if len(line_elmts) < 3:
+                raise RuntimeError(f"Invalid line in the Variables section: {line}")
+            name = line_elmts[1]
+            var_type = line_elmts[2]
             if ivar == 0:  # If it has an axis, it should be always read
                 if numerical_type == 'real':
                     axis_numerical_type = 'double'  # It's weird, but LTSpice uses double for the first variable in .OP
@@ -525,7 +531,7 @@ class RawRead(object):
 
                 else:
                     raise RuntimeError(
-                        "Invalid data type {} for trace {}".format(trace.numerical_type, trace.name))
+                        f"Invalid data type {trace.numerical_type} for trace {trace.name}")
                 scan_functions.append(fun)
             if calc_block_size != self.block_size:
                 raise RuntimeError(
