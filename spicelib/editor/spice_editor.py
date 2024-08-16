@@ -92,8 +92,8 @@ REPLACE_REGEXS = {
     # This implementation replaces everything after the 2 first nets
     'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Current Controlled Switch
     # This implementation replaces everything after the 2 first nets
-    'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99}?)\s+(?P<value>\w+)"
-         r"(\s+params:)?" + PARAM_RGX + ".*$",
+    'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>\w+)"
+         r"(\s+params:)?" + PARAM_RGX + "\\?$",
     # Sub-circuit
     'Z': r"^(?P<designator>Z§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+).*$",
     # MESFET and IBGT. TODO: Parameters substitution not supported
