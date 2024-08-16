@@ -1,9 +1,9 @@
 import os
 from spicelib.editor import SpiceEditor
 
-E = SpiceEditor('testfiles\\spice_edit_test.net')
+E = SpiceEditor('testfiles/spice_edit_test.net')
 print("Circuit Nodes", E.get_all_nodes())
-E.add_library_search_paths([r"C:\SVN\Electronic_Libraries\LTSpice\lib"])
+E.set_custom_library_paths([r"C:\SVN\Electronic_Libraries\LTSpice\lib"])
 print(E.get_components())
 print(E.get_components('R'))
 print(E.get_subcircuit('XX1').get_components())
@@ -32,4 +32,4 @@ E.set_parameters(
     test_exiting_param_set3=26,
     test_exiting_param_set4=27,
     test_add_parameter=34.45, )
-E.save_netlist("testfiles\\spice_edit_test_edit.net")
+E.save_netlist("testfiles/spice_edit_test_edit.net")

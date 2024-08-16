@@ -27,7 +27,9 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
 
 from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
+from ..utils.file_search import search_file_in_containers
 from ..log.logfile_data import try_convert_value
+from ..simulators.ltspice_simulator import LTspice
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 
@@ -132,7 +134,10 @@ component_replace_regexs = {prefix: re.compile(pattern, re.IGNORECASE) for prefi
 subckt_regex = re.compile(r"^.SUBCKT\s+(?P<name>\w+)", re.IGNORECASE)
 lib_inc_regex = re.compile(r"^\.(LIB|INC)\s+(.*)$", re.IGNORECASE)
 
-LibSearchPaths = []
+# This is deprecated, and here only so that people can find it. 
+# It is replaced by SpiceEditor.set_custom_library_paths().
+# Since I cannot keep it operational easily, I do not use the deprecated decorator or the magic from https://stackoverflow.com/a/922693.
+# LibSearchPaths = []
 
 
 def get_line_command(line) -> str:
@@ -206,6 +211,10 @@ class SpiceCircuit(BaseEditor):
     them, it serves as base for the top level netlist. This hierarchical approach helps to encapsulate
     and protect parameters and components from edits made at a higher level.
     """
+    
+    # initialise the simulator_lib_paths with typical locations found for LTspice
+    # you can (and should, if you use wine or use anything else than LTspice), with `prepare_for_simulator()`
+    simulator_lib_paths = LTspice.get_default_library_paths()    
 
     def __init__(self):
         super().__init__()
@@ -287,7 +296,6 @@ class SpiceCircuit(BaseEditor):
         :raises UnrecognizedSyntaxError: when an spice command is not recognized by spicelib
         :raises ComponentNotFoundError: When the reference was not found
         """
-        global LibSearchPaths
         if SUBCKT_DIVIDER in instance_name:
             subckt_ref, sub_subckts = instance_name.split(SUBCKT_DIVIDER, 1)
         else:
@@ -317,18 +325,15 @@ class SpiceCircuit(BaseEditor):
                 m = lib_inc_regex.match(line)
                 if m:  # If it is a library include
                     lib = m.group(2)
-                    if os.path.exists(lib):
-                        lib_filename = os.path.join(os.path.expanduser('~'), "Documents/LTspiceXVII/lib/sub", lib)
-                        if os.path.exists(lib_filename):
-                            sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
-                            if sub_circuit:
-                                break
-                    for path in LibSearchPaths:
-                        lib_filename = os.path.join(path, lib)
-                        if os.path.exists(lib_filename):
-                            sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
-                            if sub_circuit:
-                                break
+                    lib_filename = search_file_in_containers(lib,
+                                                             os.path.split(self.circuit_file)[0],  # The directory where the file is located
+                                                             os.path.curdir,  # The current script directory,
+                                                             *self.simulator_lib_paths,  # The simulator's library paths
+                                                             *self.custom_lib_paths)  # The custom library paths              
+                    if lib_filename:
+                        sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
+                        if sub_circuit:
+                            break
 
         if sub_circuit:
             if SUBCKT_DIVIDER in instance_name:
@@ -767,21 +772,18 @@ class SpiceCircuit(BaseEditor):
     @staticmethod
     def add_library_search_paths(paths: Union[str, List[str]]) -> None:
         """
+        *(Deprecated)* Use the class method `set_custom_library_paths()` instead.
+        
         Adds search paths for libraries. By default, the local directory and the
         ~username/"Documents/LTspiceXVII/lib/sub will be searched forehand. Only when a library is not found in these
         paths then the paths added by this method will be searched.
-        Alternatively spicelib.SpiceEditor.LibSearchPaths.append(paths) can be used."
 
         :param paths: Path to add to the Search path
         :type paths: str
         :return: Nothing
         :rtype: None
         """
-        global LibSearchPaths
-        if isinstance(paths, str):
-            LibSearchPaths.append(paths)
-        elif isinstance(paths, list):
-            LibSearchPaths += paths
+        SpiceCircuit.set_custom_library_paths(paths)
 
     def get_all_nodes(self) -> List[str]:
         """

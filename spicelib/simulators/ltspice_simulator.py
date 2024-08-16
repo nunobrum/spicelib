@@ -21,7 +21,7 @@
 import sys
 import os
 
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Union
 import logging
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
@@ -37,20 +37,25 @@ class LTspice(Simulator):
     # windows paths (that are also valid for wine)
     # Please note that os.path.expanduser and os.path.join are sensitive to the style of slash.
     # Placed in order of preference. The first to be found will be used.
-    spice_exe_win_paths = [r"~\AppData\Local\Programs\ADI\LTspice\LTspice.exe",
-                           r"~\Local Settings\Application Data\Programs\ADI\LTspice\LTspice.exe",
-                           r"C:\Program Files\ADI\LTspice\LTspice.exe",
-                           r"C:\Program Files\LTC\LTspiceXVII\XVIIx64.exe",
-                           r"C:\Program Files (x86)\LTC\LTspiceIV\scad3.exe"
-                           ]
+    _spice_exe_win_paths = ["~/AppData/Local/Programs/ADI/LTspice/LTspice.exe",
+                            "~/Local Settings/Application Data/Programs/ADI/LTspice/LTspice.exe",
+                            "C:/Program Files/ADI/LTspice/LTspice.exe",
+                            "C:/Program Files/LTC/LTspiceXVII/XVIIx64.exe",
+                            "C:/Program Files (x86)/LTC/LTspiceIV/scad3.exe"
+                            ]
+    
+    # the default lib paths, as used by get_default_library_paths
+    _default_lib_paths = ["~/AppData/Local/LTspice/lib",
+                          "~/Documents/LtspiceXVII/lib/",
+                          "~/Local Settings/Application Data/LTspice/lib"]
+    
+    # defaults:
+    spice_exe = []
+    process_name = None       
     
     if sys.platform == "linux" or sys.platform == "darwin":
         # Linux: look for wine and ltspice under wine.
         # MacOS: give preference to wine. If not found: look for native LTspice
-        
-        # defaults:
-        spice_exe = []
-        process_name = None        
         
         # Anything specified in environment variables?
         spice_folder = os.environ.get("LTSPICEFOLDER")
@@ -71,19 +76,18 @@ class LTspice(Simulator):
         else:
             # This is still "linux or darwin"
             # no environment variables was given. Do a search.
-            for exe in spice_exe_win_paths:
+            for exe in _spice_exe_win_paths:
                 # make the file path wine compatible
                 # Note that wine also accepts paths like 'C:\users\myuser\...'.
                 # BUT, if I do that, I would not be able to check for the presence of the exe.
                 # So: expand everything.                 
                 # Linux would use this: 
-                #    '/home/myuser/.wine/drive_c/users/myuser/AppData/...'  for spice_exe_win_paths[0]
-                # or '/home/myuser/.wine/drive_c/Program Files/...'         for spice_exe_win_paths[2]
+                #    '/home/myuser/.wine/drive_c/users/myuser/AppData/...'  for _spice_exe_win_paths[0]
+                # or '/home/myuser/.wine/drive_c/Program Files/...'         for _spice_exe_win_paths[2]
                 # MacOS would use this: 
-                #    '/Users/myuser/.wine/drive_c/users/myuser/AppData/...' for spice_exe_win_paths[0]    
-                # or '/Users/myuser/.wine/drive_c/Program Files/...'        for spice_exe_win_paths[2]  
-                # Note that in the user path versions (spice_exe_win_paths[0] and [1]), I have 2 expansions of the user name.
-                exe = PureWindowsPath(exe).as_posix()   # make os.path.expanduser and os.path.join work
+                #    '/Users/myuser/.wine/drive_c/users/myuser/AppData/...' for _spice_exe_win_paths[0]    
+                # or '/Users/myuser/.wine/drive_c/Program Files/...'        for _spice_exe_win_paths[2]  
+                # Note that in the user path versions (_spice_exe_win_paths[0] and [1]), I have 2 expansions of the user name.
                 if exe.startswith("~"):
                     exe = "C:/users/" + os.path.expandvars("${USER}" + exe[1:])
                 # Now I have a "windows" path (but with forward slashes). Make it into a path under wine.
@@ -91,42 +95,34 @@ class LTspice(Simulator):
                 
                 if os.path.exists(exe):
                     spice_exe = ["wine", exe]
-                    # process_name is used for kill_all_spice()
-                    if sys.platform == "darwin":
-                        # For MacOS wine, there will be no process called "wine". Use "wine-preloader"
-                        process_name = "wine-preloader"
-                    else:
-                        process_name = Path(exe).name  
                     # Note that one easy method of killing a wine process is to run "wineserver -k", 
                     # but we kill via psutil....kill(), as that would also fit non-wine executions.
                     
                     break
             else:
                 # The else block will not be executed if the loop is stopped by a break statement.
-                # in case of MacOS, try the native LTspice
+                # in case of MacOS, try the native LTspice as last resort
                 if sys.platform == "darwin":
                     exe = '/Applications/LTspice.app/Contents/MacOS/LTspice'
                     if os.path.exists(exe):
                         spice_exe = [exe]
-                        process_name = "LTspice"
                                 
     else:  # Windows (well, also aix, wasi, emscripten,... where it will fail.)
-        for exe in spice_exe_win_paths:
+        for exe in _spice_exe_win_paths:
             if exe.startswith("~"):
-                # expand here, as I use spice_exe_win_paths also for linux, and expanding earlier will fail
+                # expand here, as I use _spice_exe_win_paths also for linux, and expanding earlier will fail
                 exe = os.path.expanduser(exe)
             if os.path.exists(exe):
                 spice_exe = [exe]
-                process_name = Path(exe).name
                 break
             
     # fall through        
     if len(spice_exe) == 0:
         spice_exe = []
         process_name = None
-        _logger.warning("LTspice executable not found. Please install LTspice from Analog Devices.")
     else:
-        _logger.debug(f"Using LTspice installed under wine in : '{spice_exe}' ")
+        process_name = Simulator.guess_process_name(spice_exe[0])
+        _logger.debug(f"Found LTspice installed in: '{spice_exe}' ")
 
     ltspice_args = {
         'alt'                : ['-alt'],  # Set solver to Alternate.
@@ -241,8 +237,6 @@ class LTspice(Simulator):
         :return: return code from the process
         :rtype: int
         """
-        netlist_file = Path(netlist_file)
-        
         if not cls.spice_exe:
             _logger.error("================== ALERT! ====================")
             _logger.error("Unable to find a LTspice executable.")
@@ -250,6 +244,13 @@ class LTspice(Simulator):
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
             raise SpiceSimulatorError("Simulator executable not found.")
+        
+        if cmd_line_switches is None:
+            cmd_line_switches = []
+        elif isinstance(cmd_line_switches, str):
+            cmd_line_switches = [cmd_line_switches]
+        netlist_file = Path(netlist_file)        
+        
         if sys.platform == "linux" or sys.platform == "darwin":
             if cls.using_macos_native_sim():
                 # native MacOS simulator, which has its limitations

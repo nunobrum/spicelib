@@ -94,9 +94,10 @@ def convert_asc_to_qsch(asc_file, qsch_file, search_paths=[]):
         if symbol_tag is None:
             # Will try to get it from the sym folder
             print(f"Searching for symbol {comp.symbol}...")
+            # TODO: this should use the default locations from AscEditor, and use search_file_in_containers, just like AscEditor does.
             for sym_root in search_paths + [
                 # os.path.curdir,  # The current script directory
-                os.path.split(asc_file)[0],  # The directory where the scrip is located
+                os.path.split(asc_file)[0],  # The directory where the script is located
                 os.path.expanduser("~/AppData/Local/LTspice/lib/sym"),
                 os.path.expanduser("~/Documents/LtspiceXVII/lib/sym"),
                 # os.path.expanduser(r"~\AppData\Local\Programs\ADI\LTspice\lib.zip"), # TODO: implement this

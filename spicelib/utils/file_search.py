@@ -19,10 +19,13 @@
 # -------------------------------------------------------------------------------
 import os
 import zipfile
-
+from typing import Optional
+import logging
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
+
+_logger = logging.getLogger("spicelib.Utils")
 
 
 def find_file_in_directory(directory, filename):
@@ -42,14 +45,20 @@ def find_file_in_directory(directory, filename):
     return None
 
 
-def search_file_in_containers(filename, *containers):
+def search_file_in_containers(filename, *containers) -> Optional[str]:
     """
     Searches for a file with the given filename in the specified containers.
     Returns the path to the file if found, or None if not found.
-
+    
+    :param filename: file name to search (posix string)
+    :type filename: str
+    :param containers: list of paths to search in (posix strings)
+    :type containers: List[str]
+    :return: path to the file if found, or None if not found.
+    :rtype: Optional[str]
     """
     for container in containers:
-        # print(f"Searching for {filename} in {os.path.abspath(container)}")
+        _logger.debug(f"Searching for '{filename}' in '{container}'")
         if os.path.exists(container):  # Skipping invalid paths
             if container.endswith('.zip'):
                 # Search in zip files
@@ -61,9 +70,11 @@ def search_file_in_containers(filename, *containers):
                             temp_dir = os.path.join('.', 'spice_lib_temp')
                             if not os.path.exists(temp_dir):
                                 os.makedirs(temp_dir)
+                            _logger.debug(f"Found. Extracting '{filefound}' from the zip file to '{temp_dir}'")
                             return zip_ref.extract(filefound, path=temp_dir)
             else:
-                file_found = find_file_in_directory(container, filename)
-                if file_found is not None:
-                    return file_found
+                filefound = find_file_in_directory(container, filename)
+                if filefound is not None:
+                    _logger.debug(f"Found '{filefound}'")
+                    return filefound
     return None

@@ -22,10 +22,11 @@ import sys
 import os
 
 from pathlib import Path
+from typing import Union
 import logging
-_logger = logging.getLogger("spicelib.QSpiceSimulator")
-
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
+
+_logger = logging.getLogger("spicelib.QSpiceSimulator")
 
 
 class Qspice(Simulator):
@@ -33,28 +34,44 @@ class Qspice(Simulator):
     simulations."""
     raw_extension = '.qraw'  # In QSPICE all traces have double precision. This means that qraw files are not compatible
     # with LTSPICE
+    
+    # windows paths (that are also valid for wine)
+    # Please note that os.path.expanduser and os.path.join are sensitive to the style of slash.
+    # Placed in order of preference. The first to be found will be used.
+    _spice_exe_win_paths = ["~/Qspice/QSPICE64.exe",
+                            "~/AppData/Local/Programs/Qspice/QSPICE64.exe",
+                            "C:/Program Files/QSPICE/QSPICE64.exe"]
+    
+    # the default lib paths, as used by get_default_library_paths
+    _default_lib_paths = ["C:/Program Files/QSPICE",
+                          "~/Documents/QSPICE"]
 
     """Searches on the any usual locations for a simulator"""
-    if sys.platform == "linux":
+    # defaults:
+    spice_exe = []
+    process_name = None  
+        
+    if sys.platform == "linux" or sys.platform == "darwin":
+        # status mid 2024: Qspice has limited support for running under linux+wine, and none for MacOS+wine
+        # TODO: when the situation gets more mature, add support for wine. See LTspice for an example.
         spice_exe = []
-        _logger.warning("QSPICE is not available for Linux")
-    elif sys.platform == "darwin":
-        spice_exe = []
-        _logger.warning("QSPICE is not available for MacOS")
-    else:  # Windows
-        for exe in (  # Placed in order of preference. The first to be found will be used.
-                os.path.expanduser(r"~\AppData\Local\Programs\Qspice\QSPICE64.exe"),
-                r"C:\Program Files\QSPICE\QSPICE64.exe",
-        ):
+        process_name = None
+    else:  # Windows (well, also aix, wasi, emscripten,... where it will fail.)
+        for exe in _spice_exe_win_paths:
+            if exe.startswith("~"):
+                # expand here, as I use _spice_exe_win_paths also for linux, and expanding earlier will fail
+                exe = os.path.expanduser(exe)
             if os.path.exists(exe):
-                _logger.debug(f"Using Qspice installed in : '{exe}' ")
                 spice_exe = [exe]
-                break
-        else:
-            spice_exe = []
-            _logger.warning("QSPICE not found in the usual locations. Please install it and try again.")
+                break        
 
-        process_name = "QSPICE64.exe"
+    # fall through        
+    if len(spice_exe) == 0:
+        spice_exe = []
+        process_name = None
+    else:
+        process_name = Simulator.guess_process_name(spice_exe[0])        
+        _logger.debug(f"Found Qspice installed in: '{spice_exe}' ")
 
     qspice_args = {
         'ASCII'     : ['-ASCII'],  # Use ASCII file format for the output data(.qraw) file.
@@ -105,7 +122,24 @@ class Qspice(Simulator):
             raise ValueError("Invalid switch for class ")
 
     @classmethod
-    def run(cls, netlist_file, cmd_line_switches, timeout):
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None):
+        """Executes a Qspice simulation run.
+
+        :param netlist_file: path to the netlist file
+        :type netlist_file: Union[str, Path]
+        :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
+        :type cmd_line_switches: list, optional
+        :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
+        :type timeout: float, optional
+        :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), and an existing file object with a valid file descriptor. With the default settings of None, no redirection will occur. 
+        :type stdout: _FILE, optional
+        :param stderr: Like stdout, but affecting the command's error output.
+        :type stderr: _FILE, optional
+        :raises SpiceSimulatorError: when the executable is not found.
+        :raises NotImplementedError: when the requested execution is not possible on this platform.
+        :return: return code from the process
+        :rtype: int
+        """
         if not cls.spice_exe:
             _logger.error("================== ALERT! ====================")
             _logger.error("Unable to find the QSPICE executable.")
@@ -113,7 +147,14 @@ class Qspice(Simulator):
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
             raise SpiceSimulatorError("Simulator executable not found.")
+        
+        if cmd_line_switches is None:
+            cmd_line_switches = []
+        elif isinstance(cmd_line_switches, str):
+            cmd_line_switches = [cmd_line_switches]
+        netlist_file = Path(netlist_file)
+                
         log_file = Path(netlist_file).with_suffix('.log').as_posix()
         cmd_run = cls.spice_exe + ['-o', log_file] + [netlist_file] + cmd_line_switches
         # start execution
-        return run_function(cmd_run, timeout=timeout)
+        return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
