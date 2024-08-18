@@ -19,6 +19,7 @@
 # -------------------------------------------------------------------------------
 
 import os
+import re
 import sys
 import unittest
 
@@ -27,6 +28,7 @@ sys.path.append(
 
 import spicelib
 from spicelib.editor.base_editor import to_float
+from spicelib.editor.spice_editor import component_replace_regexs
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
@@ -34,6 +36,26 @@ temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else '.
 
 if not os.path.exists(temp_dir):
     os.mkdir(temp_dir)
+
+
+def check_value(test, regex, line, value, msg=None):
+    r = regex.match(line)
+    test.assertIsNotNone(r, "Accepted regex")
+    value_str = r.group('value')
+    if isinstance(value, str):
+        value_test = value_str
+    else:
+        try:
+            value_test = to_float(value_str)
+        except ValueError:
+            value_test = value_str
+    if msg is None:
+        msg = f"Pass {value} for {line}"
+
+    if isinstance(value_test, float):
+        test.assertAlmostEqual(value_test, value, 6, msg)
+    else:
+        test.assertEqual(value_test, value, msg)
 
 
 class SpiceEditor_Test(unittest.TestCase):
@@ -98,35 +120,97 @@ class SpiceEditor_Test(unittest.TestCase):
         for i, lines in enumerate(zip(lines1, lines2)):
             self.assertEqual(lines[0], lines[1], "Line %d" % i)
 
-    def test_regexes(self):
+    def test_resistors(self):
         """Validates the RegEx expressions on the Spice Editor file"""
-        from spicelib.editor.spice_editor import component_replace_regexs
-        from spicelib.editor.base_editor import scan_eng
+
         # Resistors
         regex_r = component_replace_regexs['R']
         self.assertIsNone(regex_r.match('X12 N1 N2 10k'), "Invalid prefix")
 
-        def check_value(regex, line, value, msg=None):
-            r = regex_r.match(line)
-            self.assertIsNotNone(r, "Accepted regex")
-            value_str = r.group('value')
-            if isinstance(value, str):
-                value_test = value_str
-            else:
-                value_test = to_float(value_str, accept_invalid=False)
-            if msg:
-                self.assertEqual(value_test, value, msg)
-            else:
-                self.assertEqual(value_test, value, f"Pass {value} for {line}")
+        check_value(self, regex_r, "Rq N1 N2 10k", '10k')
+        check_value(self, regex_r, "Rq N1 N2 10R3", 10.3)
+        check_value(self, regex_r, "Rq N1 N2 10k5", 10500)
+        check_value(self, regex_r, "Rq N1 N2 10K6", 10600)
+        check_value(self, regex_r, "Rq N1 N2 11Meg", 11E6)
+        check_value(self, regex_r, "Rq N1 N2 10Meg5", 10.5e6)
+        check_value(self, regex_r, "Rq N1 N2 {param1 + Param2}", "{param1 + Param2}")
 
-        check_value(regex_r, "Rq N1 N2 10k", '10k')
-        check_value(regex_r, "Rq N1 N2 10R3", 10.3)
-        check_value(regex_r, "Rq N1 N2 10k5", 10500)
-        check_value(regex_r, "Rq N1 N2 10K6", 10600)
-        check_value(regex_r, "Rq N1 N2 11Meg", 11E6)
-        check_value(regex_r, "Rq N1 N2 10Meg5", 10.5e6)
-        check_value(regex_r, "Rq N1 N2 {param1 + Param2}", "{param1 + Param2}")
+    def test_capacitors(self):
+        regex_c = component_replace_regexs['C']
+        self.assertIsNone(regex_c.match('X12 N1 N2 10k'), "Invalid prefix")
 
+        check_value(self, regex_c, "C10 N1 N2 10u", 10e-6)
+        check_value(self, regex_c, "CX N1 N2 1U", 1e-6)
+        check_value(self, regex_c, "Cq N1 N2 1UF", 1e-6)
+        check_value(self, regex_c, "Cq N1 N2 120p", 12.0E-12)
+        check_value(self, regex_c, "Cq N1 N2 12pF", 12.0E-12)
+        check_value(self, regex_c, "Cq N1 N2 10.3E-9", 10.3E-9)
+        check_value(self, regex_c, "Cq N1 N2 12e-12", 1e-12)
+        check_value(self, regex_c, "Cq N1 N2 {param*2+3}", "{param*2+3}")
+
+    def test_inductors(self):
+        regex_l = component_replace_regexs['L']
+        self.assertIsNone(regex_l.match('X12 N1 N2 10k'), "Invalid prefix")
+
+        check_value(self, regex_l, "L1 N1 N2 10u", 10e-6)
+        check_value(self, regex_l, "L2 N1 N2 10uH", 10e-6)
+        check_value(self, regex_l, "L3 N1 N2 1U", 1e-6)
+        check_value(self, regex_l, "L4 N1 N2 15mH", 0.015)
+        check_value(self, regex_l, "LUN N1 N2 120nH", 120e-9)
+        check_value(self, regex_l, "L55 N1 N2 12n", 12.0e-9)
+        check_value(self, regex_l, "LA N1 N2 10.3E-9", 10.3e-9)
+        check_value(self, regex_l, "LABC N1 N2 12e-12", 1e-12)
+        check_value(self, regex_l, "LBCD N1 N2 {param*2+3}", "{param*2+3}")
+        self.assertEqual(regex_l.match('LBCD N1 N2 {param*2+3}').group('nodes'), " N1 N2",  "Tested Inductor Value")
+
+    def test_diodes(self):
+        regex_d = component_replace_regexs['D']
+        self.assertIsNone(regex_d.match('X12 N1 N2 10k'), "Invalid prefix")
+        self.assertEqual('1N4148',regex_d.match('D1 N1 N2 1N4148').group('value'),  "Tested Diode Value")
+        self.assertEqual('D', regex_d.match('D1 N1 N2 D').group('value'),  "Tested Diode Model")
+
+    def test_bipolar(self):
+        regex_q = component_replace_regexs['Q']
+        self.assertIsNone(regex_q.match('X12 N1 N2 10k'), "Invalid prefix")
+        self.assertEqual('2N3904', regex_q.match('Q1 N1 N2 N3 2N3904').group('value'), "Tested Transistor Value")
+        self.assertEqual('Q', regex_q.match('Q1 N1 N2 N3 Q').group('value'), "Tested Transistor Model")
+
+    def test_mosfets(self):
+        regex_m = component_replace_regexs['M']
+        self.assertIsNone(regex_m.match('X12 N1 N2 10k'), "Invalid prefix")
+        self.assertEqual('IRF540', regex_m.match('M1 N1 N2 N3 N4 IRF540').group('value'), "Tested MOSFET Value")
+        self.assertEqual('IRF540', regex_m.match('M1 N1 N2 N3 IRF540').group('value'), "Tested MOSFET Value")
+        self.assertEqual('M', regex_m.match('M1 N1 N2 N3 N4 M').group('value'), "Tested MOSFET Model")
+
+    def test_subcircuits(self):
+        regex_x = component_replace_regexs['X']
+        self.assertIsNone(regex_x.match('R1 N1 N2 10k'), "Invalid prefix")
+        self.assertEqual('SUB1', regex_x.match('X12 N1 N2 N3 SUB1').group('value'), "Tested Subcircuit Value")
+        self.assertEqual('SUB1', regex_x.match('X12 N1 N2 N3 N4 SUB1 x=123 y=4u').group('value'), "Tested Subcircuit Value")
+        self.assertEqual(' x=123 y=4u', regex_x.match('X12 N1 N2 N3 N4 SUB1 x=123 y=4u').group('params'), "Tested Subcircuit Parameters")
+        self.assertEqual(' N1 N2 N3 N4', regex_x.match('X12 N1 N2 N3 N4 SUB1 x=123 y=4u').group('nodes'), "Tested Subcircuit Ports")
+
+    def test_independent_sources(self):
+        regex_v = component_replace_regexs['V']
+        self.assertIsNone(regex_v.match('R1 N1 N2 10k'), "Invalid prefix")
+        self.assertEqual('2 AC 1', regex_v.match('V1 NC_08 NC_09 2 AC 1 Rser=3').group('value'), "Tested Voltage Source Value")
+        self.assertEqual(' Rser=3', regex_v.match('V1 NC_08 NC_09 2 AC 1 Rser=3').group('params'), "Tested Voltage Source Value")
+        self.assertEqual('PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0)',
+                         regex_v.match('V1 N1 N2 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) Rser=3 Cpar=4').group('value'), "Tested Voltage Source Value")
+        self.assertEqual(regex_v.match('V1 N001 0 5').group('value'), '5', "Tested Voltage Source Value")
+        self.assertEqual(regex_v.match('V1 N1 N2 5').group('value'), '5', "Tested Voltage Source Value")
+        self.assertEqual(regex_v.match('V1 N1 N2 5V').group('value'), '5V', "Tested Voltage Source Value")
+        self.assertEqual(regex_v.match('V1 N1 N2 {param}').group('value'), '{param}', "Tested Voltage Source Value")
+
+        regex_i = component_replace_regexs['I']
+        self.assertEqual('2 AC 1', regex_i.match('I1 NC_08 NC_09 2 AC 1 Rser=3').group('value'), "Tested Independent Current Source Value")
+        self.assertEqual(' Rser=3', regex_i.match('I1 NC_08 NC_09 2 AC 1 Rser=3').group('params'), "Tested Independent Current Source Value")
+        self.assertEqual('PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0)',
+                         regex_i.match('I1 N1 N2 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) Rser=3 Cpar=4').group('value'), "Tested Voltage Source Value")
+        self.assertEqual(regex_i.match('I1 N001 0 5').group('value'), '5', "Tested Independent Current Source Value")
+        self.assertEqual(regex_i.match('I1 N1 N2 5').group('value'), '5', "Tested Independent Current Source Value")
+        self.assertEqual(regex_i.match('I1 N1 N2 5V').group('value'), '5V', "Tested Independent Current Source Value")
+        self.assertEqual(regex_i.match('I1 N1 N2 {param}').group('value'), '{param}', "Tested Independent Current Source Value")
 
 if __name__ == '__main__':
     unittest.main()
