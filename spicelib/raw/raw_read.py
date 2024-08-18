@@ -442,8 +442,8 @@ class RawRead(object):
         
         reading_ltspice = 'Command' in self.raw_params and 'ltspice' in self.raw_params['Command'].lower()
         reading_qspice = 'Command' in self.raw_params and 'qspice' in self.raw_params['Command'].lower()
-        reading_ngspice = 'Command' in self.raw_params and 'ngspice' in self.raw_params['Command'].lower()  # this is not reliable, it sometimes does not have "command"
-        # TODO: make sure I cover xyce
+        reading_ngspice = 'Command' in self.raw_params and 'ngspice' in self.raw_params['Command'].lower()  # this will only work from ngspice 44 on. Older version do likely not have the "Command" line
+        # TODO: add xyce
         
         self._traces = []
         self.steps = None
@@ -454,7 +454,8 @@ class RawRead(object):
         else:
             if reading_qspice:  # QSPICE uses doubles for everything
                 numerical_type = 'double'
-            elif reading_ngspice or not (reading_ltspice or reading_qspice):  # ngspice probably. Uses doubles.
+            elif reading_ngspice or not (reading_ltspice or reading_qspice):  # ngspice uses doubles. 
+                # TODO: remove the last condition `or not (reading_ltspice or reading_qspice)` once ngspice 44+ is commonplace. Older versions did not print the command line
                 numerical_type = 'double'
             elif reading_ltspice and "double" in self.raw_params['Flags']:  # LTspice: .options numdgt = 7 sets this flag for double precision
                 numerical_type = 'double'
@@ -760,6 +761,9 @@ class RawRead(object):
         return self.axis.get_len(step)
 
     def _load_step_information(self, filename: Path):
+        if 'Command' not in self.raw_params:
+            # probably ngspice. Due to a lack of test data,  cannot (yet) create a correct implementation.
+            raise SpiceReadException("Unsupported simulator. Only LTspice and QSPICE are supported.")
         # Find the extension of the file
         # if it is an LTspice generated file, it should have a .log file with the same name
         if 'LTspice' in self.raw_params['Command']:
