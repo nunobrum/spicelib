@@ -762,13 +762,15 @@ class RawRead(object):
 
     def _load_step_information(self, filename: Path):
         if 'Command' not in self.raw_params:
-            # probably ngspice. Due to a lack of test data,  cannot (yet) create a correct implementation.
+            # probably ngspice before v44. And anyway, ngspice does not support the '.step' directive
+            # FYI: ngspice can do something like .step via a control section with while loop.
             raise SpiceReadException("Unsupported simulator. Only LTspice and QSPICE are supported.")
-        # Find the extension of the file
-        # if it is an LTspice generated file, it should have a .log file with the same name
-        if 'LTspice' in self.raw_params['Command']:
+        
+        if 'ltspice' in self.raw_params['Command'].lower():
+            # look in the .log file for information about the steps
             if filename.suffix != '.raw':
                 raise SpiceReadException("Invalid Filename. The file should end with '.raw'")
+            # it should have a .log file with the same name        
             logfile = filename.with_suffix(".log")
             try:
                 encoding = detect_encoding(logfile, "^(.*\n)?Circuit:")
@@ -790,9 +792,11 @@ class RawRead(object):
                         self.steps.append(step_dict)
             log.close()
 
-        elif 'QSPICE' in self.raw_params['Command']:
+        elif 'qspice' in self.raw_params['Command'].lower():
+            # look in the .log file for information about the steps
             if filename.suffix != '.qraw':
                 raise SpiceReadException("Invalid Filename. The file should end with '.qraw'")
+            # it should have a .log file with the same name        
             logfile = filename.with_suffix(".log")
             try:
                 log = open(logfile, 'r', errors='replace', encoding='utf-8')
