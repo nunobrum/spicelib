@@ -442,8 +442,11 @@ class RawRead(object):
         
         reading_ltspice = 'Command' in self.raw_params and 'ltspice' in self.raw_params['Command'].lower()
         reading_qspice = 'Command' in self.raw_params and 'qspice' in self.raw_params['Command'].lower()
-        reading_ngspice = 'Command' in self.raw_params and 'ngspice' in self.raw_params['Command'].lower()  # this will only work from ngspice 44 on. Older version do likely not have the "Command" line
+        reading_ngspice = 'Command' in self.raw_params and 'ngspice' in self.raw_params['Command'].lower()  # this will only work from ngspice 44 on. 
         # TODO: add xyce
+        
+        if not (reading_ltspice or reading_qspice):  # TODO: remove this section once ngspice 44+ is commonplace. Older versions did not print the 'Command' line
+            reading_ngspice = True
         
         self._traces = []
         self.steps = None
@@ -452,10 +455,7 @@ class RawRead(object):
         if 'complex' in self.raw_params['Flags'] or self.raw_params['Plotname'] == 'AC Analysis':
             numerical_type = 'complex'
         else:
-            if reading_qspice:  # QSPICE uses doubles for everything
-                numerical_type = 'double'
-            elif reading_ngspice or not (reading_ltspice or reading_qspice):  # ngspice uses doubles. 
-                # TODO: remove the last condition `or not (reading_ltspice or reading_qspice)` once ngspice 44+ is commonplace. Older versions did not print the command line
+            if reading_qspice or reading_ngspice:  # QSPICE and ngspice use doubles for everything
                 numerical_type = 'double'
             elif reading_ltspice and "double" in self.raw_params['Flags']:  # LTspice: .options numdgt = 7 sets this flag for double precision
                 numerical_type = 'double'
