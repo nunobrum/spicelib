@@ -210,9 +210,11 @@ simulation can be run from there.
 
 #### Windows, Linux and MacOS compatibility ####
 
-The LTspice class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
+The **LTspice** class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
 
-For the other simulators, linux support is coming.
+**NGSpice** runs natively under Windows, Linux and MacOS (via brew). This library works with NGSpice CLI, and tries to detect the correct executable path, no matter the platform. It cannot (yet) work with the shared library version of ngspice that is delivered with for example Kicad, you will need to install the CLI version. You can however use Kicad as the schema editor and subsequently save the ngspice netlist to use it with this library.
+
+For the other simulators, built-in Linux/MacOS support is coming, but you can always try to use it under Linux via setting of the executable paths.
 
 #### Executable and Library paths ####
 

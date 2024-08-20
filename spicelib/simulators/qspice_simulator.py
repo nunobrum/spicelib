@@ -122,7 +122,7 @@ class Qspice(Simulator):
             raise ValueError("Invalid switch for class ")
 
     @classmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None):
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None) -> int:
         """Executes a Qspice simulation run.
 
         :param netlist_file: path to the netlist file
