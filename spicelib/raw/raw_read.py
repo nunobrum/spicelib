@@ -773,7 +773,7 @@ class RawRead(object):
                 except UnicodeError:
                     raise SpiceReadException("Unable to parse log file '%s'" % logfile)    
                 except EncodingDetectError:
-                    raise SpiceReadException("Unable to parse raw file '%s'" % filename)           
+                    raise SpiceReadException("Unable to parse log file '%s'" % logfile)           
 
             for line in log:
                 if line.startswith(".step"):
