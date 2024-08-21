@@ -772,8 +772,7 @@ class SpiceCircuit(BaseEditor):
         :return: List of nodes
         :rtype: list
         """
-        nodes = self.get_component(reference).attributes['nodes']
-        nodes = nodes.split()  # Remove any spaces if they exist. This considers \r \n \t characters as well
+        nodes = self.get_component(reference).ports
         return nodes
 
     def get_components(self, prefixes='*') -> list:

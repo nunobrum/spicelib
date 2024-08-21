@@ -258,8 +258,8 @@ class Port:
 class SchematicComponent(Component):
     """Hols component information"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, line):
+        super().__init__(line)
         self.position: Point = Point(0, 0)
         self.rotation: ERotation = ERotation.R0
         self.symbol = None

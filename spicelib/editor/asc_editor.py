@@ -42,6 +42,20 @@ LTSPICE_PARAMETERS_REDUCED = ("SpiceLine", "SpiceLine2")
 LTSPICE_ATTRIBUTES = ("InstName", "Def_Sub")
 
 
+class AscComponent(SchematicComponent):
+
+    @property
+    def value_str(self):
+        if 'Value' in self.attributes:
+            return self.attributes['Value']
+        elif 'Value2' in self.attributes:
+            return self.attributes['Value2']
+        elif 'SpiceLine' in self.attributes:
+            return self.attributes['SpiceLine']
+        else:
+            return ""
+
+
 class AscEditor(BaseSchematic):
     """Class made to update directly the LTspice ASC files"""
     lib_paths = []  # This is a class variable, so it can be shared between all instances.
@@ -134,7 +148,7 @@ class AscEditor(BaseSchematic):
                     if component is not None:
                         assert component.reference is not None, "Component InstName was not given"
                         self.components[component.reference] = component
-                    component = SchematicComponent()
+                    component = SchematicComponent(line)
                     component.symbol = symbol
                     component.position.X = int(posX)
                     component.position.Y = int(posY)
@@ -145,6 +159,7 @@ class AscEditor(BaseSchematic):
                 elif line.startswith("WINDOW"):
                     assert component is not None, "Syntax Error: WINDOW clause without SYMBOL"
                     tag, num_ref, posX, posY, alignment, size = line.split()
+                    component.append(line)
                     coord = Point(int(posX), int(posY))
                     text = Text(coord=coord, text=num_ref, size=size, type=TextTypeEnum.ATTRIBUTE)
                     text = asc_text_align_set(text, alignment)
@@ -152,6 +167,7 @@ class AscEditor(BaseSchematic):
 
                 elif line.startswith("SYMATTR"):
                     assert component is not None, "Syntax Error: SYMATTR clause without SYMBOL"
+                    component.append(line)
                     tag, ref, text = line.split(maxsplit=2)
                     text = text.strip()  # Gets rid of the \n terminator
                     if ref == "InstName":

@@ -292,7 +292,8 @@ class Component(Primitive):
     def value(self, value):
         if isinstance(value, (int, float)):
             self.value_str = format_eng(value)
-        self.value_str = value
+        else:
+            self.value_str = value
 
     def __str__(self):
         return f"{self.reference} = {self.value}"
