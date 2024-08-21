@@ -22,7 +22,7 @@
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path, PureWindowsPath
-from typing import Optional, List
+from typing import Union, Optional, List
 import subprocess
 import os
 import logging
@@ -83,7 +83,7 @@ class Simulator(ABC):
     .. code-block:: python
         
         @classmethod
-        def run(cls, netlist_file, cmd_line_switches, timeout):
+        def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None):
             '''This method implements the call for the simulation of the netlist file. '''
             cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + [netlist_file] + cmd_line_switches
             return run_function(cmd_run, timeout=timeout)
@@ -158,7 +158,7 @@ class Simulator(ABC):
 
     @classmethod
     @abstractmethod
-    def run(cls, netlist_file, cmd_line_switches, timeout):
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None) -> int:
         """This method implements the call for the simulation of the netlist file. This should be overriden by its
         subclass."""
         raise SpiceSimulatorError("This class should be subclassed and this function should be overridden.")
