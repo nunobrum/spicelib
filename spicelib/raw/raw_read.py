@@ -773,22 +773,14 @@ class RawRead(object):
             # it should have a .log file with the same name        
             logfile = filename.with_suffix(".log")
             try:
-                encoding = detect_encoding(logfile, "^(.*\n)?Circuit:")
+                encoding = detect_encoding(logfile, r"^((.*\n)?Circuit:|([\s\S]*)--- Expanded Netlist ---)")
                 log = open(logfile, 'r', errors='replace', encoding=encoding)
             except OSError:
                 raise SpiceReadException("Log file '%s' not found" % logfile)
             except UnicodeError:
                 raise SpiceReadException("Unable to parse log file '%s'" % logfile)
             except EncodingDetectError:
-                try:
-                    encoding = detect_encoding(logfile, r"([\s\S]*)--- Expanded Netlist ---")
-                    log = open(logfile, 'r', errors='replace', encoding=encoding)
-                except OSError:
-                    raise SpiceReadException("Log file '%s' not found" % logfile)
-                except UnicodeError:
-                    raise SpiceReadException("Unable to parse log file '%s'" % logfile)    
-                except EncodingDetectError:
-                    raise SpiceReadException("Unable to parse log file '%s'" % logfile)           
+                raise SpiceReadException("Unable to parse log file '%s'" % logfile)           
 
             for line in log:
                 if line.startswith(".step"):
