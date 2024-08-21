@@ -217,7 +217,7 @@ from pathlib import Path
 from spicelib.log.logfile_data import try_convert_value
 
 from .raw_classes import Axis, TraceRead, DummyTrace, SpiceReadException
-from ..utils.detect_encoding import detect_encoding
+from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
 import numpy as np
 from numpy import zeros, complex128, float32, float64, frombuffer, angle
@@ -773,12 +773,14 @@ class RawRead(object):
             # it should have a .log file with the same name        
             logfile = filename.with_suffix(".log")
             try:
-                encoding = detect_encoding(logfile, "^(.*\n)?Circuit:")
+                encoding = detect_encoding(logfile, r"^((.*\n)?Circuit:|([\s\S]*)--- Expanded Netlist ---)")
                 log = open(logfile, 'r', errors='replace', encoding=encoding)
             except OSError:
                 raise SpiceReadException("Log file '%s' not found" % logfile)
             except UnicodeError:
                 raise SpiceReadException("Unable to parse log file '%s'" % logfile)
+            except EncodingDetectError:
+                raise SpiceReadException("Unable to parse log file '%s'" % logfile)           
 
             for line in log:
                 if line.startswith(".step"):
