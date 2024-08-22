@@ -135,6 +135,7 @@ class TextTypeEnum(enum.IntEnum):
 
 
 class LineStyle:
+    """Line style : width, color and pattern (dashed, dotted, etc...) """
     def __init__(self, width: str = "", color: str = "", pattern: str = ""):
         self.width: str = width
         self.color: str = color
@@ -256,10 +257,10 @@ class Port:
 
 
 class SchematicComponent(Component):
-    """Hols component information"""
+    """Holds component information"""
 
-    def __init__(self, line):
-        super().__init__(line)
+    def __init__(self, parent, line):
+        super().__init__(parent, line)
         self.position: Point = Point(0, 0)
         self.rotation: ERotation = ERotation.R0
         self.symbol = None
@@ -355,13 +356,11 @@ class BaseSchematic(BaseEditor):
         self.set_updated(reference)
 
     def add_component(self, component: SchematicComponent, **kwargs) -> None:
-        if component.reference in self.components:
-            # The component is already in the list, so we need to update it
-            comp = self.components[component.reference]
-        else:
-            comp = SchematicComponent()
-            comp.reference = component.reference
-        self.components[component.reference] = comp
+        self.components[component.reference] = component
+        component.parent = self
+        if kwargs:
+            # Update attributes
+            component.attributes.update(kwargs)
         self.updated = True
 
     def scale(self, offset_x, offset_y, scale_x, scale_y: float,

@@ -17,6 +17,7 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os.path
+from collections import OrderedDict
 from pathlib import Path
 from typing import Union, Optional, Tuple
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -46,14 +47,26 @@ class AscComponent(SchematicComponent):
 
     @property
     def value_str(self):
-        if 'Value' in self.attributes:
-            return self.attributes['Value']
-        elif 'Value2' in self.attributes:
-            return self.attributes['Value2']
-        elif 'SpiceLine' in self.attributes:
-            return self.attributes['SpiceLine']
-        else:
-            return ""
+        # if 'Value' in self.attributes:
+        #     return self.attributes['Value']
+        # elif 'Value2' in self.attributes:
+        #     return self.attributes['Value2']
+        # elif 'SpiceLine' in self.attributes:
+        #     return self.attributes['SpiceLine']
+        # else:
+        #     return ""
+        return self.parent.get_component_value(self.reference)
+
+    @value_str.setter
+    def value_str(self, value):
+        self.parent.set_component_value(self.reference, value)
+
+    @property
+    def params(self) -> OrderedDict:
+        return self.parent.get_component_parameters(self.reference)
+
+    def set_params(self, **param_dict):
+        self.parent.set_component_parameters(self.reference, **param_dict)
 
 
 class AscEditor(BaseSchematic):
@@ -148,7 +161,7 @@ class AscEditor(BaseSchematic):
                     if component is not None:
                         assert component.reference is not None, "Component InstName was not given"
                         self.components[component.reference] = component
-                    component = SchematicComponent(line)
+                    component = AscComponent(self, line)
                     component.symbol = symbol
                     component.position.X = int(posX)
                     component.position.Y = int(posY)

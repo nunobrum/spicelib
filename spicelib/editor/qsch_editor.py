@@ -544,7 +544,7 @@ class QschEditor(BaseSchematic):
                 raise RuntimeError(f"Missing texts in component at coordinates {component.get_attr(1)}")
             refdes = texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR)
             value = texts[QSCH_SYMBOL_TEXT_VALUE].get_attr(QSCH_TEXT_STR_ATTR)
-            sch_comp = SchematicComponent()
+            sch_comp = SchematicComponent(self, refdes)
             sch_comp.reference = refdes
             x, y = position = component.get_attr(QSCH_COMPONENT_POS)
             orientation = component.get_attr(QSCH_COMPONENT_ROTATION)

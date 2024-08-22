@@ -49,6 +49,7 @@ PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.]+)?)*)?"
 
 
 def VALUE_RGX(number_regex):
+    """Named Regex for a value or a formula."""
     return r"(?P<value>(?P<formula>{)?(?(formula).*}|" + number_regex + "))"
 
 
@@ -206,7 +207,7 @@ class SpiceComponent(Component):
 
     def __init__(self, parent, line_no):
         line = parent.netlist[line_no]
-        super().__init__(line)
+        super().__init__(parent, line)
         self.parent = parent
         self.update_attributes_from_line_no(line_no)
 
@@ -241,10 +242,10 @@ class SpiceComponent(Component):
         self.update_attributes_from_line_no(line_no)
 
     @property
-    def params(self):
+    def params(self) -> OrderedDict:
         self.update_from_reference()
         if 'params' not in self.attributes:
-            return {}
+            return OrderedDict()
         return self.attributes['params']
 
     def set_params(self, **kwargs):
@@ -290,8 +291,8 @@ class SpiceComponent(Component):
     def __getitem__(self, item):
         self.update_from_reference()
         try:
-            return super().__getattr__(item)
-        except AttributeError:
+            return super().__getitem__(item)
+        except KeyError:
             # If the attribute is not found, then it is a parameter
             return self.params[item]
 
@@ -397,6 +398,7 @@ class SpiceCircuit(BaseEditor):
             subckt_ref, sub_subckts = instance_name.split(SUBCKT_DIVIDER, 1)
         else:
             subckt_ref = instance_name
+            sub_subckts = None  # eliminating the code
 
         line_no = self.get_line_starting_with(subckt_ref)
         sub_circuit_instance = self.netlist[line_no]
@@ -429,7 +431,7 @@ class SpiceCircuit(BaseEditor):
                             if sub_circuit:
                                 break
                     for path in LibSearchPaths:
-                        lib_filename = os.path.join(path, lib)
+                        lib_filename = str(os.path.join(path, lib))
                         if os.path.exists(lib_filename):
                             sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
                             if sub_circuit:
@@ -494,7 +496,7 @@ class SpiceCircuit(BaseEditor):
         clone.netlist.insert(0, "***** SpiceEditor Manipulated this sub-circuit ****" + END_LINE_TERM)
         clone.netlist.append("***** ENDS SpiceEditor ****" + END_LINE_TERM)
         new_name = kwargs.get('new_name', None)
-        if new_name:  # If it is different from None
+        if new_name is not None:
             clone.setname(new_name)
         return clone
 
@@ -573,19 +575,12 @@ class SpiceCircuit(BaseEditor):
         line_no = self.get_line_starting_with(reference)
         return SpiceComponent(self, line_no)
 
-    def __getitem__(self, key):
-        """
-        This method allows the user to get the value of a component using the syntax:
-        component = circuit['R1']
-        """
-        return self.get_component(key)
-
     def __delitem__(self, key):
         """
         This method allows the user to delete a component using the syntax:
         del circuit['R1']
         """
-        self.delete_component(key)
+        self.remove_component(key)
 
     def __contains__(self, key):
         """
@@ -628,7 +623,6 @@ class SpiceCircuit(BaseEditor):
         """
         component = self.get_component(reference)
         return component.attributes.get(attribute, None)
-
 
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
@@ -741,7 +735,8 @@ class SpiceCircuit(BaseEditor):
 
             ValueError - In case the model format contains irregular characters
 
-            NotImplementedError - In case the circuit element is defined in a format which is not supported by this version.
+            NotImplementedError - In case the circuit element is defined in a format which is not supported by this
+            version.
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
@@ -815,8 +810,11 @@ class SpiceCircuit(BaseEditor):
         :param kwargs:
             The following keyword arguments are supported:
 
-            * **insert_before** (str) - The reference of the component before which the new component should be inserted.
+            * **insert_before** (str) - The reference of the component before which the new component should be
+            inserted.
+
             * **insert_after** (str) - The reference of the component after which the new component should be inserted.
+
         :return: Nothing
         """
         if 'insert_before' in kwargs:

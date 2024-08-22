@@ -77,8 +77,8 @@ class SpiceEditor_Test(unittest.TestCase):
         r1['Tc1'] = 0
         r1['Tc2'] = 0
         r1['pwr'] =None
-        self.assertEqual(r1['Tc1'], 0, "Tested R1 Tc1 Parameter")
-        self.assertEqual(r1['Tc2'], 0, "Tested R1 Tc2 Parameter")
+        self.assertEqual(r1.params['Tc1'], 0, "Tested R1 Tc1 Parameter")
+        self.assertEqual(r1.params['Tc2'], 0, "Tested R1 Tc2 Parameter")
         self.edt.save_netlist(temp_dir + 'test_components_output_2.net')
         self.equalFiles(temp_dir + 'test_components_output_2.net', golden_dir + 'test_components_output_2.net')
         r1_params = self.edt.get_component_parameters('R1')

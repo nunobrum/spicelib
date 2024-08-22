@@ -269,12 +269,12 @@ class Primitive(object):
 class Component(Primitive):
     """Holds component information"""
 
-    def __init__(self, line: str):
+    def __init__(self, parent, line: str):
         super().__init__(line)
         self.reference = ""
         self.attributes = OrderedDict()
         self.ports = []
-        self.parent = None
+        self.parent = parent
 
     @property
     def value_str(self):
@@ -294,6 +294,16 @@ class Component(Primitive):
             self.value_str = format_eng(value)
         else:
             self.value_str = value
+
+    @property
+    @abstractmethod
+    def params(self) -> OrderedDict:
+        # TODO: Use abstract decorator instead
+        raise NotImplemented("params needs to be overridden by a child class.")
+
+    def set_params(self, **param_dict):
+        # TODO: Use abstract decorator instead
+        raise NotImplemented("set_params needs to be overridden by a child class.")
 
     def __str__(self):
         return f"{self.reference} = {self.value}"
@@ -356,6 +366,10 @@ class BaseEditor(ABC):
         ...
 
     def __getitem__(self, item) -> Component:
+        """
+        This method allows the user to get the value of a component using the syntax:
+        component = circuit['R1']
+        """
         return self.get_component(item)
 
     def __setitem__(self, key, value):
