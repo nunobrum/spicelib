@@ -154,7 +154,8 @@ netlist = SpiceEditor('./testfiles/Batch_Test.net')
 netlist.set_parameters(res=0, cap=100e-6)
 netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
 netlist.set_component_value('R1', '4k')
-netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)  # Set component temperature, Tc 50ppm, remove power rating
+# Set component temperature, Tc 50ppm, remove power rating :
+netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)
 netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a define simulation
 netlist.add_instructions(
@@ -222,9 +223,11 @@ A large variety of standard paths are automatically detected. To see what paths 
 
 ```python
 runner = SimRunner(output_folder='./tmp', simulator=LTspice)
+# Show the executable path
 print(runner.simulator.spice_exe)
 print(runner.simulator.process_name)
-print(runner.simulator.get_default_library_paths())  # the default library paths of that simulator. This is deduced from `spice_exe`
+# Show the default library paths of that simulator. This is deduced from `spice_exe`
+print(runner.simulator.get_default_library_paths())
 ```
 
 If you want, you can set your own **executable paths**, via the two variables shown above:
@@ -255,14 +258,16 @@ class MySpiceInstallation(LTspice):
 
 runner = SimRunner(output_folder='./tmp', simulator=MySpiceInstallation)
 
-# OPTION 2: or via direct creation. If you do not specify the process_name, it will be guessed via `simulator.guess_process_name()`.
+# OPTION 2: or via direct creation. If you do not specify the process_name,
+# it will be guessed via `simulator.guess_process_name()`.
 runner = SimRunner(output_folder='./tmp', 
                    simulator=LTspice.create_from('wine /custompath/LTspice.exe')
                   )
 
 # ** Editor library paths
 
-# In case of non standard paths, or a change of the default simulator, it is preferred to inform your editor of it, so it can better guess the library paths. 
+# In case of non standard paths, or a change of the default simulator, it is preferred to
+# inform your editor of it, so it can better guess the library paths. 
 AscEditor.prepare_for_simulator(MySpiceInstallation)
 
 # You can also add your own library paths to the search paths
