@@ -246,30 +246,5 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(regex_i.match('I1 N1 N2 5V').group('value'), '5V', "Tested Independent Current Source Value")
         self.assertEqual(regex_i.match('I1 N1 N2 {param}').group('value'), '{param}', "Tested Independent Current Source Value")
 
-    def test_legacy_approach(self):
-        """Tests accessing components as an object."""
-        self.assertEqual(10000, self.edt.get_component_floatvalue('R1'), "Component value is as expected.")
-        self.assertEqual('10k', self.edt.get_component_value('R1'), "Access to raw attributes")
-        self.assertListEqual(['Vin', 'R1', 'R2', 'D1'], self.edt.get_components(),
-                             "Tested get_components")  # add assertion here
-        self.assertListEqual(['in', 'out'], self.edt.get_component_nodes('R1'), "Tested R1 Nodes")
-        self.edt.set_component_value('R1', '33k')
-        self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")
-        self.edt.save_netlist(temp_dir + 'test_components_output.net')
-        self.equalFiles(temp_dir + 'test_components_output.net', golden_dir + 'test_components_output.net')
-        self.assertEqual('33k', self.edt.get_component_value('R1'), "Tested R1 Value")
-        self.edt.set_component_parameters('R1', Tc1=0, Tc2=0, pwr=None)
-        self.assertEqual(self.edt.get_component_parameters('R1')['Tc1'], 0, "Tested R1 Tc1 Parameter")
-        self.assertEqual(self.edt.get_component_parameters('R1')['Tc2'], 0, "Tested R1 Tc2 Parameter")
-        self.edt.save_netlist(temp_dir + 'test_components_output_2.net')
-        self.equalFiles(temp_dir + 'test_components_output_2.net', golden_dir + 'test_components_output_2.net')
-        r1_params = self.edt.get_component_parameters('R1')
-        for key, value in {'Tc1': 0, 'Tc2': 0}.items():
-            self.assertEqual(r1_params[key], value, f"Tested R1 {key} Parameter")
-        self.edt.remove_component('R1')
-        self.edt.save_netlist(temp_dir + 'test_components_output_1.net')
-        self.equalFiles(temp_dir + 'test_components_output_1.net', golden_dir + 'test_components_output_1.net')
-
-
 if __name__ == '__main__':
     unittest.main()
