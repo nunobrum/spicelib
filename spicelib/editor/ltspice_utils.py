@@ -62,6 +62,7 @@ LT_ATTRIBUTE_NUMBERS = {
     'SpiceLine2': 40,
 }
 LT_ATTRIBUTE_NUMBERS_INV = {val: key for key, val in LT_ATTRIBUTE_NUMBERS.items()}
+# not used right now, LTSpice does not seem to support it
 WEIGHT_CONVERSION_TABLE = ('Thin', 'Normal', 'Thick')
 
 

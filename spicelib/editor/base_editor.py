@@ -24,8 +24,9 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from math import floor, log
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 import logging
+from ..sim.simulator import Simulator
 
 
 _logger = logging.getLogger("spicelib.BaseEditor")
@@ -320,6 +321,9 @@ class BaseEditor(ABC):
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
     """
+    custom_lib_paths = []  # This is a class variable, so it will be shared between all instances.
+    simulator_lib_paths = []  # This is a class variable, so it will be shared between all instances.
+    # TODO: implement setting of the simulator_lib_paths from init and from the outside.
 
     @property
     @abstractmethod
@@ -747,3 +751,50 @@ class BaseEditor(ABC):
         """
         for instruction in instructions:
             self.add_instruction(instruction)
+       
+    @classmethod     
+    def prepare_for_simulator(cls, simulator: Simulator) -> None:
+        """
+        Sets the library paths that should be correct for the simulator object. 
+        The simulator object should have had the executable path (spice_exe) set correctly.
+        
+        This is especially useful in 2 cases:
+        * when the simulator is running under wine, as it is difficult to detect 
+        the correct library paths in that case.
+        * when the editor can be used with different simulators, that have different library paths.
+        
+        Note:
+        * you can always also set the library paths manually via `set_custom_library_paths()`
+        * this method is a class method and will affect all instances of the class
+        
+        :param simulator: Simulator object from which the library paths will be taken.
+        :type simulator: Simulator
+        :returns: Nothing
+        """
+        if simulator is None:
+            raise NotImplementedError("The prepare_for_simulator method requires a simulator object")
+        cls.simulator_lib_paths = simulator.get_default_library_paths()
+        return
+    
+    @classmethod
+    def set_custom_library_paths(cls, paths: Union[str, List[str]]) -> None:
+        """
+        Set the given library search paths to the list of directories to search when needed.
+        It will delete any previous list of custom paths, but will not affect the default paths 
+        (be it from `init()` or from `prepare_for_simulator()`).
+        
+        Note that this method is a class method and will affect all instances of the class.
+
+        :param paths: Path(s) to add to the Search path
+        :type paths: Union[str, List[str]]
+        :return: Nothing
+        :rtype: None        
+        """
+        # empty the list
+        cls.custom_lib_paths = []
+        # and then fill it with the new paths
+        if isinstance(paths, str):
+            cls.custom_lib_paths.append(paths)
+        elif isinstance(paths, list):
+            cls.custom_lib_paths.extend(paths)        
+

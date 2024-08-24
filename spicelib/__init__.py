@@ -17,21 +17,27 @@ def all_loggers():
     :rtype: list[str]
     """
     return [
-        "spicelib.RunTask",
-        "spicelib.SimClient",
-        "spicelib.SimServer",
-        "spicelib.ServerSimRunner",
-        "spicelib.LTSteps",
-        "spicelib.RawRead",
-        "spicelib.LTSpiceSimulator",
-        "spicelib.NGSpiceSimulator",
-        "spicelib.QspiceSimulator",
-        "spicelib.SimRunner",
-        "spicelib.SimStepper",
-        "spicelib.SpiceEditor",
-        "spicelib.XYCESimulator",
-        "spicelib.SimBatch",
         "spicelib.AscEditor",
+        "spicelib.AsyReader",
+        "spicelib.BaseEditor",
+        "spicelib.BaseSchematic",
+        "spicelib.LTSpiceSimulator",
+        "spicelib.LTSteps",
+        "spicelib.NGSpiceSimulator",
+        "spicelib.qspice_log_reader",
+        "spicelib.QSpiceSimulator",
+        "spicelib.RawRead",
+        "spicelib.RunTask",
+        "spicelib.ServerSimRunner",
+        "spicelib.SimAnalysis",
+        "spicelib.SimClient",
+        "spicelib.SimRunner",
+        "spicelib.SimServer",
+        "spicelib.SimStepper",
+        "spicelib.Simulator",
+        "spicelib.SpiceEditor",
+        "spicelib.Utils",
+        "spicelib.XYCESimulator"
     ]
 
 

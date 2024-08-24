@@ -1,0 +1,12 @@
+* opamptest.asc
+V1 +V 0 15
+V2 -V 0 -15
+V3 in 0 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 Rser=3 Cpar=4
+XU1 in out1 +V -V out2 level2 Avol=2Meg GBW=10Meg Slew=10Meg Ilimit=35m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=501Meg
+XU2 in out2 +V -V out4 AD549
+;.ac dec 10 200 15e6
+.tran 4u
+.lib ADI1.lib
+.lib UniversalOpAmp2.lib
+.backanno
+.end

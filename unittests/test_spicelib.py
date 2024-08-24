@@ -50,6 +50,7 @@ from spicelib.raw.raw_read import RawRead
 from spicelib.editor.spice_editor import SpiceEditor
 from spicelib.sim.sim_runner import SimRunner
 
+
 def has_ltspice_detect():
     from spicelib.simulators.ltspice_simulator import LTspice
     global ltspice_simulator

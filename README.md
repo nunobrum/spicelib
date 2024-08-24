@@ -154,7 +154,8 @@ netlist = SpiceEditor('./testfiles/Batch_Test.net')
 netlist.set_parameters(res=0, cap=100e-6)
 netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
 netlist.set_component_value('R1', '4k')
-netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)  # Set component temperature, Tc 50ppm, remove power rating
+# Set component temperature, Tc 50ppm, remove power rating :
+netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)
 netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a define simulation
 netlist.add_instructions(
@@ -210,31 +211,76 @@ simulation can be run from there.
 
 #### Windows, Linux and MacOS compatibility ####
 
-The LTspice class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
+The **LTspice** class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
 
-To see what paths are detected:
+**NGSpice** runs natively under Windows, Linux and MacOS (via brew). This library works with NGSpice CLI, and tries to detect the correct executable path, no matter the platform. It cannot (yet) work with the shared library version of ngspice that is delivered with for example Kicad, you will need to install the CLI version. You can however use Kicad as the schema editor and subsequently save the ngspice netlist to use it with this library.
+
+For the other simulators, built-in Linux/MacOS support is coming, but you can always try to use it under Linux via setting of the executable paths.
+
+#### Executable and Library paths ####
+
+A large variety of standard paths are automatically detected. To see what paths are detected:
 
 ```python
 runner = SimRunner(output_folder='./tmp', simulator=LTspice)
+# Show the executable path
 print(runner.simulator.spice_exe)
 print(runner.simulator.process_name)
+# Show the default library paths of that simulator. This is deduced from `spice_exe`
+print(runner.simulator.get_default_library_paths())
 ```
 
-If you want, can set your own paths, via the two variables shown above, or directly upon instantiation:
+If you want, you can set your own **executable paths**, via the two variables shown above:
+
+* `spice_exe`: a list of with the commands that invoke the sumulator. Do not include command line options to the simulator here.
+* `process_name`: the process name as visible to the OS.
+
+You can also use `simulator.create_from()`.
+
+The **library paths** are needed for the editors. However, the default library paths depend on the simulator used, its installation path, and if that simulator runs under wine or not. The function `editor.prepare_for_simulator()` allows you to tell the editor what simulator is used, and its library paths. This not always needed however:
+
+* `AscEditor` and `SpiceEditor` presume that LTspice is used.
+* `QschEditor` presumes that Qspice is used.
+
+ This will of course not work out if you use the editors on other simulators (as can be the case with `SpiceEditor`), or if you have manually set the simulator's executable path. In those cases you will want to inform your editor of that change via `editor.prepare_for_simulator()`.
+
+If you want, you can also add extra library search paths via `editor.set_custom_library_paths()`.
+
+**Example**:
 
 ```python
-class MySpiceInstallation(LTspice):
-    spice_exe = ['wine64', simulator]
-    process_name = "LTspice.exe"
+# ** simulator executable paths
 
-AscEditor.add_library_paths(AscEditor, [r"/mypath/lib/sub",
-                                        r"/mypath/lib/sym",
-                                        r"/mypath/lib/sym/OpAmps",
-                                        r"/mypath/lib/cmp"])
+# OPTION 1: via subclassing
+class MySpiceInstallation(LTspice):
+    spice_exe = ['wine', '/custompath/LTspice.exe']
+    process_name = 'wine'
+
 runner = SimRunner(output_folder='./tmp', simulator=MySpiceInstallation)
+
+# OPTION 2: or via direct creation. If you do not specify the process_name,
+# it will be guessed via `simulator.guess_process_name()`.
+runner = SimRunner(output_folder='./tmp', 
+                   simulator=LTspice.create_from('wine /custompath/LTspice.exe')
+                  )
+
+# ** Editor library paths
+
+# In case of non standard paths, or a change of the default simulator, it is preferred to
+# inform your editor of it, so it can better guess the library paths. 
+AscEditor.prepare_for_simulator(MySpiceInstallation)
+
+# You can also add your own library paths to the search paths
+AscEditor.set_custom_library_paths(["/mypath/lib/sub",
+                                    "/mypath/lib/sym",
+                                    "/mypath/lib/sym/OpAmps",
+                                    "/mypath/lib/cmp"])
+
 ```
 
-When you use wine (on Linux or MacOS), you may want to redirect the output of `run()`, as it prints a lot of 'normal' error messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
+#### Runner log redirection ####
+
+When you use wine (on Linux or MacOS) or a simulator like ngspice, you may want to redirect the output of `run()`, as it prints a lot of messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
 
 ```python
 # force command output to a separate file
@@ -594,7 +640,9 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : <nuno.brum@gmail.com>
 
 ## History ##
-
+* Version 1.1.4
+  * Fix on line patterns on the AsyEditor (#PR 65)
+  * Fix on the X (.SUBCKT) components regex (#PR 66)
 * Version 1.1.3
   * Implementing a set_component_parameters() and get_component_parameters() method on the Editor classes.
     This method allows to set and get the parameters of a component.

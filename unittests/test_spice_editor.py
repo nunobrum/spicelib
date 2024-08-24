@@ -62,8 +62,26 @@ class SpiceEditor_Test(unittest.TestCase):
 
     def setUp(self):
         self.edt = spicelib.editor.spice_editor.SpiceEditor(test_dir + "DC sweep.net")
+        self.edt2 = spicelib.editor.spice_editor.SpiceEditor(test_dir + "opamptest.net")
 
-    def test_component_editing(self):
+    def test_component_editing_1(self):
+        self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here
+        self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")  # add assertion here
+        self.edt.set_component_value('R1', '33k')
+        self.edt.save_netlist(temp_dir + 'test_components_output.net')
+        self.equalFiles(temp_dir + 'test_components_output.net', golden_dir + 'test_components_output.net')
+        self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
+        self.edt.set_component_parameters('R1', Tc1=0, Tc2=0, pwr=None)
+        self.edt.save_netlist(temp_dir + 'test_components_output_2.net')
+        self.equalFiles(temp_dir + 'test_components_output_2.net', golden_dir + 'test_components_output_2.net')
+        r1_params = self.edt.get_component_parameters('R1')
+        for key, value in {'Tc1': 0, 'Tc2': 0}.items():
+            self.assertEqual(r1_params[key], value, f"Tested R1 {key} Parameter")
+        self.edt.remove_component('R1')
+        self.edt.save_netlist(temp_dir + 'test_components_output_1.net')
+        self.equalFiles(temp_dir + 'test_components_output_1.net', golden_dir + 'test_components_output_1.net')
+
+    def test_component_editing_1_obj(self):
         self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")
         r1 = self.edt['R1']
         self.assertEqual(r1.value_str, '10k', "Tested R1 Value")
@@ -88,6 +106,20 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt.remove_component('R1')
         self.edt.save_netlist(temp_dir + 'test_components_output_1.net')
         self.equalFiles(temp_dir + 'test_components_output_1.net', golden_dir + 'test_components_output_1.net')
+
+    def test_component_editing_2(self):
+        self.assertEqual(self.edt2.get_component_value('V1'), '15', "Tested V1 Value")
+        self.assertEqual(self.edt2.get_component_value('V3'), 'PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1', "Tested V3 Value")  # complex value, with parameters
+        self.assertEqual(self.edt2.get_component_value('XU1'), 'level2', "Tested U1 Value")  # has parameters
+        self.assertEqual(self.edt2.get_component_parameters('XU1')['Rin'], '501Meg', "Tested U1 Rin Value") # last in the list
+        self.assertEqual(self.edt2.get_component_value('XU2'), 'AD549', "Tested U2 Value")  # no parameters
+        self.assertListEqual(self.edt2.get_components(), ['V1', 'V2', 'V3', 'XU1', 'XU2'], "Tested get_components")
+        self.edt2.set_component_value('V3', 'PWL(2u 0 +1p 1 +1m 1)')
+        self.edt2.set_component_parameters('V3', Rser=1)  # first in the list
+        self.edt2.set_component_value('XU1', 'level3')
+        self.edt2.set_component_parameters('XU1', GBW='1Meg')  # somewhere in the list
+        self.edt2.save_netlist(temp_dir + 'opamptest_output_1.net')
+        self.equalFiles(temp_dir + 'opamptest_output_1.net', golden_dir + 'opamptest_output_1.net')
 
     def test_parameter_edit(self):
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here

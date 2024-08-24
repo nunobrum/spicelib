@@ -11,7 +11,7 @@
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
 # Name:        xyce_simulator.py
-# Purpose:     Tool used to launch NGspice simulations in batch mode.
+# Purpose:     Tool used to launch xyce simulations in batch mode.
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
@@ -19,14 +19,12 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-import sys
-import os
-
 from pathlib import Path
 from typing import Union
 import logging
+from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
+
 _logger = logging.getLogger("spicelib.XYCESimulator")
-from ..sim.simulator import Simulator, run_function
 
 
 class XyceSimulator(Simulator):
@@ -128,7 +126,38 @@ class XyceSimulator(Simulator):
         return ret
 
     @classmethod
-    def run(cls, netlist_file, cmd_line_switches, timeout):
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None) -> int:
+        """Executes a LTspice simulation run.
+
+        :param netlist_file: path to the netlist file
+        :type netlist_file: Union[str, Path]
+        :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
+        :type cmd_line_switches: list, optional
+        :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
+        :type timeout: float, optional
+        :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), and an existing file object with a valid file descriptor. With the default settings of None, no redirection will occur. 
+        :type stdout: _FILE, optional
+        :param stderr: Like stdout, but affecting the command's error output.
+        :type stderr: _FILE, optional
+        :raises SpiceSimulatorError: when the executable is not found.
+        :raises NotImplementedError: when the requested execution is not possible on this platform.
+        :return: return code from the process
+        :rtype: int
+        """
+        if not cls.spice_exe:
+            _logger.error("================== ALERT! ====================")
+            _logger.error("Unable to find the Xyce executable.")
+            _logger.error("A specific location of the Xyce can be set")
+            _logger.error("using the create_from(<location>) class method")
+            _logger.error("==============================================")
+            raise SpiceSimulatorError("Simulator executable not found.")
+        
+        if cmd_line_switches is None:
+            cmd_line_switches = []
+        elif isinstance(cmd_line_switches, str):
+            cmd_line_switches = [cmd_line_switches]
+        netlist_file = Path(netlist_file)
+        
         cmd_run = cls.spice_exe + cmd_line_switches + [netlist_file]
         # start execution
-        return run_function(cmd_run, timeout=timeout)
+        return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
