@@ -648,7 +648,7 @@ class BaseEditor(ABC):
     def add_component(self, component: Component, **kwargs) -> None:
         """
         Adds a component to the design. If the component already exists, it will be replaced by the new one.
-        kwargs can be used to add additional parameters to the component. For example, to add a symbol or position.
+        kwargs are implementation specific and can be used to pass additional information to the implementation.
 
         :param component: Component to be added to the design.
         :type component: Component
