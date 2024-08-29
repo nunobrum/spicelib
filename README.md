@@ -165,6 +165,8 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 
+alt_solver = False
+
 for opamp in ('AD712', 'AD820'):
     netlist.set_element_model('XU1', opamp)
     for supply_voltage in (5, 10, 15):
@@ -180,6 +182,7 @@ for opamp in ('AD712', 'AD820'):
             opts.append('-norm')
 
         LTC.run(netlist, opts)
+
 
 for raw, log in LTC:
     print("Raw file: %s, Log file: %s" % (raw, log))
