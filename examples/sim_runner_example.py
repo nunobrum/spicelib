@@ -12,8 +12,9 @@ netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
 netlist.set_component_value('R1', '4k')
 # Set component temperature, Tc 50ppm, remove power rating :
 netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)
-netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the model
-netlist.set_component_value('XU1:C2', 20e-12)  # modifying a define simulation
+netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the model of a voltage source
+netlist.set_component_value('XU1:C2', 20e-12)  # modifying an internal component value
+# define simulation
 netlist.add_instructions(
     "; Simulation settings",
     ";.param run = 0"

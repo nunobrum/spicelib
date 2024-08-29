@@ -27,15 +27,15 @@ author = 'Nuno Brum'
 release = '1.1.4'
 
 try:
-	# Read the version from the .toml file
-	from toml import load
-	with open('../pyproject.toml') as f:
-		pyproject = load(f)
-		project = pyproject['project']['name']
-		release = pyproject['project']['version']
-		author = pyproject['project']['authors'][0]['name']
+    # Read the version from the .toml file
+    from toml import load
+    with open('../pyproject.toml') as f:
+        pyproject = load(f)
+        project = pyproject['project']['name']
+        release = pyproject['project']['version']
+        author = pyproject['project']['authors'][0]['name']
 except:
-	pass
+    pass
 
 
 # -- General configuration ---------------------------------------------------
@@ -44,17 +44,17 @@ except:
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-	# 'docxbuilder',
-	# 'sphinx-docxbuilder',
-	'sphinx.ext.todo', 
-	'sphinx.ext.viewcode', 
-	'sphinx.ext.autodoc',
-	#'sphinx.ext.autosummary',
-    #'rinoh.frontend.sphinx'
+    # 'docxbuilder',
+    # 'sphinx-docxbuilder',
+    'sphinx.ext.todo', 
+    'sphinx.ext.viewcode', 
+    'sphinx.ext.autodoc',
+    # 'sphinx.ext.autosummary',
+    # 'rinoh.frontend.sphinx'
 ]
 
-#autodoc_default_flags = ['members']
-#autosummary_generate = True
+# autodoc_default_flags = ['members']
+# autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

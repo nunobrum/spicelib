@@ -26,8 +26,8 @@ if __name__ == "__main__":
     netlist.set_parameters(res=0, cap=100e-6)
     netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
     netlist.set_component_value('R1', '4k')
-    netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
-    netlist.set_component_value('XU1:C2', 20e-12)  # modifying a
+    netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the model of a voltage source
+    netlist.set_component_value('XU1:C2', 20e-12)  # modifying an internal component value
     # define simulation
     netlist.add_instructions(
         "; Simulation settings",
