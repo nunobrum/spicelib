@@ -3,26 +3,34 @@
 spicelib is a toolchain of python utilities design to interact with spice simulators, as for example:
 
 * LTspice
-* NGSpice
+* Ngspice
 * QSPICE
 * Xyce
 
 ## What is contained in this repository ##
 
-* __ltsteps.exe__
-  An utility that extracts from LTSpice output files data, and formats it for import in a spreadsheet, such like Excel
-  or Calc.
+### Main Tools ###
 
-* __raw_read.py__
-  A pure python class that serves to read raw files into a python class.
+* __Analysis Toolkit__
+  A set of tools that prepare an LTspice netlist for a Montecarlo or Worst Case Analysis. The device tolerances are set by the user and the netlist is updated accordingly. The netlist can then be used with the SimRunner to run a batch of simulations or with the LTspice GUI.
 
-* __raw_write.py__
-  A class to write RAW files that can be read by LTSpice Wave Application.
+* __ltsteps.py__
+  An utility that extracts from LTspice output files data, and formats it for import in a spreadsheet, such like Excel or Calc.
 
-* __spice_editor.py and asc_editor.py__
-  Scripts that can update spice netlists. The following methods are available to manipulate the component values,
-  parameters as well as the simulation commands. These methods allow to update a netlist without having to open the
-  schematic in LTSpice. The simulations can then be run in batch mode (see sim_runner.py).
+* __histogram.py__
+  A python script that uses numpy and matplotlib to create a histogram and calculate the sigma deviations. This is useful for Monte-Carlo analysis.
+
+
+### Main Classes ###
+
+* __AscEditor/QschEditor/SpiceEditor__
+  Classes for the manipulation of respectively:
+
+  * LTspice `.asc` files
+  * QSPICE `.qsch` files
+  * SPICE netlists (from no matter what simulator)
+  
+  without having to open the schematic in a GUI. The simulations can then be run in batch mode (see SimRunner). Examples of functions provided:
 
   * `set_element_model('D1', '1N4148') # Replaces the Diode D1 with the model 1N4148`
   * `set_component_value('R2', '33k') # Replaces the value of R2 by 33k`
@@ -32,26 +40,21 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   * `reset_netlist() # Resets all edits done to the netlist.`
   * `set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters`
 
-* __sim_runner.py__
-  A python script that can be used to run LTSpice simulations in batch mode without having to open the LTSpice GUI.
-  This in cooperation with the classes defined in spice_editor.py or asc_editor.py is useful because:
+* __SimRunner__
+  A class that can be used to run LTspice/QSPICE/Ngspice/Xyce simulations in batch mode without having to open the corresponding GUI.
+  This, in cooperation with the above mentioned xxxEditor classes, is useful because:
 
-  * Can overcome the limitation of only stepping 3 parameters
+  * It can overcome the limitation of only stepping 3 parameters
   * Different types of simulations .TRAN .AC .NOISE can be run in a single batch
-  * The RAW Files are smaller and easier to treat
-  * When used with the RawRead.py and ltsteps.py, validation of the circuit can be done automatically.
-  * Different models can be simulated in a single batch, by using the following instructions:
+  * The RAW Files are smaller and easier to handle
+  * When used with RawRead and ltsteps.py, validation of the circuit can be done automatically
+  * Different models can be simulated in a single batch
 
-  Note: It was only tested with Windows based installations.
+* __RawRead__
+  A class that serves to read raw files into a python class.
 
-* __Analysis Toolkit__
-  A set of tools that prepare an LTSpice netlist for a Montecarlo or Worst Case Analysis. The device tolerances are set
-  by the user and the netlist is updated accordingly. The netlist can then be used with the sim_runner.py to run a
-  batch of simulations or with the LTSpice GUI.
-
-* __histogram.exe__
-  A python script that uses numpy and matplotlib to create a histogram and calculate the sigma deviations. This is
-  useful for Monte-Carlo analysis.
+* __RawWrite__
+  A class to write RAW files that can be read by the LTspice Wave Application.
 
 ## How to Install ##
 
@@ -131,13 +134,11 @@ LW.save("./testfiles/teste_snippet1.raw")
 
 -- in examples/raw_write_example.py [Example 1]
 
-### SpiceEditor, AscEditor and SimRunner.py ###
+### SpiceEditor, AscEditor, QschEditor and SimRunner ###
 
-This module is used to launch LTSPice simulations. Results then can be processed with either the RawRead or with the
-LTSpiceLogReader module to read the log file which can contain .MEAS results.
+These modules are used to prepare and launch SPICE simulations.
 
-The script will firstly invoke the LTSpice in command line to generate a netlist, and then this netlist can be updated
-directly by the script, in order to change component values, parameters or simulation commands.
+The editors can be used change component values, parameters or simulation commands. After the simulation is run, the results then can be processed with either the RawRead or with the LTSpiceLogReader module to read the log file which can contain .MEAS results.
 
 Here follows an example of operation.
 
@@ -156,7 +157,7 @@ netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
 netlist.set_component_value('R1', '4k')
 # Set component temperature, Tc 50ppm, remove power rating :
 netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)
-netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the
+netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")  # Modifying the model
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a define simulation
 netlist.add_instructions(
     "; Simulation settings",
@@ -205,15 +206,13 @@ if enter == '':
 
 -- in examples/sim_runner_example.py
 
-The example above is using the SpiceEditor to create and modify a spice netlist, but it is also possible to use the
-AscEditor to directly modify the .asc file. The edited .asc file can then be opened by the LTSpice GUI and the
-simulation can be run from there.
+The example above is using the SpiceEditor to modify a spice netlist, but it is also possible to use the AscEditor to directly modify a .asc file. The edited .asc file can be opened by the LTspice GUI and the simulation can be run from there. It is also possible to open a .asc file and to generate a spice netlist from it.
 
-#### Windows, Linux and MacOS compatibility ####
+#### Simulators and Windows, Linux and MacOS compatibility ####
 
 The **LTspice** class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
 
-**NGSpice** runs natively under Windows, Linux and MacOS (via brew). This library works with NGSpice CLI, and tries to detect the correct executable path, no matter the platform. It cannot (yet) work with the shared library version of ngspice that is delivered with for example Kicad, you will need to install the CLI version. You can however use Kicad as the schema editor and subsequently save the ngspice netlist to use it with this library.
+**Ngspice** runs natively under Windows, Linux and MacOS (via brew). This library works with Ngspice CLI, and tries to detect the correct executable path, no matter the platform. It cannot (yet) work with the shared library version of Ngspice that is delivered with for example Kicad, you will need to install the CLI version. You can however use Kicad as the schema editor and subsequently save the Ngspice netlist to use it with this library.
 
 For the other simulators, built-in Linux/MacOS support is coming, but you can always try to use it under Linux via setting of the executable paths.
 
@@ -240,7 +239,7 @@ You can also use `simulator.create_from()`.
 The **library paths** are needed for the editors. However, the default library paths depend on the simulator used, its installation path, and if that simulator runs under wine or not. The function `editor.prepare_for_simulator()` allows you to tell the editor what simulator is used, and its library paths. This not always needed however:
 
 * `AscEditor` and `SpiceEditor` presume that LTspice is used.
-* `QschEditor` presumes that Qspice is used.
+* `QschEditor` presumes that QSPICE is used.
 
  This will of course not work out if you use the editors on other simulators (as can be the case with `SpiceEditor`), or if you have manually set the simulator's executable path. In those cases you will want to inform your editor of that change via `editor.prepare_for_simulator()`.
 
@@ -249,7 +248,7 @@ If you want, you can also add extra library search paths via `editor.set_custom_
 **Example**:
 
 ```python
-# ** simulator executable paths
+# ** Simulator executable paths
 
 # OPTION 1: via subclassing
 class MySpiceInstallation(LTspice):
@@ -280,7 +279,7 @@ AscEditor.set_custom_library_paths(["/mypath/lib/sub",
 
 #### Runner log redirection ####
 
-When you use wine (on Linux or MacOS) or a simulator like ngspice, you may want to redirect the output of `run()`, as it prints a lot of messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
+When you use wine (on Linux or MacOS) or a simulator like Ngspice, you may want to redirect the output of `run()`, as it prints a lot of messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
 
 ```python
 # force command output to a separate file
@@ -294,15 +293,15 @@ AscEditor has some limitations and differences with regards to SpiceEditor.
 
 * As is visible in the LTspice GUI, it groups all component properties/parameters in different 'attributes' like 'Value', 'Value2', 'SpiceLine', 'SpiceLine2'. Netlists do not have that concept, and place everything in one big list, that SpiceEditor subsequently separates in 'value' and 'parameters' for most components. To complicate things, LTspice distributes the parameters over all 4 attributes, with varying syntax. You must be aware of how LTspice handles the parameter placement if you use AscEditor.
   
-    `AscEditor.get_component_parameters()` will show the native attributes, and tries to disect 'SpiceLine' and 'SpiceLine2', just like `SpiceEditor.get_component_parameters()` would do.
-     This means for example for a Voltage source of DC 2V, with small signal analysis AC amplitude of 1V and a series resistance of 3 ohm:
-    * `AscEditor.get_component_value()` and `SpiceEditor.get_component_value()` -> `'2 AC 1'`
-    * `AscEditor.get_component_parameters()` -> `{'Value': '2', 'Value2': 'AC 1', 'SpiceLine': 'Rser=3', 'Rser': 3}`
-    * `SpiceEditor.get_component_parameters()` -> `{'Rser': 3}`
-    * Please note that if you want to remove the small signal analysis AC amplitude, you MUST use
-      * `AscEditor.set_component_parameters(..,'Value2','')`, as `set_component_value()` will only affect 'Value'
-      * `SpiceEditor.set_component_value(..,'2')`
-    * with both editors, you can use `...set_component_parameters(.., Rser=5)`
+  `AscEditor.get_component_parameters()` will show the native attributes, and tries to disect 'SpiceLine' and 'SpiceLine2', just like `SpiceEditor.get_component_parameters()` would do.
+  This means for example for a Voltage source of DC 2V, with small signal analysis AC amplitude of 1V and a series resistance of 3 ohm:
+  * `AscEditor.get_component_value()` and `SpiceEditor.get_component_value()` -> `'2 AC 1'`
+  * `AscEditor.get_component_parameters()` -> `{'Value': '2', 'Value2': 'AC 1', 'SpiceLine': 'Rser=3', 'Rser': 3}`
+  * `SpiceEditor.get_component_parameters()` -> `{'Rser': 3}`
+  * Please note that if you want to remove the small signal analysis AC amplitude, you MUST use
+    * `AscEditor.set_component_parameters(..,'Value2','')`, as `set_component_value()` will only affect 'Value'
+    * `SpiceEditor.set_component_value(..,'2')`
+  * with both editors, you can use `...set_component_parameters(.., Rser=5)`
 * When adressing components, SpiceEditor requires you to include the prefix in the component name, like `XU1` for an opamp. AscEditor will require `U1`.
 * AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any of the underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters.
 
@@ -460,10 +459,10 @@ The second possibility is to use the module directly on the command line
 
 The following tools will be installed when you install the library via pip. The extension '.exe' is only available on Windows, on MacOS or Linux, the commands will have the same name, but without '.exe'. The executables are simple links to python scripts with the same name, of which the majority can be found in the package's 'scripts' directory.
 
-### ltsteps.exe ###
+### ltsteps.py ###
 
 ```bash
-Usage: ltsteps.py [filename]
+Usage: ltsteps [filename]
 ```
 
 The `filename` can be either be a log file (.log), a data export file (.txt) or a measurement output file (.meas)
@@ -471,12 +470,12 @@ This will process all the data and export it automatically into a text file with
 where the data read is formatted into a more convenient tab separated format. In case the `filename` is not provided, the
 script will scan the directory and process the newest log, txt or out file found.
 
-### histogram.exe ###
+### histogram.py ###
 
 This module uses the data inside on the filename to produce a histogram image.
 
  ```bash
-Usage: Histogram.py [options] LOG_FILE TRACE
+Usage: histogram [options] LOG_FILE TRACE
 
 Options:
   --version             show program's version number and exit
@@ -502,12 +501,12 @@ Options:
                         Name of the image File. extension 'png'    
  ```
 
-### rawconvert.exe ###
+### raw_convert.py ###
 
 A tool to convert .raw files into csv or Excel files.
 
 ```bash
-Usage: raw_convert.exe [options] <rawfile> <trace_list>
+Usage: raw_convert [options] <rawfile> <trace_list>
 
 Options:
   --version             show program's version number and exit
@@ -522,15 +521,15 @@ Options:
                         Example: -d ";"
 ```
 
-### rawplot.exe ###
+### rawplot.py ###
 
 Uses matplotlib to plot the data in the raw file.
 
 ```bash
-Usage: rawplot.py RAW_FILE TRACE_NAME
+Usage: rawplot RAW_FILE TRACE_NAME
 ```
 
-### run_server.exe ###
+### run_server.py ###
 
 This module is used to run a server that can be used to run simulations in a remote machine. The server will run in the
 background and will wait for a client to connect. The client will send a netlist to the server and the server will run
@@ -570,13 +569,12 @@ server.close_session()
 ```bash
 usage: run_server [-h] [-p PORT] [-o OUTPUT] [-l PARALLEL] simulator
 
-Run the LTSpice Server. This is a command line interface to the SimServer class.The SimServer class is used to run
-simulations in parallel using a server-client architecture.The server is a machine that runs the SimServer class and
-the client is a machine that runs the SimClient class.The argument is the simulator to be used (LTSpice, NGSpice,
-XYCE, etc.)
+Run the LTSpice Server. This is a command line interface to the SimServer class. The SimServer class is used to run
+simulations in parallel using a server-client architecture. The server is a machine that runs the SimServer class and
+the client is a machine that runs the SimClient class. The argument is the simulator to be used (LTSpice, Ngspice, XYCE, etc.)
 
 positional arguments:
-  simulator             Simulator to be used (LTSpice, NGSpice, XYCE, etc.)
+  simulator             Simulator to be used (LTSpice, Ngspice, XYCE, etc.)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -587,9 +585,9 @@ optional arguments:
                         Maximum number of parallel simulations. Default is 4
 ```
 
-### asc_to_qsch.exe ###
+### asc_to_qsch.py ###
 
-Converts LTspice schematics into Qspice schematics.
+Converts LTspice schematics into QSPICE schematics.
 
 ```bash
 Usage: asc_to_qsch [options] ASC_FILE [QSCH_FILE]
@@ -656,7 +654,7 @@ _Make sure to initialize the root logger before importing the library to be able
   * Fixes on the readme_update.py script. Was not supporting spaces after the []
   * Solving issue PyLTspice Issue #138. Hierarchical edits to ASC files are now supported.
 * Version 1.1.1
-  * Supporting hierarchical edits on both QSpice and LTspice schematics
+  * Supporting hierarchical edits on both QSPICE and LTspice schematics
   * Skipping the need of the rich library on examples
   * Giving feedback on the search for symbols on the ASC to QSCH conversion
   * Improvement on Documentation
@@ -667,7 +665,7 @@ _Make sure to initialize the root logger before importing the library to be able
   * Adding file_search.py containing utility functions for searching files
   * Adding windows_short_names.py containing a code to get the 8.3 Windows short names.
 * Version 1.1.0
-  * First usable version of a LTspice to Qspice schematic converter.
+  * First usable version of a LTspice to QSPICE schematic converter.
 * Version 1.0.4
   * Adding the missing the asc_to_qsch_data.xml to the package
   * Adding a MANIFEST.in to the project
@@ -686,7 +684,7 @@ _Make sure to initialize the root logger before importing the library to be able
   * Adding a script that allows to insert code into a README.md file
   * Supporting capital "K" for kilo in the spice and schematic editors.
 * Vesion 0.9
-  * SimAnalysis supporting both Qspice and LTSpice logfiles.
+  * SimAnalysis supporting both QSPICE and LTSpice logfiles.
   * FastWorstCaseAnalysis algorithm implemented
   * Fix on the log reading of fourier data.
   * Adding a parameter host to the SimServer class which then passed to the SimpleXMLRPCServer.
@@ -702,7 +700,7 @@ _Make sure to initialize the root logger before importing the library to be able
   * Improving the get_measure_value() method to be able to return the value
     of a measure in a specific step.
 * Version 0.6
-  * Implementing a conversion from Qspice Schematics .qsch to spice files
+  * Implementing a conversion from QSPICE Schematics .qsch to spice files
   * Improving the Analysis Toolkit to support adding instructions directly
   to the WorstCase and Montecarlo classes.
   * Using dataclasses to store the fourier information on LTSpiceLogReader.
