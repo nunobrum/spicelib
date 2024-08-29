@@ -20,7 +20,7 @@ print(sys.path)
 # -- Project information -----------------------------------------------------
 
 project = 'spicelib'
-copyright = '2023, Nuno Brum'
+copyright = '2024, Nuno Brum'
 author = 'Nuno Brum'
 
 # The full version, including alpha/beta/rc tags
@@ -77,9 +77,7 @@ exclude_patterns = ['doc_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'agogo'
-html_theme_options = {
-    'rightsidebar' : False,
-}
+html_theme_options = {'rightsidebar': False}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

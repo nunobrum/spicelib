@@ -884,7 +884,7 @@ class RawRead(object):
         :param columns: List of traces to use as columns. Default is all traces
         :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
-        :type kwargs: **dict
+        :type kwargs: ``**dict``
         :return: A pandas DataFrame
         :rtype: pandas.DataFrame
         """
@@ -929,7 +929,7 @@ class RawRead(object):
         :param columns: List of traces to use as columns. Default is all traces
         :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
-        :type kwargs: **dict
+        :type kwargs: ``**dict``
         :return: A pandas DataFrame
         :rtype: pandas.DataFrame
         """
@@ -955,7 +955,7 @@ class RawRead(object):
         :param separator: separator to use in the CSV file
         :type separator: str
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_csv function
-        :type kwargs: **dict
+        :type kwargs: ``**dict``
         """
         try:
             import pandas as pd
@@ -975,18 +975,18 @@ class RawRead(object):
                 for i in range(len(data[columns[0]])):
                     f.write(separator.join([str(data[col][i]) for col in data.keys()]) + '\n')
 
-    def to_excel(self, filename: Union[str, Path], columns: list = None, step: Union[int, List[int]] = -1,
-                 **kwargs):
+    def to_excel(self, filename: Union[str, Path], columns: list = None, step: Union[int, List[int]] = -1, **kwargs):
         """
         Saves the data to an Excel file.
         :param filename: Name of the file to save the data to
-        :type filename: str
-        :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
-        :param step: Step number to retrieve. If not given, it
-        :type step: int
+        :type filename: Union[str, Path]
+        :param columns: List of traces to use as columns. Default is None, meaning all traces
+        :type columns: list, optional
+        :param step: Step number to retrieve, defaults to -1
+        :type step: Union[int, List[int]], optional
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
-        :type kwargs: **dict
+        :type kwargs: ``**dict``        
+        :raises ImportError: _description_
         """
         try:
             import pandas as pd

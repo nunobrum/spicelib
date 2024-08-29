@@ -183,7 +183,6 @@ for opamp in ('AD712', 'AD820'):
 
         LTC.run(netlist, opts)
 
-
 for raw, log in LTC:
     print("Raw file: %s, Log file: %s" % (raw, log))
     # do something with the data

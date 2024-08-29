@@ -42,9 +42,9 @@ original file with the extension .bak.
 Usage
 =====
 
-The readme_update.exe can be used directly from a command line if the Python's Scripts folder is included in the PATH
+The readme_update can be used directly from a command line if the Python's Scripts folder is included in the PATH
 environment variable. If not, the full path to the executable must be provided.
 
     .. code-block:: bash
 
-        readme_update.exe <path_to_md_file>
+        readme_update <path_to_md_file>

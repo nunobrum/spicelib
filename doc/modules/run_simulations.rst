@@ -207,7 +207,7 @@ In order to use processes, the callback function needs to be encapsulated as a s
 special class called ``ProcessCallback`` and :underline:`very importantly`, all the code used to prepare and launch the
 simulation should be inside a ``if __name__ == "__main__":`` clause.
 
-The reason for this is that since the module is going to be imported two times, first by the python.exe __main__ 
+The reason for this is that since the module is going to be imported two times, first by the python __main__ 
 function and multiple times after by python processes searching for ProcessCallback subclass. The equivalent of the 
 previous code using processes looks like this.
 
