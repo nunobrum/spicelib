@@ -59,7 +59,11 @@ class NGspiceSimulator(Simulator):
             if full_exe:
                 spice_exe = [exe]
                 break
-            
+    
+    # The following variables are not needed anymore. This also makes sphinx not mention them in the documentation.
+    del exe
+    del full_exe
+    
     # fall through        
     if len(spice_exe) == 0:
         spice_exe = []
@@ -99,8 +103,10 @@ class NGspiceSimulator(Simulator):
         '-v'            : ['-v'],  #
         '--version'     : ['--version'],  # output version information and exit
     }
-    default_run_switches = ['-b', '-o', '-r', '-a']
-    compatibility_mode = 'kiltpsa'
+    """:meta private:"""
+    
+    _default_run_switches = ['-b', '-o', '-r', '-a']
+    _compatibility_mode = 'kiltpsa'
 
     @classmethod
     def valid_switch(cls, switch, parameter='') -> list:
@@ -118,7 +124,7 @@ class NGspiceSimulator(Simulator):
         ret = []  # This is an empty switch
         parameter = parameter.strip()
         if switch in cls.ngspice_args:
-            if switch in cls.default_run_switches:
+            if switch in cls._default_run_switches:
                 _logger.info(f"Switch {switch} is already in the default switches")
                 return ret
             if cls.set_compatibility_mode and (switch == '-D' or switch == '--define') and parameter.lower().startswith("ngbehavior"):
@@ -173,8 +179,8 @@ class NGspiceSimulator(Simulator):
         logfile = Path(netlist_file).with_suffix('.log').as_posix()
         rawfile = Path(netlist_file).with_suffix('.raw').as_posix()
         extra_switches = []
-        if cls.compatibility_mode:
-            extra_switches = ['-D', f"ngbehavior={cls.compatibility_mode}"]
+        if cls._compatibility_mode:
+            extra_switches = ['-D', f"ngbehavior={cls._compatibility_mode}"]
         #TODO: -a seems useless with -b, however it is still defined in the default switches. Need to check if it is really needed.
         cmd_run = cls.spice_exe + cmd_line_switches + extra_switches + ['-b'] + ['-o'] + [logfile] + ['-r'] + [rawfile] + [netlist_file]
         # start execution
@@ -188,19 +194,29 @@ class NGspiceSimulator(Simulator):
         A good default seems to be "kiltpsa" (KiCad, LTspice, PSPICE, netlists)
         
         The following compatibility modes are available (as of mid 2024, ngspice v43):
+        
         * a : complete netlist transformed
+        
         * ps : PSPICE compatibility
+        
         * hs : HSPICE compatibility
+        
         * spe : Spectre compatibility
+        
         * lt : LTSPICE compatibility
+        
         * s3 : Spice3 compatibility
+        
         * ll : all (currently not used)
+        
         * ki : KiCad compatibility
+        
         * eg : EAGLE compatibility
+        
         * mc : for ’make check’
         
         :param mode: the compatibility mode to be set. Set to None to remove the compatibility setting.
         :type mode: str
         """
-        cls.compatibility_mode = mode
+        cls._compatibility_mode = mode
 

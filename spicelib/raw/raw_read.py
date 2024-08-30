@@ -726,22 +726,24 @@ class RawRead(object):
 
     def get_time_axis(self, step: int = 0):
         """
-        *(Deprecated)* Use get_axis method instead
+        .. deprecated:: 1.0 Use `get_axis()` method instead.
 
         This function is equivalent to get_trace('time').get_time_axis(step) instruction.
         It's workaround on a LTSpice issue when using 2nd Order compression, where some values on
         the time trace have a negative value."""
         return self.get_trace('time').get_time_axis(step)
 
-    def get_axis(self, step: int = 0):
+    def get_axis(self, step: int = 0) -> Union[np.array, List[float]]:
         """
         This function is equivalent to get_trace(0).get_wave(step) instruction.
         It also implements a workaround on a LTSpice issue when using 2nd Order compression, where some values on
         the time trace have a negative value.
-        :param step: Step number
-        :type step: int
-        :returns: Array with the X axis
-        :rtype: list[float] or numpy.array
+
+        :param step: Step number, defaults to 0
+        :type step: int, optional
+        :raises RuntimeError: if the RAW file does not have an axis.
+        :return: Array with the X axis
+        :rtype: Union[np.array, List[float]]
         """
         if self.axis:
             axis = self.get_trace(0)
@@ -753,8 +755,9 @@ class RawRead(object):
     def get_len(self, step: int = 0) -> int:
         """
         Returns the length of the data at the give step index.
-        :param step: Optional parameter the step index.
-        :type step: int
+        
+        :param step: the step index, defaults to 0
+        :type step: int, optional
         :return: The number of data points
         :rtype: int
         """
@@ -836,7 +839,7 @@ class RawRead(object):
         return self.get_trace(item)
 
     def get_steps(self, **kwargs):
-        """Returns the steps that correspond to the query set in the * * kwargs parameters.
+        """Returns the steps that correspond to the query set in the `**kwargs` parameters.
         Example: ::
 
             raw_read.get_steps(V5=1.2, TEMP=25)
@@ -978,6 +981,7 @@ class RawRead(object):
     def to_excel(self, filename: Union[str, Path], columns: list = None, step: Union[int, List[int]] = -1, **kwargs):
         """
         Saves the data to an Excel file.
+        
         :param filename: Name of the file to save the data to
         :type filename: Union[str, Path]
         :param columns: List of traces to use as columns. Default is None, meaning all traces
@@ -986,7 +990,7 @@ class RawRead(object):
         :type step: Union[int, List[int]], optional
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
         :type kwargs: ``**dict``        
-        :raises ImportError: _description_
+        :raises ImportError: when the 'pandas' module is not installed
         """
         try:
             import pandas as pd

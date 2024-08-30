@@ -154,7 +154,7 @@ class Axis(DataSet):
 
     def get_time_axis(self, step: int = 0):
         """
-        **Deprecated**. Use get_wave() instead.
+        .. deprecated:: 1.0 Use `get_wave()` instead.
 
         Returns the time axis raw data. Please note that the time axis may not have a constant time step. LTSpice will
         increase the time-step in simulation phases where there aren't value changes, and decrease time step in
@@ -169,15 +169,16 @@ class Axis(DataSet):
             "This function is only applicable to transient analysis, where a bug exists on the time signal"
         return self.get_wave(step)
 
-    def get_point(self, n, step: int = 0) -> Union[float, complex]:
+    def get_point(self, n: int, step: int = 0) -> Union[float, complex]:
         """
         Get a point from the dataset
+        
         :param n: position on the vector
-        :type n:int
-        :param step: step index
-        :type step: int
+        :type n: int
+        :param step: step index, defaults to 0
+        :type step: int, optional
         :returns: Value of the data point
-        :rtype: float or complex
+        :rtype: float, complex
         """
         return self.data[n + self.step_offset(step)]
 
@@ -211,12 +212,13 @@ class Axis(DataSet):
                 # Needs to interpolate the data
                 if i == 0:
                     raise IndexError("Time position is lower than t0")
-                frac = (t - timex[i-1])/(timex[i] - timex[i-1])
+                frac = (t - timex[i - 1]) / (timex[i] - timex[i - 1])
                 return i - 1 + frac
 
     def get_len(self, step: int = 0) -> int:
         """
         Returns the length of the axis.
+        
         :param step: Optional parameter the step index.
         :type step: int
         :return: The number of data points
@@ -256,7 +258,7 @@ class TraceRead(DataSet):
         :param step: Optional step number
         :type step: int
         :return: float value of the item
-        :rtype: float
+        :rtype: float, complex
         """
         if self.axis is None:
             if n != 0:
@@ -298,6 +300,7 @@ class TraceRead(DataSet):
         Get a point from the trace at the point specified by the /t/ argument.
         If the point doesn't exist on the axis, the data is interpolated using a linear regression between the two
         adjacent points.
+        
         :param t: point in the axis where to find the point.
         :type t: float, float32(numpy) or float64(numpy)
         :param step: step index
@@ -321,6 +324,7 @@ class TraceRead(DataSet):
     def get_len(self, step: int = 0) -> int:
         """
         Returns the length of the axis.
+        
         :param step: Optional parameter the step index.
         :type step: int
         :return: The number of data points
@@ -330,8 +334,7 @@ class TraceRead(DataSet):
 
     def __len__(self):
         """
-        **Deprecated**
-        This is only here for compatibility with previous code.
+        .. deprecated:: 1.0 This is only here for compatibility with previous code.
         """
         assert self.axis is None or self.axis.step_info is None, \
             "len() should not be used with stepped data. Use get_len() method passing the step index"

@@ -205,7 +205,6 @@ class SimRunner(object):
             object.
         :type spice_tool: Simulator type
         :return: Nothing
-        :rtype: None
         """
         if issubclass(spice_tool, Simulator):
             self.simulator = spice_tool
@@ -473,7 +472,7 @@ class SimRunner(object):
 
     def kill_all_ltspice(self):
         """
-        *(Deprecated)* Use kill_all_spice method instead
+        .. deprecated:: 1.0 Use `kill_all_spice()` instead.
         
         This is only here for compatibility with previous code.
         
@@ -587,7 +586,9 @@ class SimRunner(object):
                     self._del_file_ext_if_exists(netlistfile, '.net')
 
     def file_cleanup(self):
-        """(Deprecated) Use cleanup_files() instead"""
+        """
+        .. deprecated:: 1.0 Use `cleanup_files()` instead.
+        """
         self.cleanup_files()  # Alias for backward compatibility, this will be deleted in the future
 
     def __iter__(self):

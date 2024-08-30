@@ -120,8 +120,6 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
     :param tabular_file: Filename of the tab separated values (TSV) file that
     :type tabular_file: str
     :return: Nothing
-    :rtype: None
-
     """
     encoding = detect_encoding(export_file)
     fin = open(export_file, 'r', encoding=encoding)

@@ -13,6 +13,7 @@ Below is an example of a code block in a markdown file :
         ```python
             # this will be replaced with the actual code from path/to/source/file.py
         ```
+        
         -- in path/to/source/file.py
 
 The script will replace the code block with the actual code from the file specified in the comment.
@@ -27,6 +28,7 @@ If only a part of the code is to be included, the user can add a title to the co
             ...
             # End of Code block Title
         ```
+
         -- in path/to/source/file.py [Code Block Title]
 
 and the script will only include the code between the following comments:
