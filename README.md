@@ -644,15 +644,16 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : <nuno.brum@gmail.com>
 
 ## History ##
+
 * Version 1.2.0
-  * Implementing a new approach to the accessing component values and parameters. Instead of using the 
-  get_component_value() and get_component_parameters() methods, the component values and parameters are now accessed 
+  * Implementing a new approach to the accessing component values and parameters. Instead of using the
+  get_component_value() and get_component_parameters() methods, the component values and parameters are now accessed
   directly as attributes of the component object. This change was made to make the code more readable.
-  The old methods are still available for backward compatibility. 
+  The old methods are still available for backward compatibility.
   * Improvements on the documentation.
   * Added testbench for the regular expressions used on the SpiceEditor. Improvements on the regular expressions.
-  * Improvements on the usage of spicelib in Linux using wine.
-* Version 1.2.0
+  * Improvements on the usage of spicelib in Linux and MacOS using wine.
+* Version 1.1.4
   * Fix on line patterns on the AsyEditor (#PR 65)
   * Fix on the X (.SUBCKT) components regex (#PR 66)
 * Version 1.1.3
