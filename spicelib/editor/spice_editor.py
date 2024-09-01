@@ -816,8 +816,7 @@ class SpiceCircuit(BaseEditor):
         :param kwargs:
             The following keyword arguments are supported:
 
-            * **insert_before** (str) - The reference of the component before which the new component should be
-            inserted.
+            * **insert_before** (str) - The reference of the component before which the new component should be inserted.
 
             * **insert_after** (str) - The reference of the component after which the new component should be inserted.
 
