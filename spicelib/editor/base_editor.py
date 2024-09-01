@@ -296,6 +296,14 @@ class Component(Primitive):
     def value(self):
         return to_float(self.value_str, accept_invalid=True)
 
+    @property
+    def model(self):
+        return self.parent.get_element_value(self.reference)
+
+    @model.setter
+    def model(self, model):
+        self.parent.set_element_model(self.reference, model)
+
     @value.setter
     def value(self, value):
         if isinstance(value, (int, float)):

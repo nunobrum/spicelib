@@ -16,9 +16,9 @@ Stepper = SimStepper(SpiceEditor("./testfiles/Batch_Test.net"), runner)
 # set default arguments
 
 Stepper.set_parameters(res=0, cap=100e-6)
-Stepper.set_component_value('R2', '2k')
-Stepper.set_component_value('R1', '4k')
-Stepper.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
+Stepper['R2'].value = '2k'
+Stepper['R1'].value = '4k'
+Stepper['V3'] = "SINE(0 1 3k 0 0 0)"
 # define simulation
 Stepper.add_instructions(
     "; Simulation settings",

@@ -7,21 +7,21 @@ E.set_custom_library_paths([r"C:\SVN\Electronic_Libraries\LTSpice\lib"])
 print(E.get_components())
 print(E.get_components('R'))
 print(E.get_subcircuit('XX1').get_components())
-E.set_component_value("XX1:L1", 2e-6)
-print(E.get_component_value('R1'))
+E["XX1:L1"].value = 2e-6
+print(E['R1'].value)
 print("Setting R1 to 10k")
-E.set_component_value('R1', 10000)
+E['R1'].value = 10000
 print("Setting parameter I1 1.23k")
 E.set_parameter("V1", "PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)")
 print(E.get_parameter('V1'))
 print("Setting frequency to 1MHz")
 E.set_parameters(freq=1E6)
 print("Setting XX1:L1 to 1µH")
-E.set_component_value("XX1:L1", '1µH')
+E["XX1:L1"].value = '1µH'
 print("Setting XX1:C1 to 22nF")
-E.set_component_value("XX1:C1", 22e-9)
+E["XX1:C1"].value = 22e-9
 print("Setting XX1:C2 to 120nF")
-E.set_component_value("XX1:C2", '120n')
+E["XX1:C2"].value = '120n'
 print(E.get_component_floatvalue("XX1:C1"))
 print(E.get_component_floatvalue("XX1:C2"))
 print(E.get_component_floatvalue("XX1:L1"))

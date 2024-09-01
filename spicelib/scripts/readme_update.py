@@ -32,6 +32,8 @@ while line_no < len(readme_md):
         # check whether the next line has the -- in statement
         if line_no + 1 < len(readme_md):
             m = in_statement_regex.search(readme_md[line_no + 1])
+            if not m and line_no + 2 < len(readme_md):  # if there is no -- in statement, check the next line
+                m = in_statement_regex.search(readme_md[line_no + 2])
             # find the file to include
             if m:
                 print(f"Updating code on lines {block_start+1}:{line_no + 1}")

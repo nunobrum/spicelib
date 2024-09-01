@@ -11,9 +11,9 @@ LTC = SimRunner(output_folder='./temp', simulator=LTspice.create_from(simulator)
 netlist = AscEditor('./testfiles/Batch_Test.asc')
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6)
-netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
-netlist.set_component_value('R1', '4k')
-netlist.set_component_value('V3', "SINE(0 1 3k 0 0 0)")
+netlist['R2'].value = '2k'  # Modifying the value of a resistor
+netlist['R1'].value = '4k'
+netlist['V3'].value = "SINE(0 1 3k 0 0 0)"
 
 netlist.add_instructions(
     "; Simulation settings",
@@ -22,10 +22,10 @@ netlist.add_instructions(
 netlist.set_parameter('run', 0)
 
 for opamp in ('AD712', 'AD820'):
-    netlist.set_element_model('U1', opamp)
+    netlist['U1'].model = opamp
     for supply_voltage in (5, 10, 15):
-        netlist.set_component_value('V1', supply_voltage)
-        netlist.set_component_value('V2', -supply_voltage)
+        netlist['V1'].value = supply_voltage
+        netlist['V2'].value = -supply_voltage
         print("simulating OpAmp", opamp, "Voltage", supply_voltage)
         LTC.run(netlist)
 

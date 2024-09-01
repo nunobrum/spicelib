@@ -9,12 +9,12 @@ print(E.get_subcircuit('X1').get_components())
 # reading component values
 for E_comp in E.get_subcircuit('X1').get_components():
     comp_designator = 'X1:' + E_comp
-    print(f"X1:{comp_designator} = {E.get_component_value(comp_designator)}")
+    print(f"X1:{comp_designator} = {E[comp_designator]}")
 print("Setting X1:R1 to 100")
-E.set_component_value("X1:R1", 100)
-print(E.get_component_value('R1'))
+E["X1:R1"].value = 100
+print(E['R1'].value)
 print("Setting R1 to 10k")
-E.set_component_value('R1', 11)
+E['R1'].value = 11
 print("Setting parameter V1 a pulse ")
 E.set_parameter("V1", "PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)")
 E.set_parameters(
