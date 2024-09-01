@@ -124,8 +124,11 @@ class Simulator(ABC):
         """
         plib_path_to_exe = None
         exe_parts = []
-        if isinstance(path_to_exe, Path):
-            plib_path_to_exe = path_to_exe
+        if isinstance(path_to_exe, Path) or os.path.exists(path_to_exe):
+            if isinstance(path_to_exe, Path):
+                plib_path_to_exe = path_to_exe
+            else:
+                plib_path_to_exe = Path(path_to_exe)
             exe_parts = [plib_path_to_exe.as_posix()]
         else:
             if '\\' in path_to_exe:  # this probably a windows path. Don't be smart here.
@@ -142,7 +145,7 @@ class Simulator(ABC):
                 
         if plib_path_to_exe.exists() or shutil.which(plib_path_to_exe):
             if process_name is None:
-                cls.process_name = cls.guess_process_name(cls.exe_parts[0])
+                cls.process_name = cls.guess_process_name(exe_parts[0])
             else:
                 cls.process_name = process_name
             cls.spice_exe = exe_parts

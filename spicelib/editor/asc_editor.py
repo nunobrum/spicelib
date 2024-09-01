@@ -17,6 +17,7 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os.path
+from collections import OrderedDict
 from pathlib import Path
 from typing import Union, Optional, Tuple, List
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -142,7 +143,7 @@ class AscEditor(BaseSchematic):
                     if component is not None:
                         assert component.reference is not None, "Component InstName was not given"
                         self.components[component.reference] = component
-                    component = SchematicComponent()
+                    component = SchematicComponent(self, line)
                     component.symbol = symbol
                     component.position.X = int(posX)
                     component.position.Y = int(posY)
@@ -153,6 +154,7 @@ class AscEditor(BaseSchematic):
                 elif line.startswith("WINDOW"):
                     assert component is not None, "Syntax Error: WINDOW clause without SYMBOL"
                     tag, num_ref, posX, posY, alignment, size = line.split()
+                    component.append(line)
                     coord = Point(int(posX), int(posY))
                     text = Text(coord=coord, text=num_ref, size=size, type=TextTypeEnum.ATTRIBUTE)
                     text = asc_text_align_set(text, alignment)
@@ -160,6 +162,7 @@ class AscEditor(BaseSchematic):
 
                 elif line.startswith("SYMATTR"):
                     assert component is not None, "Syntax Error: SYMATTR clause without SYMBOL"
+                    component.append(line)
                     tag, ref, text = line.split(maxsplit=2)
                     text = text.strip()  # Gets rid of the \n terminator
                     if ref == "InstName":

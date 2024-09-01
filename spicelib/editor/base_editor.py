@@ -16,9 +16,9 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-__author__ = "Nuno Brum"
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __version__ = "0.1.0"
-
+__copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -28,9 +28,6 @@ from typing import Union, List
 import logging
 from ..sim.simulator import Simulator
 
-
-__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
-__copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 _logger = logging.getLogger("spicelib.BaseEditor")
 
@@ -164,6 +161,86 @@ def scan_eng(value: str) -> float:
     return f
 
 
+def to_float(value, accept_invalid: bool = True) -> (float, str):
+    _MULT = {
+        'f': 1E-15,
+        'p': 1E-12,
+        'n': 1E-9,
+        'u': 1E-6,
+        'U': 1E-6,
+        'm': 1E-3,
+        'M': 1E-3,
+        'k': 1E+3,
+        'K': 1E+3,  # For much of the world, K is the same as k. That is a sad fact of life. K is Kelvin in SI
+        'Meg': 1E+6,
+        'g': 1E+9,
+        't': 1E+12,
+        # These units can be used as decimal points in the number definition. Ex: 10R5 is 10.5 Ohms. In LTSpice
+        # the units can be used in any number definition. For example 10H5 is 10.5 Henrys but also can be used in
+        # resistors value definition. LTSpice doesn't care about the unit in the component value definition.
+        'Ω': 1,  # This is the Ohm symbol. It is supported by LTspice
+        'R': 1,  # This also represents the Ohm symbol. Can be used a decimal point. Ex: 10R2 is 10.2 Ohms
+        'V': 1,  # Volts
+        'A': 1,  # Amperes (Current)
+        'F': 1,  # Farads (Capacitance)
+        'H': 1,  # Henry (Inductance)
+        '%': 0.01,  # Percent. 10% is 0.1. 1%6 is 0.016
+    }
+
+    value = value.strip()  # Removing trailing and leading spaces
+    length = len(value)
+
+    multiplier = 1.0
+
+    i = 0
+    while i < length and (value[i] in "0123456789.+-"):  # Includes spaces
+        i += 1
+    if i == 0:
+        if accept_invalid:
+            return value
+        else:
+            raise ValueError("Doesn't start with a number")
+
+    if 0 < i < length and (value[i] == 'E' or value[i] == 'e'):
+        # if it is a number in scientific format, it doesn't have 1000x qualifiers (Ex: p, u, k, etc...)
+        i += 1
+        while i < length and (value[i] in "0123456789+-"):  # Includes spaces
+            i += 1
+        j = k = i
+    else:
+        # this first part should be able to be converted into float
+        k = i  # Stores the position of the end of the number
+        # Consume any spaces that may exist between the number and the unit
+        while i < length and (value[i] in " \t"):
+            i += 1
+
+        if i < length:  # Still has characters to consume
+            if value[i] in _MULT:
+                if value[i:].upper().startswith('MEG'):  # to 1E+06 qualifier 'Meg'
+                    i += 3
+                    multiplier = _MULT['Meg']
+                else:
+                    multiplier = _MULT[value[i]]
+                    i += 1
+
+            # This part is done to support numbers with the format 1k7 or 1R8
+            j = i
+            while i < length and (value[i] in "0123456789"):
+                i += 1
+        else:
+            j = i
+
+    try:
+        if j < i:  # There is a suffix number
+            value = float(value[:k] + "." + value[j:i]) * multiplier
+        else:
+            value = float(value[:k]) * multiplier
+    except ValueError as err:
+        if not accept_invalid:
+            raise err
+    return value
+
+
 class ComponentNotFoundError(Exception):
     """Component Not Found Error"""
 
@@ -175,13 +252,65 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
-class Component(object):
-    """Hols component information"""
+class Primitive(object):
+    """Holds the information of a primitive element in the netlist. This is a base class for the Component and is
+    used to hold the information of the netlist primitives, such as .PARAM, .OPTIONS, .IC, .NODESET, .GLOBAL, etc.
+    """
 
-    def __init__(self):
+    def __init__(self, line: str):
+        self.line = line
+
+    def append(self, line):
+        self.line += line
+
+    def __str__(self):
+        return self.line
+
+
+class Component(Primitive):
+    """Holds component information"""
+
+    def __init__(self, parent, line: str):
+        super().__init__(line)
         self.reference = ""
         self.attributes = OrderedDict()
         self.ports = []
+        self.parent = parent
+
+    @property
+    def value_str(self):
+        return self.parent.get_component_value(self.reference)
+
+    @value_str.setter
+    def value_str(self, value):
+        self.parent.set_component_value(self.reference, value)
+
+    @property
+    def params(self) -> OrderedDict:
+        return self.parent.get_component_parameters(self.reference)
+
+    def set_params(self, **param_dict):
+        self.parent.set_component_parameters(self.reference, **param_dict)
+
+    @property
+    def value(self):
+        return to_float(self.value_str, accept_invalid=True)
+
+    @value.setter
+    def value(self, value):
+        if isinstance(value, (int, float)):
+            self.value_str = format_eng(value)
+        else:
+            self.value_str = value
+
+    def __str__(self):
+        return f"{self.reference} = {self.value}"
+
+    def __getitem__(self, item):
+        return self.attributes[item]
+
+    def __setitem__(self, key, value):
+        self.attributes[key] = value
 
 
 class BaseEditor(ABC):
@@ -238,6 +367,16 @@ class BaseEditor(ABC):
         """Returns a hierarchical subdesign"""
         ...
 
+    def __getitem__(self, item) -> Component:
+        """
+        This method allows the user to get the value of a component using the syntax:
+        component = circuit['R1']
+        """
+        return self.get_component(item)
+
+    def __setitem__(self, key, value):
+        self.set_component_value(key, value)
+
     def get_component_attribute(self, reference: str, attribute: str) -> str:
         """Returns the value of the attribute of the component. Attributes are the values that are not related with
         SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
@@ -263,22 +402,6 @@ class BaseEditor(ABC):
                  KeyError - In case the port is not found
         """
         return self.get_component(reference).ports
-
-    def get_component_info(self, reference) -> dict:
-        """
-        .. deprecated:: 1.x Use `get_component_attribute()` instead.
-        
-        Retrieves the component information. This is a dictionary with the component information. This method is
-        deprecated and will be removed in future versions.
-
-        :param reference: Reference of the component
-        :type reference: str
-        :return: Dictionary with the component information
-        :rtype: dict
-        :raises: UnrecognizedSyntaxError when the line doesn't match the expected REGEX. NotImplementedError of there
-                 isn't an associated regular expression for the component prefix.
-        """
-        return self.get_component(reference).attributes
 
     @abstractmethod
     def get_parameter(self, param: str) -> str:
@@ -523,7 +646,7 @@ class BaseEditor(ABC):
     def add_component(self, component: Component, **kwargs) -> None:
         """
         Adds a component to the design. If the component already exists, it will be replaced by the new one.
-        kwargs can be used to add additional parameters to the component. For example, to add a symbol or position.
+        kwargs are implementation specific and can be used to pass additional information to the implementation.
 
         :param component: Component to be added to the design.
         :type component: Component
