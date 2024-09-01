@@ -48,7 +48,7 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   * It can overcome the limitation of only stepping 3 parameters
   * Different types of simulations .TRAN .AC .NOISE can be run in a single batch
   * The RAW Files are smaller and easier to handle
-  * When used with RawRead and ltsteps.exe, validation of the circuit can be done automatically
+  * When used with RawRead and ltsteps, validation of the circuit can be done automatically
   * Different models can be simulated in a single batch
 
 * __RawRead__
@@ -426,7 +426,7 @@ given a tolerance value and its respective index.
 * The wc1() function is added to the circuit. This function is used to calculate the worst case value for each component,
 given a minimum and maximum value and its respective index.
 
-### ltsteps.exe ###
+### ltsteps ###
 
 This module defines a class that can be used to parse LTSpice log files where the information about .STEP information is
 written. There are two possible usages of this module, either programmatically by importing the module and then
@@ -474,7 +474,7 @@ This will process all the data and export it automatically into a text file with
 where the data read is formatted into a more convenient tab separated format. In case the `filename` is not provided, the
 script will scan the directory and process the newest log, txt or out file found.
 
-### histogram.py ###
+### histogram.exe ###
 
 This module uses the data inside on the filename to produce a histogram image.
 
@@ -505,7 +505,7 @@ Options:
                         Name of the image File. extension 'png'    
  ```
 
-### raw_convert.py ###
+### raw_convert.exe ###
 
 A tool to convert .raw files into csv or Excel files.
 
@@ -525,7 +525,7 @@ Options:
                         Example: -d ";"
 ```
 
-### rawplot.py ###
+### rawplot.exe ###
 
 Uses matplotlib to plot the data in the raw file.
 
@@ -533,7 +533,7 @@ Uses matplotlib to plot the data in the raw file.
 Usage: rawplot RAW_FILE TRACE_NAME
 ```
 
-### run_server.py ###
+### run_server.exe ###
 
 This module is used to run a server that can be used to run simulations in a remote machine. The server will run in the
 background and will wait for a client to connect. The client will send a netlist to the server and the server will run
@@ -589,7 +589,7 @@ optional arguments:
                         Maximum number of parallel simulations. Default is 4
 ```
 
-### asc_to_qsch.py ###
+### asc_to_qsch.exe ###
 
 Converts LTspice schematics into QSPICE schematics.
 
@@ -602,7 +602,7 @@ Options:
   -a PATH, --add=PATH  Add a path for searching for symbols
 ```
 
-### log\semi_dev_op_reader.py ###
+### log\semi_dev_op_reader.exe ###
 
 This module is used to read from LTSpice log files Semiconductor Devices Operating Point Information. A more detailed
 documentation is directly included in the source file docstrings.
