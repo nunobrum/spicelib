@@ -7,7 +7,7 @@ E.set_custom_library_paths([r"C:\SVN\Electronic_Libraries\LTSpice\lib"])
 print(E.get_components())
 print(E.get_components('R'))
 print(E.get_subcircuit('XX1').get_components())
-E["XX1:L1"].value = 2e-6
+E.set_component_value("XX1:L1", 2e-6)
 print(E['R1'].value)
 print("Setting R1 to 10k")
 E['R1'].value = 10000

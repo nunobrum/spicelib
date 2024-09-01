@@ -11,7 +11,7 @@ for E_comp in E.get_subcircuit('X1').get_components():
     comp_designator = 'X1:' + E_comp
     print(f"X1:{comp_designator} = {E[comp_designator]}")
 print("Setting X1:R1 to 100")
-E["X1:R1"].value = 100
+E.set_component_value("X1:R1", 100)
 print(E['R1'].value)
 print("Setting R1 to 10k")
 E['R1'].value = 11
