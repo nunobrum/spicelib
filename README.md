@@ -14,12 +14,13 @@ spicelib is a toolchain of python utilities design to interact with spice simula
 * __Analysis Toolkit__
   A set of tools that prepare an LTspice netlist for a Montecarlo or Worst Case Analysis. The device tolerances are set by the user and the netlist is updated accordingly. The netlist can then be used with the SimRunner to run a batch of simulations or with the LTspice GUI.
 
-* __ltsteps.py__
+* __ltsteps.exe__
   An utility that extracts from LTspice output files data, and formats it for import in a spreadsheet, such like Excel or Calc.
 
-* __histogram.py__
+* __histogram.exe__
   A python script that uses numpy and matplotlib to create a histogram and calculate the sigma deviations. This is useful for Monte-Carlo analysis.
 
+(Note that the extension '.exe' is only available on Windows. On MacOS or Linux, the commands will have the same name, but without '.exe')
 
 ### Main Classes ###
 
@@ -50,7 +51,7 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   * It can overcome the limitation of only stepping 3 parameters
   * Different types of simulations .TRAN .AC .NOISE can be run in a single batch
   * The RAW Files are smaller and easier to handle
-  * When used with RawRead and ltsteps.py, validation of the circuit can be done automatically
+  * When used with RawRead and ltsteps, validation of the circuit can be done automatically
   * Different models can be simulated in a single batch
 
 * __RawRead__
@@ -162,9 +163,10 @@ netlist.set_component_value('R1', '4k')  # Alternative way of modifying the valu
 netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)
 netlist['R1'].set_params(temp=100, tc=0.000050, pwr=None)  # Alternative way of setting parameters. Same as the above.
 # Modifying the behavior of the voltage source
-netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
+netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)") 
 netlist['V3'].model = "SINE(0 1 3k 0 0 0)"  # Alternative way of modifying the behaviour. Same as the above.
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a component in a subcircuit
+# define simulation
 netlist.add_instructions(
     "; Simulation settings",
     ";.param run = 0"
@@ -428,7 +430,7 @@ given a tolerance value and its respective index.
 * The wc1() function is added to the circuit. This function is used to calculate the worst case value for each component,
 given a minimum and maximum value and its respective index.
 
-### ltsteps.py ###
+### ltsteps ###
 
 This module defines a class that can be used to parse LTSpice log files where the information about .STEP information is
 written. There are two possible usages of this module, either programmatically by importing the module and then
@@ -463,9 +465,9 @@ The second possibility is to use the module directly on the command line
 
 ## Command Line Interface ##
 
-The following tools will be installed when you install the library via pip. The extension '.exe' is only available on Windows, on MacOS or Linux, the commands will have the same name, but without '.exe'. The executables are simple links to python scripts with the same name, of which the majority can be found in the package's 'scripts' directory.
+The following tools will be installed when you install the library via pip. The extension '.exe' is only available on Windows. On MacOS or Linux, the commands will have the same name, but without '.exe'. The executables are simple links to python scripts with the same name, of which the majority can be found in the package's 'scripts' directory.
 
-### ltsteps.py ###
+### ltsteps.exe ###
 
 ```bash
 Usage: ltsteps [filename]
@@ -476,7 +478,7 @@ This will process all the data and export it automatically into a text file with
 where the data read is formatted into a more convenient tab separated format. In case the `filename` is not provided, the
 script will scan the directory and process the newest log, txt or out file found.
 
-### histogram.py ###
+### histogram.exe ###
 
 This module uses the data inside on the filename to produce a histogram image.
 
@@ -507,7 +509,7 @@ Options:
                         Name of the image File. extension 'png'    
  ```
 
-### raw_convert.py ###
+### raw_convert.exe ###
 
 A tool to convert .raw files into csv or Excel files.
 
@@ -527,7 +529,7 @@ Options:
                         Example: -d ";"
 ```
 
-### rawplot.py ###
+### rawplot.exe ###
 
 Uses matplotlib to plot the data in the raw file.
 
@@ -535,7 +537,7 @@ Uses matplotlib to plot the data in the raw file.
 Usage: rawplot RAW_FILE TRACE_NAME
 ```
 
-### run_server.py ###
+### run_server.exe ###
 
 This module is used to run a server that can be used to run simulations in a remote machine. The server will run in the
 background and will wait for a client to connect. The client will send a netlist to the server and the server will run
@@ -591,7 +593,7 @@ optional arguments:
                         Maximum number of parallel simulations. Default is 4
 ```
 
-### asc_to_qsch.py ###
+### asc_to_qsch.exe ###
 
 Converts LTspice schematics into QSPICE schematics.
 
@@ -604,7 +606,7 @@ Options:
   -a PATH, --add=PATH  Add a path for searching for symbols
 ```
 
-### log\semi_dev_op_reader.py ###
+### log\semi_dev_op_reader.exe ###
 
 This module is used to read from LTSpice log files Semiconductor Devices Operating Point Information. A more detailed
 documentation is directly included in the source file docstrings.

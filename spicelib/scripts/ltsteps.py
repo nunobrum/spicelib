@@ -31,11 +31,11 @@ handled by this module.
             2. If .MEAS primitives are used in the schematic, the log file contains the measurements made on the output
             data.
 
-      ltsteps.py can be used to retrieve both step and measurement information from log files.
+      ltsteps can be used to retrieve both step and measurement information from log files.
 
     + txt files - Files exported from the Plot File -> Export data as text menu. This file is an text file where data is
       saved in the text format. The reason to use spicelib instead of another popular lib as pandas, is because the data
-      format when .STEPS are used in the simulation is not not very practical. The spicelib ltsteps.py can be used to
+      format when .STEPS are used in the simulation is not not very practical. The spicelib ltsteps can be used to
       reformat the text, so that the run parameter is added to the data as an additional column instead of a table
       divider. Please Check LTSpiceExport class for more information.
 
@@ -61,12 +61,12 @@ handled by this module.
                  2	1.99689
 
 
-The ltsteps.exe can be used directly from a command line if the Python's Scripts folder is included in the PATH
+The ltsteps can be used directly from a command line if the Python's Scripts folder is included in the PATH
 environment variable.
 
 .. code-block:: text
 
-    $ ltsteps.exe <path_to_filename>
+    $ ltsteps <path_to_filename>
 
 If `<path_to_filename>` is a log file, it will create a file with the same name, but with extension .tout that is a
 tab separated value (tsv) file, which contains the .STEP and .MEAS information collected.

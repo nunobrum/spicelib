@@ -353,7 +353,7 @@ class LogfileData:
 
     def split_complex_values_on_datasets(self):
         """
-        (Deprecated) Use obtain_amplitude_and_phase_from_complex_values instead
+        .. deprecated:: 1.0 Use `obtain_amplitude_and_phase_from_complex_values()` instead.
         """
         self.obtain_amplitude_and_phase_from_complex_values()
 

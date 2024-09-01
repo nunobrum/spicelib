@@ -19,7 +19,7 @@
 import os.path
 from collections import OrderedDict
 from pathlib import Path
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, List
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
@@ -47,10 +47,14 @@ LTSPICE_ATTRIBUTES = ("InstName", "Def_Sub")
 class AscEditor(BaseSchematic):
     """Class made to update directly the LTspice ASC files"""
     symbol_cache = {}  # This is a class variable, so it can be shared between all instances.
+    """:meta private:"""
     
-    # initialise the simulator_lib_paths with typical locations found for LTSpice
-    # you can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths
-    simulator_lib_paths = LTspice.get_default_library_paths()
+    simulator_lib_paths: List[str] = LTspice.get_default_library_paths()
+    """ This is initialised with typical locations found for LTSpice.
+    You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
+    
+    :meta hide-value:
+    """
     
     def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
         super().__init__()
@@ -556,7 +560,7 @@ class AscEditor(BaseSchematic):
 
     def add_library_paths(self, *paths):
         """
-        *(Deprecated)* Use the class method `set_custom_library_paths()` instead.
+        .. deprecated:: 1.1.4 Use the class method `set_custom_library_paths()` instead.
         
         Adding paths for searching for symbols and libraries"""
         self.set_custom_library_paths(*paths)

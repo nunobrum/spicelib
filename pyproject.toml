@@ -23,7 +23,7 @@ dependencies = [
     "keyboard",
 ]
 
-keywords = ["spice", "ltspice", "qspice", "electronic simulator", "montecarlo", "worst-case"]
+keywords = ["spice", "ltspice", "qspice", "ngspice", "electronic simulator", "montecarlo", "worst-case"]
 
 classifiers=[
     "Programming Language :: Python :: 3",

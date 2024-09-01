@@ -121,15 +121,15 @@ REPLACE_REGEXS = {
 
 SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
 
-
 # Code Optimization objects, avoiding repeated compilation of regular expressions
 component_replace_regexs = {prefix: re.compile(pattern, re.IGNORECASE) for prefix, pattern in REPLACE_REGEXS.items()}
 subckt_regex = re.compile(r"^.SUBCKT\s+(?P<name>\w+)", re.IGNORECASE)
 lib_inc_regex = re.compile(r"^\.(LIB|INC)\s+(.*)$", re.IGNORECASE)
 
-# This is deprecated, and here only so that people can find it.
+# The following variable deprecated, and here only so that people can find it. 
 # It is replaced by SpiceEditor.set_custom_library_paths().
 # Since I cannot keep it operational easily, I do not use the deprecated decorator or the magic from https://stackoverflow.com/a/922693.
+#
 # LibSearchPaths = []
 
 
@@ -284,10 +284,13 @@ class SpiceCircuit(BaseEditor):
     them, it serves as base for the top level netlist. This hierarchical approach helps to encapsulate
     and protect parameters and components from edits made at a higher level.
     """
-
-    # initialise the simulator_lib_paths with typical locations found for LTspice
-    # you can (and should, if you use wine or use anything else than LTspice), with `prepare_for_simulator()`
-    simulator_lib_paths = LTspice.get_default_library_paths()
+    
+    simulator_lib_paths: List[str] = LTspice.get_default_library_paths()    
+    """ This is initialised with typical locations found for LTSpice.
+    You can (and should, if you use wine or use anything else than LTspice), call `prepare_for_simulator()`.
+    
+    :meta hide-value:
+    """
 
     def __init__(self):
         super().__init__()
@@ -331,12 +334,12 @@ class SpiceCircuit(BaseEditor):
                     return True  # If a sub-circuit is ended correctly, returns True
         return False  # If a sub-circuit ends abruptly, returns False
 
-    def write_lines(self, f):
+    def _write_lines(self, f):
         """Internal function. Do not use."""
         # This helper function writes the contents of sub-circuit to the file f
         for command in self.netlist:
             if isinstance(command, SpiceCircuit):
-                command.write_lines(f)
+                command._write_lines(f)
             else:
                 f.write(command)
 
@@ -362,6 +365,7 @@ class SpiceCircuit(BaseEditor):
     def get_subcircuit(self, instance_name: str) -> 'SpiceCircuit':
         """
         Returns an object representing a Subcircuit. This object can manipulate elements such as the SpiceEditor does.
+        
         :param instance_name: Reference of the subcircuit
         :type instance_name: str
         :returns: SpiceCircuit instance
@@ -496,7 +500,6 @@ class SpiceCircuit(BaseEditor):
         :param new_name: The new Name.
         :type new_name: str
         :return: Nothing
-        :rtype: None
         """
         if len(self.netlist):
             lines = len(self.netlist)
@@ -816,8 +819,7 @@ class SpiceCircuit(BaseEditor):
         :param kwargs:
             The following keyword arguments are supported:
 
-            * **insert_before** (str) - The reference of the component before which the new component should be
-            inserted.
+            * **insert_before** (str) - The reference of the component before which the new component should be inserted.
 
             * **insert_after** (str) - The reference of the component after which the new component should be inserted.
 
@@ -858,8 +860,8 @@ class SpiceCircuit(BaseEditor):
     @staticmethod
     def add_library_search_paths(paths: Union[str, List[str]]) -> None:
         """
-        *(Deprecated)* Use the class method `set_custom_library_paths()` instead.
-
+        .. deprecated:: 1.1.4 Use the class method `set_custom_library_paths()` instead.
+        
         Adds search paths for libraries. By default, the local directory and the
         ~username/"Documents/LTspiceXVII/lib/sub will be searched forehand. Only when a library is not found in these
         paths then the paths added by this method will be searched.
@@ -867,7 +869,6 @@ class SpiceCircuit(BaseEditor):
         :param paths: Path to add to the Search path
         :type paths: str
         :return: Nothing
-        :rtype: None
         """
         SpiceCircuit.set_custom_library_paths(paths)
 
@@ -1079,13 +1080,13 @@ class SpiceEditor(SpiceCircuit):
             lines = iter(self.netlist)
             for line in lines:
                 if isinstance(line, SpiceCircuit):
-                    line.write_lines(f)
+                    line._write_lines(f)
                 else:
                     # Writes the modified sub-circuits at the end just before the .END clause
                     if line.upper().startswith(".END"):
                         # write here the modified sub-circuits
                         for sub in self.modified_subcircuits.values():
-                            sub.write_lines(f)
+                            sub._write_lines(f)
                     f.write(line)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
@@ -1146,7 +1147,7 @@ class SpiceEditor(SpiceCircuit):
     def run(self, wait_resource: bool = True,
             callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):
         """
-        *(Deprecated)*
+        .. deprecated:: 1.0 Use the `run` method from the `SimRunner` class instead.
 
         Convenience function for maintaining legacy with legacy code. Runs the SPICE simulation.
         """

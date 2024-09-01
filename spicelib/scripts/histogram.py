@@ -145,7 +145,7 @@ def main():
             try:
                 log = LTSpiceLogReader(logfile)
             except EncodingDetectError:
-                print("Failed to load file '%s'. Use ltsteps.exe first to convert to tlog format" % logfile)
+                print("Failed to load file '%s'. Use ltsteps first to convert to tlog format" % logfile)
                 exit(-1)
             else:
                 if options.filters is None:

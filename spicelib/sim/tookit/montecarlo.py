@@ -64,7 +64,7 @@ class Montecarlo(ToleranceDeviations):
         """
         Prepares the simulation by setting the tolerances for the components
         :keyword num_runs: Number of runs to be performed. Default is 1000.
-        :return: None
+        :return: Nothing
         """
         min_max_uni_func = False
         min_max_norm_func = False

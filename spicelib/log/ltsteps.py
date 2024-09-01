@@ -62,12 +62,12 @@ handled by this module.
                  2	1.99689
 
 
-The ltsteps.exe can be used directly from a command line if the Python's Scripts folder is included in the PATH
+The ltsteps can be used directly from a command line if the Python's Scripts folder is included in the PATH
 environment variable.
 
 .. code-block:: text
 
-    $ ltsteps.exe <path_to_filename>
+    $ ltsteps <path_to_filename>
 
 If `<path_to_filename>` is a log file, it will create a file with the same name, but with extension .tout that is a
 tab separated value (tsv) file, which contains the .STEP and .MEAS information collected.
@@ -120,8 +120,6 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
     :param tabular_file: Filename of the tab separated values (TSV) file that
     :type tabular_file: str
     :return: Nothing
-    :rtype: None
-
     """
     encoding = detect_encoding(export_file)
     fin = open(export_file, 'r', encoding=encoding)

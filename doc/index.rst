@@ -12,7 +12,7 @@ Welcome to spicelib's documentation!
    
    modules/modules
    classes/editor_classes
-   classes/sim_simulator
+   classes/simulator_classes
    classes/simulation_classes
    classes/raw_classes
    utilities/utilities

@@ -73,14 +73,14 @@ class XyceSimulator(Simulator):
         '-randseed'         : ['-randseed', '<int_option>'],
         # <number>          seed random number generator used by expressions and sampling methods
     }
+    """:meta private:"""
 
     @classmethod
     def valid_switch(cls, switch, parameter='') -> list:
         """
         Validates a command line switch. The following options are available for Xyce:
 
-        :param switch: switch to be added. If the switch is not on the list above, it should be correctly formatted with
-            the preceding '-' switch
+        :param switch: switch to be added. If the switch is not on the list above, it should be correctly formatted with the preceding '-' switch
         :type switch: str
         :param parameter: parameter for the switch
         :type parameter: str, optional
