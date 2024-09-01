@@ -279,11 +279,18 @@ class Component(Primitive):
 
     @property
     def value_str(self):
-        return self.attributes.get('value', None)
+        return self.parent.get_component_value(self.reference)
 
     @value_str.setter
     def value_str(self, value):
-        self.attributes['value'] = value
+        self.parent.set_component_value(self.reference, value)
+
+    @property
+    def params(self) -> OrderedDict:
+        return self.parent.get_component_parameters(self.reference)
+
+    def set_params(self, **param_dict):
+        self.parent.set_component_parameters(self.reference, **param_dict)
 
     @property
     def value(self):
@@ -295,16 +302,6 @@ class Component(Primitive):
             self.value_str = format_eng(value)
         else:
             self.value_str = value
-
-    @property
-    @abstractmethod
-    def params(self) -> OrderedDict:
-        # TODO: Use abstract decorator instead
-        raise NotImplemented("params needs to be overridden by a child class.")
-
-    def set_params(self, **param_dict):
-        # TODO: Use abstract decorator instead
-        raise NotImplemented("set_params needs to be overridden by a child class.")
 
     def __str__(self):
         return f"{self.reference} = {self.value}"
