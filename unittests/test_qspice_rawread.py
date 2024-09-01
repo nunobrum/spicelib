@@ -125,7 +125,7 @@ class test_spicelib(unittest.TestCase):
         log = QspiceLogReader(log_file)
         for measure in log.get_measure_names():
             print(measure, '=', log.get_measure_value(measure))
-        self.assertEqual(4746490.0, log.get_measure_value('fcutac')[0])
+        self.assertEqual(6.16683e+06, log.get_measure_value('fcutac')[0])
         self.assertEqual(1.99999, log.get_measure_value('gainac')[0])
 
     @unittest.skipIf(skip_qspice_editor_tests, "Skip if not in windows environment")

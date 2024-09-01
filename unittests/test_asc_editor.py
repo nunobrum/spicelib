@@ -34,12 +34,32 @@ temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else '.
 if not os.path.exists(temp_dir):
     os.mkdir(temp_dir)
 
+
 class ASC_Editor_Test(unittest.TestCase):
 
     def setUp(self):
         self.edt = spicelib.editor.asc_editor.AscEditor(test_dir + "DC sweep.asc")
 
     def test_component_editing(self):
+        r1 = self.edt['R1']
+        self.assertEqual('10k', r1.value_str, "Tested R1 Value")  # add assertion here
+        self.assertListEqual(['Vin', 'R1', 'R2', 'D1'], self.edt.get_components(), "Tested get_components")  # add assertion here
+        r1.value = 33000
+        self.edt.save_netlist(temp_dir + 'test_components_output.asc')
+        self.equalFiles(temp_dir + 'test_components_output.asc', golden_dir + 'test_components_output.asc')
+        self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
+        self.assertEqual(r1.value_str, '33k', "Tested R1 Value")  # add assertion here
+        r1.set_params(Tc1='0', Tc2='0', pwr=None)
+        # self.edt.set_component_parameters('R1', Tc1='0', Tc2='0', pwr=None)
+        self.edt.save_netlist(temp_dir + 'test_components_output_2.asc')
+        self.equalFiles(temp_dir + 'test_components_output_2.asc', golden_dir + 'test_components_output_2.asc')
+        for key, value in {'Tc1': 0, 'Tc2': 0}.items():
+            self.assertEqual(r1.params[key], value, f"Tested R1 {key} Parameter")
+        self.edt.remove_component('R1')
+        self.edt.save_netlist(temp_dir + 'test_components_output_1.asc')
+        self.equalFiles(temp_dir + 'test_components_output_1.asc', golden_dir + 'test_components_output_1.asc')
+
+    def test_component_legacy_editing(self):
         self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here
         self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")  # add assertion here
         self.edt.set_component_value('R1', '33k')
@@ -55,6 +75,7 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.remove_component('R1')
         self.edt.save_netlist(temp_dir + 'test_components_output_1.asc')
         self.equalFiles(temp_dir + 'test_components_output_1.asc', golden_dir + 'test_components_output_1.asc')
+
 
     def test_parameter_edit(self):
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here

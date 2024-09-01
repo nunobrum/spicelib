@@ -85,7 +85,7 @@ class FailureMode(SimAnalysis):
         for two_pin_comps in (self.capacitors, self.inductors, self.diodes):
             for two_pin_component in two_pin_comps:
                 # Open Circuit
-                cinfo = self.editor.get_component_info(two_pin_component)
+                cinfo = self.editor.get_component(two_pin_component)
                 self.editor.remove_component(two_pin_component)
                 self.simulations[f"{two_pin_component}_O"] = self.simulator.run()
                 # Short Circuit
