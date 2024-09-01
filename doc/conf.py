@@ -20,22 +20,22 @@ print(sys.path)
 # -- Project information -----------------------------------------------------
 
 project = 'spicelib'
-copyright = '2023, Nuno Brum'
+copyright = '2024, Nuno Brum'
 author = 'Nuno Brum'
 
 # The full version, including alpha/beta/rc tags
 release = '1.1.4'
 
 try:
-	# Read the version from the .toml file
-	from toml import load
-	with open('../pyproject.toml') as f:
-		pyproject = load(f)
-		project = pyproject['project']['name']
-		release = pyproject['project']['version']
-		author = pyproject['project']['authors'][0]['name']
+    # Read the version from the .toml file
+    from toml import load
+    with open('../pyproject.toml') as f:
+        pyproject = load(f)
+        project = pyproject['project']['name']
+        release = pyproject['project']['version']
+        author = pyproject['project']['authors'][0]['name']
 except:
-	pass
+    pass
 
 
 # -- General configuration ---------------------------------------------------
@@ -44,17 +44,17 @@ except:
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-	# 'docxbuilder',
-	# 'sphinx-docxbuilder',
-	'sphinx.ext.todo', 
-	'sphinx.ext.viewcode', 
-	'sphinx.ext.autodoc',
-	#'sphinx.ext.autosummary',
-    #'rinoh.frontend.sphinx'
+    # 'docxbuilder',
+    # 'sphinx-docxbuilder',
+    'sphinx.ext.todo', 
+    'sphinx.ext.viewcode', 
+    'sphinx.ext.autodoc',
+    # 'sphinx.ext.autosummary',
+    # 'rinoh.frontend.sphinx'
 ]
 
-#autodoc_default_flags = ['members']
-#autosummary_generate = True
+# autodoc_default_flags = ['members']
+# autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -77,9 +77,7 @@ exclude_patterns = ['doc_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'agogo'
-html_theme_options = {
-    'rightsidebar' : False,
-}
+html_theme_options = {'rightsidebar': False}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

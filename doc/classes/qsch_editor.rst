@@ -1,7 +1,7 @@
 QschEditor
 ============
 
-Class used for manipulating LTSpice asc files.
+Class used for manipulating QSPICE qsch files.
 
 .. autoclass:: spicelib.editor.qsch_editor.QschEditor
    :members:

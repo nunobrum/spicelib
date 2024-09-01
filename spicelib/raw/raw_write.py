@@ -33,6 +33,7 @@ from numpy import array, float32, zeros
 
 class Trace(DataSet):
     """Helper class representing a trace. This class is based on DataSet, therefore, it doesn't support STEPPED data.
+    
     :param name: name of the trace being created
     :type name: str
     :param whattype: time, frequency, voltage or current
@@ -107,10 +108,10 @@ class RawWrite(object):
         Adds a trace to the RAW file. The trace needs to have the same size as trace 0 ('time', 'frequency', etc..)
         The first trace added defines the X-Axis and therefore the type of RAW file being generated. If no plot name
         was defined, it will automatically assign a name.
+        
         :param trace: Needs to be of the
-        :type trace:
+        :type trace: Trace
         :return: Nothing
-        :rtype: None
         """
         assert isinstance(trace, Trace), "The trace needs to be of the type ""Trace"""
         if len(self._traces) == 0:
@@ -144,12 +145,10 @@ class RawWrite(object):
         """
         Saves the RAW file into a file. The file format is always binary. Text based RAW output format is not supported
         in this version.
-        :param filename: filename to where the RAW file is going to be written. Make sure that the extension of the
-        file is .RAW.
-
+        
+        :param filename: filename to where the RAW file is going to be written. Make sure that the extension of the file is .RAW.
         :type filename: str or pathlib.Path
         :return: Nothing
-        :rtype: None
         """
         if len(self._imported_data):
             self._consolidate()
@@ -203,6 +202,7 @@ class RawWrite(object):
         """ *(Not fully implemented)*
 
         Merge two RawWrite classes together resulting in a new instance
+        
         :param other: an instance of the RawRead class where the traces are going to be copied from.
         :type other: RawRead
         :param trace_filter: A list of signals that should be imported into the new file

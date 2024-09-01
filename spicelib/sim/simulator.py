@@ -71,7 +71,7 @@ class Simulator(ABC):
     .. code-block:: python
 
         class MySpiceLinuxInstallation(Simulator):
-            spice_exe = ['<wine_command', '<path to the spice executable>']
+            spice_exe = ['<wine_command>', '<path to the spice executable>']
             process_name = "<name of the process within the system>"
 
 
@@ -92,9 +92,20 @@ class Simulator(ABC):
     The ``run_function()`` can be imported from the simulator.py with
     ``from spicelib.sim.simulator import run_function`` instruction.
     """
-    spice_exe = []  # if using a loader (like wine), make sure that the last in the array is the real simulator.
-    process_name = ""  # the name of the process in the task manager
-    raw_extension = '.raw'
+    
+    spice_exe: List[str] = []
+    """ The executable. If using a loader (like wine), make sure that the last in the array is the real simulator.
+    
+    :meta hide-value:"""
+    
+    process_name: str = ""  
+    """ the name of the process in the task manager
+    
+    :meta hide-value:"""
+    
+    raw_extension = '.raw'  
+    """:meta private:"""
+    
     # the default lib paths, as used by get_default_library_paths
     _default_lib_paths = []
 
@@ -222,12 +233,18 @@ class Simulator(ABC):
         On MacOS or Linux, it will try to replace any reference to the virtual windows root under wine into a host OS path.
         
         Examples:
+        
         * under windows:
-        * C:/mydir -> C:/mydir
-        * ~/mydir -> C:/Users/myuser/mydir
+        
+          * C:/mydir -> C:/mydir
+          
+          * ~/mydir -> C:/Users/myuser/mydir
+          
         * under linux, and if the executable is /mywineroot/.wine/drive_c/(something):
-        * C:/mydir -> /mywineroot/.wine/drive_c/mydir
-        * ~/mydir -> /mywineroot/.wine/drive_c/users/myuser/mydir
+
+          * C:/mydir -> /mywineroot/.wine/drive_c/mydir
+          
+          * ~/mydir -> /mywineroot/.wine/drive_c/users/myuser/mydir
         
         :param path: The path to expand. Must be in posix format, use `PureWindowsPath(path).as_posix()` to transform a windows path to a posix path.
         :type path: str

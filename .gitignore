@@ -169,3 +169,5 @@ spicelib.egg-info
 
 # MacOS
 .DS_Store
+README.bak
+doc_build/

@@ -115,6 +115,11 @@ class LTspice(Simulator):
             if os.path.exists(exe):
                 spice_exe = [exe]
                 break
+    
+    # The following variables are not needed anymore. This also makes sphinx not mention them in the documentation.
+    del exe
+    del spice_folder
+    del spice_executable
             
     # fall through        
     if len(spice_exe) == 0:
@@ -152,9 +157,15 @@ class LTspice(Simulator):
         'sync'               : ['-sync'],  # Update component libraries
         'uninstall'          : ['-uninstall'],  # Please don't. Executes one step of the uninstallation process.
     }
+    """:meta private:"""
 
     @classmethod
     def using_macos_native_sim(cls) -> bool:
+        """Tells if the simulator used is the MacOS native LTspice
+
+        :return: True if the MacOS native LTspice is used, False otherwise (will also return False on Windows or Linux)
+        :rtype: bool
+        """
         return sys.platform == "darwin" and cls.spice_exe and "wine" not in cls.spice_exe[0].lower()
 
     @classmethod
@@ -203,7 +214,6 @@ class LTspice(Simulator):
         :param path: path to the file related to the switch being given.
         :type path: str, optional
         :return: Nothing
-        :rtype: None
         """
         
         # See if the MacOS simulator is used. If so, check if I use the native simulator

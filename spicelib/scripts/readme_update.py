@@ -29,12 +29,17 @@ while line_no < len(readme_md):
     if "```python" in line:
         block_start = line_no
     elif "```" in line and block_start != -1:
-        # check whether the next line has the -- in statement
-        if line_no + 1 < len(readme_md):
-            m = in_statement_regex.search(readme_md[line_no + 1])
+        # print("found comment block end")
+        # check whether the next or the line after has the -- in statement
+        nextline = readme_md[line_no + 1] if line_no + 1 < len(readme_md) else ""
+        if len(nextline.strip()) == 0:
+            nextline = readme_md[line_no + 2] if line_no + 2 < len(readme_md) else ""
+        if len(nextline.strip()) > 0:
+            # print("found non empty next line")
+            m = in_statement_regex.search(nextline)
             # find the file to include
             if m:
-                print(f"Updating code on lines {block_start+1}:{line_no + 1}")
+                print(f"Updating code on lines {block_start + 1}:{line_no + 1}")
                 include_relpath = m.group("path")
                 include_path = os.path.abspath(os.path.join(os.curdir, include_relpath))
                 include_text = open(include_path, "r", encoding="utf-8").readlines()

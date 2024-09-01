@@ -286,7 +286,7 @@ class QschTag:
         :type index: int
         :param value: The value to be set
         :type value: Union[str, int, tuple]
-        :return: None
+        :return: Nothing
         """
         if isinstance(value, int):
             value_str = str(value)
@@ -330,10 +330,14 @@ class QschEditor(BaseSchematic):
     :type qsch_file: str
     :keyword create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
     """
-    # initialise the simulator_lib_paths with typical locations found for Qspice
-    # you can (and should, if you use wine), with `prepare_for_simulator()`
-    simulator_lib_paths = Qspice.get_default_library_paths()    
+
+    simulator_lib_paths: List[str] = Qspice.get_default_library_paths()    
+    """ This is initialised with typical locations found for QSPICE.
+    You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
     
+    :meta hide-value:
+    """
+        
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()
         self._qsch_file_path = Path(qsch_file)
@@ -372,7 +376,7 @@ class QschEditor(BaseSchematic):
 
         :param netlist_file: The file buffer to save the netlist
         :type netlist_file: TextIO
-        :return: None
+        :return: Nothing
         """
         libraries_to_include = []
         subcircuits_to_write = OrderedDict()

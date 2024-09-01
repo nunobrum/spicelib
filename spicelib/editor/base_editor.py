@@ -318,9 +318,10 @@ class BaseEditor(ABC):
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
     """
-    custom_lib_paths = []  # This is a class variable, so it will be shared between all instances.
-    simulator_lib_paths = []  # This is a class variable, so it will be shared between all instances.
-    # TODO: implement setting of the simulator_lib_paths from init and from the outside.
+    custom_lib_paths: List[str] = []  # This is a class variable, so it will be shared between all instances.
+    """:meta hide-value:"""    
+    simulator_lib_paths: List[str] = []  # This is a class variable, so it will be shared between all instances.
+    """:meta hide-value:"""
 
     @property
     @abstractmethod
@@ -351,7 +352,7 @@ class BaseEditor(ABC):
 
     def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         """
-        (Deprecated)
+        .. deprecated:: 1.x Use `save_netlist()` instead.
 
         Writes the netlist to a file. This is an alias to save_netlist."""
         self.save_netlist(run_netlist_file)
@@ -784,8 +785,7 @@ class BaseEditor(ABC):
 
         :param paths: Path(s) to add to the Search path
         :type paths: Union[str, List[str]]
-        :return: Nothing
-        :rtype: None        
+        :return: Nothing    
         """
         # empty the list
         cls.custom_lib_paths = []

@@ -32,7 +32,12 @@ _logger = logging.getLogger("spicelib.QSpiceSimulator")
 class Qspice(Simulator):
     """Stores the simulator location and command line options and is responsible for generating netlists and running
     simulations."""
-    raw_extension = '.qraw'  # In QSPICE all traces have double precision. This means that qraw files are not compatible
+    
+    raw_extension = '.qraw'
+    """:meta private:"""
+    
+    #
+    # In QSPICE all traces have double precision. This means that qraw files are not compatible
     # with LTSPICE
     
     # windows paths (that are also valid for wine)
@@ -84,11 +89,13 @@ class Qspice(Simulator):
         'ProtectSubcircuits': ['-ProtectSubcircuits', '<path>'],  # Protect the body of subcircuits with encryption.
         'r'       : ['-r', '<path>'],  # Specify the name of the output data(.qraw) file.
     }
+    """:meta private:"""
 
     @classmethod
     def valid_switch(cls, switch, path='') -> list:
         """
         Validates a command line switch. The following options are available for QSPICE:
+        
             * 'ASCII': Use ASCII file format for the output data(.qraw) file.
 
             * 'binary': Use binary file format for the output data(.qraw) file.
@@ -105,14 +112,11 @@ class Qspice(Simulator):
 
             * 'r <path>': Specify the name of the output data(.qraw) file.
 
-
-        :param switch: switch to be added. If the switch is not on the list above, it should be correctly formatted with
-                       the preceding '-' switch
+        :param switch: switch to be added. If the switch is not on the list above, it should be correctly formatted with the preceding '-' switch
         :type switch: str
         :param path: path to the file related to the switch being given.
         :type path: str, optional
         :return: Nothing
-        :rtype: None
         """
         if switch in cls.qspice_args:
             switches = cls.qspice_args[switch]

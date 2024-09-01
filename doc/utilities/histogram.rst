@@ -1,4 +1,4 @@
-histogram.exe
+histogram
 =============
 This module uses matplotlib to plot an histogram of a gaussian distribution and calculates the project n-sigma interval.
 
@@ -11,13 +11,13 @@ this module.
 
 .. code-block:: text
 
-    histogram.exe [options] [data_file] TRACE
+    histogram [options] [data_file] TRACE
 
 The help can be obtained by calling the script without arguments
 
 .. code-block:: text
 
-    Usage: Histogram.exe [options] LOG_FILE TRACE
+    Usage: histogram [options] LOG_FILE TRACE
 
     Options:
       --version             show program's version number and exit
