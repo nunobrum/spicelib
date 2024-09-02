@@ -1,4 +1,4 @@
-NgspiceSimulator
+NGspiceSimulator
 ==================
 
 Class used interfacing with Ngspice.
