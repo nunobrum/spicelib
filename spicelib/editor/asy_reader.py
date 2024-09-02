@@ -143,9 +143,17 @@ class AsyReader(object):
                     if len(line_elements) == 11:
                         arc.line_style.pattern = line_elements[10]
                     self.shapes.append(arc)
+
+                elif line.startswith("TEXT"):
+                    # Text in asy not supported however non-critical and not neccesary to crash the program.
+                    _logger.warning(f"Cosmetic text in ASY not supported, text skipped. ASY file: {self._asy_file_path}" 
+                                    )
+
+                    
                 else:
-                    raise NotImplementedError("Primitive not supported for ASY file\n" 
-                                              f'"{line}"')
+                    raise NotImplementedError(f"Primitive not supported for ASY file \n" 
+                                              f'"{line}"'
+                                              f'in file: {self._asy_file_path}')
             if pin is not None:
                 self.pins.append(pin)
 

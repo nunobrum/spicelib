@@ -118,8 +118,8 @@ class LTspice(Simulator):
     
     # The following variables are not needed anymore. This also makes sphinx not mention them in the documentation.
     del exe
-    del spice_folder
-    del spice_executable
+    #del spice_folder
+    #del spice_executable
             
     # fall through        
     if len(spice_exe) == 0:
