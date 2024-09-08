@@ -400,7 +400,7 @@ class QschEditor(BaseSchematic):
             texts = symbol_tag.get_items('text')
             nets = " ".join(component.ports)
 
-            if typ in ('R', 'D', 'C', 'L', 'V', 'I'):
+            if typ in ('R', 'D', 'C', 'L', 'V', 'I', 'S'):
                 value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
                 if len(texts) > 2:
                     for i in range(2, len(texts)):
