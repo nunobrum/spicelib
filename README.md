@@ -33,13 +33,16 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   
   without having to open the schematic in a GUI. The simulations can then be run in batch mode (see SimRunner). Examples of functions provided:
 
-  * `set_element_model('D1', '1N4148') # Replaces the Diode D1 with the model 1N4148`
-  * `set_component_value('R2', '33k') # Replaces the value of R2 by 33k`
-  * `set_parameters(run=1, TEMP=80) # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80`
-  * `add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")`
-  * `remove_instruction(".STEP run -1 1023 1")  # Removes previously added instruction`
-  * `reset_netlist() # Resets all edits done to the netlist.`
-  * `set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters`
+  * `netlist.set_element_model('D1', '1N4148') # Replaces the Diode D1 with the model 1N4148`
+  * `netlist.set_component_value('R2', '33k') # Replaces the value of R2 by 33k`
+  * `netlist['R2'].value = 33000 # Same as above`
+  * `netlist.set_component_value('V1', '5') # Replaces the value of V1 by 5`
+  * `netlist['V1'].value = 5 # Same as above`
+  * `netlist.set_parameters(run=1, TEMP=80) # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80`
+  * `netlist.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")`
+  * `netlist.remove_instruction(".STEP run -1 1023 1")  # Removes previously added instruction`
+  * `netlist.reset_netlist() # Resets all edits done to the netlist.`
+  * `netlist.set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters`
 
 * __SimRunner__
   A class that can be used to run LTspice/QSPICE/Ngspice/Xyce simulations in batch mode without having to open the corresponding GUI.
@@ -154,26 +157,26 @@ LTC = SimRunner(simulator=LTspice, output_folder='./temp')
 netlist = SpiceEditor('./testfiles/Batch_Test.net')
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6)
-netlist.set_component_value('R2', '2k')  # Modifying the value of a resistor
-netlist.set_component_value('R1', '4k')
+netlist['R2'].value = '2k'  # Modifying the value of a resistor
+netlist.set_component_value('R1', '4k')  # Alternative way of modifying the value of a resistor.
 # Set component temperature, Tc 50ppm, remove power rating :
 netlist.set_component_parameters('R1', temp=100, tc=0.000050, pwr=None)
-netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)") # Modifying the model of a voltage source
-netlist.set_component_value('XU1:C2', 20e-12)  # modifying an internal component value
-# define simulation
+netlist['R1'].set_params(temp=100, tc=0.000050, pwr=None)  # Alternative way of setting parameters. Same as the above.
+# Modifying the behavior of the voltage source
+netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
+netlist['V3'].model = "SINE(0 1 3k 0 0 0)"  # Alternative way of modifying the behaviour. Same as the above.
+netlist.set_component_value('XU1:C2', 20e-12)  # modifying a component in a subcircuit
 netlist.add_instructions(
     "; Simulation settings",
     ";.param run = 0"
 )
 netlist.set_parameter('run', 0)
-
-alt_solver = False
-
+alt_solver = True
 for opamp in ('AD712', 'AD820'):
-    netlist.set_element_model('XU1', opamp)
+    netlist['XU1'].model = opamp
     for supply_voltage in (5, 10, 15):
-        netlist.set_component_value('V1', supply_voltage)
-        netlist.set_component_value('V2', -supply_voltage)
+        netlist['V1'].value = supply_voltage
+        netlist['V2'].value = -supply_voltage
         print("simulating OpAmp", opamp, "Voltage", supply_voltage)
 
         # small example on how to use options, here how to force the solver
@@ -642,6 +645,15 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : <nuno.brum@gmail.com>
 
 ## History ##
+
+* Version 1.2.0
+  * Implementing a new approach to the accessing component values and parameters. Instead of using the
+  get_component_value() and get_component_parameters() methods, the component values and parameters are now accessed
+  directly as attributes of the component object. This change was made to make the code more readable.
+  The old methods are still available for backward compatibility.
+  * Improvements on the documentation.
+  * Added testbench for the regular expressions used on the SpiceEditor. Improvements on the regular expressions.
+  * Improvements on the usage of spicelib in Linux and MacOS using wine.
 * Version 1.1.4
   * Fix on line patterns on the AsyEditor (#PR 65)
   * Fix on the X (.SUBCKT) components regex (#PR 66)

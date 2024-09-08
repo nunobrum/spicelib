@@ -152,7 +152,7 @@ class SimRunner(object):
     :param verbose: If True, it enables a richer printout of the program execution.
     :type verbose: bool, optional
     :param output_folder: specifying which directory shall be used for simulation files (raw and log files).
-    :param output_folder: str
+    :type output_folder: str, optional
     :param simulator: Forcing a given simulator executable.
     :type simulator: Simulator, optional
     """

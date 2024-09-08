@@ -1,4 +1,4 @@
-* C:\sandbox\spicelib\examples\testfiles\Noise.asc
+* C:\sandbox\spicelib_dev\examples\testfiles\Noise.asc
 V1 in 0 10V
 R1 out in 1k
 C1 out 0 1µ

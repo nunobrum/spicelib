@@ -925,8 +925,9 @@ class SpiceEditor(SpiceCircuit):
     :type netlist_file: str or Path
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This however is not 100% foolproof.
-    :param create_blank: Create a blank '.net' file when 'netlist_file' not exist.
     :type encoding: str, optional
+    :param create_blank: Create a blank '.net' file when 'netlist_file' not exist. False by default
+    :type create_blank: bool, optional
     """
 
     def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
