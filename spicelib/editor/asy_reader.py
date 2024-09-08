@@ -143,9 +143,28 @@ class AsyReader(object):
                     if len(line_elements) == 11:
                         arc.line_style.pattern = line_elements[10]
                     self.shapes.append(arc)
+
+                elif line.startswith("TEXT "):
+                    line_elements = line.split()
+                    if len(line_elements) == 6:
+                        x = int(line_elements[1])
+                        y = int(line_elements[2])
+
+                        text = Text(Point(x, y), text=line_elements[5], size=int(line_elements[4]),
+                                    type=TextTypeEnum.COMMENT,
+                                    textAlignment=HorAlign(line_elements[3]),
+                                    )
+                        self.windows.append(text)
+                    else:
+                        # Text in asy not supported however non-critical and not neccesary to crash the program.
+                        _logger.warning(f"Cosmetic text in ASY format not supported, text skipped. ASY file: {self._asy_file_path}"
+                                    )
                 else:
-                    raise NotImplementedError("Primitive not supported for ASY file\n" 
-                                              f'"{line}"')
+                    # In order to avoid crashing the program, 1) add the missing if statement above and
+                    # 2) ontact the author to add support for the missing primitive.
+                    raise NotImplementedError(f"Primitive not supported for ASY file \n" 
+                                              f'"{line}"'
+                                              f'in file: {self._asy_file_path}. Contact the author to add support.')
             if pin is not None:
                 self.pins.append(pin)
 
