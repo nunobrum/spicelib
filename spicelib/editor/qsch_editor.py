@@ -163,6 +163,12 @@ QSCH_ZIGZAG_UNKNOWN1 = 7
 QSCH_ZIGZAG_UNKNOWN2 = 8
 
 
+def decap(s: str) -> str:
+    """Take the leading < and ending > from the parameter value on a string with the format "param=<value>"
+    If they are not there, the string is returned unchanged."""
+    regex = re.compile(r"(\w+)=<(.*)>")
+    return regex.sub(r"\1=\2", s)
+
 
 class QschReadingError(IOError):
     ...
@@ -275,7 +281,11 @@ class QschTag:
         elif a.startswith('"') and a.endswith('"'):
             return a[1:-1]
         else:
-            return int(a)
+            try:
+                value = int(a)
+            except ValueError:
+                value = float(a)
+            return value
 
     def set_attr(self, index: int, value):
         """Sets the attribute at the given index. The attribute can be a string, an integer or a tuple.
@@ -381,6 +391,9 @@ class QschEditor(BaseSchematic):
         libraries_to_include = []
         subcircuits_to_write = OrderedDict()
 
+        net_no = 1
+        behavioral_net = 0
+
         for refdes, component in self.components.items():
             component: SchematicComponent
             item_tag = component.attributes['tag']
@@ -398,26 +411,36 @@ class QschEditor(BaseSchematic):
                 typ = 'X'
 
             texts = symbol_tag.get_items('text')
-            nets = " ".join(component.ports)
+            ports = []
+            parameters = ""
+            if len(texts) > 2:
+                for text in texts[2:]:
+                    parameters += " " + decap(text.get_text_attr(QSCH_TEXT_STR_ATTR))
 
-            if typ in ('R', 'D', 'C', 'L', 'V', 'I', 'S'):
-                value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                if len(texts) > 2:
-                    for i in range(2, len(texts)):
-                        value += ' ' + texts[i].get_text_attr(QSCH_TEXT_STR_ATTR)
-                if refdes.startswith(symbol):
-                    netlist_file.write(f'{refdes} {nets} {value}\n')
+            if typ in ('¥', 'Ã'):
+                for port in component.ports:
+                    if port is not None:
+                        ports.append(port)
+                    else:
+                        ports.append(f'¥{behavioral_net}')
+                        behavioral_net += 1
+                if len(ports) < 16:
+                    ports += ['¥'] * (16 - len(ports))
+                nets = " ".join(ports)
+                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
+                continue
+
+            for port in component.ports:
+                if port is not None:
+                    ports.append(port)
                 else:
-                    netlist_file.write(f'{symbol}†{refdes} {nets} {value}\n')
-            elif typ in ('QP', 'QN', "MN", "NP"):
+                    ports.append(f'N{net_no:02d}')
+                    net_no += 1
+            nets = " ".join(ports)
+
+            if typ == 'X':
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                netlist_file.write(f'{refdes} {nets} 0 {model} {symbol}\n')
-            elif typ == 'X':
-                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                parameters = ""
-                if len(texts) > 2:
-                    for text in texts[2:]:
-                        parameters += f" {text.get_text_attr(QSCH_TEXT_STR_ATTR)}"
 
                 # schedule to write .SUBCKT clauses at the end
                 if model not in subcircuits_to_write:
@@ -427,11 +450,21 @@ class QschEditor(BaseSchematic):
                         component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
                         sub_ports,  # and also storing the port position now, so to save time later.
                     )
+                nets = " ".join(component.ports)
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
+
+            elif typ in ('QP', 'QN', "MN", "NP"):
+                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                netlist_file.write(f'{refdes} {nets} 0 {model} {symbol}\n')
             else:
-                _logger.error("Unsupported component type in schematic.\n"
-                              f'Not Found:{typ} {refdes} {component.position}')
-                netlist_file.write(f'Not Found:{typ} {refdes} {component.position}\n')
+                value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if len(texts) > 2:
+                    for i in range(2, len(texts)):
+                        value += ' ' + texts[i].get_text_attr(QSCH_TEXT_STR_ATTR)
+                # if refdes.startswith(symbol):
+                netlist_file.write(f'{refdes} {nets} {value}\n')
+                # else:
+                #     netlist_file.write(f'{symbol}†{refdes} {nets} {value}\n')
 
             library_tags = symbol_tag.get_items('library')
             for lib in library_tags:
@@ -449,9 +482,8 @@ class QschEditor(BaseSchematic):
 
         for directive in self.directives:
             for line in directive.text.split('\\n'):
-                if directive.type == TextTypeEnum.COMMENT:
-                    netlist_file.write('* ')
-                netlist_file.write(line.strip() + '\n')
+                if directive.type != TextTypeEnum.COMMENT:  # Comments are not written to the netlist
+                    netlist_file.write(line.strip() + '\n')
 
         for library in libraries_to_include:
             library_path = self._qsch_file_find(library)
@@ -563,7 +595,14 @@ class QschEditor(BaseSchematic):
             sch_comp.attributes['tag'] = component
             sch_comp.attributes['enabled'] = component.get_attr(QSCH_COMPONENT_ENABLED) == 0
             pins = symbol.get_items('pin')
-            sch_comp.ports = [self._find_net_at_pin(position, orientation, pin) for pin in pins]
+            sch_comp.ports = []
+            for pin in pins:
+                try:
+                    net = self._find_net_at_pin(position, orientation, pin)
+                except QschReadingError as e:
+                    net = None  # f"NET_{refdes}_{pin.tag}_{pin.tokens[-1]}"  # Last token is the pin name
+                    _logger.warning(f"No net found for {refdes}: {e}. Creating a dummy net. <{pin}>")
+                sch_comp.ports.append(net)
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
                 sub_circuit_name = value + os.path.extsep + 'qsch'

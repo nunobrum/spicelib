@@ -265,6 +265,9 @@ class SchematicComponent(Component):
         self.rotation: ERotation = ERotation.R0
         self.symbol = None
 
+    def __str__(self):
+        return f"{self.reference} {self.position.X} {self.position.Y} {self.rotation}"
+
 
 class BaseSchematic(BaseEditor):
     """
