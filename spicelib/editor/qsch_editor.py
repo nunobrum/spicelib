@@ -59,6 +59,7 @@ QSCH_SYMBOL_TEXT_VALUE = 1
 QSCH_SYMBOL_PIN_POS1 = 1
 QSCH_SYMBOL_PIN_POS2 = 2
 QSCH_SYMBOL_PIN_NET = 8
+QSCH_SYMBOL_PIN_NET_BEHAVIORAL = 9
 #    »
 # »
 #   «wire (-1200,100) (-500,100) "N01"»
@@ -391,9 +392,6 @@ class QschEditor(BaseSchematic):
         libraries_to_include = []
         subcircuits_to_write = OrderedDict()
 
-        net_no = 1
-        behavioral_net = 0
-
         for refdes, component in self.components.items():
             component: SchematicComponent
             item_tag = component.attributes['tag']
@@ -411,32 +409,16 @@ class QschEditor(BaseSchematic):
                 typ = 'X'
 
             texts = symbol_tag.get_items('text')
-            ports = []
             parameters = ""
             if len(texts) > 2:
                 for text in texts[2:]:
                     parameters += " " + decap(text.get_text_attr(QSCH_TEXT_STR_ATTR))
 
+            ports = component.ports.copy()
             if typ in ('¥', 'Ã'):
-                for port in component.ports:
-                    if port is not None:
-                        ports.append(port)
-                    else:
-                        ports.append(f'¥{behavioral_net}')
-                        behavioral_net += 1
                 if len(ports) < 16:
                     ports += ['¥'] * (16 - len(ports))
-                nets = " ".join(ports)
-                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
-                continue
 
-            for port in component.ports:
-                if port is not None:
-                    ports.append(port)
-                else:
-                    ports.append(f'N{net_no:02d}')
-                    net_no += 1
             nets = " ".join(ports)
 
             if typ == 'X':
@@ -453,16 +435,40 @@ class QschEditor(BaseSchematic):
                 nets = " ".join(component.ports)
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
-            elif typ in ('QP', 'QN', "MN", "NP"):
+            elif typ in ('QP', 'QN'):
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                netlist_file.write(f'{refdes} {nets} 0 {model} {symbol}\n')
+                if symbol == 'NPNS' or symbol == 'PNPS' or symbol == 'LPNP':
+                    ports[3] = '[' + ports[3] + ']'
+                    nets = ' '.join(ports)
+                    hack = 'PNP' if 'PNP' in symbol else 'NPN'
+                    netlist_file.write(f'{refdes} {nets} {model} {hack}{parameters}\n')
+                else:
+                    netlist_file.write(f'{refdes} {nets} [0] {model} {symbol}{parameters}\n')
+            elif typ in ('MN', 'MP'):
+                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if symbol == 'NMOSB' or symbol == 'PMOSB':
+                    symbol = symbol[0:4]
+                if len(ports) == 3:
+                    netlist_file.write(f'{refdes} {nets} {ports[2]} {model} {symbol}{parameters}\n')
+                else:
+                    netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
+            elif typ == 'T':
+                model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
+            elif typ in ('JN', 'JP'):
+                model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                if symbol.startswith('Pwr'):  # Hack alert. I don't know why the symbol is Pwr
+                    symbol = symbol[3:]  # remove the Pwr from the symbol
+                netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
+            elif typ == '×':
+                model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                netlist_file.write(f'{refdes} «{nets}» {model}{parameters}\n')
+            elif typ in ('ZP', 'ZN'):
+                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             else:
                 value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                if len(texts) > 2:
-                    for i in range(2, len(texts)):
-                        value += ' ' + texts[i].get_text_attr(QSCH_TEXT_STR_ATTR)
-                # if refdes.startswith(symbol):
-                netlist_file.write(f'{refdes} {nets} {value}\n')
+                netlist_file.write(f'{refdes} {nets} {value}{parameters}\n')
                 # else:
                 #     netlist_file.write(f'{symbol}†{refdes} {nets} {value}\n')
 
@@ -514,7 +520,7 @@ class QschEditor(BaseSchematic):
                 self.write_spice_to_file(netlist_file)
                 netlist_file.write('.end\n')
 
-    def _find_net_at_pin(self, comp_pos, orientation: int, pin: QschTag) -> str:
+    def _find_pin_position(self, comp_pos, orientation: int, pin: QschTag) -> Tuple[int, int]:
         """Returns the net name at the pin position"""
         pin_pos = pin.get_attr(1)
         hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
@@ -532,16 +538,19 @@ class QschEditor(BaseSchematic):
             y = comp_pos[1] + round(hyp * math.sin(theta), -2)
         else:
             raise ValueError(f"Invalid orientation: {orientation}")
-        for net in self.schematic.get_items('net'):
+        return x, y
+
+    def _find_net_at_position(self, x, y) -> Optional[str]:
+        """Returns the net name at the given position"""
+        for net in self.schematic.get_items('net'):  # Connection to ports, grounds and nets
             if net.get_attr(1) == (x, y):
                 net_name = net.get_attr(5)  # Found the net
                 return '0' if net_name == 'GND' else net_name
-        for wire in self.schematic.get_items('wire'):
+        for wire in self.schematic.get_items('wire'):  # Connection to wires
             if wire.get_attr(1) == (x, y) or wire.get_attr(2) == (x, y):
                 net_name = wire.get_attr(3)  # Found the net
                 return '0' if net_name == 'GND' else net_name
-
-        raise QschReadingError(f"Failed to find the net for {pin} in component in position {comp_pos}")
+        return None
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
@@ -574,6 +583,32 @@ class QschEditor(BaseSchematic):
 
         schematic, _ = QschTag.parse(stream, 4)
         self.schematic = schematic
+        highest_net_number = 0
+        behavior_pin_counter = 0
+        unconnected_pins = {}  # Storing the components that have floating pins
+
+        for net in self.schematic.get_items('net'):
+            # process nets
+            x, y = net.get_attr(QSCH_NET_POS)
+            # TODO: Get the remaining attributes Rotation, size, color, etc...
+            # rotation = net.get_attr(QSCH_NET_ROTATION)
+            net_name = net.get_attr(QSCH_NET_STR_ATTR)
+            self.labels.append(Text(Point(x, y), net_name, type=TextTypeEnum.LABEL))
+
+        for wire in self.schematic.get_items('wire'):
+            # process wires
+            x1, y1 = wire.get_attr(QSCH_WIRE_POS1)
+            x2, y2 = wire.get_attr(QSCH_WIRE_POS2)
+            net = wire.get_attr(QSCH_WIRE_NET)
+            # Check if the net is of the format N##, if it is get the net number
+            if net.startswith('N'):
+                try:
+                    net_no = int(net[1:])
+                    if net_no > highest_net_number:
+                        highest_net_number = net_no
+                except ValueError:
+                    pass
+            self.wires.append(Line(Point(x1, y1), Point(x2, y2), net=net))
 
         components = self.schematic.get_items('component')
         for component in components:
@@ -597,11 +632,27 @@ class QschEditor(BaseSchematic):
             pins = symbol.get_items('pin')
             sch_comp.ports = []
             for pin in pins:
-                try:
-                    net = self._find_net_at_pin(position, orientation, pin)
-                except QschReadingError as e:
-                    net = None  # f"NET_{refdes}_{pin.tag}_{pin.tokens[-1]}"  # Last token is the pin name
-                    _logger.warning(f"No net found for {refdes}: {e}. Creating a dummy net. <{pin}>")
+                x, y = self._find_pin_position(position, orientation, pin)
+                net = self._find_net_at_position(x, y)
+                # The pins that have "¥" are behavioral pins, they are not connected to any net, they will be connected
+                # to a net later.
+                if refdes[0] in ('¥', 'Ã', 'U'):
+                    if (len(pin.tokens) > QSCH_SYMBOL_PIN_NET_BEHAVIORAL and
+                            pin.get_attr(QSCH_SYMBOL_PIN_NET_BEHAVIORAL) == '¥'):
+                        net = '¥'
+                if net is None:
+                    hash_key = (x, y)
+                    if hash_key in unconnected_pins:
+                        net = unconnected_pins[hash_key]
+                    else:
+                        _logger.info(f"Unconnected pin at {x},{y} in component {refdes}:{pin}")
+                        if refdes[0] in ('¥', 'Ã'):  # Behavioral pins are not connected
+                            net = f'¥{behavior_pin_counter:d}'
+                            behavior_pin_counter += 1
+                        else:
+                            highest_net_number += 1
+                            net = f'N{highest_net_number:02d}'
+                        unconnected_pins[hash_key] = net
                 sch_comp.ports.append(net)
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
@@ -610,21 +661,6 @@ class QschEditor(BaseSchematic):
                 if sub_circuit_schematic_file:
                     sub_schematic = QschEditor(sub_circuit_schematic_file)
                     sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
-
-        for net in self.schematic.get_items('net'):
-            # process nets
-            x, y = net.get_attr(QSCH_NET_POS)
-            # TODO: Get the remaining attributes Rotation, size, color, etc...
-            # rotation = net.get_attr(QSCH_NET_ROTATION)
-            net_name = net.get_attr(QSCH_NET_STR_ATTR)
-            self.labels.append(Text(Point(x, y), net_name, type=TextTypeEnum.LABEL))
-
-        for wire in self.schematic.get_items('wire'):
-            # process wires
-            x1, y1 = wire.get_attr(QSCH_WIRE_POS1)
-            x2, y2 = wire.get_attr(QSCH_WIRE_POS2)
-            net = wire.get_attr(QSCH_WIRE_NET)
-            self.wires.append(Line(Point(x1, y1), Point(x2, y2), net))
 
         for text_tag in self.schematic.get_items('text'):
             x, y = text_tag.get_attr(QSCH_TEXT_POS)

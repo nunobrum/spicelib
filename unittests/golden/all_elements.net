@@ -9,9 +9,9 @@ I1 0 N25 1µ
 L1 N12 0 4.7µ
 ×1 «N59 0 N58 0» Turns=1 1
 ¥1 VDD 0 DQ1 DQn1 N67 N66 0 CLR ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ D-FLOP
-¥2 VDD 0 DQ2 DQn2 N67 N66 0 CLR VDD ¥ ¥ ¥ ¥ ¥ ¥ ¥ JK-FLOP
-¥3 ¥0 ¥1 AND3_OUT AND3_OUTn DQ1 DQ2 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ AND
-Ã1 ¥2 ¥3 N69 N69 N68 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ RRopAmp Avol=100K GBW=5Meg Slew=5Meg Rload=2K Phi=60
+¥2 VDD 0 DQ2 DQn2 N67 N66 ¥0 ¥1 VDD ¥ ¥ ¥ ¥ ¥ ¥ ¥ JK-FLOP
+¥3 VDD 0 AND3_OUT AND3_OUTn DQ1 DQ2 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ AND
+Ã1 VDD 0 N69 N69 N68 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ RRopAmp Avol=100K GBW=5Meg Slew=5Meg Rload=2K Phi=60
 B2 0 N02 I=sin({2*pi*time/1000K})
 B3 N03 0 R={1K*time}
 R2 N01 0 10K
@@ -80,7 +80,7 @@ V29 N41 0 PWL 0 -5 100m 5
 V30 N70 0 1
 W1 N43 0 B5 CSW
 V31 N71 0 1
-U1 N46 N47 ¥4 urcmodel N=10
+U1 N46 N47 0 urcmodel N=10
 Y1 N49 0 10Meg dF=100Hz Ctot=10pF
 V32 N42 0 1
 R11 N42 N43 1K

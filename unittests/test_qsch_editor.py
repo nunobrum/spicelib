@@ -115,6 +115,7 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.save_netlist(temp_dir + 'test_instructions_output_2.qsch')
         equalFiles(self, temp_dir + 'test_instructions_output_2.qsch', golden_dir + 'test_instructions_output_2.qsch')
 
+
 class QschEditorRotation(unittest.TestCase):
 
     def test_component_rotations(self):
