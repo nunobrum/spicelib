@@ -55,15 +55,13 @@ class NGspiceSimulator(Simulator):
             break
         else:
             # check if file in path
-            full_exe = shutil.which(exe)
-            if full_exe:
+            if shutil.which(exe):
                 spice_exe = [exe]
                 break
-    
+
     # The following variables are not needed anymore. This also makes sphinx not mention them in the documentation.
     del exe
-    del full_exe
-    
+
     # fall through        
     if len(spice_exe) == 0:
         spice_exe = []
