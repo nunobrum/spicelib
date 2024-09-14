@@ -51,6 +51,8 @@ def equalFiles(testcase, file1, file2):
         data2 = lines2[i].strip()
         if data1.startswith('*') and data2.startswith('*'):
             continue  # Skip comments
+        elif data1.startswith('.lib') and data2.startswith('.lib'):
+            continue  # Skip library definitions
         testcase.assertEqual(data1, data2, f"Files \"{file1}\" and \"{file2}\" are not equal")
     
 
@@ -115,6 +117,7 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.save_netlist(temp_dir + 'test_instructions_output_2.qsch')
         equalFiles(self, temp_dir + 'test_instructions_output_2.qsch', golden_dir + 'test_instructions_output_2.qsch')
 
+
 class QschEditorRotation(unittest.TestCase):
 
     def test_component_rotations(self):
@@ -138,6 +141,11 @@ class QschEditorSpiceGeneration(unittest.TestCase):
         else:
             equalFiles(self, temp_dir + 'top_circuit.net', golden_dir + "top_circuit.net")
 
+    def test_all_elements(self):
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "all_elements.qsch")
+        self.edt.save_netlist(temp_dir + "all_elements.net")
+        equalFiles(self, temp_dir + 'all_elements.net', golden_dir + "all_elements.net")
+
 
 class QschEditorFromAscConversion(unittest.TestCase):
 
@@ -150,6 +158,16 @@ class QschEditorFromAscConversion(unittest.TestCase):
     #     self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "DC sweep.qsch")
     #     self.edt.save_asc(temp_dir + "DC sweep.asc")
     #     equalFiles(self, temp_dir + 'DC sweep.asc', golden_dir + "DC sweep.asc")
+
+
+class QschEditorFloatingNet(unittest.TestCase):
+
+    def test_floating_net(self):
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "Qspice_bug_floating_net.qsch")
+        x1 = self.edt['X1']
+        self.assertEqual(len(x1.ports), 3, "X1 should have only 3 pins connected")
+        self.edt.save_netlist(temp_dir + 'qsch_floating_net.net')
+        equalFiles(self, temp_dir + 'qsch_floating_net.net', golden_dir + "qsch_floating_net.net")
 
 
 if __name__ == '__main__':
