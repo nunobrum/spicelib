@@ -629,8 +629,9 @@ class QschEditor(BaseSchematic):
             sch_comp.attributes['value'] = value
             sch_comp.attributes['tag'] = component
             sch_comp.attributes['enabled'] = component.get_attr(QSCH_COMPONENT_ENABLED) == 0
-            pins = symbol.get_items('pin')
             sch_comp.ports = []
+            pins = symbol.get_items('pin')
+
             for pin in pins:
                 x, y = self._find_pin_position(position, orientation, pin)
                 net = self._find_net_at_position(x, y)
@@ -654,6 +655,7 @@ class QschEditor(BaseSchematic):
                             net = f'N{highest_net_number:02d}'
                         unconnected_pins[hash_key] = net
                 sch_comp.ports.append(net)
+
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
                 sub_circuit_name = value + os.path.extsep + 'qsch'
