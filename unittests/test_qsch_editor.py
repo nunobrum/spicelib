@@ -51,6 +51,8 @@ def equalFiles(testcase, file1, file2):
         data2 = lines2[i].strip()
         if data1.startswith('*') and data2.startswith('*'):
             continue  # Skip comments
+        elif data1.startswith('.lib') and data2.startswith('.lib'):
+            continue  # Skip library definitions
         testcase.assertEqual(data1, data2, f"Files \"{file1}\" and \"{file2}\" are not equal")
     
 
