@@ -1,0 +1,26 @@
+* /Users/hboot/Documents/workspace/spicelib/examples/testfiles/Qspice_bug_floating_net.qsch
+V1 N01 0 48
+R1 N01 N02 1µ
+L1 N02 Vin 5µ
+C1 Vin 0 600µ
+C2 N03 0 100µ
+R4 Vout 0 80m
+R5 Vout N03 1m
+R7 N02 Vin 1
+X1 Vin Vout Qspice_bug_floating_net_X1
+
+.subckt Qspice_bug_floating_net_X1 input output some_measurement
+R2 input N01 10µ
+L2 N02 output 10µ
+R6 some_measurement N02 1m
+V2 N03 0 pulse 0 1 0 10n 10n 2.5µ 10µ
+D1 0 some_measurement D
+D2 some_measurement N01 D
+R1 N01 some_measurement 1
+.model SW SW(Ron=1Âµ Roff=1Meg Vt=.5 Vh=-.4)
+.lib Diode.txt
+.ends Qspice_bug_floating_net_X1
+
+.tran 100Âµ 10m 10Âµ 100n
+.plot V(Vout)
+.end

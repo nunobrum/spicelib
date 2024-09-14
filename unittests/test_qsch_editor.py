@@ -115,6 +115,7 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.save_netlist(temp_dir + 'test_instructions_output_2.qsch')
         equalFiles(self, temp_dir + 'test_instructions_output_2.qsch', golden_dir + 'test_instructions_output_2.qsch')
 
+
 class QschEditorRotation(unittest.TestCase):
 
     def test_component_rotations(self):
@@ -150,6 +151,16 @@ class QschEditorFromAscConversion(unittest.TestCase):
     #     self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "DC sweep.qsch")
     #     self.edt.save_asc(temp_dir + "DC sweep.asc")
     #     equalFiles(self, temp_dir + 'DC sweep.asc', golden_dir + "DC sweep.asc")
+
+
+class QschEditorFloatingNet(unittest.TestCase):
+
+    def test_floating_net(self):
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "Qspice_bug_floating_net.qsch")
+        x1 = self.edt['X1']
+        self.assertEqual(len(x1.ports), 2, "X1 should have only 2 pins connected")
+        self.edt.save_netlist(temp_dir + 'qsch_floating_net.net')
+        equalFiles(self, temp_dir + 'qsch_floating_net.net', golden_dir + "qsch_floating_net.net")
 
 
 if __name__ == '__main__':

@@ -508,8 +508,8 @@ class QschEditor(BaseSchematic):
             if wire.get_attr(1) == (x, y) or wire.get_attr(2) == (x, y):
                 net_name = wire.get_attr(3)  # Found the net
                 return '0' if net_name == 'GND' else net_name
-
-        raise QschReadingError(f"Failed to find the net for {pin} in component in position {comp_pos}")
+        return None  # for "not connected"
+        # raise QschReadingError(f"Failed to find the net for {pin} in component in position {comp_pos}")
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
@@ -562,8 +562,12 @@ class QschEditor(BaseSchematic):
             sch_comp.attributes['value'] = value
             sch_comp.attributes['tag'] = component
             sch_comp.attributes['enabled'] = component.get_attr(QSCH_COMPONENT_ENABLED) == 0
+            sch_comp.ports = []
             pins = symbol.get_items('pin')
-            sch_comp.ports = [self._find_net_at_pin(position, orientation, pin) for pin in pins]
+            for pin in pins:
+                pin_name = self._find_net_at_pin(position, orientation, pin)
+                if pin_name is not None:  # None means not connected 
+                    sch_comp.ports.append(pin_name)
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
                 sub_circuit_name = value + os.path.extsep + 'qsch'
