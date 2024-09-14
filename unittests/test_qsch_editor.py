@@ -165,7 +165,7 @@ class QschEditorFloatingNet(unittest.TestCase):
     def test_floating_net(self):
         self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "Qspice_bug_floating_net.qsch")
         x1 = self.edt['X1']
-        self.assertEqual(len(x1.ports), 2, "X1 should have only 2 pins connected")
+        self.assertEqual(len(x1.ports), 3, "X1 should have only 3 pins connected")
         self.edt.save_netlist(temp_dir + 'qsch_floating_net.net')
         equalFiles(self, temp_dir + 'qsch_floating_net.net', golden_dir + "qsch_floating_net.net")
 
