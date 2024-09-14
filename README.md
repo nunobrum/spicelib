@@ -646,6 +646,11 @@ _Make sure to initialize the root logger before importing the library to be able
 
 ## History ##
 
+* Version 1.2.1
+  * Fix on the generation of netlists from QSPICE Schematic files. 
+    * Floating pins are now correctly handled. (Issue #88)
+    * Support for all known QSpice components.
+    * Improving testbench for the QschEditor.
 * Version 1.2.0
   * Implementing a new approach to the accessing component values and parameters. Instead of using the
   get_component_value() and get_component_parameters() methods, the component values and parameters are now accessed
