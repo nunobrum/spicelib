@@ -514,7 +514,7 @@ class QschEditor(BaseSchematic):
         if run_netlist_file.suffix == '.qsch':
             self.save_as(run_netlist_file)
         elif run_netlist_file.suffix in ('.net', '.cir'):
-            with open(run_netlist_file, 'w') as netlist_file:
+            with open(run_netlist_file, 'w', encoding="cp1252") as netlist_file:
                 _logger.info(f"Writing NET file {run_netlist_file}")
                 netlist_file.write(f'* {os.path.abspath(self._qsch_file_path.as_posix())}\n')
                 self.write_spice_to_file(netlist_file)
@@ -636,7 +636,7 @@ class QschEditor(BaseSchematic):
                 net = self._find_net_at_position(x, y)
                 # The pins that have "¥" are behavioral pins, they are not connected to any net, they will be connected
                 # to a net later.
-                if refdes[0] in ('¥', 'Ã', 'U'):
+                if refdes[0] in ('¥', 'Ã'):
                     if (len(pin.tokens) > QSCH_SYMBOL_PIN_NET_BEHAVIORAL and
                             pin.get_attr(QSCH_SYMBOL_PIN_NET_BEHAVIORAL) == '¥'):
                         net = '¥'
