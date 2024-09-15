@@ -165,7 +165,9 @@ netlist['R1'].set_params(temp=100, tc=0.000050, pwr=None)  # Alternative way of 
 # Modifying the behavior of the voltage source
 netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
 netlist['V3'].model = "SINE(0 1 3k 0 0 0)"  # Alternative way of modifying the behaviour. Same as the above.
-netlist.set_component_value('XU1:C2', 20e-12)  # modifying a component in a subcircuit
+netlist.set_component_value('XU1:C2', 20e-12)  # modifying a component in the subcircuit XU1 instance
+netlist.get_subcircuit_named('AD820')['C13'].value = '2p'  # This changes the value of C13 inside the subcircuit AD820.
+# Applies to all instances of the subcircuit
 netlist.add_instructions(
     "; Simulation settings",
     ";.param run = 0"
@@ -186,7 +188,7 @@ for opamp in ('AD712', 'AD820'):
         else:
             opts.append('-norm')
 
-        LTC.run(netlist, opts)
+        LTC.run(netlist, switches=opts)
 
 for raw, log in LTC:
     print("Raw file: %s, Log file: %s" % (raw, log))

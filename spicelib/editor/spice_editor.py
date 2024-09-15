@@ -362,6 +362,26 @@ class SpiceCircuit(BaseEditor):
             line_no += 1
         return -1, None  # If it fails, it returns an invalid line number and No match
 
+    def get_subcircuit_names(self) -> List[str]:
+        """
+        Returns a list of the names of the sub-circuits in the netlist.
+        """
+        subckt_names = []
+        for line in self.netlist:
+            if isinstance(line, SpiceCircuit):
+                subckt_names.append(line.name())
+        return subckt_names
+
+    def get_subcircuit_named(self, name) -> Optional['SpiceCircuit']:
+        """
+        Returns the sub-circuit object with the given name.
+        """
+        for line in self.netlist:
+            if isinstance(line, SpiceCircuit):
+                if line.name() == name:
+                    return line
+        return None
+
     def get_subcircuit(self, instance_name: str) -> 'SpiceCircuit':
         """
         Returns an object representing a Subcircuit. This object can manipulate elements such as the SpiceEditor does.
@@ -389,29 +409,26 @@ class SpiceCircuit(BaseEditor):
             raise UnrecognizedSyntaxError(sub_circuit_instance, REPLACE_REGEXS['X'])
 
         # Search for the sub-circuit in the netlist
-        sub_circuit = None
-        for line in self.netlist:
-            if isinstance(line, SpiceCircuit):
-                if line.name() == subcircuit_name:
-                    return line
+        sub_circuit = self.get_subcircuit_named(subcircuit_name)
+        if sub_circuit is not None:
+            return sub_circuit
 
-        if sub_circuit is None:  # If it was not found in the netlist, search on the declared libraries
-            # If we reached here is because the subcircuit was not found. Search for it in declared libraries
-            for line in self.netlist:
-                if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
-                    continue
-                m = lib_inc_regex.match(line)
-                if m:  # If it is a library include
-                    lib = m.group(2)
-                    lib_filename = search_file_in_containers(lib,
-                                                             os.path.split(self.circuit_file)[0],  # The directory where the file is located
-                                                             os.path.curdir,  # The current script directory,
-                                                             *self.simulator_lib_paths,  # The simulator's library paths
-                                                             *self.custom_lib_paths)  # The custom library paths
-                    if lib_filename:
-                        sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
-                        if sub_circuit:
-                            break
+        # If we reached here is because the subcircuit was not found. Search for it in declared libraries
+        for line in self.netlist:
+            if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
+                continue
+            m = lib_inc_regex.match(line)
+            if m:  # If it is a library include
+                lib = m.group(2)
+                lib_filename = search_file_in_containers(lib,
+                                                         os.path.split(self.circuit_file)[0],  # The directory where the file is located
+                                                         os.path.curdir,  # The current script directory,
+                                                         *self.simulator_lib_paths,  # The simulator's library paths
+                                                         *self.custom_lib_paths)  # The custom library paths
+                if lib_filename:
+                    sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
+                    if sub_circuit:
+                        break
 
         if sub_circuit:
             if SUBCKT_DIVIDER in instance_name:
