@@ -106,5 +106,5 @@ Example 4: Updating components inside a subcircuit
 
 See the class documentation for more details :
 
-* :py:class:`spicelib.SpiceEditor`
-* :py:class:`spicelib.SpiceCircuit`
+- :py:class:`spicelib.SpiceEditor`
+- :py:class:`spicelib.SpiceCircuit`
