@@ -67,6 +67,9 @@ class AsyReader(object):
                     else:
                         continue
                     text = text.strip()  # Gets rid of the \n terminator
+                    # make sure prefix is uppercase, as this is used in a lot of places
+                    if ref.upper() == "PREFIX":
+                        text = text.upper()
                     self.attributes[ref] = text
                 elif line.startswith("Version"):
                     tag, version = line.split()
@@ -255,7 +258,8 @@ class AsyReader(object):
         return symbol
 
     def is_subcircuit(self):
-        return self.symbol_type == 'BLOCK' or self.attributes.get('Prefix').upper() == 'X'
+        # Prefix is guaranteed to be uppercase
+        return self.symbol_type == 'BLOCK' or self.attributes.get('Prefix') == 'X'
 
     def get_library(self) -> str:
         """Returns the library name of the model. If not found, returns None."""

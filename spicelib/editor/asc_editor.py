@@ -172,6 +172,9 @@ class AscEditor(BaseSchematic):
                             # then create the attribute "SUBCKT"
                             component.attributes["_SUBCKT"] = self._get_subcircuit(symbol)
                     else:
+                        # make sure prefix is uppercase, as this is used in a lot of places
+                        if ref.upper() == "PREFIX":
+                            text = text.upper()
                         component.attributes[ref] = text
                 elif line.startswith("TEXT"):
                     match = TEXT_REGEX.match(line)
