@@ -255,7 +255,7 @@ class AsyReader(object):
         return symbol
 
     def is_subcircuit(self):
-        return self.symbol_type == 'BLOCK' or self.attributes.get('Prefix') == 'X'
+        return self.symbol_type == 'BLOCK' or self.attributes.get('Prefix').upper() == 'X'
 
     def get_library(self) -> str:
         """Returns the library name of the model. If not found, returns None."""
