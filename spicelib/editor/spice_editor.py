@@ -1096,7 +1096,7 @@ class SpiceEditor(SpiceCircuit):
         # docstring is in the parent class
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
-        run_netlist_file = run_netlist_file.with_suffix('.net')
+
         with open(run_netlist_file, 'w', encoding=self.encoding) as f:
             lines = iter(self.netlist)
             for line in lines:
