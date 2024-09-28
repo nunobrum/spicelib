@@ -17,7 +17,6 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os.path
-from collections import OrderedDict
 from pathlib import Path
 from typing import Union, Optional, Tuple, List
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
