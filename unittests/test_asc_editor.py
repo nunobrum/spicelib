@@ -26,6 +26,7 @@ sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
 
 import spicelib
+import logging
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
@@ -111,12 +112,11 @@ class ASC_Editor_Test(unittest.TestCase):
         edt2.set_parameter("V1", "PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)")
         edt2.set_parameters(freq=1E6)
         edt2["X1:L1"].value = '1µH'
-        print(f"X1:L1: {edt2['X1:L1'].value_str}")
-        print(f"X1:L1: {edt2['X1:L1'].value}")
+        self.assertEqual(edt2['X1:L1'].value_str, '1µH', "Subcircuit Value_str for X1:L1, after 2nd change")
+        self.assertAlmostEqual(edt2['X1:L1'].value, 1e-6, msg="Subcircuit Value for X1:L1, after 2nd change")
         edt2["X1:C1"].value = 22e-9
-        print(f"X1:C1: {edt2['X1:C1'].value_str}")
-        print(f"X1:C2: {edt2.get_component_floatvalue('X1:C2')}")
-        print(f"R2: {edt2['R2'].value_str}")
+        self.assertEqual(edt2['X1:C1'].value_str, "22n", "Subcircuit Value_str for X1:C1, after change")
+        self.assertAlmostEqual(edt2.get_component_floatvalue('X1:C1'), 22e-9, msg="Subcircuit Value for X1:C1, after change")
         edt2.set_parameters(
             test_exiting_param_set1=24,
             test_exiting_param_set2=25,
@@ -128,39 +128,6 @@ class ASC_Editor_Test(unittest.TestCase):
         edt2.save_netlist(temp_dir + "top_circuit_edit.asc")
         self.equalFiles(temp_dir + "top_circuit_edit.asc", golden_dir + "top_circuit_edit.asc")
         
-# E = AscEditor('testfiles\\top_circuit.asc')
-# print(E.get_components())
-# print(E.get_components('R'))
-# print(E.get_subcircuit('X1').get_components())
-# E.set_component_value("X1:L1", 2e-6)
-# print(E['R1'].value)
-# print("Setting R1 to 10k")
-# E['R1'].value = 11
-# print("Setting parameter I1 1.23k")
-# E.set_parameter("V1", "PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)")
-# print(E.get_parameter('V1'))
-# print("Setting frequency to 1MHz")
-# E.set_parameters(freq=1E6)
-# print("Setting XX1:L1 to 1µH")
-# E["X1:L1"].value = '1µH'
-# print("Setting XX1:C1 to 22nF")
-# E["X1:C1"].value = 22e-9
-# print("Setting XX1:C2 to 120nF")
-# E["X1:C2"].value = '120n'
-# print(E["X1:C1"].value)
-# print(E.get_component_floatvalue("X1:C2"))
-# print(E["X1:L1"].value)
-# print(E["R2"].value_str)
-# E.set_parameters(
-#     test_exiting_param_set1=24,
-#     test_exiting_param_set2=25,
-#     test_exiting_param_set3=26,
-#     test_exiting_param_set4=27,
-#     test_add_parameter=34.45, )
-# S = E.get_subcircuit('X1')
-# S.asc_file_path = "testfiles\\subcircuit_edit.asc" # Only for test purposes
-# E.save_netlist("testfiles\\top_circuit_edit.asc")
-
     def equalFiles(self, file1, file2):
         with open(file1, 'r') as f1:
             lines1 = f1.readlines()
@@ -172,4 +139,6 @@ class ASC_Editor_Test(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)  # Set up the root logger first
+    spicelib.set_log_level(logging.DEBUG) 
     unittest.main()
