@@ -19,7 +19,6 @@
 # -------------------------------------------------------------------------------
 
 import os
-import re
 import sys
 import unittest
 
@@ -94,7 +93,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(self.edt['R1'].value_str, '33k', "Tested R1 Value")
         r1['Tc1'] = 0
         r1['Tc2'] = 0
-        r1['pwr'] =None
+        r1['pwr'] = None
         self.assertEqual(r1.params['Tc1'], 0, "Tested R1 Tc1 Parameter")
         self.assertEqual(r1.params['Tc2'], 0, "Tested R1 Tc2 Parameter")
         self.edt.save_netlist(temp_dir + 'test_components_output_2.net')
@@ -111,7 +110,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(self.edt2.get_component_value('V1'), '15', "Tested V1 Value")
         self.assertEqual(self.edt2.get_component_value('V3'), 'PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1', "Tested V3 Value")  # complex value, with parameters
         self.assertEqual(self.edt2.get_component_value('XU1'), 'level2', "Tested U1 Value")  # has parameters
-        self.assertEqual(self.edt2.get_component_parameters('XU1')['Rin'], '501Meg', "Tested U1 Rin Value") # last in the list
+        self.assertEqual(self.edt2.get_component_parameters('XU1')['Rin'], '501Meg', "Tested U1 Rin Value")  # last in the list
         self.assertEqual(self.edt2.get_component_value('XU2'), 'AD549', "Tested U2 Value")  # no parameters
         self.assertListEqual(self.edt2.get_components(), ['V1', 'V2', 'V3', 'XU1', 'XU2'], "Tested get_components")
         self.edt2.set_component_value('V3', 'PWL(2u 0 +1p 1 +1m 1)')
@@ -195,13 +194,13 @@ class SpiceEditor_Test(unittest.TestCase):
         check_value(self, regex_l, "LA N1 N2 10.3E-9", 10.3e-9)
         check_value(self, regex_l, "LABC N1 N2 12e-12", 1e-12)
         check_value(self, regex_l, "LBCD N1 N2 {param*2+3}", "{param*2+3}")
-        self.assertEqual(regex_l.match('LBCD N1 N2 {param*2+3}').group('nodes'), " N1 N2",  "Tested Inductor Value")
+        self.assertEqual(regex_l.match('LBCD N1 N2 {param*2+3}').group('nodes'), " N1 N2", "Tested Inductor Value")
 
     def test_diodes(self):
         regex_d = component_replace_regexs['D']
         self.assertIsNone(regex_d.match('X12 N1 N2 10k'), "Invalid prefix")
-        self.assertEqual('1N4148',regex_d.match('D1 N1 N2 1N4148').group('value'),  "Tested Diode Value")
-        self.assertEqual('D', regex_d.match('D1 N1 N2 D').group('value'),  "Tested Diode Model")
+        self.assertEqual('1N4148', regex_d.match('D1 N1 N2 1N4148').group('value'), "Tested Diode Value")
+        self.assertEqual('D', regex_d.match('D1 N1 N2 D').group('value'), "Tested Diode Model")
 
     def test_bipolar(self):
         regex_q = component_replace_regexs['Q']
@@ -245,6 +244,46 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(regex_i.match('I1 N1 N2 5').group('value'), '5', "Tested Independent Current Source Value")
         self.assertEqual(regex_i.match('I1 N1 N2 5V').group('value'), '5V', "Tested Independent Current Source Value")
         self.assertEqual(regex_i.match('I1 N1 N2 {param}').group('value'), '{param}', "Tested Independent Current Source Value")
+
+    def test_subcircuits_edit(self):
+        # load the file here, as this is somewhat tricky, and I don't want to block the other tests too early
+        # It requires an input file in UTF-8, as otherwise the µ character is not recognized when doing equalFiles
+        
+        # this is almost identical to test_asc_editor.py:test_subcircuits_edit()
+        sc = "XX1"
+        edt3 = spicelib.editor.spice_editor.SpiceEditor(test_dir + "top_circuit.net")
+        
+        # START identical part with test_asc_editor.py:test_subcircuits_edit()
+        self.assertEqual(edt3.get_subcircuit(sc).get_components(), ['C1', 'C2', 'L1'], "Subcircuit component list")
+        self.assertEqual(edt3.get_component_value(sc + ":L1"), "1µ", "Subcircuit Value for X1:L1, direct")
+        self.assertEqual(edt3.get_subcircuit(sc).get_component_value('L1'), "1µ", "Subcircuit Value for X1:L1, indirect")
+        edt3.set_component_value(sc + ":L1", 2e-6)
+        self.assertEqual(edt3[sc + ':L1'].value_str, "2u", "Subcircuit Value for X1:L1, after change")
+        edt3['R1'].value = 11
+        edt3.set_parameter("V1", "PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)")
+        edt3.set_parameters(freq=1E6)
+        edt3[sc + ":L1"].value = '1µH'
+        self.assertEqual(edt3[sc + ':L1'].value_str, '1µH', "Subcircuit Value_str for X1:L1, after 2nd change")
+        self.assertAlmostEqual(edt3[sc + ':L1'].value, 1e-6, msg="Subcircuit Value for X1:L1, after 2nd change")
+        # now change the value to 1uH, because I don't want to deal with the µ character in equalFiles(). 
+        edt3[sc + ":L1"].value = '1uH'
+        self.assertEqual(edt3[sc + ':L1'].value_str, '1uH', "Subcircuit Value_str for X1:L1, after 3rd change")
+        self.assertAlmostEqual(edt3[sc + ':L1'].value, 1e-6, msg="Subcircuit Value for X1:L1, after 3rd change")
+        self.assertEqual(edt3.get_subcircuit(sc).get_component_value('L1'), "1uH", "Subcircuit Value for X1:L1, after 3rd change, indirect")
+        edt3[sc + ":C1"].value = 22e-9
+        self.assertEqual(edt3[sc + ':C1'].value_str, "22n", "Subcircuit Value_str for X1:C1, after change")
+        self.assertAlmostEqual(edt3.get_component_floatvalue(sc + ':C1'), 22e-9, msg="Subcircuit Value for X1:C1, after change")
+        edt3.set_parameters(
+            test_exiting_param_set1=24,
+            test_exiting_param_set2=25,
+            test_exiting_param_set3=26,
+            test_exiting_param_set4=27,
+            test_add_parameter=34.45, )
+        # END identical part with test_asc_editor.py:test_subcircuits_edit()
+        
+        edt3.save_netlist(temp_dir + "top_circuit_edit.net")
+        self.equalFiles(temp_dir + "top_circuit_edit.net", golden_dir + "top_circuit_edit.net")
+
 
 if __name__ == '__main__':
     unittest.main()
