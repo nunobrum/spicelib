@@ -161,7 +161,7 @@ def scan_eng(value: str) -> float:
     return f
 
 
-def to_float(value, accept_invalid: bool = True) -> tuple[float, str]:
+def to_float(value, accept_invalid: bool = True) -> Union[float, str]:
     _MULT = {
         'f': 1E-15,
         'p': 1E-12,
