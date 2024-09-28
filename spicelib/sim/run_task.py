@@ -168,7 +168,10 @@ class RunTask(threading.Thread):
             else:
                 return self.raw_file, self.log_file
         else:
-            return '', ''
+            if self.callback:
+                return None
+            else:
+                return self.raw_file, self.log_file
 
     def wait_results(self) -> Union[Any, Tuple[str, str]]:
         """

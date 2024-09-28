@@ -602,7 +602,10 @@ class SimRunner(object):
             if self._iterator_counter < len(self.completed_tasks):
                 ret = self.completed_tasks[self._iterator_counter]
                 self._iterator_counter += 1
-                return ret.get_results()
+                if ret.retcode == 0:
+                    return ret.get_results()
+                else:
+                    _logger.error(f"Skipping {ret.runno} because simulation failed.")
 
             # Then check if there are any active tasks
             if len(self.active_tasks) == 0:
