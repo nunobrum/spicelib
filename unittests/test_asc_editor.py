@@ -114,6 +114,10 @@ class ASC_Editor_Test(unittest.TestCase):
         edt2["X1:L1"].value = '1µH'
         self.assertEqual(edt2['X1:L1'].value_str, '1µH', "Subcircuit Value_str for X1:L1, after 2nd change")
         self.assertAlmostEqual(edt2['X1:L1'].value, 1e-6, msg="Subcircuit Value for X1:L1, after 2nd change")
+        # now change the value to 1uH, because I don't want to deal with the µ character in equalFiles(). 
+        edt2["X1:L1"].value = '1uH'
+        self.assertEqual(edt2['X1:L1'].value_str, '1uH', "Subcircuit Value_str for X1:L1, after 3rd change")
+        self.assertAlmostEqual(edt2['X1:L1'].value, 1e-6, msg="Subcircuit Value for X1:L1, after 3rd change")
         edt2["X1:C1"].value = 22e-9
         self.assertEqual(edt2['X1:C1'].value_str, "22n", "Subcircuit Value_str for X1:C1, after change")
         self.assertAlmostEqual(edt2.get_component_floatvalue('X1:C1'), 22e-9, msg="Subcircuit Value for X1:C1, after change")
@@ -127,6 +131,7 @@ class ASC_Editor_Test(unittest.TestCase):
         S.asc_file_path = temp_dir + "subcircuit_edit.asc"  # Only for test purposes
         edt2.save_netlist(temp_dir + "top_circuit_edit.asc")
         self.equalFiles(temp_dir + "top_circuit_edit.asc", golden_dir + "top_circuit_edit.asc")
+        self.equalFiles(temp_dir + "subcircuit_edit.asc", golden_dir + "subcircuit_edit.asc")
         
     def equalFiles(self, file1, file2):
         with open(file1, 'r') as f1:
