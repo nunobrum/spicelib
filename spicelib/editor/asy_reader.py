@@ -160,8 +160,7 @@ class AsyReader(object):
                         self.windows.append(text)
                     else:
                         # Text in asy not supported however non-critical and not neccesary to crash the program.
-                        _logger.warning(f"Cosmetic text in ASY format not supported, text skipped. ASY file: {self._asy_file_path}"
-                                    )
+                        _logger.warning(f"Cosmetic text in ASY format not supported, text skipped. ASY file: {self._asy_file_path}")
                 else:
                     # In order to avoid crashing the program, 1) add the missing if statement above and
                     # 2) ontact the author to add support for the missing primitive.
@@ -239,7 +238,7 @@ class AsyReader(object):
             coord = attr.coord
             x = coord.X * SCALE_X
             y = coord.Y * SCALE_Y
-            text, _ = QschTag.parse(f'«text ({x :.0f},{y :.0f})'
+            text, _ = QschTag.parse(f'«text ({x:.0f},{y:.0f})'
                                     f' 1 7 0 0x1000000 -1 -1 "{args[i]}"»')
             symbol.items.append(text)
 

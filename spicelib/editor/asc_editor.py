@@ -17,7 +17,6 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os.path
-from collections import OrderedDict
 from pathlib import Path
 from typing import Union, Optional, Tuple, List
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -265,8 +264,15 @@ class AscEditor(BaseSchematic):
         return answer
 
     def _get_subcircuit(self, symbol: AsyReader) -> Union[SpiceEditor, 'AscEditor']:
-        # if it is a an ASC file, then we need to read it
-        if symbol.symbol_type == "BLOCK":
+        # two main possibilities here:
+        # either the symbol refers to a library file,
+        # either to a subcircuit in another .asc file. This appears to only happen with BLOCK symbols
+        
+        if symbol.symbol_type not in ("CELL", "BLOCK"):
+            raise ValueError(f"Symbol type {symbol.symbol_type} not supported")
+        
+        lib = symbol.get_library()
+        if lib is None and symbol.symbol_type == "BLOCK":
             asc_filename = symbol.get_schematic_file()
             if asc_filename.exists():
                 asc_path = asc_filename
@@ -280,18 +286,16 @@ class AscEditor(BaseSchematic):
             if asc_path is None:
                 raise FileNotFoundError(f"File {asc_filename} not found")
             answer = AscEditor(asc_path)
-        elif symbol.symbol_type == "CELL":
+        elif lib is None and symbol.symbol_type == "CELL":
+            # TODO: the library is often specified later on, so this may need to move.
+            return None            
+        else:
+            # load the model from the library
             model = symbol.get_model()
-            lib = symbol.get_library()
-            if lib is None:
-                # TODO: the library is often specified later on, so this may need to move.
-                return None
             lib_path = self._lib_file_find(lib)
             if lib_path is None:
                 raise FileNotFoundError(f"File {lib} not found")
             answer = SpiceEditor.find_subckt_in_lib(lib_path, model)
-        else:
-            raise ValueError(f"Symbol type {symbol.symbol_type} not supported")
         return answer
 
     def get_subcircuit(self, reference: str) -> 'AscEditor':

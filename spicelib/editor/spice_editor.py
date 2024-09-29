@@ -399,6 +399,9 @@ class SpiceCircuit(BaseEditor):
             subckt_ref = instance_name
             sub_subckts = None  # eliminating the code
 
+        if subckt_ref in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
+            return self.modified_subcircuits[subckt_ref]
+
         line_no = self.get_line_starting_with(subckt_ref)
         sub_circuit_instance = self.netlist[line_no]
         regex = component_replace_regexs['X']  # The sub-circuit instance regex
@@ -979,7 +982,7 @@ class SpiceEditor(SpiceCircuit):
             if modified_path in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
                 subcircuit = self.modified_subcircuits[modified_path]
             else:
-                subcircuit = self.get_subcircuit(component)
+                subcircuit = self.get_subcircuit(modified_path)
             return subcircuit.get_component(component)
 
         return super().get_component(component)

@@ -161,11 +161,12 @@ def scan_eng(value: str) -> float:
     return f
 
 
-def to_float(value, accept_invalid: bool = True) -> (float, str):
+def to_float(value, accept_invalid: bool = True) -> Union[float, str]:
     _MULT = {
         'f': 1E-15,
         'p': 1E-12,
         'n': 1E-9,
+        'µ': 1E-6,
         'u': 1E-6,
         'U': 1E-6,
         'm': 1E-3,
@@ -802,4 +803,3 @@ class BaseEditor(ABC):
             cls.custom_lib_paths.append(paths)
         elif isinstance(paths, list):
             cls.custom_lib_paths.extend(paths)        
-
