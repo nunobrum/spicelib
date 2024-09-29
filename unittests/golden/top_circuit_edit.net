@@ -24,7 +24,7 @@ L1 IN OUT 1µ
 .subckt sub_circuit_XX1 IN OUT
 C1 OUT 0 22n
 C2 IN 0 1n
-L1 IN OUT 1uH
+L1 IN OUT 4uH
 .ENDS sub_circuit_XX1
 ***** ENDS SpiceEditor ****
 .end
