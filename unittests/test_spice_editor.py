@@ -151,7 +151,7 @@ class SpiceEditor_Test(unittest.TestCase):
             lines2 = f2.readlines()
         self.assertEqual(len(lines1), len(lines2), "Files have different number of lines")
         for i, lines in enumerate(zip(lines1, lines2)):
-            self.assertEqual(lines[0], lines[1], "Line %d" % i)
+            self.assertEqual(lines[0], lines[1], f"Line {i}\nFile1:{file1} and File2:{file2}")
 
     def test_resistors(self):
         """Validates the RegEx expressions on the Spice Editor file"""
