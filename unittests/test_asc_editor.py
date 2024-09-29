@@ -26,7 +26,7 @@ sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
 
 import spicelib
-import logging
+# import logging
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
@@ -167,8 +167,6 @@ class ASC_Editor_Test(unittest.TestCase):
     def test_subcircuit_block_in_lib(self):
         """Test subcircuit editing in the Asc Editor, with the component in a BLOCK and library.
         """
-        # TODO: This test is not yet working as it should
-        return
         # load the file here, as this is somewhat tricky, and I don't want to block the other tests too early
         my_edt = spicelib.editor.asc_editor.AscEditor(test_dir + "testcomp1.asc")
         self.assertAlmostEqual(my_edt["U1:R1"].value, 320, msg="Subcircuit Value for U1:R1, float comparison")
@@ -203,6 +201,7 @@ class ASC_Editor_Test(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)  # Set up the root logger first
-    spicelib.set_log_level(logging.DEBUG) 
+    # logging.basicConfig(level=logging.DEBUG)  # Set up the root logger first
+    # spicelib.set_log_level(logging.DEBUG) 
+    # unittest.main(argv=["", "ASC_Editor_Test.test_subcircuit_block_in_lib"])
     unittest.main()
