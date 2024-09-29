@@ -172,6 +172,16 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertAlmostEqual(my_edt["U1:R1"].value, 320, msg="Subcircuit Value for U1:R1, float comparison")
         my_edt["R2"].value = 20
         self.assertAlmostEqual(my_edt["R2"].value, 20, msg="Subcircuit Value for R2, float comparison after edit")
+
+        self.assertTrue(my_edt.get_subcircuit("U1").is_read_only(), "Subcircuit U1 should be readonly")
+        try:
+            my_edt["U1:R1"].value = 330
+        except:
+            pass
+        self.assertAlmostEqual(my_edt["U1:R1"].value, 320, msg="Subcircuit Value for U1:R1, modification should have been rejected")
+        
+        # my_edt.save_netlist(temp_dir + "testcomp2_edit.asc")
+        # A test of the saved file is not really useful, because the subcircuit value changes are not saved.
         
     def test_subcircuit_cell_in_lib(self):
         """Test subcircuit editing in the Asc Editor, with the component in a CELL and library.
@@ -182,8 +192,6 @@ class ASC_Editor_Test(unittest.TestCase):
         my_edt["R2"].value = 20
         self.assertAlmostEqual(my_edt["R2"].value, 20, msg="Value for R2, float comparison after edit")
         
-        # The following test is not working as it should, because the value is not being saved in save_netlist()
-        # It also doesn't log via the logger, but that is another issue.
         self.assertTrue(my_edt.get_subcircuit("U1").is_read_only(), "Subcircuit U1 should be readonly")
         try:
             my_edt["U1:R1"].value = 330
