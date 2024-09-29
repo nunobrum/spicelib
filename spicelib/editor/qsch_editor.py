@@ -776,6 +776,8 @@ class QschEditor(BaseSchematic):
 
     def set_component_value(self, reference: str, value: Union[str, int, float]) -> None:
         # docstring inherited from BaseEditor
+        if self.is_read_only():
+            raise ValueError("Editor is read-only")
         if isinstance(value, str):
             value_str = value
         else:

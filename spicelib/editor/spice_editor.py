@@ -258,6 +258,8 @@ class SpiceComponent(Component):
 
     @value_str.setter
     def value_str(self, value):
+        if self.parent.is_read_only():
+            raise ValueError("Editor is read-only")        
         self.parent.set_component_value(self.reference, value)
 
     def __getitem__(self, item):
@@ -269,6 +271,8 @@ class SpiceComponent(Component):
             return self.params[item]
 
     def __setitem__(self, key, value):
+        if self.parent.is_read_only():
+            raise ValueError("Editor is read-only")        
         if key == 'value':
             if isinstance(value, str):
                 self.value_str = value
@@ -295,6 +299,7 @@ class SpiceCircuit(BaseEditor):
     def __init__(self):
         super().__init__()
         self.netlist = []
+        self._readonly = False
 
     def get_line_starting_with(self, substr: str) -> int:
         """Internal function. Do not use."""
@@ -640,6 +645,8 @@ class SpiceCircuit(BaseEditor):
             return {}
 
     def set_component_parameters(self, reference: str, **kwargs) -> None:
+        if self.is_read_only():
+            raise ValueError("Editor is read-only")  
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
         if match and match.groupdict().get('params'):
@@ -708,6 +715,8 @@ class SpiceCircuit(BaseEditor):
 
         :return: Nothing
         """
+        if self.is_read_only():
+            raise ValueError("Editor is read-only")  
         regx = re.compile(PARAM_REGEX(param), re.IGNORECASE)
         param_line, match = self._get_line_matching('.PARAM', regx)
         if match:
@@ -745,6 +754,8 @@ class SpiceCircuit(BaseEditor):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
+        if self.is_read_only():
+            raise ValueError("Editor is read-only")
         self._set_model_and_value(reference, value)
 
     def set_element_model(self, reference: str, model: str) -> None:
@@ -769,6 +780,8 @@ class SpiceCircuit(BaseEditor):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
+        if self.is_read_only():
+            raise ValueError("Editor is read-only")        
         self._set_model_and_value(reference, model)
 
     def get_component_value(self, reference: str) -> str:
@@ -845,6 +858,8 @@ class SpiceCircuit(BaseEditor):
 
         :return: Nothing
         """
+        if self.is_read_only():
+            raise ValueError("Editor is read-only")        
         if 'insert_before' in kwargs:
             line_no = self.get_line_starting_with(kwargs['insert_before'])
         elif 'insert_after' in kwargs:
@@ -874,6 +889,8 @@ class SpiceCircuit(BaseEditor):
         :return: Nothing
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
+        if self.is_read_only():
+            raise ValueError("Editor is read-only")        
         line = self.get_line_starting_with(designator)
         self.netlist[line] = ''  # Blanks the line
 
@@ -933,6 +950,14 @@ class SpiceCircuit(BaseEditor):
         Returns the path of the circuit file. Always returns an empty Path for SpiceCircuit.
         """
         return Path('')
+    
+    def is_read_only(self) -> bool:
+        """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
+
+        :return: True if the component is read-only, False otherwise
+        :rtype: bool
+        """
+        return self._readonly    
 
 
 class SpiceEditor(SpiceCircuit):
@@ -1139,6 +1164,7 @@ class SpiceEditor(SpiceCircuit):
     def find_subckt_in_lib(library, subckt_name) -> Union['SpiceCircuit', None]:
         """
         Finds a sub-circuit in a library. The search is case-insensitive.
+        Will mark the sub-circuit as read-only.
 
         :param library: path to the library to search
         :type library: str
@@ -1161,6 +1187,8 @@ class SpiceEditor(SpiceCircuit):
                     # Advance to the next non nested .ENDS
                     finished = sub_circuit._add_lines(lib)
                     if finished:
+                        # if this is from a lib, don't allow modifications
+                        sub_circuit._readonly = True
                         return sub_circuit
         #  3. Return an instance of SpiceCircuit
         return None

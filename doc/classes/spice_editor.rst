@@ -7,3 +7,4 @@ Class used for manipulating SPICE netlists. Inherits from SpiceCircuit.
    :members:
    :undoc-members:
    :show-inheritance:
+   :inherited-members:

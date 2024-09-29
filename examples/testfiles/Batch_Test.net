@@ -1,4 +1,4 @@
-* C:\sandbox\spicelib\examples\testfiles\Batch_Test.asc
+* Z:\Users\hboot\Documents\workspace\spicelib\examples\testfiles\Batch_Test.asc
 V1 +V 0 15
 R1 N001 0 10K
 R2 OUT N001 10K
