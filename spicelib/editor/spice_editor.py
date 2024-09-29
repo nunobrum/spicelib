@@ -295,7 +295,8 @@ class SpiceCircuit(BaseEditor):
     def __init__(self):
         super().__init__()
         self.netlist = []
-
+        self.modified_subcircuits = {}
+        
     def get_line_starting_with(self, substr: str) -> int:
         """Internal function. Do not use."""
         # This function returns the line number that starts with the substr string.
@@ -953,7 +954,6 @@ class SpiceEditor(SpiceCircuit):
     def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
         super().__init__()
         self.netlist_file = Path(netlist_file)
-        self.modified_subcircuits = {}
         if create_blank:
             self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
         else:
