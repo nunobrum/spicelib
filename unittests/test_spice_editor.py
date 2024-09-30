@@ -312,6 +312,9 @@ class SpiceEditor_Test(unittest.TestCase):
         my_edt.set_component_value(sc + ":X2:R1", 50)
         my_edt.save_netlist(temp_dir + "top_circuit_edit1.net")
         self.equalFiles(temp_dir + "top_circuit_edit1.net", golden_dir + "top_circuit_edit1.net")
+        my_edt[sc + ":X2:R1"].value = 99
+        my_edt.save_netlist(temp_dir + "top_circuit_edit2.net")
+        self.equalFiles(temp_dir + "top_circuit_edit2.net", golden_dir + "top_circuit_edit2.net")
 
 
 if __name__ == '__main__':

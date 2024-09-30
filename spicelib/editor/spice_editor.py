@@ -278,6 +278,26 @@ class SpiceComponent(Component):
             self.set_params(**{key: value})
 
 
+class HierarchicalComponent(object):
+
+    def __init__(self, component: SpiceComponent, parent, reference):
+        self._component = component
+        self._parent = parent
+        self._reference = reference
+
+    def __getattr__(self, attr):
+        return getattr(self._component, attr)
+
+    def __setattr__(self, attr, value):
+        if attr.startswith('_'):
+            self.__dict__[attr] = value
+        elif attr in ("value", "value_str"):
+            self._parent.set_component_value(self._reference, value)
+        else:
+            setattr(self.component, attr, value)
+
+
+
 class SpiceCircuit(BaseEditor):
     """
     Represents sub-circuits within a SPICE circuit. Since sub-circuits can have sub-circuits inside
@@ -624,6 +644,14 @@ class SpiceCircuit(BaseEditor):
         else:
             line_no = self.get_line_starting_with(reference)
             return SpiceComponent(self, line_no)
+
+    def __getitem__(self, item) -> Component:
+        component = super().__getitem__(item)
+        if component.parent != self:
+            # encapsulate the object in HierarchicalComponent
+            return HierarchicalComponent(component, self, item)
+        else:
+            return component
 
     def __delitem__(self, key):
         """
