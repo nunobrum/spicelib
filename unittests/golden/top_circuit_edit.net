@@ -7,9 +7,15 @@ R2 N003 0 1k
 * block symbol definitions
 .subckt sub_circuit IN OUT
 C1 OUT 0 1n
-C2 IN 0 1n
+X2 IN 0 snubber
 L1 IN OUT 1µ
 .ends sub_circuit
+
+.subckt snubber A B
+C2 A B 1nF
+R1 A C 100
+C3 C B 100n
+.ends snubber
 
 .tran 2u
 .PARAM V1=PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)  ; Batch instruction
@@ -23,7 +29,7 @@ L1 IN OUT 1µ
 ***** SpiceEditor Manipulated this sub-circuit ****
 .subckt sub_circuit_XX1 IN OUT
 C1 OUT 0 22n
-C2 IN 0 1n
+X2 IN 0 snubber
 L1 IN OUT 4uH
 .ENDS sub_circuit_XX1
 ***** ENDS SpiceEditor ****

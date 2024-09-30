@@ -149,7 +149,8 @@ class SpiceEditor_Test(unittest.TestCase):
             lines1 = f1.readlines()
         with open(file2, 'r') as f2:
             lines2 = f2.readlines()
-        self.assertEqual(len(lines1), len(lines2), "Files have different number of lines")
+        self.assertEqual(len(lines1), len(lines2), "Files have different number of lines\n"
+                                                   f"File1:{file1} and File2:{file2}")
         for i, lines in enumerate(zip(lines1, lines2)):
             self.assertEqual(lines[0], lines[1], f"Line {i}\nFile1:{file1} and File2:{file2}")
 
@@ -268,7 +269,7 @@ class SpiceEditor_Test(unittest.TestCase):
         my_edt = spicelib.editor.spice_editor.SpiceEditor(test_dir + "top_circuit.net")
         
         # START identical part with test_asc_editor.py:test_subcircuits_edit()
-        self.assertEqual(my_edt.get_subcircuit(sc).get_components(), ['C1', 'C2', 'L1'], "Subcircuit component list")        
+        self.assertEqual(my_edt.get_subcircuit(sc).get_components(), ['C1', 'X2', 'L1'], "Subcircuit component list")
         
         self.assertEqual(my_edt.get_component_value(sc + ":L1"), "1µ", "Subcircuit Value for X1:L1, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "1µ", "Subcircuit Value for X1:L1, indirect")
@@ -306,6 +307,11 @@ class SpiceEditor_Test(unittest.TestCase):
         
         my_edt.save_netlist(temp_dir + "top_circuit_edit.net")
         self.equalFiles(temp_dir + "top_circuit_edit.net", golden_dir + "top_circuit_edit.net")
+
+        # Now will try to modify a component inside a sub-circuit inside a sub-circuit
+        my_edt.set_component_value(sc + ":X2:R1", 50)
+        my_edt.save_netlist(temp_dir + "top_circuit_edit1.net")
+        self.equalFiles(temp_dir + "top_circuit_edit1.net", golden_dir + "top_circuit_edit1.net")
 
 
 if __name__ == '__main__':

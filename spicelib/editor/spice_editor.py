@@ -292,10 +292,11 @@ class SpiceCircuit(BaseEditor):
     :meta hide-value:
     """
 
-    def __init__(self):
+    def __init__(self, parent: "SpiceCircuit" = None):
         super().__init__()
         self.netlist = []
         self.modified_subcircuits = {}
+        self.parent = parent
         
     def get_line_starting_with(self, substr: str) -> int:
         """Internal function. Do not use."""
@@ -318,7 +319,7 @@ class SpiceCircuit(BaseEditor):
         for line in line_iter:
             cmd = get_line_command(line)
             if cmd == '.SUBCKT':
-                sub_circuit = SpiceCircuit()
+                sub_circuit = SpiceCircuit(self)
                 sub_circuit.netlist.append(line)
                 # Advance to the next non nested .ENDS
                 finished = sub_circuit._add_lines(line_iter)
@@ -342,6 +343,11 @@ class SpiceCircuit(BaseEditor):
             if isinstance(command, SpiceCircuit):
                 command._write_lines(f)
             else:
+                # Writes the modified sub-circuits at the end just before the .END clause
+                if command.upper().startswith(".ENDS"):
+                    # write here the modified sub-circuits
+                    for sub in self.modified_subcircuits.values():
+                        sub._write_lines(f)
                 f.write(command)
 
     def _get_line_matching(self, command, search_expression: re.Pattern) -> Tuple[int, Union[re.Match, None]]:
@@ -381,6 +387,8 @@ class SpiceCircuit(BaseEditor):
             if isinstance(line, SpiceCircuit):
                 if line.name() == name:
                     return line
+        if self.parent is not None:
+            return self.parent.get_subcircuit_named(name)
         return None
 
     def get_subcircuit(self, instance_name: str) -> 'SpiceCircuit':
@@ -466,45 +474,38 @@ class SpiceCircuit(BaseEditor):
         """
         Internal method to set the model and value of a component.
         """
-        sub_circuit: SpiceCircuit
+
         # Using the first letter of the component to identify what is it
         if reference[0] == 'X' and SUBCKT_DIVIDER in reference:  # Replaces a component inside of a subciruit
             # In this case the sub-circuit needs to be copied so that is copy is modified. A copy is created for each
             # instance of a sub-circuit.
             component_split = reference.split(SUBCKT_DIVIDER)
-            if len(component_split) > 2:
-                reference = component_split[-1]  # This is the last component to modify
-                subckt_instance = SUBCKT_DIVIDER.join(component_split[:-1])  # excludes last component
-                sub_circuit = self.get_subcircuit(subckt_instance)
-                return sub_circuit._set_model_and_value(reference, value)
+            subckt_instance = component_split[0]
+            # reference = SUBCKT_DIVIDER.join(component_split[1:])
+            if subckt_instance in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
+                sub_circuit: SpiceCircuit = self.modified_subcircuits[subckt_instance]
             else:
-                subckt_instance = component_split[0]
-                reference = component_split[1]
-                if subckt_instance in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
-                    sub_circuit = self.modified_subcircuits[subckt_instance]
+                sub_circuit_original = self.get_subcircuit(subckt_instance)  # If not will look for it.
+                if sub_circuit_original:
+                    new_name = sub_circuit_original.name() + '_' + subckt_instance  # Creates a new name with the path appended
+                    sub_circuit = sub_circuit_original.clone(new_name=new_name)
+
+                    # Memorize that the copy is relative to that particular instance
+                    self.modified_subcircuits[subckt_instance] = sub_circuit
+                    # Change the call to the sub-circuit
+                    self._set_model_and_value(subckt_instance, new_name)
                 else:
-                    sub_circuit_original = self.get_subcircuit(subckt_instance)  # If not will look for it.
-                    if sub_circuit_original:
-                        new_name = sub_circuit_original.name() + '_' + '_'.join(
-                            component_split[:-1])  # Creates a new name with the path appended
-                        sub_circuit = sub_circuit_original.clone(new_name=new_name)
-                        # Memorize that the copy is relative to that particular instance
-                        self.modified_subcircuits[subckt_instance] = sub_circuit
-                        # Change the call to the sub-circuit
-                        self._set_model_and_value(subckt_instance, new_name)
-                    else:
-                        raise ComponentNotFoundError(reference)
-
+                    raise ComponentNotFoundError(reference)
+            # Update the component
+            sub_circuit._set_model_and_value(SUBCKT_DIVIDER.join(component_split[1:]), value)
         else:
-            sub_circuit = self
-
-        line_no, match = sub_circuit._get_component_line_and_regex(reference)
-        if isinstance(value, (int, float)):
-            value = format_eng(value)
-        start = match.start('value')
-        end = match.end('value')
-        line = sub_circuit.netlist[line_no]
-        sub_circuit.netlist[line_no] = line[:start] + value + line[end:]
+            line_no, match = self._get_component_line_and_regex(reference)
+            if isinstance(value, (int, float)):
+                value = format_eng(value)
+            start = match.start('value')
+            end = match.end('value')
+            line = self.netlist[line_no]
+            self.netlist[line_no] = line[:start] + value + line[end:]
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
@@ -525,7 +526,7 @@ class SpiceCircuit(BaseEditor):
         :return: The new replica of the SpiceCircuit object
         :rtype: SpiceCircuit
         """
-        clone = SpiceCircuit()
+        clone = SpiceCircuit(self)
         clone.netlist = self.netlist.copy()
         clone.netlist.insert(0, "***** SpiceEditor Manipulated this sub-circuit ****" + END_LINE_TERM)
         clone.netlist.append("***** ENDS SpiceEditor ****" + END_LINE_TERM)
