@@ -803,3 +803,23 @@ class BaseEditor(ABC):
             cls.custom_lib_paths.append(paths)
         elif isinstance(paths, list):
             cls.custom_lib_paths.extend(paths)        
+
+
+class HierarchicalComponent(object):
+    """Helper class to allow setting parameters when using object oriented access."""
+
+    def __init__(self, component: Component, parent: BaseEditor, reference: str):
+        self._component = component
+        self._parent = parent
+        self._reference = reference
+
+    def __getattr__(self, attr):
+        return getattr(self._component, attr)
+
+    def __setattr__(self, attr, value):
+        if attr.startswith('_'):
+            self.__dict__[attr] = value
+        elif attr in ("value", "value_str"):
+            self._parent.set_component_value(self._reference, value)
+        else:
+            setattr(self.component, attr, value)

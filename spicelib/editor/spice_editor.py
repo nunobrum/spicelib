@@ -23,7 +23,7 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
 
 from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -278,26 +278,6 @@ class SpiceComponent(Component):
             self.set_params(**{key: value})
 
 
-class HierarchicalComponent(object):
-
-    def __init__(self, component: SpiceComponent, parent, reference):
-        self._component = component
-        self._parent = parent
-        self._reference = reference
-
-    def __getattr__(self, attr):
-        return getattr(self._component, attr)
-
-    def __setattr__(self, attr, value):
-        if attr.startswith('_'):
-            self.__dict__[attr] = value
-        elif attr in ("value", "value_str"):
-            self._parent.set_component_value(self._reference, value)
-        else:
-            setattr(self.component, attr, value)
-
-
-
 class SpiceCircuit(BaseEditor):
     """
     Represents sub-circuits within a SPICE circuit. Since sub-circuits can have sub-circuits inside
@@ -449,21 +429,7 @@ class SpiceCircuit(BaseEditor):
                 return sub_circuit.get_subcircuit(SUBCKT_DIVIDER.join(sub_subckts))
 
         # If we reached here is because the subcircuit was not found. Search for it in declared libraries
-        for line in self.netlist:
-            if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
-                continue
-            m = lib_inc_regex.match(line)
-            if m:  # If it is a library include
-                lib = m.group(2)
-                lib_filename = search_file_in_containers(lib,
-                                                         os.path.split(self.circuit_file)[0],  # The directory where the file is located
-                                                         os.path.curdir,  # The current script directory,
-                                                         *self.simulator_lib_paths,  # The simulator's library paths
-                                                         *self.custom_lib_paths)  # The custom library paths
-                if lib_filename:
-                    sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
-                    if sub_circuit:
-                        break
+        sub_circuit = self.find_subckt_in_included_libs(subcircuit_name)
 
         if sub_circuit:
             if SUBCKT_DIVIDER in instance_name:
@@ -645,7 +611,7 @@ class SpiceCircuit(BaseEditor):
             line_no = self.get_line_starting_with(reference)
             return SpiceComponent(self, line_no)
 
-    def __getitem__(self, item) -> Component:
+    def __getitem__(self, item) -> Union[Component, HierarchicalComponent]:
         component = super().__getitem__(item)
         if component.parent != self:
             # encapsulate the object in HierarchicalComponent
@@ -1046,6 +1012,30 @@ class SpiceCircuit(BaseEditor):
                         return sub_circuit
         #  3. Return an instance of SpiceCircuit
         return None
+
+    def find_subckt_in_included_libs(self, subcircuit_name) -> Optional["SpiceCircuit"]:
+        for line in self.netlist:
+            if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
+                continue
+            m = lib_inc_regex.match(line)
+            if m:  # If it is a library include
+                lib = m.group(2)
+                lib_filename = search_file_in_containers(lib,
+                                                         os.path.split(self.circuit_file)[0],
+                                                         # The directory where the file is located
+                                                         os.path.curdir,  # The current script directory,
+                                                         *self.simulator_lib_paths,  # The simulator's library paths
+                                                         *self.custom_lib_paths)  # The custom library paths
+                if lib_filename:
+                    sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
+                    if sub_circuit:
+                        # Success we can go out
+                        return sub_circuit
+        if self.parent is not None:
+            # try searching on parent netlists
+            return self.parent.find_subckt_in_included_libs(subcircuit_name)
+        else:
+            return None
 
 
 class SpiceEditor(SpiceCircuit):
