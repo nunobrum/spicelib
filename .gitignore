@@ -171,3 +171,4 @@ spicelib.egg-info
 .DS_Store
 README.bak
 doc_build/
+unittests/output/

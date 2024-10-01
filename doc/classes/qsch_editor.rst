@@ -7,3 +7,4 @@ Class used for manipulating QSPICE qsch files.
    :members:
    :undoc-members:
    :show-inheritance:
+   :inherited-members:

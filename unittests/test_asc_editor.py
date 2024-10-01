@@ -172,6 +172,16 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertAlmostEqual(my_edt["U1:R1"].value, 320, msg="Subcircuit Value for U1:R1, float comparison")
         my_edt["R2"].value = 20
         self.assertAlmostEqual(my_edt["R2"].value, 20, msg="Subcircuit Value for R2, float comparison after edit")
+
+        self.assertTrue(my_edt.get_subcircuit("U1").is_read_only(), "Subcircuit U1 should be readonly")
+        try:
+            my_edt["U1:R1"].value = 330
+        except:
+            pass
+        self.assertAlmostEqual(my_edt["U1:R1"].value, 320, msg="Subcircuit Value for U1:R1, modification should have been rejected")
+        
+        # my_edt.save_netlist(temp_dir + "testcomp2_edit.asc")
+        # A test of the saved file is not really useful, because the subcircuit value changes are not saved.
         
     def test_subcircuit_cell_in_lib(self):
         """Test subcircuit editing in the Asc Editor, with the component in a CELL and library.
@@ -180,12 +190,14 @@ class ASC_Editor_Test(unittest.TestCase):
         my_edt = spicelib.editor.asc_editor.AscEditor(test_dir + "testcomp2.asc")
         self.assertAlmostEqual(my_edt["U1:R1"].value, 320, msg="Subcircuit Value for U1:R1, float comparison")
         my_edt["R2"].value = 20
-        self.assertAlmostEqual(my_edt["R2"].value, 20, msg="Subcircuit Value for R2, float comparison after edit")
+        self.assertAlmostEqual(my_edt["R2"].value, 20, msg="Value for R2, float comparison after edit")
         
-        # The following test is not working as it should, because the value is not being saved in save_netlist()
-        # It also doesn't log via the logger, but that is another issue.
-        # my_edt["U1:R1"].value = 330
-        # self.assertAlmostEqual(my_edt["U1:R1"].value, 330, msg="Subcircuit Value for U1:R1, float comparison after edit")
+        self.assertTrue(my_edt.get_subcircuit("U1").is_read_only(), "Subcircuit U1 should be readonly")
+        try:
+            my_edt["U1:R1"].value = 330
+        except:
+            pass
+        self.assertAlmostEqual(my_edt["U1:R1"].value, 320, msg="Subcircuit Value for U1:R1, modification should have been rejected")
         
         # my_edt.save_netlist(temp_dir + "testcomp2_edit.asc")
         # A test of the saved file is not really useful, because the subcircuit value changes are not saved.
@@ -203,5 +215,5 @@ class ASC_Editor_Test(unittest.TestCase):
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)  # Set up the root logger first
     # spicelib.set_log_level(logging.DEBUG) 
-    # unittest.main(argv=["", "ASC_Editor_Test.test_subcircuit_block_in_lib"])
+    # unittest.main(argv=["", "ASC_Editor_Test.test_subcircuit_cell_in_lib"])
     unittest.main()

@@ -284,6 +284,8 @@ class Component(Primitive):
 
     @value_str.setter
     def value_str(self, value):
+        if self.parent.is_read_only():
+            raise ValueError("Editor is read-only")        
         self.parent.set_component_value(self.reference, value)
 
     @property
@@ -291,6 +293,8 @@ class Component(Primitive):
         return self.parent.get_component_parameters(self.reference)
 
     def set_params(self, **param_dict):
+        if self.parent.is_read_only():
+            raise ValueError("Editor is read-only")           
         self.parent.set_component_parameters(self.reference, **param_dict)
 
     @property
@@ -303,10 +307,14 @@ class Component(Primitive):
 
     @model.setter
     def model(self, model):
+        if self.parent.is_read_only():
+            raise ValueError("Editor is read-only")   
         self.parent.set_element_model(self.reference, model)
 
     @value.setter
     def value(self, value):
+        if self.parent.is_read_only():
+            raise ValueError("Editor is read-only")
         if isinstance(value, (int, float)):
             self.value_str = format_eng(value)
         else:
@@ -319,6 +327,8 @@ class Component(Primitive):
         return self.attributes[item]
 
     def __setitem__(self, key, value):
+        if self.parent.is_read_only():
+            raise ValueError("Editor is read-only")        
         self.attributes[key] = value
 
 
@@ -387,9 +397,11 @@ class BaseEditor(ABC):
         self.set_component_value(key, value)
 
     def get_component_attribute(self, reference: str, attribute: str) -> str:
-        """Returns the value of the attribute of the component. Attributes are the values that are not related with
+        """
+        Returns the value of the attribute of the component. Attributes are the values that are not related with
         SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
         User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
+        
         :param reference: Reference of the component
         :type reference: str
         :param attribute: Name of the attribute to be retrieved
@@ -403,12 +415,14 @@ class BaseEditor(ABC):
 
     def get_component_nodes(self, reference: str) -> list:
         """Returns the value of the port of the component.
+        
         :param reference: Reference of the component
         :type reference: str
         :return: List with the ports of the component
         :rtype: str
         :raises: ComponentNotFoundError - In case the component is not found
                  KeyError - In case the port is not found
+        
         """
         return self.get_component(reference).ports
 
@@ -691,7 +705,6 @@ class BaseEditor(ABC):
                 .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms" ; Establishes a measuring
                 .step run 1 100, 1 ; makes the simulation run 100 times
 
-
         :param instruction:
             Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
             typically just before the .BACKANNO statement
@@ -706,9 +719,9 @@ class BaseEditor(ABC):
         Removes a SPICE instruction from the netlist.
 
         Example:
-
+        
         .. code-block:: python
-
+                
             editor.remove_instruction(".STEP run -1 1023 1")
 
         This only works if the instruction exactly matches the line on the netlist. This means that space characters,
@@ -743,19 +756,18 @@ class BaseEditor(ABC):
     def add_instructions(self, *instructions) -> None:
         """
         Adds a list of instructions to the SPICE NETLIST.
-
+        
         Example:
+        
         .. code-block:: python
 
-            editor.add_instructions(
-                ".STEP run -1 1023 1",
-                ".dc V1 -5 5"
-            )
-
+            editor.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")
+        
         :param instructions: Argument list of instructions to add
         :type instructions: argument list
-        :returns: Nothing
+        :returns: Nothing        
         """
+
         for instruction in instructions:
             self.add_instruction(instruction)
        
@@ -802,7 +814,15 @@ class BaseEditor(ABC):
         if isinstance(paths, str):
             cls.custom_lib_paths.append(paths)
         elif isinstance(paths, list):
-            cls.custom_lib_paths.extend(paths)        
+            cls.custom_lib_paths.extend(paths)
+            
+    def is_read_only(self) -> bool:
+        """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
+
+        :return: True if the component is read-only, False otherwise
+        :rtype: bool
+        """
+        return False
 
 
 class HierarchicalComponent(object):

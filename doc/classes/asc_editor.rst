@@ -7,3 +7,4 @@ Class used for manipulating LTSpice asc files.
    :members:
    :undoc-members:
    :show-inheritance:
+   :inherited-members:
