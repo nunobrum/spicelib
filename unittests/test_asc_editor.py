@@ -121,9 +121,9 @@ class ASC_Editor_Test(unittest.TestCase):
         # load the file here, as this is somewhat tricky, and I don't want to block the other tests too early
         my_edt = spicelib.editor.asc_editor.AscEditor(test_dir + "top_circuit.asc")
         
+        self.assertEqual(my_edt.get_subcircuit(sc).get_components(), ['C1', 'C2', 'L1'], "Subcircuit component list")
+
         # START identical part with test_spice_editor.py:test_subcircuits_edit()
-        self.assertEqual(my_edt.get_subcircuit(sc).get_components(), ['C1', 'C2', 'L1'], "Subcircuit component list")        
-        
         self.assertEqual(my_edt.get_component_value(sc + ":L1"), "1µ", "Subcircuit Value for X1:L1, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "1µ", "Subcircuit Value for X1:L1, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 1e-6, msg="Subcircuit Value for X1:L1, float comparison")

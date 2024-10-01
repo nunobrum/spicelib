@@ -80,7 +80,7 @@ QSCH_NET_POS = 1
 QSCH_NET_ROTATION = "?"
 QSCH_NET_STR_ATTR = 5
 
-#   «text (-800,-650) 1 7 0 0x1000000 -1 -1 "ï»¿.tran 5m"»
+#   «text (-800,-650) 1 77 0 0x1000000 -1 -1 "ï»¿.tran 5m"»
 QSCH_TEXT_POS = 1
 QSCH_TEXT_SIZE = 2
 QSCH_TEXT_ROTATION = 3  # 13="0 Degrees" 45="90 Degrees" 77="180 Degrees" 109="270 Degrees" r= 13+32*alpha/90
@@ -967,6 +967,8 @@ class QschEditor(BaseSchematic):
         if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
             # Before adding new instruction, if it is a unique instruction, we just replace it
             for text_tag in self.schematic.get_items('text'):
+                if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                    continue
                 text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
                 text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
                 command = text.split()[0].upper()
