@@ -1034,6 +1034,8 @@ class SpiceCircuit(BaseEditor):
                     # Advance to the next non nested .ENDS
                     finished = sub_circuit._add_lines(lib)
                     if finished:
+                        # if this is from a lib, don't allow modifications
+                        sub_circuit._readonly = True
                         return sub_circuit
         #  3. Return an instance of SpiceCircuit
         return None
@@ -1054,6 +1056,8 @@ class SpiceCircuit(BaseEditor):
                 if lib_filename:
                     sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
                     if sub_circuit:
+                        # if this is from a lib, don't allow modifications
+                        sub_circuit._readonly = True
                         # Success we can go out
                         return sub_circuit
         if self.parent is not None:
