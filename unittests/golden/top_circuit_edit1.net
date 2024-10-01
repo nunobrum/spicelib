@@ -29,8 +29,15 @@ C3 C B 100n
 ***** SpiceEditor Manipulated this sub-circuit ****
 .subckt sub_circuit_XX1 IN OUT
 C1 OUT 0 22n
-X2 IN 0 snubber
+X2 IN 0 snubber_X2
 L1 IN OUT 4uH
+***** SpiceEditor Manipulated this sub-circuit ****
+.subckt snubber_X2 A B
+C2 A B 1nF
+R1 A C 50
+C3 C B 100n
+.ENDS snubber_X2
+***** ENDS SpiceEditor ****
 .ENDS sub_circuit_XX1
 ***** ENDS SpiceEditor ****
 .end

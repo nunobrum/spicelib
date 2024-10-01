@@ -23,7 +23,7 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
 
 from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -292,10 +292,12 @@ class SpiceCircuit(BaseEditor):
     :meta hide-value:
     """
 
-    def __init__(self):
+    def __init__(self, parent: "SpiceCircuit" = None):
         super().__init__()
         self.netlist = []
-
+        self.modified_subcircuits = {}
+        self.parent = parent
+        
     def get_line_starting_with(self, substr: str) -> int:
         """Internal function. Do not use."""
         # This function returns the line number that starts with the substr string.
@@ -317,7 +319,7 @@ class SpiceCircuit(BaseEditor):
         for line in line_iter:
             cmd = get_line_command(line)
             if cmd == '.SUBCKT':
-                sub_circuit = SpiceCircuit()
+                sub_circuit = SpiceCircuit(self)
                 sub_circuit.netlist.append(line)
                 # Advance to the next non nested .ENDS
                 finished = sub_circuit._add_lines(line_iter)
@@ -341,6 +343,11 @@ class SpiceCircuit(BaseEditor):
             if isinstance(command, SpiceCircuit):
                 command._write_lines(f)
             else:
+                # Writes the modified sub-circuits at the end just before the .END clause
+                if command.upper().startswith(".ENDS"):
+                    # write here the modified sub-circuits
+                    for sub in self.modified_subcircuits.values():
+                        sub._write_lines(f)
                 f.write(command)
 
     def _get_line_matching(self, command, search_expression: re.Pattern) -> Tuple[int, Union[re.Match, None]]:
@@ -380,6 +387,8 @@ class SpiceCircuit(BaseEditor):
             if isinstance(line, SpiceCircuit):
                 if line.name() == name:
                     return line
+        if self.parent is not None:
+            return self.parent.get_subcircuit_named(name)
         return None
 
     def get_subcircuit(self, instance_name: str) -> 'SpiceCircuit':
@@ -414,24 +423,13 @@ class SpiceCircuit(BaseEditor):
         # Search for the sub-circuit in the netlist
         sub_circuit = self.get_subcircuit_named(subcircuit_name)
         if sub_circuit is not None:
-            return sub_circuit
+            if sub_subckts is None:
+                return sub_circuit
+            else:
+                return sub_circuit.get_subcircuit(SUBCKT_DIVIDER.join(sub_subckts))
 
         # If we reached here is because the subcircuit was not found. Search for it in declared libraries
-        for line in self.netlist:
-            if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
-                continue
-            m = lib_inc_regex.match(line)
-            if m:  # If it is a library include
-                lib = m.group(2)
-                lib_filename = search_file_in_containers(lib,
-                                                         os.path.split(self.circuit_file)[0],  # The directory where the file is located
-                                                         os.path.curdir,  # The current script directory,
-                                                         *self.simulator_lib_paths,  # The simulator's library paths
-                                                         *self.custom_lib_paths)  # The custom library paths
-                if lib_filename:
-                    sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
-                    if sub_circuit:
-                        break
+        sub_circuit = self.find_subckt_in_included_libs(subcircuit_name)
 
         if sub_circuit:
             if SUBCKT_DIVIDER in instance_name:
@@ -459,14 +457,41 @@ class SpiceCircuit(BaseEditor):
         return line_no, match
 
     def _set_model_and_value(self, reference, value):
-        """Internal function. Do not use."""
-        line_no, match = self._get_component_line_and_regex(reference)
-        if isinstance(value, (int, float)):
-            value = format_eng(value)
-        start = match.start('value')
-        end = match.end('value')
-        line = self.netlist[line_no]
-        self.netlist[line_no] = line[:start] + value + line[end:]
+        """
+        Internal method to set the model and value of a component.
+        """
+
+        # Using the first letter of the component to identify what is it
+        if reference[0] == 'X' and SUBCKT_DIVIDER in reference:  # Replaces a component inside of a subciruit
+            # In this case the sub-circuit needs to be copied so that is copy is modified. A copy is created for each
+            # instance of a sub-circuit.
+            component_split = reference.split(SUBCKT_DIVIDER)
+            subckt_instance = component_split[0]
+            # reference = SUBCKT_DIVIDER.join(component_split[1:])
+            if subckt_instance in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
+                sub_circuit: SpiceCircuit = self.modified_subcircuits[subckt_instance]
+            else:
+                sub_circuit_original = self.get_subcircuit(subckt_instance)  # If not will look for it.
+                if sub_circuit_original:
+                    new_name = sub_circuit_original.name() + '_' + subckt_instance  # Creates a new name with the path appended
+                    sub_circuit = sub_circuit_original.clone(new_name=new_name)
+
+                    # Memorize that the copy is relative to that particular instance
+                    self.modified_subcircuits[subckt_instance] = sub_circuit
+                    # Change the call to the sub-circuit
+                    self._set_model_and_value(subckt_instance, new_name)
+                else:
+                    raise ComponentNotFoundError(reference)
+            # Update the component
+            sub_circuit._set_model_and_value(SUBCKT_DIVIDER.join(component_split[1:]), value)
+        else:
+            line_no, match = self._get_component_line_and_regex(reference)
+            if isinstance(value, (int, float)):
+                value = format_eng(value)
+            start = match.start('value')
+            end = match.end('value')
+            line = self.netlist[line_no]
+            self.netlist[line_no] = line[:start] + value + line[end:]
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
@@ -487,7 +512,7 @@ class SpiceCircuit(BaseEditor):
         :return: The new replica of the SpiceCircuit object
         :rtype: SpiceCircuit
         """
-        clone = SpiceCircuit()
+        clone = SpiceCircuit(self)
         clone.netlist = self.netlist.copy()
         clone.netlist.insert(0, "***** SpiceEditor Manipulated this sub-circuit ****" + END_LINE_TERM)
         clone.netlist.append("***** ENDS SpiceEditor ****" + END_LINE_TERM)
@@ -565,10 +590,34 @@ class SpiceCircuit(BaseEditor):
         :raises: NotImplementedError if there isn't an associated regular expression for the component prefix.
         """
         if SUBCKT_DIVIDER in reference:
-            raise NotImplementedError("This method doesn't support hierarchical access. "
-                                      "Please use set_component_value() and get_component_value() methods.")
-        line_no = self.get_line_starting_with(reference)
-        return SpiceComponent(self, line_no)
+            if reference[0] != 'X':  # Replaces a component inside of a subciruit
+                raise ComponentNotFoundError("Only subcircuits can have components inside.")
+            else:
+                # In this case the sub-circuit needs to be copied so that is copy is modified.
+                # A copy is created for each instance of a sub-circuit.
+                component_split = reference.split(SUBCKT_DIVIDER)
+                subckt_ref = component_split[0]
+
+                if subckt_ref in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
+                    subcircuit = self.modified_subcircuits[subckt_ref]
+                else:
+                    subcircuit = self.get_subcircuit(subckt_ref)
+
+                if len(component_split) > 1:
+                    return subcircuit.get_component(SUBCKT_DIVIDER.join(component_split[1:]))
+                else:
+                    return subcircuit
+        else:
+            line_no = self.get_line_starting_with(reference)
+            return SpiceComponent(self, line_no)
+
+    def __getitem__(self, item) -> Union[Component, HierarchicalComponent]:
+        component = super().__getitem__(item)
+        if component.parent != self:
+            # encapsulate the object in HierarchicalComponent
+            return HierarchicalComponent(component, self, item)
+        else:
+            return component
 
     def __delitem__(self, key):
         """
@@ -934,6 +983,60 @@ class SpiceCircuit(BaseEditor):
         """
         return Path('')
 
+    @staticmethod
+    def find_subckt_in_lib(library, subckt_name) -> Union['SpiceCircuit', None]:
+        """
+        Finds a sub-circuit in a library. The search is case-insensitive.
+
+        :param library: path to the library to search
+        :type library: str
+        :param subckt_name: sub-circuit to search for
+        :type subckt_name: str
+        :return: Returns a SpiceCircuit instance with the sub-circuit found or None if not found
+        :rtype: SpiceCircuit
+        """
+        # 0. Setup things
+        reg_subckt = re.compile(SUBCKT_CLAUSE_FIND + subckt_name, re.IGNORECASE)
+        # 1. Find Encoding
+        encoding = detect_encoding(library)
+        #  2. scan the file
+        with open(library, encoding=encoding) as lib:
+            for line in lib:
+                search = reg_subckt.match(line)
+                if search:
+                    sub_circuit = SpiceCircuit()
+                    sub_circuit.netlist.append(line)
+                    # Advance to the next non nested .ENDS
+                    finished = sub_circuit._add_lines(lib)
+                    if finished:
+                        return sub_circuit
+        #  3. Return an instance of SpiceCircuit
+        return None
+
+    def find_subckt_in_included_libs(self, subcircuit_name) -> Optional["SpiceCircuit"]:
+        for line in self.netlist:
+            if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
+                continue
+            m = lib_inc_regex.match(line)
+            if m:  # If it is a library include
+                lib = m.group(2)
+                lib_filename = search_file_in_containers(lib,
+                                                         os.path.split(self.circuit_file)[0],
+                                                         # The directory where the file is located
+                                                         os.path.curdir,  # The current script directory,
+                                                         *self.simulator_lib_paths,  # The simulator's library paths
+                                                         *self.custom_lib_paths)  # The custom library paths
+                if lib_filename:
+                    sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
+                    if sub_circuit:
+                        # Success we can go out
+                        return sub_circuit
+        if self.parent is not None:
+            # try searching on parent netlists
+            return self.parent.find_subckt_in_included_libs(subcircuit_name)
+        else:
+            return None
+
 
 class SpiceEditor(SpiceCircuit):
     """
@@ -953,7 +1056,6 @@ class SpiceEditor(SpiceCircuit):
     def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
         super().__init__()
         self.netlist_file = Path(netlist_file)
-        self.modified_subcircuits = {}
         if create_blank:
             self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
         else:
@@ -969,55 +1071,6 @@ class SpiceEditor(SpiceCircuit):
     @property
     def circuit_file(self) -> Path:
         return self.netlist_file
-
-    def get_component(self, component) -> Union[SpiceComponent, SpiceCircuit]:
-        prefix = component[0]
-        if prefix == 'X' and SUBCKT_DIVIDER in component:  # Replaces a component inside of a subciruit
-            # In this case the sub-circuit needs to be copied so that is copy is modified. A copy is created for each
-            # instance of a sub-circuit.
-            component_split = component.split(SUBCKT_DIVIDER)
-            modified_path = SUBCKT_DIVIDER.join(component_split[:-1])  # excludes last component
-            component = component_split[-1]  # This is the last component to modify
-
-            if modified_path in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
-                subcircuit = self.modified_subcircuits[modified_path]
-            else:
-                subcircuit = self.get_subcircuit(modified_path)
-            return subcircuit.get_component(component)
-
-        return super().get_component(component)
-
-    def _set_model_and_value(self, reference, value):
-        """
-        Internal method to set the model and value of a component.
-        """
-        prefix = reference[0]  # Using the first letter of the component to identify what is it
-        if prefix == 'X' and SUBCKT_DIVIDER in reference:  # Relaces a component inside of a subciruit
-            # In this case the sub-circuit needs to be copied so that is copy is modified. A copy is created for each
-            # instance of a sub-circuit.
-            component_split = reference.split(SUBCKT_DIVIDER)
-            modified_path = SUBCKT_DIVIDER.join(component_split[:-1])  # excludes last component
-            reference = component_split[-1]  # This is the last component to modify
-
-            if modified_path in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
-                sub_circuit = self.modified_subcircuits[modified_path]
-            else:
-                sub_circuit_original = self.get_subcircuit(modified_path)  # If not will look for it.
-                if sub_circuit_original:
-                    new_name = sub_circuit_original.name() + '_' + '_'.join(
-                        component_split[:-1])  # Creates a new name with the path appended
-                    sub_circuit = sub_circuit_original.clone(new_name=new_name)
-                    # Memorize that the copy is relative to that particular instance
-                    self.modified_subcircuits[modified_path] = sub_circuit
-                    # Change the call to the sub-circuit
-                    self._set_model_and_value(modified_path, new_name)
-                else:
-                    raise ComponentNotFoundError(reference)
-            #  Change the copy of the sub-circuit related to that particular instance.
-            sub_circuit._set_model_and_value(reference, value)
-            return
-        # else: This is the generic case where the sub-circuit is changed
-        super()._set_model_and_value(reference, value)
 
     def add_instruction(self, instruction: str) -> None:
         """Adds a SPICE instruction to the netlist.
@@ -1135,35 +1188,6 @@ class SpiceEditor(SpiceCircuit):
         else:
             _logger.error("Netlist file not found: {}".format(self.netlist_file))
 
-    @staticmethod
-    def find_subckt_in_lib(library, subckt_name) -> Union['SpiceCircuit', None]:
-        """
-        Finds a sub-circuit in a library. The search is case-insensitive.
-
-        :param library: path to the library to search
-        :type library: str
-        :param subckt_name: sub-circuit to search for
-        :type subckt_name: str
-        :return: Returns a SpiceCircuit instance with the sub-circuit found or None if not found
-        :rtype: SpiceCircuit
-        """
-        # 0. Setup things
-        reg_subckt = re.compile(SUBCKT_CLAUSE_FIND + subckt_name, re.IGNORECASE)
-        # 1. Find Encoding
-        encoding = detect_encoding(library)
-        #  2. scan the file
-        with open(library, encoding=encoding) as lib:
-            for line in lib:
-                search = reg_subckt.match(line)
-                if search:
-                    sub_circuit = SpiceCircuit()
-                    sub_circuit.netlist.append(line)
-                    # Advance to the next non nested .ENDS
-                    finished = sub_circuit._add_lines(lib)
-                    if finished:
-                        return sub_circuit
-        #  3. Return an instance of SpiceCircuit
-        return None
 
     def run(self, wait_resource: bool = True,
             callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):
