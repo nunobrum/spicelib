@@ -41,9 +41,6 @@ and the script will only include the code between the following comments:
 The script will create a backup of the original file before updating it. The backup file will have the same name as the
 original file with the extension .bak.
 
-Usage
-=====
-
 The readme_update can be used directly from a command line if the Python's Scripts folder is included in the PATH
 environment variable. If not, the full path to the executable must be provided.
 

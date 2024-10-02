@@ -607,10 +607,12 @@ Options:
   -a PATH, --add=PATH  Add a path for searching for symbols
 ```
 
-### log\semi_dev_op_reader.exe ###
+## Other functions ##
+
+### log\semi_dev_op_reader.opLogReader ###
 
 This module is used to read from LTSpice log files Semiconductor Devices Operating Point Information. A more detailed
-documentation is directly included in the source file docstrings.
+documentation is directly included in the Python Modules documentation under "Semiconductor Operating Point Reader".
 
 ## Debug Logging ##
 

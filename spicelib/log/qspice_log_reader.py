@@ -10,7 +10,7 @@
 #  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
-# Name:        qspice_log_reder.py
+# Name:        qspice_log_reader.py
 # Purpose:     Read measurement data from a qspice log file
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)

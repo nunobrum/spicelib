@@ -8,5 +8,6 @@ Raw and Log File Classes
    raw_read
    raw_write
    trace
-   logreader
+   ltlogreader
+   qlogreader
    

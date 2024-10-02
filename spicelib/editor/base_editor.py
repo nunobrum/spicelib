@@ -570,6 +570,7 @@ class BaseEditor(ABC):
         """Sets the value of the attribute of the component. Attributes are the values that are not related with
         SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
         User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
+        
         :param reference: Reference of the component
         :type reference: str
         :param attribute: Name of the attribute to be set
@@ -786,14 +787,14 @@ class BaseEditor(ABC):
         The simulator object should have had the executable path (spice_exe) set correctly.
         
         This is especially useful in 2 cases:
-        * when the simulator is running under wine, as it is difficult to detect 
-        the correct library paths in that case.
-        * when the editor can be used with different simulators, that have different library paths.
+            * when the simulator is running under wine, as it is difficult to detect \
+                the correct library paths in that case.
+            * when the editor can be used with different simulators, that have different library paths.
         
         Note:
-        * you can always also set the library paths manually via `set_custom_library_paths()`
-        * this method is a class method and will affect all instances of the class
-        
+            * you can always also set the library paths manually via `set_custom_library_paths()`
+            * this method is a class method and will affect all instances of the class
+
         :param simulator: Simulator object from which the library paths will be taken.
         :type simulator: Simulator
         :returns: Nothing

@@ -33,7 +33,7 @@ def opLogReader(filename: str) -> dict:
     handled separately from the main LogReader class because of its specialization and therefore not judged to be
     of interest to the typical LTSpice user making board level simulations.
 
-    Below is an excerpt of a Semiconductor Device Operating Points log.py
+    Below is an excerpt of a Semiconductor Device Operating Points log:
 
     .. code-block:: text
 
