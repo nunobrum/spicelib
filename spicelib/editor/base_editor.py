@@ -337,10 +337,18 @@ class BaseEditor(ABC):
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
     """
-    custom_lib_paths: List[str] = []  # This is a class variable, so it will be shared between all instances.
-    """:meta hide-value:"""    
-    simulator_lib_paths: List[str] = []  # This is a class variable, so it will be shared between all instances.
-    """:meta hide-value:"""
+    custom_lib_paths: List[str] = []
+    """The custom library paths. Not to be modified, only set via `set_custom_library_paths()`.
+    This is a class variable, so it will be shared between all instances
+    
+    :meta hide-value:"""    
+    simulator_lib_paths: List[str] = []
+    """ This is initialised with typical locations found for your simulator.
+    You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
+    This is a class variable, so it will be shared between all instances.
+    
+    :meta hide-value:
+    """
 
     @property
     @abstractmethod

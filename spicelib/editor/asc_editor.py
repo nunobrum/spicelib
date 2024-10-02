@@ -49,8 +49,9 @@ class AscEditor(BaseSchematic):
     """:meta private:"""
     
     simulator_lib_paths: List[str] = LTspice.get_default_library_paths()
-    """ This is initialised with typical locations found for LTSpice.
+    """ This is initialised with typical locations found for LTspice.
     You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
+    This is a class variable, so it will be shared between all instances.
     
     :meta hide-value:
     """

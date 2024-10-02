@@ -221,7 +221,16 @@ class SpiceComponent(Component):
         self.parent = parent
         self.update_attributes_from_line_no(line_no)
 
-    def update_attributes_from_line_no(self, line_no) -> re.match:
+    def update_attributes_from_line_no(self, line_no: int) -> re.match:
+        """Update attributes of a component at a specific line in the netlist
+
+        :param line_no: line in the netlist
+        :type line_no: int
+        :raises NotImplementedError: When the component type is not recognized
+        :raises UnrecognizedSyntaxError: When the line doesn't match the expected REGEX.
+        :return: The match found
+        :rtype: re.match
+        """
         self.line = self.parent.netlist[line_no]
         prefix = self.line[0]
         regex = component_replace_regexs.get(prefix, None)
@@ -290,8 +299,9 @@ class SpiceCircuit(BaseEditor):
     """
     
     simulator_lib_paths: List[str] = LTspice.get_default_library_paths()    
-    """ This is initialised with typical locations found for LTSpice.
-    You can (and should, if you use wine or use anything else than LTspice), call `prepare_for_simulator()`.
+    """ This is initialised with typical locations found for LTspice.
+    You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
+    This is a class variable, so it will be shared between all instances.
     
     :meta hide-value:
     """
@@ -304,7 +314,10 @@ class SpiceCircuit(BaseEditor):
         self.parent = parent
         
     def get_line_starting_with(self, substr: str) -> int:
-        """Internal function. Do not use."""
+        """Internal function. Do not use.
+        
+        :meta private:
+        """
         # This function returns the line number that starts with the substr string.
         # If the line is not found, then -1 is returned.
         substr_upper = substr.upper()
@@ -377,17 +390,27 @@ class SpiceCircuit(BaseEditor):
     def get_subcircuit_names(self) -> List[str]:
         """
         Returns a list of the names of the sub-circuits in the netlist.
+        
+        :return: list of sub-circuit names
+        :rtype: List[str]
         """
+
         subckt_names = []
         for line in self.netlist:
             if isinstance(line, SpiceCircuit):
                 subckt_names.append(line.name())
         return subckt_names
 
-    def get_subcircuit_named(self, name) -> Optional['SpiceCircuit']:
+    def get_subcircuit_named(self, name: str) -> Optional['SpiceCircuit']:
         """
         Returns the sub-circuit object with the given name.
+        
+        :param name: name of the subcircuit
+        :type name: str
+        :return: _description_
+        :rtype: _type_
         """
+
         for line in self.netlist:
             if isinstance(line, SpiceCircuit):
                 if line.name() == name:
@@ -694,9 +717,9 @@ class SpiceCircuit(BaseEditor):
             return {}
 
     def set_component_parameters(self, reference: str, **kwargs) -> None:
+        # docstring inherited from BaseEditor
         if self.is_read_only():
             raise ValueError("Editor is read-only")  
-        # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
         if match and match.groupdict().get('params'):
             params_str = match.group('params')
@@ -1009,7 +1032,7 @@ class SpiceCircuit(BaseEditor):
         return self._readonly    
 
     @staticmethod
-    def find_subckt_in_lib(library, subckt_name) -> Union['SpiceCircuit', None]:
+    def find_subckt_in_lib(library: str, subckt_name: str) -> Union['SpiceCircuit', None]:
         """
         Finds a sub-circuit in a library. The search is case-insensitive.
 
@@ -1040,7 +1063,14 @@ class SpiceCircuit(BaseEditor):
         #  3. Return an instance of SpiceCircuit
         return None
 
-    def find_subckt_in_included_libs(self, subcircuit_name) -> Optional["SpiceCircuit"]:
+    def find_subckt_in_included_libs(self, subcircuit_name: str) -> Optional["SpiceCircuit"]:
+        """Find the subcircuit in the list of libraries
+
+        :param subckt_name: sub-circuit to search for
+        :type subckt_name: str
+        :return: Returns a SpiceCircuit instance with the sub-circuit found or None if not found
+        :rtype: SpiceCircuit
+        """
         for line in self.netlist:
             if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
                 continue
@@ -1056,9 +1086,8 @@ class SpiceCircuit(BaseEditor):
                 if lib_filename:
                     sub_circuit = SpiceEditor.find_subckt_in_lib(lib_filename, subcircuit_name)
                     if sub_circuit:
-                        # if this is from a lib, don't allow modifications
-                        sub_circuit._readonly = True
                         # Success we can go out
+                        # by the way, this circuit will have been marked as readonly
                         return sub_circuit
         if self.parent is not None:
             # try searching on parent netlists
@@ -1099,6 +1128,7 @@ class SpiceEditor(SpiceCircuit):
 
     @property
     def circuit_file(self) -> Path:
+        # docstring inherited from BaseSchematic
         return self.netlist_file
 
     def add_instruction(self, instruction: str) -> None:
