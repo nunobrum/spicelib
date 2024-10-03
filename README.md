@@ -470,7 +470,7 @@ The following tools will be installed when you install the library via pip. The 
 
 ### ltsteps.exe ###
 
-```bash
+```text
 Usage: ltsteps [filename]
 ```
 
@@ -483,7 +483,7 @@ script will scan the directory and process the newest log, txt or out file found
 
 This module uses the data inside on the filename to produce a histogram image.
 
- ```bash
+ ```text
 Usage: histogram [options] LOG_FILE TRACE
 
 Options:
@@ -514,7 +514,7 @@ Options:
 
 A tool to convert .raw files into csv or Excel files.
 
-```bash
+```text
 Usage: raw_convert [options] <rawfile> <trace_list>
 
 Options:
@@ -534,7 +534,7 @@ Options:
 
 Uses matplotlib to plot the data in the raw file.
 
-```bash
+```text
 Usage: rawplot RAW_FILE TRACE_NAME
 ```
 
@@ -575,7 +575,7 @@ server.close_session()
 
 -- in examples/sim_client_example.py [SimClient Example]
 
-```bash
+```text
 usage: run_server [-h] [-p PORT] [-o OUTPUT] [-l PARALLEL] simulator
 
 Run the LTSpice Server. This is a command line interface to the SimServer class. The SimServer class is used to run
@@ -598,7 +598,7 @@ optional arguments:
 
 Converts LTspice schematics into QSPICE schematics.
 
-```bash
+```text
 Usage: asc_to_qsch [options] ASC_FILE [QSCH_FILE]
 
 Options:

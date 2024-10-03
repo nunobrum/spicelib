@@ -49,6 +49,7 @@ extensions = [
     'sphinx.ext.todo', 
     'sphinx.ext.viewcode', 
     'sphinx.ext.autodoc',
+    'myst_parser'
     # 'sphinx.ext.autosummary',
     # 'rinoh.frontend.sphinx'
 ]

@@ -10,6 +10,7 @@ Welcome to spicelib's documentation!
    :maxdepth: 2
    :caption: Contents:
    
+   readme
    modules/modules
    classes/editor_classes
    classes/simulator_classes
