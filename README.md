@@ -314,11 +314,45 @@ AscEditor has some limitations and differences with regards to SpiceEditor.
 * When adressing components, SpiceEditor requires you to include the prefix in the component name, like `XU1` for an opamp. AscEditor will require `U1`.
 * AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any of the underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters.
 
-    This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`. 
+    This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`.
 
     Note here that you must know the correct attribute holding that parameter, and make sure that you know and set all the other parameters in that attribute. If the attribute is in 'SpiceLine' however (as with the majority of the simpler components), you may address the parameter individually (see the voltage source example above).
 
 Resumed, it is better to use SpiceEditor than AscEditor, as it is more straightforward. On MacOS, it is recommended to use LTspice under wine, or to export the netlist manually, as MacOS's LTspice does not support automated export of netlists.
+
+#### Hierarchial circuits: reading and editing ####
+
+* Circuits can refer to other circuits (subcircuits) and to components, be it from other circuit or netlist files, or from libraries.
+* Subcircuits can contain other subcircuits
+* Internal components in components/subcircuits that are loaded from libraries can be read, but not modified.
+
+Examples:
+
+Imagine a top circuit that refers to a subcircuit 'X1' that is not in a library,
+but in a separate '.asc' or '.net' file (depending on your editor).
+That subcircuit has a compoment 'L1'.
+
+The following is all possible:
+
+```python
+
+  my_edt = spicelib.AscEditor("top_circuit.asc")
+  # my_edt = spicelib.SpiceEditor("top_circuit.net") # or from a netlist...
+
+  print(my_edt.get_subcircuit("X1").get_components())  # prints ['C1', 'X2', 'L1']
+
+  # The following are equivalent:
+  v = my_edt.get_component_value("X1:L1")
+  v = my_edt.get_subcircuit("X1").get_component_value("L1")
+  v = my_edt.["X1:L1"].value
+  
+  # Likewise, the following are equivalent:
+  # Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+  my_edt.set_component_value("X1:L1") = 2e-6
+  my_edt.["X1:L1"].value = 2e-6
+
+  # The same goes for SpiceEditor, only that you should use 'XX1' instead of 'X1'
+```
 
 ### Simulation Analysis Toolkit ###
 
