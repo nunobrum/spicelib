@@ -108,7 +108,7 @@ class QspiceLogReader(LogfileData):
         logfile, but with the '.net' extension.
 
         :param meas_filename: This optional parameter specifies the measurement file name. If not given, it will
-        assume the name of the log file but with the extension '.meas'
+            assume the name of the log file but with the extension '.meas'.
         :type meas_filename: Optional str or Path
         :returns: The .meas file path
         :rtype: Path
@@ -140,6 +140,10 @@ class QspiceLogReader(LogfileData):
         """
         Parses the .meas file and reads all measurements contained in the file. Access to the measurements is done
         using this class interface.
+
+        :param meas_filename: path to the measurement file to parse.
+        :type meas_filename: str or Path
+        :returns: Nothing
         """
         meas_regex = re.compile(r"^\.meas (\w+) (\w+) (.*)$")
         meas_name = None
