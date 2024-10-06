@@ -719,7 +719,17 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : <nuno.brum@gmail.com>
 
 ## History
-
+* Version 1.3.0
+  * Major improvement in Documentation
+  * Introduced a read-only property that blocks libraries from being updated.
+  * Support for LTspice log files with the option : expanded netlist
+  * Supporting library symbols using BLOCK primitive
+  * Improved unittest on the .ASC hierarchical design
+  * SimRunner simulation iterator only returns successful simulations in order to simplify error management
+  * In QschEditor, the replacement of unique dot instructions (ex: .TRAN .AC .NOISE) is only done if the existing instruction is not commented.
+  * RunTask.get_results() now returns None if a callback function is provided and the simulation has failed.
+  * Bugfix: Prefix were case sensitive in SpiceEditor
+  * Bugfix: Parsing netlists with extensions other than .net didn't work properly
 * Version 1.2.1
   * Fix on the generation of netlists from QSPICE Schematic files. 
     * Floating pins are now correctly handled. (Issue #88)
