@@ -56,6 +56,7 @@ extensions = [
 
 # autodoc_default_flags = ['members']
 # autosummary_generate = True
+myst_all_links_external = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
