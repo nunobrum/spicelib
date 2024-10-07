@@ -108,8 +108,8 @@ class AscEditor(BaseSchematic):
                 asc.write(f"SYMATTR InstName {component.reference}" + END_LINE_TERM)
                 if component.reference.startswith('X') and "_SUBCKT" in component.attributes:
                     # writing the sub-circuit if it was updated
-                    sub_circuit: AscEditor = component.attributes["_SUBCKT"]
-                    if sub_circuit.updated:
+                    sub_circuit: AscEditor = component.attributes['_SUBCKT']
+                    if sub_circuit is not None and sub_circuit.updated:
                         sub_circuit.save_netlist(sub_circuit.asc_file_path)
                 for attr, value in component.attributes.items():
                     if not attr.startswith('_'):  # All these are not exported since they are only used internally
@@ -170,7 +170,7 @@ class AscEditor(BaseSchematic):
                         symbol = self._get_symbol(component.symbol)
                         if component.reference.startswith('X') or symbol.is_subcircuit():  # This is a subcircuit
                             # then create the attribute "SUBCKT"
-                            component.attributes["_SUBCKT"] = self._get_subcircuit(symbol)
+                            component.attributes['_SUBCKT'] = self._get_subcircuit(symbol)
                     else:
                         # make sure prefix is uppercase, as this is used in a lot of places
                         if ref.upper() == "PREFIX":
@@ -302,7 +302,7 @@ class AscEditor(BaseSchematic):
     def get_subcircuit(self, reference: str) -> 'AscEditor':
         """Returns an AscEditor file corresponding to the symbol"""
         sub = self.get_component(reference)
-        return sub.attributes["_SUBCKT"]
+        return sub.attributes['_SUBCKT']
 
     def get_component_info(self, reference) -> dict:
         """Returns the reference information as a dictionary"""
