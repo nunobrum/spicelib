@@ -345,9 +345,10 @@ class QschEditor(BaseSchematic):
     simulator_lib_paths: List[str] = Qspice.get_default_library_paths()    
     """ This is initialised with typical locations found for QSPICE.
     You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
+    This is a class variable, so it will be shared between all instances.
     
     :meta hide-value:
-    """
+    """    
         
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()

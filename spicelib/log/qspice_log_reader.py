@@ -10,7 +10,7 @@
 #  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
-# Name:        qspice_log_reder.py
+# Name:        qspice_log_reader.py
 # Purpose:     Read measurement data from a qspice log file
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
@@ -98,13 +98,25 @@ class QspiceLogReader(LogfileData):
             meas_file = self.obtain_measures()
             self.parse_meas_file(meas_file)
 
-    def obtain_measures(self, meas_filename=None):
+    def obtain_measures(self, meas_filename: Path = None) -> Path:
         """
         In QSpice the measures are obtained by calling the QPOST command giving as arguments
         the .qraw file and the .log file
+        This function makes this call to QPOST and returns the measurement output file path.
+
+        Note the call to QPOST includes the path to the circuit netlist. This is assumed to be the name of the
+        logfile, but with the '.net' extension.
+
+        :param meas_filename: This optional parameter specifies the measurement file name. If not given, it will
+            assume the name of the log file but with the extension '.meas'.
+        :type meas_filename: Optional str or Path
+        :returns: The .meas file path
+        :rtype: Path
         """
         if meas_filename is None:
             meas_filename = self.logname.with_suffix(".meas")
+        elif not isinstance(meas_filename, Path):
+            meas_filename = Path
 
         if not Qspice.is_available():
             _logger.error("================== ALERT! ====================")
@@ -126,7 +138,12 @@ class QspiceLogReader(LogfileData):
 
     def parse_meas_file(self, meas_filename):
         """
-        Parses the .meas file and populates the dataset and headers properties.
+        Parses the .meas file and reads all measurements contained in the file. Access to the measurements is done
+        using this class interface.
+
+        :param meas_filename: path to the measurement file to parse.
+        :type meas_filename: str or Path
+        :returns: Nothing
         """
         meas_regex = re.compile(r"^\.meas (\w+) (\w+) (.*)$")
         meas_name = None

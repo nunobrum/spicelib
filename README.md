@@ -1,4 +1,4 @@
-# README #
+# README <!-- omit in toc -->
 
 spicelib is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -7,9 +7,45 @@ spicelib is a toolchain of python utilities design to interact with spice simula
 * QSPICE
 * Xyce
 
-## What is contained in this repository ##
+**Table of Contents**
 
-### Main Tools ###
+- [What is contained in this repository](#what-is-contained-in-this-repository)
+  - [Main Tools](#main-tools)
+  - [Main Classes](#main-classes)
+- [How to Install](#how-to-install)
+  - [Updating spicelib](#updating-spicelib)
+  - [Using GITHub](#using-github)
+- [How to use](#how-to-use)
+- [LICENSE](#license)
+- [Main modules](#main-modules)
+  - [RawRead](#rawread)
+  - [RawWrite](#rawwrite)
+  - [SpiceEditor, AscEditor, QschEditor and SimRunner](#spiceeditor-asceditor-qscheditor-and-simrunner)
+    - [Simulators and Windows, Linux and MacOS compatibility](#simulators-and-windows-linux-and-macos-compatibility)
+    - [Executable and Library paths](#executable-and-library-paths)
+    - [Runner log redirection](#runner-log-redirection)
+    - [Limitations and specifics of AscEditor](#limitations-and-specifics-of-asceditor)
+    - [Hierarchial circuits: reading and editing](#hierarchial-circuits-reading-and-editing)
+  - [Simulation Analysis Toolkit](#simulation-analysis-toolkit)
+  - [ltsteps](#ltsteps)
+- [Command Line Interface](#command-line-interface)
+  - [ltsteps.exe](#ltstepsexe)
+  - [histogram.exe](#histogramexe)
+  - [raw\_convert.exe](#raw_convertexe)
+  - [rawplot.exe](#rawplotexe)
+  - [run\_server.exe](#run_serverexe)
+  - [asc\_to\_qsch.exe](#asc_to_qschexe)
+- [Other functions](#other-functions)
+  - [log\\semi\_dev\_op\_reader.opLogReader](#logsemi_dev_op_readeroplogreader)
+- [Debug Logging](#debug-logging)
+  - [Single Module Logging](#single-module-logging)
+- [To whom do I talk?](#to-whom-do-i-talk)
+- [History](#history)
+
+
+## What is contained in this repository
+
+### Main Tools
 
 * __Analysis Toolkit__
   A set of tools that prepare an LTspice netlist for a Montecarlo or Worst Case Analysis. The device tolerances are set by the user and the netlist is updated accordingly. The netlist can then be used with the SimRunner to run a batch of simulations or with the LTspice GUI.
@@ -22,7 +58,7 @@ spicelib is a toolchain of python utilities design to interact with spice simula
 
 (Note that the extension '.exe' is only available on Windows. On MacOS or Linux, the commands will have the same name, but without '.exe')
 
-### Main Classes ###
+### Main Classes
 
 * __AscEditor/QschEditor/SpiceEditor__
   Classes for the manipulation of respectively:
@@ -60,15 +96,15 @@ spicelib is a toolchain of python utilities design to interact with spice simula
 * __RawWrite__
   A class to write RAW files that can be read by the LTspice Wave Application.
 
-## How to Install ##
+## How to Install
 
 `pip install spicelib`
 
-### Updating spicelib ###
+### Updating spicelib
 
 `pip install --upgrade spicelib`
 
-### Using GITHub ###
+### Using GITHub
 
 `git clone https://github.com/nunobrum/spicelib.git`
 
@@ -77,20 +113,20 @@ If using this method it would be good to add the path where you cloned the site 
 `import sys`  
 `sys.path.append(<path to spicelib>)`
 
-## How to use ##
+## How to use
 
 Here follows a quick outlook on how to use each of the tools.
 
 More comprehensive documentation can be found in <https://spicelib.readthedocs.io/en/latest/>
 
-## LICENSE ##
+## LICENSE
 
 GNU V3 License
 (refer to the LICENSE file)
 
-## Main modules ##
+## Main modules
 
-### RawRead ###
+### RawRead
 
 The example below reads the data from a Spice Simulation called
 "TRAN - STEP.raw" and displays all steps of the "I(R1)" trace in a matplotlib plot
@@ -118,7 +154,7 @@ plt.show()
 
 -- in examples/raw_read_example.py
 
-### RawWrite ###
+### RawWrite
 
 The following example writes a RAW file with a 3 milliseconds transient simulation sine with a 10kHz and a cosine with
 9.997kHz
@@ -138,7 +174,7 @@ LW.save("./testfiles/teste_snippet1.raw")
 
 -- in examples/raw_write_example.py [Example 1]
 
-### SpiceEditor, AscEditor, QschEditor and SimRunner ###
+### SpiceEditor, AscEditor, QschEditor and SimRunner
 
 These modules are used to prepare and launch SPICE simulations.
 
@@ -217,7 +253,7 @@ if enter == '':
 
 The example above is using the SpiceEditor to modify a spice netlist, but it is also possible to use the AscEditor to directly modify a .asc file. The edited .asc file can be opened by the LTspice GUI and the simulation can be run from there. It is also possible to open a .asc file and to generate a spice netlist from it.
 
-#### Simulators and Windows, Linux and MacOS compatibility ####
+#### Simulators and Windows, Linux and MacOS compatibility
 
 The **LTspice** class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
 
@@ -225,7 +261,7 @@ The **LTspice** class tries to detect the correct path of the LTspice installati
 
 For the other simulators, built-in Linux/MacOS support is coming, but you can always try to use it under Linux via setting of the executable paths.
 
-#### Executable and Library paths ####
+#### Executable and Library paths
 
 A large variety of standard paths are automatically detected. To see what paths are detected:
 
@@ -286,7 +322,7 @@ AscEditor.set_custom_library_paths(["/mypath/lib/sub",
 
 ```
 
-#### Runner log redirection ####
+#### Runner log redirection
 
 When you use wine (on Linux or MacOS) or a simulator like Ngspice, you may want to redirect the output of `run()`, as it prints a lot of messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
 
@@ -296,7 +332,7 @@ with open(processlogfile, "w") as outfile:
     runner.run(netlist, timeout=None, stdout=outfile, stderr=subprocess.STDOUT)
 ```
 
-#### Limitations and specifics of AscEditor ####
+#### Limitations and specifics of AscEditor
 
 AscEditor has some limitations and differences with regards to SpiceEditor.
 
@@ -314,13 +350,47 @@ AscEditor has some limitations and differences with regards to SpiceEditor.
 * When adressing components, SpiceEditor requires you to include the prefix in the component name, like `XU1` for an opamp. AscEditor will require `U1`.
 * AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any of the underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters.
 
-    This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`. 
+    This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`.
 
     Note here that you must know the correct attribute holding that parameter, and make sure that you know and set all the other parameters in that attribute. If the attribute is in 'SpiceLine' however (as with the majority of the simpler components), you may address the parameter individually (see the voltage source example above).
 
 Resumed, it is better to use SpiceEditor than AscEditor, as it is more straightforward. On MacOS, it is recommended to use LTspice under wine, or to export the netlist manually, as MacOS's LTspice does not support automated export of netlists.
 
-### Simulation Analysis Toolkit ###
+#### Hierarchial circuits: reading and editing
+
+* Circuits can refer to other circuits (subcircuits) and to components, be it from other circuit or netlist files, or from libraries.
+* Subcircuits can contain other subcircuits
+* Internal components in components/subcircuits that are loaded from libraries can be read, but not modified.
+
+Examples:
+
+Imagine a top circuit that refers to a subcircuit 'X1' that is not in a library,
+but in a separate '.asc' or '.net' file (depending on your editor).
+That subcircuit has a compoment 'L1'.
+
+The following is all possible:
+
+```python
+
+  my_edt = spicelib.AscEditor("top_circuit.asc")
+  # my_edt = spicelib.SpiceEditor("top_circuit.net") # or from a netlist...
+
+  print(my_edt.get_subcircuit("X1").get_components())  # prints ['C1', 'X2', 'L1']
+
+  # The following are equivalent:
+  v = my_edt.get_component_value("X1:L1")
+  v = my_edt.get_subcircuit("X1").get_component_value("L1")
+  v = my_edt.["X1:L1"].value
+  
+  # Likewise, the following are equivalent:
+  # Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+  my_edt.set_component_value("X1:L1") = 2e-6
+  my_edt.["X1:L1"].value = 2e-6
+
+  # The same goes for SpiceEditor, only that you should use 'XX1' instead of 'X1'
+```
+
+### Simulation Analysis Toolkit
 
 The AscEditor can be used with the Simulation Analysis Toolkit to perform Monte Carlo or Wost Case simulations.
 These simulations can either be done on the LTSpice GUI or using the Runner Class described above.
@@ -431,7 +501,7 @@ given a tolerance value and its respective index.
 * The wc1() function is added to the circuit. This function is used to calculate the worst case value for each component,
 given a minimum and maximum value and its respective index.
 
-### ltsteps ###
+### ltsteps
 
 This module defines a class that can be used to parse LTSpice log files where the information about .STEP information is
 written. There are two possible usages of this module, either programmatically by importing the module and then
@@ -464,13 +534,13 @@ print("Total number of measures found :", data.measure_count)
 
 The second possibility is to use the module directly on the command line
 
-## Command Line Interface ##
+## Command Line Interface
 
 The following tools will be installed when you install the library via pip. The extension '.exe' is only available on Windows. On MacOS or Linux, the commands will have the same name, but without '.exe'. The executables are simple links to python scripts with the same name, of which the majority can be found in the package's 'scripts' directory.
 
-### ltsteps.exe ###
+### ltsteps.exe
 
-```bash
+```text
 Usage: ltsteps [filename]
 ```
 
@@ -479,11 +549,11 @@ This will process all the data and export it automatically into a text file with
 where the data read is formatted into a more convenient tab separated format. In case the `filename` is not provided, the
 script will scan the directory and process the newest log, txt or out file found.
 
-### histogram.exe ###
+### histogram.exe
 
 This module uses the data inside on the filename to produce a histogram image.
 
- ```bash
+ ```text
 Usage: histogram [options] LOG_FILE TRACE
 
 Options:
@@ -510,11 +580,11 @@ Options:
                         Name of the image File. extension 'png'    
  ```
 
-### raw_convert.exe ###
+### raw_convert.exe
 
 A tool to convert .raw files into csv or Excel files.
 
-```bash
+```text
 Usage: raw_convert [options] <rawfile> <trace_list>
 
 Options:
@@ -530,15 +600,15 @@ Options:
                         Example: -d ";"
 ```
 
-### rawplot.exe ###
+### rawplot.exe
 
 Uses matplotlib to plot the data in the raw file.
 
-```bash
+```text
 Usage: rawplot RAW_FILE TRACE_NAME
 ```
 
-### run_server.exe ###
+### run_server.exe
 
 This module is used to run a server that can be used to run simulations in a remote machine. The server will run in the
 background and will wait for a client to connect. The client will send a netlist to the server and the server will run
@@ -575,7 +645,7 @@ server.close_session()
 
 -- in examples/sim_client_example.py [SimClient Example]
 
-```bash
+```text
 usage: run_server [-h] [-p PORT] [-o OUTPUT] [-l PARALLEL] simulator
 
 Run the LTSpice Server. This is a command line interface to the SimServer class. The SimServer class is used to run
@@ -594,11 +664,11 @@ optional arguments:
                         Maximum number of parallel simulations. Default is 4
 ```
 
-### asc_to_qsch.exe ###
+### asc_to_qsch.exe
 
 Converts LTspice schematics into QSPICE schematics.
 
-```bash
+```text
 Usage: asc_to_qsch [options] ASC_FILE [QSCH_FILE]
 
 Options:
@@ -607,12 +677,14 @@ Options:
   -a PATH, --add=PATH  Add a path for searching for symbols
 ```
 
-### log\semi_dev_op_reader.exe ###
+## Other functions
+
+### log\semi_dev_op_reader.opLogReader
 
 This module is used to read from LTSpice log files Semiconductor Devices Operating Point Information. A more detailed
-documentation is directly included in the source file docstrings.
+documentation is directly included in the Python Modules documentation under "Semiconductor Operating Point Reader".
 
-## Debug Logging ##
+## Debug Logging
 
 The library uses the standard `logging` module. Three convenience functions have been added for easily changing logging
 settings across the entire library. `spicelib.all_loggers()` returns a list of all the logger's
@@ -620,7 +692,7 @@ names, `spicelib.set_log_level(logging.DEBUG)`
 would set the library's logging level to debug, and `spicelib.add_log_handler(my_handler)` would add `my_handler` as a
 handler for all loggers.
 
-### Single Module Logging ###
+### Single Module Logging
 
 It is also possible to set the logging settings for a single module by using its name acquired from
 the `spicelib.all_loggers()`
@@ -640,14 +712,24 @@ logging.getLogger("spicelib.RawRead").level = logging.WARNING  # Set the log lev
 Would set only `spicelib.RawRead` file's logging level to warning while the other modules would remain at debug level.
 _Make sure to initialize the root logger before importing the library to be able to see the logs._
 
-## To whom do I talk to? ##
+## To whom do I talk?
 
 * Tools website : [https://www.nunobrum.com/pyltspice.html](https://www.nunobrum.com/pyltspice.html)
 * Repo owner : [me@nunobrum.com](me@nunobrum.com)
 * Alternative contact : <nuno.brum@gmail.com>
 
-## History ##
-
+## History
+* Version 1.3.0
+  * Major improvement in Documentation
+  * Introduced a read-only property that blocks libraries from being updated.
+  * Support for LTspice log files with the option : expanded netlist
+  * Supporting library symbols using BLOCK primitive
+  * Improved unittest on the .ASC hierarchical design
+  * SimRunner simulation iterator only returns successful simulations in order to simplify error management
+  * In QschEditor, the replacement of unique dot instructions (ex: .TRAN .AC .NOISE) is only done if the existing instruction is not commented.
+  * RunTask.get_results() now returns None if a callback function is provided and the simulation has failed.
+  * Bugfix: Prefix were case sensitive in SpiceEditor
+  * Bugfix: Parsing netlists with extensions other than .net didn't work properly
 * Version 1.2.1
   * Fix on the generation of netlists from QSPICE Schematic files. 
     * Floating pins are now correctly handled. (Issue #88)

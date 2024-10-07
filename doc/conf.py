@@ -24,7 +24,7 @@ copyright = '2024, Nuno Brum'
 author = 'Nuno Brum'
 
 # The full version, including alpha/beta/rc tags
-release = '1.2.1'
+release = '1.3.0'
 
 try:
     # Read the version from the .toml file
@@ -49,12 +49,14 @@ extensions = [
     'sphinx.ext.todo', 
     'sphinx.ext.viewcode', 
     'sphinx.ext.autodoc',
+    'myst_parser'
     # 'sphinx.ext.autosummary',
     # 'rinoh.frontend.sphinx'
 ]
 
 # autodoc_default_flags = ['members']
 # autosummary_generate = True
+myst_all_links_external = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
