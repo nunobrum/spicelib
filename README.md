@@ -80,7 +80,9 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   netlist.remove_instruction(".STEP run -1 1023 1")   # Removes previously added instruction
   netlist.reset_netlist()  # Resets all edits done to the netlist.
   netlist.set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters
-  netlist.get_subcircuit("X1").set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters of a component in a subcircuit
+  netlist['R1'].set_params(temp=25, pwr=None)  # Same as above
+  netlist.get_subcircuit('X1').set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters of a component in a subcircuit
+  netlist['X1:R1'].set_params('R1', temp=25, pwr=None)  # Same as above
 ```
 
 * __SimRunner__
