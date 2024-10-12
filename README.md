@@ -69,16 +69,19 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   
   without having to open the schematic in a GUI. The simulations can then be run in batch mode (see SimRunner). Examples of functions provided:
 
-  * `netlist.set_element_model('D1', '1N4148') # Replaces the Diode D1 with the model 1N4148`
-  * `netlist.set_component_value('R2', '33k') # Replaces the value of R2 by 33k`
-  * `netlist['R2'].value = 33000 # Same as above`
-  * `netlist.set_component_value('V1', '5') # Replaces the value of V1 by 5`
-  * `netlist['V1'].value = 5 # Same as above`
-  * `netlist.set_parameters(run=1, TEMP=80) # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80`
-  * `netlist.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")`
-  * `netlist.remove_instruction(".STEP run -1 1023 1")  # Removes previously added instruction`
-  * `netlist.reset_netlist() # Resets all edits done to the netlist.`
-  * `netlist.set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters`
+```python
+  netlist.set_element_model('D1', '1N4148')  # Replaces the Diode D1 with the model 1N4148
+  netlist.set_component_value('R2', '33k')  # Replaces the value of R2 by 33k
+  netlist['R2'].value = 33000  # Same as above
+  netlist.set_component_value('V1', '5')  # Replaces the value of V1 by 5
+  netlist['V1'].value = 5  # Same as above
+  netlist.set_parameters(run=1, TEMP=80)  # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80
+  netlist.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")
+  netlist.remove_instruction(".STEP run -1 1023 1")   # Removes previously added instruction
+  netlist.reset_netlist()  # Resets all edits done to the netlist.
+  netlist.set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters
+  netlist.get_subcircuit("X1").set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters of a component in a subcircuit
+```
 
 * __SimRunner__
   A class that can be used to run LTspice/QSPICE/Ngspice/Xyce simulations in batch mode without having to open the corresponding GUI.
