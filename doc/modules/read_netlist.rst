@@ -108,3 +108,4 @@ See the class documentation for more details :
 
 - :py:class:`spicelib.SpiceEditor`
 - :py:class:`spicelib.SpiceCircuit`
+- :py:class:`spicelib.SpiceComponent`
