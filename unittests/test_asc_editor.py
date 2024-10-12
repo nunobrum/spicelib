@@ -158,6 +158,10 @@ class ASC_Editor_Test(unittest.TestCase):
             test_add_parameter=34.45, )
         # END identical part with test_spice_editor.py:test_subcircuits_edit()
         
+        # Set component parameter 
+        my_edt.get_subcircuit(sc).set_component_parameters("C1", Rser=1)  # set string value via indirect method
+        self.assertEqual(my_edt.get_subcircuit(sc).get_component_parameters("C1"), {'Value': '22n', 'SpiceLine': 'Rser=1', 'Rser': 1}, "Subcircuit parameters for X1:C1")
+        
         S = my_edt.get_subcircuit(sc)
         S.asc_file_path = temp_dir + "subcircuit_edit.asc"  # Only for test purposes
         my_edt.save_netlist(temp_dir + "top_circuit_edit.asc")
