@@ -378,8 +378,8 @@ class QschEditor(BaseSchematic):
         # now checks if there are subcircuits that need to be saved
         for component in self.components.values():
             if "_SUBCKT" in component.attributes:
-                sub_circuit = component.attributes["_SUBCKT"]
-                if sub_circuit.updated:
+                sub_circuit = component.attributes['_SUBCKT']
+                if sub_circuit is not None and sub_circuit.updated:
                     sub_circuit.save_as(sub_circuit._qsch_file_path)
 
     def write_spice_to_file(self, netlist_file: TextIO):
