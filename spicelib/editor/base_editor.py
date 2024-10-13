@@ -850,5 +850,9 @@ class HierarchicalComponent(object):
             self.__dict__[attr] = value
         elif attr in ("value", "value_str"):
             self._parent.set_component_value(self._reference, value)
+        elif attr == "params":
+            if not isinstance(value, dict):
+                raise ValueError("Expecting value to be a dictionary type")
+            self._parent.set_component_parameters(self._reference, **value)
         else:
-            setattr(self.component, attr, value)
+            setattr(self._component, attr, value)

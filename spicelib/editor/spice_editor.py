@@ -92,7 +92,7 @@ REPLACE_REGEXS = {
     # ex: V1 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
     'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Current Controlled Switch
     # This implementation replaces everything after the 2 first nets
-    'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>\w+)"
+    'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>[\w\.]+)"
          r"(\s+params:)?" + PARAM_RGX + r"\\?$",  # Sub-circuit. The value is the last before any key-value parameters
     # This is structured differently than the others as it will accept any number of nodes.
     # But it only supports 1 value without any spaces in it (unlike V for example).
@@ -118,7 +118,7 @@ SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
 
 # Code Optimization objects, avoiding repeated compilation of regular expressions
 component_replace_regexs = {prefix: re.compile(pattern, re.IGNORECASE) for prefix, pattern in REPLACE_REGEXS.items()}
-subckt_regex = re.compile(r"^.SUBCKT\s+(?P<name>\w+)", re.IGNORECASE)
+subckt_regex = re.compile(r"^.SUBCKT\s+(?P<name>[\w\.]+)", re.IGNORECASE)
 lib_inc_regex = re.compile(r"^\.(LIB|INC)\s+(.*)$", re.IGNORECASE)
 
 # The following variable deprecated, and here only so that people can find it. 
@@ -152,7 +152,7 @@ def get_line_command(line) -> str:
                         j += 1
                     return line[i:j].upper()
                 else:
-                    raise SyntaxError('Unrecognized command in line "%s" of file %s' % line)
+                    raise SyntaxError(f"Unrecognized command in line: \"{line}\"")
     elif isinstance(line, SpiceCircuit):
         return ".SUBCKT"
     else:
@@ -479,7 +479,7 @@ class SpiceCircuit(BaseEditor):
             raise UnrecognizedSyntaxError(line, regex.pattern)
         return line_no, match
 
-    def _set_model_and_value(self, reference, value):
+    def _set_component_attribute(self, reference, attribute, value):
         """
         Internal method to set the model and value of a component.
         """
@@ -502,19 +502,50 @@ class SpiceCircuit(BaseEditor):
                     # Memorize that the copy is relative to that particular instance
                     self.modified_subcircuits[subckt_instance] = sub_circuit
                     # Change the call to the sub-circuit
-                    self._set_model_and_value(subckt_instance, new_name)
+                    self._set_component_attribute(subckt_instance, 'model', new_name)
                 else:
                     raise ComponentNotFoundError(reference)
             # Update the component
-            sub_circuit._set_model_and_value(SUBCKT_DIVIDER.join(component_split[1:]), value)
+            sub_circuit._set_component_attribute(SUBCKT_DIVIDER.join(component_split[1:]), attribute, value)
         else:
             line_no, match = self._get_component_line_and_regex(reference)
-            if isinstance(value, (int, float)):
-                value = format_eng(value)
-            start = match.start('value')
-            end = match.end('value')
-            line = self.netlist[line_no]
-            self.netlist[line_no] = line[:start] + value + line[end:]
+            if attribute in ('value', 'model'):
+                # They are actually the same thing just the model is not converted.
+                if isinstance(value, (int, float)):
+                    value = format_eng(value)
+                start = match.start('value')
+                end = match.end('value')
+                line = self.netlist[line_no]
+                self.netlist[line_no] = line[:start] + value + line[end:]
+            elif attribute == 'params':
+                if not isinstance(value, dict):
+                    raise ValueError("set_component_parameters() expects to receive a dictionary")
+                if match and match.groupdict().get('params'):
+                    params_str = match.group('params')
+                    params = self._parse_params(params_str)
+                else:
+                    params = {}
+
+                for key, kvalue in value.items():
+                    # format the kvalue
+                    if kvalue is None:
+                        kvalue_str = None
+                    elif isinstance(kvalue, str):
+                        kvalue_str = kvalue.strip()
+                    else:
+                        kvalue_str = f"{kvalue:G}"
+                    if kvalue_str is None:
+                        # remove those that must disappear
+                        if key in params:
+                            params.pop(key)
+                    else:
+                        # create or update
+                        params[key] = kvalue_str
+                params_str = ' '.join([f'{key}={kvalue}' for key, kvalue in params.items()])
+                start = match.start('params')
+                end = match.end('params')
+                line = self.netlist[line_no]
+                self.netlist[line_no] = line[:start] + ' ' + params_str + line[end:]
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
@@ -715,33 +746,7 @@ class SpiceCircuit(BaseEditor):
         # docstring inherited from BaseEditor
         if self.is_read_only():
             raise ValueError("Editor is read-only")  
-        line_no, match = self._get_component_line_and_regex(reference)
-        if match and match.groupdict().get('params'):
-            params_str = match.group('params')
-            params = self._parse_params(params_str)
-        else:
-            params = {}
-            
-        for key, value in kwargs.items():
-            # format the value
-            if value is None:
-                value_str = None
-            elif isinstance(value, str):
-                value_str = value.strip()
-            else:
-                value_str = format_eng(value)
-            if value_str is None:
-                # remove those that must disappear
-                if key in params:
-                    params.pop(key)
-            else:
-                # create or update
-                params[key] = value_str 
-        params_str = ' '.join([f'{key}={value}' for key, value in params.items()])
-        start = match.start('params')
-        end = match.end('params')
-        line = self.netlist[line_no]
-        self.netlist[line_no] = line[:start] + ' ' + params_str + line[end:]
+        self._set_component_attribute(reference, 'params', kwargs)
 
     def get_parameter(self, param: str) -> str:
         """
@@ -823,7 +828,7 @@ class SpiceCircuit(BaseEditor):
         """
         if self.is_read_only():
             raise ValueError("Editor is read-only")
-        self._set_model_and_value(reference, value)
+        self._set_component_attribute(reference, 'value', value)
 
     def set_element_model(self, reference: str, model: str) -> None:
         """Changes the value of a circuit element, such as a diode model or a voltage supply.
@@ -849,7 +854,7 @@ class SpiceCircuit(BaseEditor):
         """
         if self.is_read_only():
             raise ValueError("Editor is read-only")        
-        self._set_model_and_value(reference, model)
+        self._set_component_attribute(reference, 'model', model)
 
     def get_component_value(self, reference: str) -> str:
         """
@@ -1114,7 +1119,7 @@ class SpiceEditor(SpiceCircuit):
         else:
             if encoding == 'autodetect':
                 try:
-                    self.encoding = detect_encoding(self.netlist_file, r'^\* ')  # Normally the file will start with a '*'
+                    self.encoding = detect_encoding(self.netlist_file, r'^\*')  # Normally the file will start with a '*'
                 except EncodingDetectError as err:
                     raise err
             else:
