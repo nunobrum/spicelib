@@ -262,6 +262,7 @@ class Primitive(object):
         self.line = line
 
     def append(self, line):
+        """:meta private:"""
         self.line += line
 
     def __str__(self):
@@ -279,7 +280,13 @@ class Component(Primitive):
         self.parent = parent
 
     @property
-    def value_str(self):
+    def value_str(self) -> str:
+        """The Value as a string
+
+        :getter: Returns the value as a string
+        :setter: Sets the value. This behaves like the `set_component_value()` method of the editor, but it is more convenient to use when dealing with a single component.
+
+        """        
         return self.parent.get_component_value(self.reference)
 
     @value_str.setter
@@ -290,29 +297,53 @@ class Component(Primitive):
 
     @property
     def params(self) -> OrderedDict:
+        """Gets all parameters to the component 
+        
+        This behaves like the `get_component_parameters()` method of the editor, but it is more convenient to use when dealing with a single component.
+        """
         return self.parent.get_component_parameters(self.reference)
 
     def set_params(self, **param_dict):
+        """Adds one or more parameters to the component 
+        
+        The argument is in the form of a key-value pair where each parameter is the key and the value is value to be set in the netlist.
+        
+        This behaves like the `set_component_parameters()` method of the editor, but it is more convenient to use when dealing with a single component.
+
+        :raises ValueError: If the component is read only, as when it comes from a library
+        """
         if self.parent.is_read_only():
             raise ValueError("Editor is read-only")           
         self.parent.set_component_parameters(self.reference, **param_dict)
 
     @property
-    def value(self):
+    def value(self) -> Union[float, int, str]:
+        """The Value
+
+        :getter: Returns the value as a number. If the value is not a number, it will return a string.
+        :setter: Sets the value.
+
+        """
         return to_float(self.value_str, accept_invalid=True)
 
     @property
-    def model(self):
+    def model(self) -> str:
+        """The model of the component
+
+        :getter: Returns the model of the component
+        :setter: Sets the model. This behaves like the `set_element_model()` method of the editor, but it is more convenient to use when dealing with a single component.
+ 
+        """
         return self.parent.get_element_value(self.reference)
 
     @model.setter
-    def model(self, model):
+    def model(self, model: str):
         if self.parent.is_read_only():
             raise ValueError("Editor is read-only")   
         self.parent.set_element_model(self.reference, model)
 
     @value.setter
-    def value(self, value):
+    def value(self, value: Union[str, int, float]):
         if self.parent.is_read_only():
             raise ValueError("Editor is read-only")
         if isinstance(value, (int, float)):
@@ -850,5 +881,9 @@ class HierarchicalComponent(object):
             self.__dict__[attr] = value
         elif attr in ("value", "value_str"):
             self._parent.set_component_value(self._reference, value)
+        elif attr == "params":
+            if not isinstance(value, dict):
+                raise ValueError("Expecting value to be a dictionary type")
+            self._parent.set_component_parameters(self._reference, **value)
         else:
-            setattr(self.component, attr, value)
+            setattr(self._component, attr, value)

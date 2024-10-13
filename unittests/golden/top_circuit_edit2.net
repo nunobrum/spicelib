@@ -28,7 +28,7 @@ C3 C B 100n
 .backanno
 ***** SpiceEditor Manipulated this sub-circuit ****
 .subckt sub_circuit_XX1 IN OUT
-C1 OUT 0 22n
+C1 OUT 0 22n Rser=1
 X2 IN 0 snubber_X2
 L1 IN OUT 4uH
 ***** SpiceEditor Manipulated this sub-circuit ****
