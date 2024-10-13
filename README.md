@@ -780,6 +780,11 @@ _Make sure to initialize the root logger before importing the library to be able
 * Alternative contact : <nuno.brum@gmail.com>
 
 ## History
+* Version 1.3.1
+  * Adding possibility of manipulating parameters on sub-circuits
+  * Supporting subcircuit names with dots.
+  * Overall documentation improvements (thanks @hb020)
+  * Fix: Inclusion of encrypted libraries would crash
 * Version 1.3.0
   * Major improvement in Documentation
   * Introduced a read-only property that blocks libraries from being updated.
