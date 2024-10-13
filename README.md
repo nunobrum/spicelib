@@ -392,6 +392,15 @@ The following is all possible:
   my_edt.set_component_value("X1:L1") = 2e-6
   my_edt.["X1:L1"].value = 2e-6
 
+  # Likewise, the following are equivalent:
+  l = my_edt.get_subcircuit("X1").get_component_parameters('C1')
+  l = my_edt["X1:C1"].params
+
+  # Likewise, the following are equivalent:
+  # Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+  my_edt.get_subcircuit("X1").set_component_parameters("C1", Rser=1)
+  my_edt["X1:C1"].set_params(Rser=1) 
+
   # The same goes for SpiceEditor, only that you should use 'XX1' instead of 'X1'
 ```
 

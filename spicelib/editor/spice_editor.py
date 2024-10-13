@@ -225,6 +225,8 @@ class SpiceComponent(Component):
         :raises UnrecognizedSyntaxError: When the line doesn't match the expected REGEX.
         :return: The match found
         :rtype: re.match
+        
+        :meta private:
         """
         self.line = self.parent.netlist[line_no]
         prefix = self.line[0]
@@ -252,16 +254,19 @@ class SpiceComponent(Component):
         return match
 
     def update_from_reference(self):
+        """:meta private:"""
         line_no = self.parent.get_line_starting_with(self.reference)
         self.update_attributes_from_line_no(line_no)
 
     @property
-    def value_str(self):
+    def value_str(self) -> str:
+        # docstring inherited from Component
         self.update_from_reference()
         return self.attributes['value']
 
     @value_str.setter
-    def value_str(self, value):
+    def value_str(self, value: Union[str, int, float]):
+        # docstring inherited from Component
         if self.parent.is_read_only():
             raise ValueError("Editor is read-only")        
         self.parent.set_component_value(self.reference, value)
@@ -1042,6 +1047,7 @@ class SpiceCircuit(BaseEditor):
         :type subckt_name: str
         :return: Returns a SpiceCircuit instance with the sub-circuit found or None if not found
         :rtype: SpiceCircuit
+        :meta private:
         """
         # 0. Setup things
         reg_subckt = re.compile(SUBCKT_CLAUSE_FIND + subckt_name, re.IGNORECASE)
@@ -1070,6 +1076,7 @@ class SpiceCircuit(BaseEditor):
         :type subckt_name: str
         :return: Returns a SpiceCircuit instance with the sub-circuit found or None if not found
         :rtype: SpiceCircuit
+        :meta private:
         """
         for line in self.netlist:
             if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
