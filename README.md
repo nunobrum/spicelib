@@ -70,19 +70,29 @@ spicelib is a toolchain of python utilities design to interact with spice simula
   without having to open the schematic in a GUI. The simulations can then be run in batch mode (see SimRunner). Examples of functions provided:
 
 ```python
-  netlist.set_element_model('D1', '1N4148')  # Replaces the Diode D1 with the model 1N4148
-  netlist.set_component_value('R2', '33k')  # Replaces the value of R2 by 33k
-  netlist['R2'].value = 33000  # Same as above
-  netlist.set_component_value('V1', '5')  # Replaces the value of V1 by 5
-  netlist['V1'].value = 5  # Same as above
-  netlist.set_parameters(run=1, TEMP=80)  # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80
-  netlist.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")
-  netlist.remove_instruction(".STEP run -1 1023 1")   # Removes previously added instruction
-  netlist.reset_netlist()  # Resets all edits done to the netlist.
-  netlist.set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters
-  netlist['R1'].set_params(temp=25, pwr=None)  # Same as above
-  netlist.get_subcircuit('X1').set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters of a component in a subcircuit
-  netlist['X1:R1'].set_params('R1', temp=25, pwr=None)  # Same as above
+from spicelib.editor import SpiceEditor
+netlist = SpiceEditor("example.net")
+netlist.set_element_model('D1', '1N4148')  # Replaces the Diode D1 with the model 1N4148
+netlist.set_component_value('R2', '33k')  # Replaces the value of R2 by 33k
+netlist['R2'].value = 33000  # Same as above
+netlist.set_component_value('V1', '5')  # Replaces the value of V1 by 5
+netlist['V1'].value = 5  # Same as above
+netlist.set_parameters(run=1, TEMP=80)  # Creates or updates the netlist to have .PARAM run=1 or .PARAM TEMP=80
+netlist.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")
+netlist.remove_instruction(".STEP run -1 1023 1")   # Removes previously added instruction
+netlist.reset_netlist()  # Resets all edits done to the netlist.
+netlist.set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes additional parameters
+netlist['R1'].set_params(temp=25, pwr=None)  # Same as above
+# The two equivalent instructions below manipulate X1 instance of a subcircuit.
+netlist.get_subcircuit('X1').set_component_parameters('R1', temp=25, pwr=None)  # Sets or removes on a component
+netlist['X1:R1'].params = dict(temp=25, pwr=None)  # Same as above
+# the  instructions below update a subcircuit, which will impact all its instances
+subc = netlist.get_subcircuit_named("MYSUBCKT")
+subc.set_component_parameters('R1', 'R1', temp=25, pwr=None)  # sets temp to 25 and removes pwr
+subc['R1'].params = dict(temp=25, pwr=None) # same as the above instruction
+# The next two equivalent instructions set the R1 value on .SUBCKT MYSUBCKT R1 to 1k 
+subc.set_component_value('R1', 1000)  
+subc['R1'].value = 1000  # Same as the above
 ```
 
 * __SimRunner__
@@ -271,6 +281,8 @@ For the other simulators, built-in Linux/MacOS support is coming, but you can al
 A large variety of standard paths are automatically detected. To see what paths are detected:
 
 ```python
+from spicelib.sim.sim_runner import SimRunner
+from spicelib.simulators.ltspice_simulator import LTspice
 runner = SimRunner(output_folder='./tmp', simulator=LTspice)
 # Show the executable path
 print(runner.simulator.spice_exe)
@@ -299,6 +311,9 @@ If you want, you can also add extra library search paths via `editor.set_custom_
 
 ```python
 # ** Simulator executable paths
+from spicelib.simulators.ltspice_simulator import LTspice
+from spicelib.sim.sim_runner import SimRunner
+from spicelib.editor.asc_editor import AscEditor
 
 # OPTION 1: via subclassing
 class MySpiceInstallation(LTspice):
@@ -376,33 +391,65 @@ That subcircuit has a compoment 'L1'.
 The following is all possible:
 
 ```python
+import spicelib
+# my_edt = spicelib.AscEditor("top_circuit.asc")
+my_edt = spicelib.SpiceEditor("top_circuit.net") # or from a netlist...
 
-  my_edt = spicelib.AscEditor("top_circuit.asc")
-  # my_edt = spicelib.SpiceEditor("top_circuit.net") # or from a netlist...
+print(my_edt.get_subcircuit("X1").get_components())  # prints ['C1', 'X2', 'L1']
 
-  print(my_edt.get_subcircuit("X1").get_components())  # prints ['C1', 'X2', 'L1']
+# The following are equivalent:
+v = my_edt.get_component_value("X1:L1")
+v = my_edt.get_subcircuit("X1").get_component_value("L1")
+v = my_edt["X1:L1"].value
 
-  # The following are equivalent:
-  v = my_edt.get_component_value("X1:L1")
-  v = my_edt.get_subcircuit("X1").get_component_value("L1")
-  v = my_edt.["X1:L1"].value
-  
-  # Likewise, the following are equivalent:
-  # Note that this will not work if the component X1 is from a library. An exception will occur in that case.
-  my_edt.set_component_value("X1:L1") = 2e-6
-  my_edt.["X1:L1"].value = 2e-6
+# Likewise, the following are equivalent:
+# Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+my_edt.set_component_value("X1:L1", 2e-6)  # sets L1  in X1 instance to 2uH
+my_edt["X1:L1"].value = 2e-6  # Same as the instruction above
 
-  # Likewise, the following are equivalent:
-  l = my_edt.get_subcircuit("X1").get_component_parameters('C1')
-  l = my_edt["X1:C1"].params
+# Likewise, for accessing parameters the following are equivalent:
+l = my_edt.get_subcircuit("X1").get_component_parameters('C1')
+l = my_edt["X1:C1"].params
 
-  # Likewise, the following are equivalent:
-  # Note that this will not work if the component X1 is from a library. An exception will occur in that case.
-  my_edt.get_subcircuit("X1").set_component_parameters("C1", Rser=1)
-  my_edt["X1:C1"].set_params(Rser=1) 
+# Likewise, the following are equivalent:
+# Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+my_edt.get_subcircuit("X1").set_component_parameters("C1", Rser=1)
+my_edt["X1:C1"].set_params(Rser=1) 
+my_edt["X1:C1"].params = dict(Rser=1)
 
-  # The same goes for SpiceEditor, only that you should use 'XX1' instead of 'X1'
+# The same goes for SpiceEditor, only that you should use 'XX1' instead of 'X1'
 ```
+*NOTE 1: The code above sets only the instance of a subcircuit. A copy of it is done prior to making edits.
+To update all instances of a subcircuit, the subcircuit needs to be be manipulated directly, as is done below.*
+
+*NOTE 2: This implementation changes on the AscEditor and QschEditor.*
+
+```python
+import spicelib
+my_edt = spicelib.SpiceEditor("top_circuit.net")
+my_sub = my_edt.get_subcircuit_named("MYSUBCKT")
+
+print(my_sub.get_components())  # prints ['C1', 'X2', 'L1']
+
+# The following are equivalent:
+v = my_sub.get_component_value("L1")
+v = my_sub["L1"].value
+
+# Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+my_sub.set_component_value("L1", 2e-6)  # sets L1  in X1 instance to 2uH
+my_sub["L1"].value = 2e-6  # Same as the instructionn above
+
+# Likewise, for accessing parameters the following are equivalent:
+l = my_sub.get_component_parameters('C1')
+l = my_sub["C1"].params
+
+# Likewise, the following are equivalent:
+# Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+my_sub.set_component_parameters("C1", Rser=1)
+my_sub["C1"].set_params(Rser=1) 
+my_sub["C1"].params = dict(Rser=1)
+```
+
 
 ### Simulation Analysis Toolkit
 

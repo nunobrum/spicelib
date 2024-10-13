@@ -335,6 +335,7 @@ class SpiceEditor_Test(unittest.TestCase):
         # updating channel length and width (twice width)
         actual_width = params['W']
         self.edt3["XOPAMP:M11"].params = dict(W=2 * actual_width)
+        self.edt3["XOPAMP:M12"].set_params(L=4E-6)
         updated_params = self.edt3["XOPAMP:M11"].params
         print(updated_params)
         self.assertAlmostEqual(2*actual_width, updated_params['W'])
