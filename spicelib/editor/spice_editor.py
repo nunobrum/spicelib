@@ -972,7 +972,7 @@ class SpiceCircuit(BaseEditor):
         self.netlist[line] = ''  # Blanks the line
 
     @staticmethod
-    def add_library_search_paths(paths: Union[str, List[str]]) -> None:
+    def add_library_search_paths(*paths) -> None:
         """
         .. deprecated:: 1.1.4 Use the class method `set_custom_library_paths()` instead.
         
@@ -984,7 +984,7 @@ class SpiceCircuit(BaseEditor):
         :type paths: str
         :return: Nothing
         """
-        SpiceCircuit.set_custom_library_paths(paths)
+        SpiceCircuit.set_custom_library_paths(*paths)
 
     def get_all_nodes(self) -> List[str]:
         """

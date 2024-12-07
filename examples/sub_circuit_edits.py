@@ -3,7 +3,7 @@ from spicelib.editor import SpiceEditor
 
 E = SpiceEditor('testfiles/spice_edit_test.net')
 print("Circuit Nodes", E.get_all_nodes())
-E.set_custom_library_paths([r"C:\SVN\Electronic_Libraries\LTSpice\lib"])
+E.set_custom_library_paths(r"C:\SVN\Electronic_Libraries\LTSpice\lib")
 print("All components:\n", E.get_components())
 print("Only resistors:\n", E.get_components('R'))
 print("Components inside XX1:\n", E.get_subcircuit('XX1').get_components())
