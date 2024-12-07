@@ -265,7 +265,7 @@ class LTspice(Simulator):
         if sys.platform == "linux" or sys.platform == "darwin":
             if cls.using_macos_native_sim():
                 # native MacOS simulator, which has its limitations
-                if netlist_file.lower().endswith(".asc"):
+                if netlist_file.suffix.lower().endswith(".asc"):
                     raise NotImplementedError("MacOS native LTspice cannot run simulations on '.asc' files. Simulate '.net' or '.cir' files or use LTspice under wine.")
                 
                 cmd_run = cls.spice_exe + ['-b'] + [netlist_file.as_posix()] + cmd_line_switches
