@@ -836,7 +836,7 @@ class BaseEditor(ABC):
         return
     
     @classmethod
-    def set_custom_library_paths(cls, paths: Union[str, List[str]]) -> None:
+    def set_custom_library_paths(cls, *paths) -> None:
         """
         Set the given library search paths to the list of directories to search when needed.
         It will delete any previous list of custom paths, but will not affect the default paths 
@@ -845,16 +845,16 @@ class BaseEditor(ABC):
         Note that this method is a class method and will affect all instances of the class.
 
         :param paths: Path(s) to add to the Search path
-        :type paths: Union[str, List[str]]
         :return: Nothing    
         """
         # empty the list
         cls.custom_lib_paths = []
         # and then fill it with the new paths
-        if isinstance(paths, str):
-            cls.custom_lib_paths.append(paths)
-        elif isinstance(paths, list):
-            cls.custom_lib_paths.extend(paths)
+        for path in paths:
+            if isinstance(path, str):
+                cls.custom_lib_paths.append(path)
+            elif isinstance(path, list):
+                cls.custom_lib_paths.extend(path)
             
     def is_read_only(self) -> bool:
         """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
