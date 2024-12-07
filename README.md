@@ -794,6 +794,14 @@ _Make sure to initialize the root logger before importing the library to be able
 ## To whom do I talk?
 For support and improvement requests please open an Issue in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
+* Version 1.3.2
+  * Documenting the user library paths
+  * AscEditor: Adding support to DATAFLAG
+  * LTSteps: Supporting new LTspice data export format
+  * Fix Issue #116: PosixPath as no lower attribute
+  * Toolkit: 
+    * Correction on the WCA min max formula and adding the run < 0 condition
+    * run_testbench can be called without having to call first save_netlist
 * Version 1.3.1
   * Adding possibility of manipulating parameters on sub-circuits
   * Supporting subcircuit names with dots.
