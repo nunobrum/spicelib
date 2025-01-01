@@ -305,7 +305,7 @@ The **library paths** are needed for the editors. However, the default library p
 
  This will of course not work out if you use the editors on other simulators (as can be the case with `SpiceEditor`), or if you have manually set the simulator's executable path. In those cases you will want to inform your editor of that change via `editor.prepare_for_simulator()`.
 
-If you want, you can also add extra library search paths via `editor.set_custom_library_paths()`.
+If you want, you can also specify library and symbol search paths using `editor.set_custom_library_paths()`.
 
 **Example**:
 
@@ -344,7 +344,9 @@ AscEditor.set_custom_library_paths(["/mypath/lib/sub",
 
 #### Runner log redirection
 
-When you use wine (on Linux or MacOS) or a simulator like Ngspice, you may want to redirect the output of `run()`, as it prints a lot of messages without much value. Real time redirecting to the logger is unfortunately not easy. You can redirect the output for example with:
+When you use wine (on Linux or MacOS) or a simulator like NGspice, you may want to redirect the output of `run()`, as 
+it prints a lot of messages without much value. Real time redirecting to the logger is unfortunately not easy. You can 
+redirect the output for example with:
 
 ```python
 # force command output to a separate file
@@ -352,9 +354,24 @@ with open(processlogfile, "w") as outfile:
     runner.run(netlist, timeout=None, stdout=outfile, stderr=subprocess.STDOUT)
 ```
 
+#### Adding search paths for symbols and library files
+
+LTspice allows users to add Search Paths for symbol and libraries. This is very helpful when sharing non-native 
+libraries and symbols between different projects. The `spicelib` supports this feature by using the 
+set_custom_library_paths() class method as is exemplified in the code snippet below.
+
+```python
+from spicelib import AscEditor
+
+AscEditor.set_custom_library_paths([r"C:\work\MyLTspiceSymbols", r"C:\work\MyLTspiceLibraries"])
+```
+The user can specify one or more search paths. Note that each call to this method will invalidate previously set search 
+paths. Also, note that this is a class method in all available editors, [SpiceEditor, AscEditor and QschEditor], this 
+means that updating one instantiation, will update all other instances of the same class.
+
 #### Limitations and specifics of AscEditor
 
-AscEditor has some limitations and differences with regards to SpiceEditor.
+AscEditor has some limitations and differences in regard to SpiceEditor.
 
 * As is visible in the LTspice GUI, it groups all component properties/parameters in different 'attributes' like 'Value', 'Value2', 'SpiceLine', 'SpiceLine2'. Netlists do not have that concept, and place everything in one big list, that SpiceEditor subsequently separates in 'value' and 'parameters' for most components. To complicate things, LTspice distributes the parameters over all 4 attributes, with varying syntax. You must be aware of how LTspice handles the parameter placement if you use AscEditor.
   
@@ -367,7 +384,8 @@ AscEditor has some limitations and differences with regards to SpiceEditor.
     * `AscEditor.set_component_parameters(..,'Value2','')`, as `set_component_value()` will only affect 'Value'
     * `SpiceEditor.set_component_value(..,'2')`
   * with both editors, you can use `...set_component_parameters(.., Rser=5)`
-* When adressing components, SpiceEditor requires you to include the prefix in the component name, like `XU1` for an opamp. AscEditor will require `U1`.
+* When adressing components, SpiceEditor requires you to include the prefix in the component name, like `XU1` for an 
+  OpAmp. AscEditor will require `U1`.
 * AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any of the underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters.
 
     This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`.
@@ -774,12 +792,18 @@ Would set only `spicelib.RawRead` file's logging level to warning while the othe
 _Make sure to initialize the root logger before importing the library to be able to see the logs._
 
 ## To whom do I talk?
-
-* Tools website : [https://www.nunobrum.com/pyltspice.html](https://www.nunobrum.com/pyltspice.html)
-* Repo owner : [me@nunobrum.com](me@nunobrum.com)
-* Alternative contact : <nuno.brum@gmail.com>
-
+For support and improvement requests please open an Issue in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
+* Version 1.3.3
+  * Minor documentation fixes
+* Version 1.3.2
+  * Documenting the user library paths
+  * AscEditor: Adding support to DATAFLAG
+  * LTSteps: Supporting new LTspice data export format
+  * Fix Issue #116: PosixPath as no lower attribute
+  * Toolkit: 
+    * Correction on the WCA min max formula and adding the run < 0 condition
+    * run_testbench can be called without having to call first save_netlist
 * Version 1.3.1
   * Adding possibility of manipulating parameters on sub-circuits
   * Supporting subcircuit names with dots.

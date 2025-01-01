@@ -32,6 +32,9 @@ logs.plot_histogram('fcut')  # Plots the histograms for the results
 mc.cleanup_files()  # Deletes the temporary files
 
 print("=====================================")
+a = input("Make 1000 simulations ? [Y/N]")
+if a == 'N':
+    exit(0)
 # Now using the second method, where the simulations are ran one by one
 mc.clear_simulation_data()  # Clears the simulation data
 mc.reset_netlist()  # Resets the netlist to the original

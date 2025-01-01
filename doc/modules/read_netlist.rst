@@ -60,9 +60,9 @@ Example 2: Setting parameters inside a flat netlist.
     # add instructions
     net.add_instructions(
         "; Simulation settings",
-        ".param run = 0"
+        "; .step param run 0 10 1"
     )
-
+    net.set_parameter('run', 0)
     net.save_netlist("Batch_Test_Modified.net")  # writes the modified netlist to the indicated file
 
 It is possible to update component values inside subcircuits. This is shown in Example 3.
