@@ -39,7 +39,9 @@ for param in ('fcut', 'fcut_FROM'):
 
 # All components sensitivity
 sens = wca.make_sensitivity_analysis('fcut', '*')  # Makes the sensitivity analysis for all components
-print(sens)
+for comp, value in sens.items():
+    print(f"{comp}: Mean: {value[0]:.2f}% StdDev:{value[1]:.2f}%")
+input("Press Enter")
 
 wca.cleanup_files()  # Deletes the temporary files
 
@@ -51,9 +53,12 @@ wca.run_analysis()  # Makes the Worst Case Analysis
 min_fcut, max_fcut = wca.get_min_max_measure_value('fcut')
 print(f"fcut: min:{min_fcut} max:{max_fcut}")
 sens = wca.make_sensitivity_analysis('fcut', 'R1')  # Makes the sensitivity analysis for R1
-print(sens)
+print(f"R1: Mean: {sens[0]:.2f}% StdDev:{sens[1]:.2f}%")
+input("Press Enter")
 
 # All components sensitivity
 sens = wca.make_sensitivity_analysis('fcut', '*')  # Makes the sensitivity analysis for all components
-print(sens)
+for comp, value in sens.items():
+    print(f"{comp}: Mean: {value[0]:.2f}% StdDev:{value[1]:.2f}%")
+input("Press Enter")
 wca.cleanup_files()  # Deletes the temporary files

@@ -363,7 +363,7 @@ set_custom_library_paths() class method as is exemplified in the code snippet be
 ```python
 from spicelib import AscEditor
 
-AscEditor.set_custom_library_paths(r"C:\work\MyLTspiceSymbols", r"C:\work\MyLTspiceLibraries")
+AscEditor.set_custom_library_paths([r"C:\work\MyLTspiceSymbols", r"C:\work\MyLTspiceLibraries"])
 ```
 The user can specify one or more search paths. Note that each call to this method will invalidate previously set search 
 paths. Also, note that this is a class method in all available editors, [SpiceEditor, AscEditor and QschEditor], this 
@@ -794,6 +794,8 @@ _Make sure to initialize the root logger before importing the library to be able
 ## To whom do I talk?
 For support and improvement requests please open an Issue in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
+* Version 1.3.3
+  * Minor documentation fixes
 * Version 1.3.2
   * Documenting the user library paths
   * AscEditor: Adding support to DATAFLAG

@@ -19,7 +19,7 @@
 # -------------------------------------------------------------------------------
 
 import logging
-from typing import Union, Callable, Type
+from typing import Union, Callable, Type, Dict, Tuple
 
 from .tolerance_deviations import ToleranceDeviations, DeviationType
 from ..process_callback import ProcessCallback
@@ -197,7 +197,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
         self.analysis_executed = True
 
     def get_min_max_measure_value(self, meas_name: str):
-        """Returns the minimum and maximum values of a measurement"""
+        """Returns the minimum and maximum values of a measurement. See SPICE .MEAS primitive documentation."""
         if not self.analysis_executed:
             _logger.warning("The analysis was not executed. Please run the analysis before calling this method")
             return None
@@ -214,8 +214,24 @@ class WorstCaseAnalysis(ToleranceDeviations):
         else:
             return min(meas_data), max(meas_data)
 
-    def make_sensitivity_analysis(self, measure: str, ref: str = '*'):
-        """Makes a sensitivity analysis for a given measurement and reference component"""
+    def make_sensitivity_analysis(self, measure: str, ref: str = '*') -> Union[Dict[str, Tuple[float, float]],
+                                                                               Tuple[float, float], None]:
+        """
+        Makes a sensitivity analysis for a given measurement and reference component. The sensitivity is a percentage of
+        the component error contribution over the total error. As supplement a second value is given that is the
+        standard deviation of the error contribution of the component across all sensitivity analysis simulations.
+
+        If no reference is given, it will return a dictionary where the key is the component reference and the value
+        is the tuple with (sensitivity, standard_deviation) in percent values of the total error.
+
+        Returns None, if no data still exists for the sensitivity analysis.
+
+        :param measure: measurement name. See SPICE .MEAS primitive
+        :type measure: str
+        :param ref: Optional component reference in the netlist
+        :type ref: str
+        :returns: Tuple with sensitivity and a standard deviation or dictionary of tuples.
+        """
         if self.testbench_prepared and self.testbench_executed or self.analysis_executed:
             # Read the log files
             log_data: LogfileData = self.read_logfiles()
