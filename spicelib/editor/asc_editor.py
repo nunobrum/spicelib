@@ -249,6 +249,8 @@ class AscEditor(BaseSchematic):
                     if len(line_elements) == 11:
                         arc.line_style.pattern = line_elements[10]
                     self.shapes.append(arc)
+                elif line.startswith("DATAFLAG"):
+                    pass  # DATAFLAG is the placeholder to show simulation information. It is ignored by AscEditor
                 else:
                     raise NotImplementedError("Primitive not supported for ASC file\n" 
                                               f'"{line}"')
