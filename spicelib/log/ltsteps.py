@@ -130,7 +130,7 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
     go_header = True
     run_no = 0  # Just to avoid warning, this is later overridden by the step information
     param_values = ""  # Just to avoid warning, this is later overridden by the step information
-    regx = re.compile(r"Step Information: ([\w=\d\. -]+) +\(Run: (\d*)/\d*\)\n")
+    regx = re.compile(r"Step Information: ([\w=\d\. \-]+) +\((?:Run|Step): (\d*)/\d*\)\n")
     for line in fin:
         if line.startswith("Step Information:"):
             match = regx.match(line)

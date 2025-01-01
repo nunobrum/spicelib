@@ -184,6 +184,8 @@ class ToleranceDeviations(SimAnalysis, ABC):
             super()._reset_netlist()
             self.play_instructions()
             self.prepare_testbench()
+        else:
+            self.play_instructions()
         self.editor.remove_instruction(".step param run -1 %d 1" % self.last_run_number)  # Needs to remove this instruction
         self.clear_simulation_data()
         # calculate the ideal number of runs per simulation to avoid orphan runs. This is to avoid having a simulation

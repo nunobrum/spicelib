@@ -137,7 +137,7 @@ class AnyRunner(Protocol):
         ...
 
 
-class SimRunner(object):
+class SimRunner(AnyRunner):
     """
     The SimRunner class implements all the methods required for launching batches of Spice simulations.
 
