@@ -24,7 +24,8 @@ from typing import Union
 
 from .base_schematic import Point, Text, TextTypeEnum, Line, Shape, HorAlign, ERotation, VerAlign
 from .ltspice_utils import asc_text_align_set
-
+from ..utils.detect_encoding import detect_encoding, EncodingDetectError
+import re
 from .qsch_editor import QschTag
 
 _logger = logging.getLogger("spicelib.AsyReader")
@@ -35,7 +36,7 @@ SCALE_Y = - 6.25
 class AsyReader(object):
     """Symbol parser"""
 
-    def __init__(self, asy_file: Union[Path, str]):
+    def __init__(self, asy_file: Union[Path, str], encoding='autodetect'):
         super().__init__()
         self.version = 4
         self.symbol_type = None
@@ -48,7 +49,16 @@ class AsyReader(object):
         pin = None
         if not self._asy_file_path.exists():
             raise FileNotFoundError(f"File {asy_file} not found")
-        with open(self._asy_file_path, 'r') as asc_file:
+        # determine encoding
+        if encoding == 'autodetect':
+            try:
+                self.encoding = detect_encoding(self._asy_file_path, r'^VERSION ', re_flags=re.IGNORECASE)  # Normally the file will start with 'VERSION '
+            except EncodingDetectError as err:
+                raise err
+        else:
+            self.encoding = encoding
+            
+        with open(self._asy_file_path, 'r', encoding=self.encoding) as asc_file:
             _logger.info(f"Parsing ASY file {self._asy_file_path}")
             for line in asc_file:
                 if line.startswith("WINDOW"):
