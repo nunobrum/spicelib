@@ -794,6 +794,8 @@ _Make sure to initialize the root logger before importing the library to be able
 ## To whom do I talk?
 For support and improvement requests please open an Issue in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
+* Version 1.3.4
+  * Issue #120 Fixed
 * Version 1.3.3
   * Minor documentation fixes
 * Version 1.3.2
