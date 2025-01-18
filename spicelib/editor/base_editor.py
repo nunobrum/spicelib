@@ -67,7 +67,7 @@ SPICE_DOT_INSTRUCTIONS = (
 
 
 def PARAM_REGEX(pname):
-    return r"(?P<name>" + pname + r")\s*[= ]\s*(?P<value>[\w\*\/\.\+\-\/\*\{\}\(\)%]*)"
+    return r"(?P<name>" + pname + r")\s*[= ]\s*(?P<value>(?P<cb>\{)?(?(cb)[^\}]*\}|[\d\+\-Ee]+[a-zA-Z]*))"
 
 
 def format_eng(value) -> str:
