@@ -430,11 +430,11 @@ class AscEditor(BaseSchematic):
                     # if we have a structured attribute, return the full dict of it
                     # this is compatible with set_component_parameters
                     sub_parameters = {}                    
-                    matches = search_regex.findall(value)
-                    if matches:
-                        # This might contain one or more parameters
-                        for param_name, param_value in matches:
-                            sub_parameters[param_name] = try_convert_value(param_value)
+                    matches = search_regex.finditer(value)
+                    # This might contain one or more parameters
+                    for match in matches:
+                        sub_parameters[match.group("name")] = try_convert_value(match.group("value"))
+                    if sub_parameters:
                         if as_dicts:
                             parameters[key] = sub_parameters
                         else:
