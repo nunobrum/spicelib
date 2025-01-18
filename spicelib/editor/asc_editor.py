@@ -321,24 +321,25 @@ class AscEditor(BaseSchematic):
         component.rotation = rotation
 
     def _find_param_declaration(self, param_name):
+        param_name_uppercase = param_name.upper()
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for directive in self.directives:
             if directive.text.upper().startswith(".PARAM"):
                 matches = search_expression.finditer(directive.text)
                 for match in matches:
-                    if match.group("name").upper() == param_name:
+                    if match.group("name").upper() == param_name_uppercase:
                         return match, directive
         return None, None
 
     def get_parameter(self, param: str) -> str:
-        match, directive = self._find_param_declaration(param.upper())
+        match, directive = self._find_param_declaration(param)
         if match:
             return match.group('value')
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
-        match, directive = self._find_param_declaration(param.upper())
+        match, directive = self._find_param_declaration(param)
         if match:
             _logger.debug(f"Parameter {param} found in ASC file, updating it")
             if isinstance(value, (int, float)):
