@@ -322,27 +322,26 @@ class AscEditor(BaseSchematic):
         component.position = position
         component.rotation = rotation
 
-    def _get_directive(self, command, search_expression: re.Pattern):
-        command_upped = command.upper()
+    def _find_param_declaration(self, param_name):
+        param_name_uppercase = param_name.upper()
+        search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for directive in self.directives:
-            command_upped_directive = directive.text.upper()
-            if command_upped_directive.startswith(command_upped):
-                match = search_expression.search(directive.text)
-                if match:
-                    return match, directive
+            if directive.text.upper().startswith(".PARAM"):
+                matches = search_expression.finditer(directive.text)
+                for match in matches:
+                    if match.group("name").upper() == param_name_uppercase:
+                        return match, directive
         return None, None
 
     def get_parameter(self, param: str) -> str:
-        param_regex = re.compile(PARAM_REGEX(param), re.IGNORECASE)
-        match, directive = self._get_directive(".PARAM", param_regex)
+        match, directive = self._find_param_declaration(param)
         if match:
             return match.group('value')
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
-        param_regex = re.compile(PARAM_REGEX(param), re.IGNORECASE)
-        match, directive = self._get_directive(".PARAM", param_regex)
+        match, directive = self._find_param_declaration(param)
         if match:
             _logger.debug(f"Parameter {param} found in ASC file, updating it")
             if isinstance(value, (int, float)):
@@ -433,11 +432,11 @@ class AscEditor(BaseSchematic):
                     # if we have a structured attribute, return the full dict of it
                     # this is compatible with set_component_parameters
                     sub_parameters = {}                    
-                    matches = search_regex.findall(value)
-                    if matches:
-                        # This might contain one or more parameters
-                        for param_name, param_value in matches:
-                            sub_parameters[param_name] = try_convert_value(param_value)
+                    matches = search_regex.finditer(value)
+                    # This might contain one or more parameters
+                    for match in matches:
+                        sub_parameters[match.group("name")] = try_convert_value(match.group("value"))
+                    if sub_parameters:
                         if as_dicts:
                             parameters[key] = sub_parameters
                         else:

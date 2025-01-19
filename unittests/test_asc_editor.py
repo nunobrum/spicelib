@@ -85,6 +85,11 @@ class ASC_Editor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + 'test_parameter_output.asc', golden_dir + 'test_parameter_output.asc')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
+        self.edt.set_parameters(ttotal="{ton + toff}")
+        self.edt.set_parameters(ton="34n", toff="{10p + 50p}")
+        self.assertEqual("34n", self.edt.get_parameter("ton"), "ton test 1")
+        self.edt.set_parameters(ton="{sin(0.22)}", toff="{10p + 50p}")
+        self.assertEqual("{sin(0.22)}", self.edt.get_parameter("ton"), "ton test 2")
 
     def test_instructions(self):
         self.edt.add_instruction('.ac dec 10 1 100k')
