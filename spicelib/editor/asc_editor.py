@@ -356,7 +356,7 @@ class AscEditor(BaseSchematic):
             _logger.debug(f"Parameter {param} not found in ASC file, adding it")
             x, y = self._get_text_space()
             coord = Point(x, y)
-            text = f".param {param}={value:g}"
+            text = f".param {param}={value_str}"
             directive = Text(coord=coord, text=text, size=2, type=TextTypeEnum.DIRECTIVE)
             _logger.info(f"Parameter {param} added with value {value_str}")
             self.directives.append(directive)

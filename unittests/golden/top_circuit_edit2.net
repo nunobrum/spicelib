@@ -19,7 +19,7 @@ C3 C B 100n
 
 .tran 2u
 .PARAM V1=PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)  ; Batch instruction
-.PARAM freq=1000000.0  ; Batch instruction
+.PARAM freq=1Meg  ; Batch instruction
 .PARAM test_exiting_param_set1=24  ; Batch instruction
 .PARAM test_exiting_param_set2=25  ; Batch instruction
 .PARAM test_exiting_param_set3=26  ; Batch instruction

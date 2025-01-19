@@ -798,15 +798,19 @@ class SpiceCircuit(BaseEditor):
         if self.is_read_only():
             raise ValueError("Editor is read-only")  
         param_line, match = self._get_param_named(param)
+        if isinstance(value, (int, float)):
+            value_str = format_eng(value)
+        else:
+            value_str = value
         if match:
             start, stop = match.span('value')
             line: str = self.netlist[param_line]
-            self.netlist[param_line] = line[:start] + f"{value:g}" + line[stop:]
+            self.netlist[param_line] = line[:start] + f"{value_str}" + line[stop:]
         else:
             # Was not found
             # the last two lines are typically (.backano and .end)
             insert_line = len(self.netlist) - 2
-            self.netlist.insert(insert_line, f'.PARAM {param}={value:g}  ; Batch instruction' + END_LINE_TERM)
+            self.netlist.insert(insert_line, f'.PARAM {param}={value_str}  ; Batch instruction' + END_LINE_TERM)
 
     def set_component_value(self, reference: str, value: Union[str, int, float]) -> None:
         """

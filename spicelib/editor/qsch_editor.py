@@ -710,7 +710,7 @@ class QschEditor(BaseSchematic):
             line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if line.upper().startswith('.PARAM'):
                 for match in param_regex.finditer(line):
-                    if match.group("name") == param_name_upped:
+                    if match.group("name").upper() == param_name_upped:
                         return tag, match
         else:
             return None, None
@@ -747,6 +747,8 @@ class QschEditor(BaseSchematic):
                 value_str = value
             text: str = tag.get_attr(QSCH_TEXT_STR_ATTR)
             start, stop = match.span("value")
+            start += len(QSCH_TEXT_INSTR_QUALIFIER)
+            stop += len(QSCH_TEXT_INSTR_QUALIFIER)
             text = text[:start] + value_str + text[stop:]
             tag.set_attr(QSCH_TEXT_STR_ATTR, text)
             _logger.info(f"Parameter {param} updated to {value_str}")
