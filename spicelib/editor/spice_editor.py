@@ -368,11 +368,13 @@ class SpiceCircuit(BaseEditor):
                         sub._write_lines(f)
                 f.write(command)
 
-    def _get_line_matching(self, command, search_expression: re.Pattern) -> Tuple[int, Union[re.Match, None]]:
+    def _get_param_named(self, param_name) -> Tuple[int, Union[re.Match, None]]:
         """
         Internal function. Do not use. Returns a line starting with command and matching the search with the regular
         expression
         """
+        search_expression = re.compile(PARAM_REGEX("\w+"), re.IGNORECASE)
+        param_name_upped = param_name.upper()
         line_no = 0
         while line_no < len(self.netlist):
             line = self.netlist[line_no]
@@ -380,10 +382,11 @@ class SpiceCircuit(BaseEditor):
                 line_no += 1
                 continue
             cmd = get_line_command(line)
-            if cmd == command:
-                match = search_expression.search(line)
-                if match:
-                    return line_no, match
+            if cmd == '.PARAM':
+                matches = search_expression.finditer(line)
+                for match in matches:
+                    if match.group("name").upper() == param_name_upped:
+                        return line_no, match
             line_no += 1
         return -1, None  # If it fails, it returns an invalid line number and No match
 
@@ -763,8 +766,8 @@ class SpiceCircuit(BaseEditor):
         :rtype: str
         :raises: ParameterNotFoundError - In case the component is not found
         """
-        regx = re.compile(PARAM_REGEX(param), re.IGNORECASE)
-        line_no, match = self._get_line_matching('.PARAM', regx)
+
+        line_no, match = self._get_param_named(param)
         if match:
             return match.group('value')
         else:
@@ -794,8 +797,7 @@ class SpiceCircuit(BaseEditor):
         """
         if self.is_read_only():
             raise ValueError("Editor is read-only")  
-        regx = re.compile(PARAM_REGEX(param), re.IGNORECASE)
-        param_line, match = self._get_line_matching('.PARAM', regx)
+        param_line, match = self._get_param_named(param)
         if match:
             start, stop = match.span('value')
             line: str = self.netlist[param_line]
@@ -804,7 +806,7 @@ class SpiceCircuit(BaseEditor):
             # Was not found
             # the last two lines are typically (.backano and .end)
             insert_line = len(self.netlist) - 2
-            self.netlist.insert(insert_line, '.PARAM {}={}  ; Batch instruction'.format(param, value) + END_LINE_TERM)
+            self.netlist.insert(insert_line, f'.PARAM {param}={value:g}  ; Batch instruction' + END_LINE_TERM)
 
     def set_component_value(self, reference: str, value: Union[str, int, float]) -> None:
         """

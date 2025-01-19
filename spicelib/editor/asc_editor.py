@@ -322,7 +322,7 @@ class AscEditor(BaseSchematic):
         component.position = position
         component.rotation = rotation
 
-    def _find_param_declaration(self, param_name):
+    def _get_param_named(self, param_name):
         param_name_uppercase = param_name.upper()
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for directive in self.directives:
@@ -334,20 +334,20 @@ class AscEditor(BaseSchematic):
         return None, None
 
     def get_parameter(self, param: str) -> str:
-        match, directive = self._find_param_declaration(param)
+        match, directive = self._get_param_named(param)
         if match:
             return match.group('value')
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
-        match, directive = self._find_param_declaration(param)
+        match, directive = self._get_param_named(param)
+        if isinstance(value, (int, float)):
+            value_str = format_eng(value)
+        else:
+            value_str = value
         if match:
             _logger.debug(f"Parameter {param} found in ASC file, updating it")
-            if isinstance(value, (int, float)):
-                value_str = format_eng(value)
-            else:
-                value_str = value
             start, stop = match.span('value')
             directive.text = f"{directive.text[:start]}{value_str}{directive.text[stop:]}"
             _logger.info(f"Parameter {param} updated to {value_str}")
@@ -356,9 +356,9 @@ class AscEditor(BaseSchematic):
             _logger.debug(f"Parameter {param} not found in ASC file, adding it")
             x, y = self._get_text_space()
             coord = Point(x, y)
-            text = f".param {param}={value}"
+            text = f".param {param}={value:g}"
             directive = Text(coord=coord, text=text, size=2, type=TextTypeEnum.DIRECTIVE)
-            _logger.info(f"Parameter {param} added with value {value}")
+            _logger.info(f"Parameter {param} added with value {value_str}")
             self.directives.append(directive)
         self.updated = True
 

@@ -701,16 +701,17 @@ class QschEditor(BaseSchematic):
             line.style = LineStyle(width, line_type, color)
             self.lines.append(line)
 
-    def _get_text_matching(self, command, search_expression: re.Pattern):
-        command_upped = command.upper()
+    def _get_param_named(self, param_name):
+        param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
+        param_name_upped = param_name.upper()
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
             line = tag.get_attr(QSCH_TEXT_STR_ATTR)
             line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
-            if line.upper().startswith(command_upped):
-                match = search_expression.search(line)
-                if match:
-                    return tag, match
+            if line.upper().startswith('.PARAM'):
+                for match in param_regex.finditer(line):
+                    if match.group("name") == param_name_upped:
+                        return tag, match
         else:
             return None, None
 
@@ -728,8 +729,8 @@ class QschEditor(BaseSchematic):
 
     def get_parameter(self, param: str) -> str:
         # docstring inherited from BaseEditor
-        param_regex = re.compile(PARAM_REGEX(param), re.IGNORECASE)
-        tag, match = self._get_text_matching(".PARAM", param_regex)
+
+        tag, match = self._get_param_named(param)
         if match:
             return match.group('value')
         else:
@@ -737,8 +738,7 @@ class QschEditor(BaseSchematic):
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         # docstring inherited from BaseEditor
-        param_regex = re.compile(PARAM_REGEX(param), re.IGNORECASE)
-        tag, match = self._get_text_matching(".PARAM", param_regex)
+        tag, match = self._get_param_named(param)
         if match:
             _logger.debug(f"Parameter {param} found in QSCH file, updating it")
             if isinstance(value, (int, float)):
@@ -746,9 +746,8 @@ class QschEditor(BaseSchematic):
             else:
                 value_str = value
             text: str = tag.get_attr(QSCH_TEXT_STR_ATTR)
-            match = param_regex.search(text)  # repeating the search, so we update the correct start/stop parameter
-            start, stop = match.span()
-            text = text[:start] + "{}={}".format(param, value_str) + text[stop:]
+            start, stop = match.span("value")
+            text = text[:start] + value_str + text[stop:]
             tag.set_attr(QSCH_TEXT_STR_ATTR, text)
             _logger.info(f"Parameter {param} updated to {value_str}")
             _logger.debug(f"Text at {tag.get_attr(QSCH_TEXT_POS)} Updated to {text}")
@@ -854,17 +853,20 @@ class QschEditor(BaseSchematic):
                 sub_circuit.updated = True
             else:
                 found = False
-                search_expression = re.compile(PARAM_REGEX(key), re.IGNORECASE)
+                search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
                 for text in texts[QSCH_SYMBOL_TEXT_VALUE:]:
                     text_value = text.get_attr(QSCH_TEXT_STR_ATTR)
-                    match = search_expression.search(text_value)
-                    if match:
-                        start, stop = match.span()
-                        text_value = text_value[:start] + f"{key}={value}" + text_value[stop:]
-                        text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
-                        sub_circuit.updated = True
-                        found = True
-                        break
+
+                    for match in search_expression.finditer(text_value):
+                        if match.group("name") == key:
+                            start, stop = match.span("value")
+                            text_value = text_value[:start] + value + text_value[stop:]
+                            text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
+                            sub_circuit.updated = True
+                            found = True
+                            break
+                        if found:
+                            break
                 if not found:
                     x, y = 0, 0  # TODO: Find a way to get the position of the last text
                     new_tag, _ = QschTag.parse(
