@@ -129,6 +129,9 @@ class SpiceEditor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + 'test_parameter_output.net', golden_dir + 'test_parameter_output.net')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
+        self.edt.set_parameters(floatpparam=1.23, signed_param=-0.99, expparam=-1E-34)
+        self.edt.save_netlist(temp_dir + 'test_parameter_output_1.net')
+        self.equalFiles(temp_dir + 'test_parameter_output_1.net', golden_dir + 'test_parameter_output_1.net')
 
     def test_instructions(self):
         self.edt.add_instruction('.ac dec 10 1 100k')
