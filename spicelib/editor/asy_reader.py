@@ -83,7 +83,7 @@ class AsyReader(object):
                     self.attributes[ref] = text
                 elif line.startswith("Version"):
                     tag, version = line.split()
-                    assert version in ["4"], f"Unsupported version : {version}"
+                    assert version in ["4", "4.0", "4.1"], f"Unsupported version : {version}"
                     self.version = version
                 elif line.startswith("SymbolType "):
                     self.symbol_type = line[len("SymbolType "):].strip()

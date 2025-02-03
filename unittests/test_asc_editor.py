@@ -211,6 +211,11 @@ class ASC_Editor_Test(unittest.TestCase):
         # my_edt.save_netlist(temp_dir + "testcomp2_edit.asc")
         # A test of the saved file is not really useful, because the subcircuit value changes are not saved.
         
+    def test_version_4_1(self):
+        """Test file with 'Version 4.1'
+        """
+        my_edt = spicelib.editor.asc_editor.AscEditor(test_dir + "testcomp_4_1.asc")
+                
     def equalFiles(self, file1, file2):
         with open(file1, 'r') as f1:
             lines1 = f1.readlines()

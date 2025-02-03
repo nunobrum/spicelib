@@ -206,7 +206,7 @@ class AscEditor(BaseSchematic):
                     self.labels.append(flag)
                 elif line.startswith("Version"):
                     tag, version = line.split()
-                    assert version in ["4"], f"Unsupported version : {version}"
+                    assert version in ["4", "4.0", "4.1"], f"Unsupported version : {version}"
                     self.version = version
                 elif line.startswith("SHEET "):
                     self.sheet = line[len("SHEET "):].strip()
