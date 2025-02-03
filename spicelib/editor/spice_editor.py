@@ -373,7 +373,7 @@ class SpiceCircuit(BaseEditor):
         Internal function. Do not use. Returns a line starting with command and matching the search with the regular
         expression
         """
-        search_expression = re.compile(PARAM_REGEX("\w+"), re.IGNORECASE)
+        search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         param_name_upped = param_name.upper()
         line_no = 0
         while line_no < len(self.netlist):

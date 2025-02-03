@@ -317,6 +317,7 @@ class BaseSchematic(BaseEditor):
             return self, reference
 
     def set_updated(self, reference):
+        """:meta private:"""
         sub_circuit, _ = self._get_parent(reference)
         sub_circuit.updated = True
 
