@@ -273,10 +273,9 @@ class AsyReader(object):
     def get_library(self) -> str:
         """Returns the library name of the model. If not found, returns None."""
         # Searching in this exact order
+        suffixes = ('.lib', '.sub', '.cir', '.txt')
         for attr in ('ModelFile', 'SpiceModel', 'SpiceLine', 'SpiceLine2', 'Def_Sub', 'Value', 'Value2'):
-            if attr in self.attributes and (self.attributes[attr].endswith('.lib') or
-                                            self.attributes[attr].endswith('.sub') or
-                                            self.attributes[attr].endswith('.cir')):
+            if attr in self.attributes and (self.attributes[attr].endswith(suffixes)):
                 return self.attributes[attr]
         return self.attributes.get('SpiceModel')
 
@@ -304,6 +303,9 @@ class AsyReader(object):
         return ans
 
     def get_schematic_file(self):
+        """
+        Returns the file name of the component, if it were a .asc file
+        """        
         assert self._asy_file_path.suffix == '.asy', "File is not an asy file"
         assert self.symbol_type == 'BLOCK', "File is not a sub-circuit"
         return self._asy_file_path.with_suffix('.asc')
