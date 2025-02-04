@@ -47,7 +47,9 @@ class LTspice(Simulator):
     # the default lib paths, as used by get_default_library_paths
     _default_lib_paths = ["~/AppData/Local/LTspice/lib",
                           "~/Documents/LTspiceXVII/lib/",
+                          "~/Documents/LTspice/lib/",
                           "~/My Documents/LTspiceXVII/lib/",
+                          "~/My Documents/LTspice/lib/",
                           "~/Local Settings/Application Data/LTspice/lib"]
     
     # defaults:
