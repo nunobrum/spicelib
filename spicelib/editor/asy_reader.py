@@ -275,7 +275,7 @@ class AsyReader(object):
         # Searching in this exact order
         suffixes = ('.lib', '.sub', '.cir', '.txt')
         for attr in ('ModelFile', 'SpiceModel', 'SpiceLine', 'SpiceLine2', 'Def_Sub', 'Value', 'Value2'):
-            if attr in self.attributes and (self.attributes[attr].endswith(suffixes)):
+            if attr in self.attributes and (self.attributes[attr].lower().endswith(suffixes)):
                 return self.attributes[attr]
         return self.attributes.get('SpiceModel')
 
