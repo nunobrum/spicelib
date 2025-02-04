@@ -24,6 +24,7 @@ spicelib is a toolchain of python utilities design to interact with spice simula
     - [Simulators and Windows, Linux and MacOS compatibility](#simulators-and-windows-linux-and-macos-compatibility)
     - [Executable and Library paths](#executable-and-library-paths)
     - [Runner log redirection](#runner-log-redirection)
+    - [Adding search paths for symbols and library files](#adding-search-paths-for-symbols-and-library-files)
     - [Limitations and specifics of AscEditor](#limitations-and-specifics-of-asceditor)
     - [Hierarchial circuits: reading and editing](#hierarchial-circuits-reading-and-editing)
   - [Simulation Analysis Toolkit](#simulation-analysis-toolkit)
@@ -271,6 +272,8 @@ The example above is using the SpiceEditor to modify a spice netlist, but it is 
 #### Simulators and Windows, Linux and MacOS compatibility
 
 The **LTspice** class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
+
+If you use the native LTspice, please make sure that you have installed the libraries via Settings: `Operation` tab, `Model Update` button.
 
 **Ngspice** runs natively under Windows, Linux and MacOS (via brew). This library works with Ngspice CLI, and tries to detect the correct executable path, no matter the platform. It cannot (yet) work with the shared library version of Ngspice that is delivered with for example Kicad, you will need to install the CLI version. You can however use Kicad as the schema editor and subsequently save the Ngspice netlist to use it with this library.
 
