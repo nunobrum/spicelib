@@ -26,6 +26,7 @@ from math import floor, log
 from pathlib import Path
 from typing import Union, List
 import logging
+import os
 from ..sim.simulator import Simulator
 
 
@@ -836,6 +837,18 @@ class BaseEditor(ABC):
         return
     
     @classmethod
+    def _check_and_append_custom_library_path(cls, path) -> None:
+        """:meta private:"""
+        if path.startswith("~"):
+            path = os.path.expanduser(path)
+            
+        if os.path.exists(path) and os.path.isdir(path):
+            _logger.debug(f"Adding path '{path}' to the custom library path list")
+            cls.custom_lib_paths.append(path)
+        else:
+            _logger.warning(f"Cannot add path '{path}' to the custom library path list, as it does not exist")            
+
+    @classmethod
     def set_custom_library_paths(cls, *paths) -> None:
         """
         Set the given library search paths to the list of directories to search when needed.
@@ -852,9 +865,10 @@ class BaseEditor(ABC):
         # and then fill it with the new paths
         for path in paths:
             if isinstance(path, str):
-                cls.custom_lib_paths.append(path)
+                cls._check_and_append_custom_library_path(path)
             elif isinstance(path, list):
-                cls.custom_lib_paths.extend(path)
+                for p in path:
+                    cls._check_and_append_custom_library_path(p)
             
     def is_read_only(self) -> bool:
         """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
