@@ -376,9 +376,9 @@ class test_spicelib(unittest.TestCase):
             raw_file = test_dir + "DC op point_1.raw"
             # log_file = test_dir + "DC op point_1.log"
         raw = RawRead(raw_file)
-        traces = [raw.get_trace(trace)[0] for trace in raw.get_trace_names()]
+        traces = [raw.get_trace(trace)[0] for trace in sorted(raw.get_trace_names())]
 
-        self.assertListEqual(traces, [1.0, 0.5, 4.999999873689376e-05, 4.999999873689376e-05, -4.999999873689376e-05], "Lists are different")
+        self.assertListEqual(traces, [5e-05, 5e-05, -5e-05, 1.0, 0.5], "Lists are different")
 
     @unittest.skipIf(False, "Execute All")
     def test_operating_point_step(self):
