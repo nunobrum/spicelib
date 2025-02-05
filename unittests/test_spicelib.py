@@ -385,7 +385,7 @@ class test_spicelib(unittest.TestCase):
             print(raw_file, log_file)
             self.assertIsNotNone(raw_file, "Batch_Test_Simple.asc run failed")
         else:
-            log_file = test_dir + "Batch_Test_1.log"
+            log_file = test_dir + "Batch_Test_Simple_1.log"
         log = LTSpiceLogReader(log_file)
         
         self.assertEqual(log.step_count, 21, "Batch_Test_Simple step_count is wrong") 
