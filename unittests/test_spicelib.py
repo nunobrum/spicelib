@@ -387,16 +387,14 @@ class test_spicelib(unittest.TestCase):
         else:
             log_file = test_dir + "Batch_Test_1.log"
         log = LTSpiceLogReader(log_file)
-        return
-        # TODO this part is to be redone, the file (and also Batch_Test.asc) deliver 0 steps.
-        self.assertEqual(log.step_count, 12, "Batch_Test_Simple step_count is wrong") 
+        
+        self.assertEqual(log.step_count, 21, "Batch_Test_Simple step_count is wrong") 
         # raw = RawRead(raw_file)
         for measure in assert_data:
             print("measure", measure)
             for step in range(log.step_count):
-                self.assertEqual(log.get_measure_value(measure, step), assert_data[measure][step])
-
                 print(log.get_measure_value(measure, step), assert_data[measure][step])
+                self.assertAlmostEqual(log.get_measure_value(measure, step), assert_data[measure][step], places=1)
 
     @unittest.skipIf(False, "Execute All")
     def test_operating_point(self):
