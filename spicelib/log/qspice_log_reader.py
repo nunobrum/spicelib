@@ -177,8 +177,8 @@ class QspiceLogReader(LogfileData):
                                 headers[0] = meas_name  # first column is the measure name without _0
 
                             for title in headers:
-                                self.dataset[title] = []
+                                self.dataset[title.lower()] = []
                         self.measure_count += 1
                         for k, title in enumerate(headers):
-                            self.dataset[title].append(values[k])
+                            self.dataset[title.lower()].append(values[k])
                 line = fin.readline()

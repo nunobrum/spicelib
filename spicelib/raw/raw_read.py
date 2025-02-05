@@ -589,7 +589,7 @@ class RawRead(object):
                     else:
                         value = line[:-1]
                     if not isinstance(var, DummyTrace):
-                        var.data[point] = float(value)
+                        var.data[point] = float(value)  # TODO this fails with complex value
         else:
             raw_file.close()
             raise SpiceReadException("Unsupported RAW File. ""%s""" % self.raw_type)

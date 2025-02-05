@@ -172,7 +172,7 @@ class LTSpiceExport(object):
     ::
 
         export_data = LTSpiceExport("export_data_file.txt")
-        for value in export_data.dataset['I(V1)']:
+        for value in export_data.dataset['i(v1)']:
             print(f"Do something with this value {value}")
 
     :param export_filename: path to the Export file.
@@ -205,19 +205,19 @@ class LTSpiceExport(object):
                     if go_header:
                         go_header = False  # This is executed only once
                         for key in self.headers:
-                            self.dataset[key] = []  # Initializes an empty list
+                            self.dataset[key.lower()] = []  # Initializes an empty list
 
                         for key in curr_dic:
-                            self.dataset[key] = []  # Initializes an empty list
+                            self.dataset[key.lower()] = []  # Initializes an empty list
 
             else:
                 values = line.split('\t')
 
                 for key in curr_dic:
-                    self.dataset[key].append(curr_dic[key])
+                    self.dataset[key.lower()].append(curr_dic[key])
 
                 for i in range(len(values)):
-                    self.dataset[self.headers[i]].append(try_convert_value(values[i]))
+                    self.dataset[self.headers[i].lower()].append(try_convert_value(values[i]))
 
         fin.close()
 
@@ -408,7 +408,7 @@ class LTSpiceLogReader(LogfileData):
                             measurements = [match.group('value')]
                         self.measure_count += 1
                         for k, title in enumerate(headers):
-                            self.dataset[title] = [
+                            self.dataset[title.lower()] = [
                                 try_convert_value(measurements[k])]  # need to be a list for compatibility
                 line = fin.readline()
 
@@ -425,7 +425,7 @@ class LTSpiceLogReader(LogfileData):
                             _logger.debug("Storing Measurement %s (count %d)" % (dataname, len(measurements)))
                             self.measure_count += len(measurements)
                             for k, title in enumerate(headers):
-                                self.dataset[title] = [measure[k] for measure in measurements]
+                                self.dataset[title.lower()] = [measure[k] for measure in measurements]
                         headers = []
                         measurements = []
                     dataname = line[13:]  # text which is after "Measurement: ". len("Measurement: ") -> 13
@@ -456,7 +456,7 @@ class LTSpiceLogReader(LogfileData):
             if len(measurements):
                 self.measure_count += len(measurements)
                 for k, title in enumerate(headers):
-                    self.dataset[title] = [measure[k] for measure in measurements]
+                    self.dataset[title.lower()] = [measure[k] for measure in measurements]
 
             _logger.debug("%d measurements" % len(self.dataset))
             _logger.info("Identified %d steps, read %d measurements" % (self.step_count, self.measure_count))
