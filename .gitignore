@@ -27,6 +27,7 @@ share/python-wheels/
 MANIFEST
 unittests/temp/
 examples/testfiles/temp/*
+reproducing_error/*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

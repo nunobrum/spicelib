@@ -348,6 +348,10 @@ class SpiceCircuit(BaseEditor):
             elif cmd == '+':
                 assert len(self.netlist) > 0, "ERROR: The first line cannot be starting with a +"
                 self.netlist[-1] += line  # Appends to the last line
+            elif len(cmd) == 1 and len(line) > 1 and line[1] == '§':
+                # strip any §, it is not always present and seems optional, so scrap it
+                line = line[0] + line[2:]
+                self.netlist.append(line)
             else:
                 self.netlist.append(line)
                 if cmd[:4] == '.END':  # True for either .END and .ENDS primitives
