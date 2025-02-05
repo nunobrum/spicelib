@@ -140,7 +140,7 @@ class test_spicelib(unittest.TestCase):
         for measure in log.get_measure_names():
             print(measure, '=', log.get_measure_value(measure))
         self.assertEqual(log.get_measure_value('fcutac'), 8479370.0)
-        self.assertEqual(log.get_measure_value('vout1m'), 1.9999977173843142-1.8777417486008045e-09j)
+        self.assertEqual(log.get_measure_value('vout1m'), 1.9999977173843142 - 1.8777417486008045e-09j)
         self.assertEqual(log.get_measure_value('vout1m').mag_db(), 6.02059)
         self.assertEqual(log.get_measure_value('vout1m').ph, -5.37934e-08)
 
@@ -189,11 +189,11 @@ class test_spicelib(unittest.TestCase):
             SE.reset_netlist()  # Reset the netlist to the original status
             tduration = tstop - tstart
             SE.add_instruction(".tran {}".format(tduration), )
+            bias_file = "sim_loadbias_%d.txt" % tstop            
             if tstart != 0:
                 SE.add_instruction(".loadbias {}".format(bias_file))
                 # Put here your parameter modifications
                 # LTC.set_parameters(param1=1, param2=2, param3=3)
-            bias_file = "sim_loadbias_%d.txt" % tstop
             SE.add_instruction(".savebias {} internal time={}".format(bias_file, tduration))
             tstart = tstop
             LTC.run(SE, callback=callback_function)
@@ -209,7 +209,7 @@ class test_spicelib(unittest.TestCase):
         """LTSpiceLogReader Measures from Batch_Test.asc"""
         print("Starting test_ltsteps_measures")
         assert_data = {
-            'vout1m'   : [
+            'vout1m': [
                 -0.0186257,
                 -1.04378,
                 -1.64283,
@@ -232,7 +232,7 @@ class test_spicelib(unittest.TestCase):
                 0.614292,
                 -0.878185,
             ],
-            'vin_rms'  : [
+            'vin_rms': [
                 0.706221,
                 0.704738,
                 0.708225,
@@ -255,7 +255,7 @@ class test_spicelib(unittest.TestCase):
                 0.703701,
                 0.703436,
             ],
-            'vout_rms' : [
+            'vout_rms': [
                 1.41109,
                 1.40729,
                 1.41292,
@@ -279,7 +279,7 @@ class test_spicelib(unittest.TestCase):
                 0.557131,
 
             ],
-            'gain'     : [
+            'gain': [
                 1.99809,
                 1.99689,
                 1.99502,
@@ -302,7 +302,7 @@ class test_spicelib(unittest.TestCase):
                 0.999007,
                 0.792014,
             ],
-            'period'   : [
+            'period': [
                 0.000100148,
                 7.95811e-005,
                 6.32441e-005,
@@ -457,7 +457,7 @@ class test_spicelib(unittest.TestCase):
             C1 = editor.get_component_floatvalue('C1')
         else:
             raw_file = test_dir + "AC_1.raw"
-            log_file = test_dir + "AC_1.log"
+            # log_file = test_dir + "AC_1.log"
             R1 = 100
             C1 = 10E-6
         # Compute the RC AC response with the resistor and capacitor values from the netlist.
@@ -471,7 +471,7 @@ class test_spicelib(unittest.TestCase):
             self.assertEqual(vout1, vout2)
             self.assertEqual(abs(vin), 1)
             # Calculate the magnitude of the answer Vout = Vin/(1+jwRC)
-            h = vin/(1 + 2j * pi * freq * R1 * C1)
+            h = vin / (1 + 2j * pi * freq * R1 * C1)
             self.assertAlmostEqual(abs(vout1), abs(h), 5, f"Difference between theoretical value ans simulation at point {point}")
             self.assertAlmostEqual(angle(vout1), angle(h), 5, f"Difference between theoretical value ans simulation at point {point}")
 
@@ -488,7 +488,7 @@ class test_spicelib(unittest.TestCase):
             C1 = editor.get_component_floatvalue('C1')
         else:
             raw_file = test_dir + "AC - STEP_1.raw"
-            log_file = test_dir + "AC - STEP_1.log"
+            # log_file = test_dir + "AC - STEP_1.log"
             C1 = 159.1549e-6  # 159.1549uF
         # Compute the RC AC response with the resistor and capacitor values from the netlist.
         raw = RawRead(raw_file)
@@ -503,7 +503,7 @@ class test_spicelib(unittest.TestCase):
                 vin = vin_trace.get_point(point, step)
                 freq = raw.axis.get_point(point, step)
                 # Calculate the magnitude of the answer Vout = Vin/(1+jwRC)
-                h = vin/(1 + 2j * pi * freq * R1 * C1)
+                h = vin / (1 + 2j * pi * freq * R1 * C1)
                 # print(freq, vout, h, vout - h)
                 self.assertAlmostEqual(abs(vout), abs(h), 5,
                                        f"Difference between theoretical value ans simulation at point {point}:")
