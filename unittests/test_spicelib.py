@@ -530,7 +530,7 @@ class test_spicelib(unittest.TestCase):
         n_periods_calc = tmax * fundamental
         self.assertAlmostEqual(log.fourier['V(a)'][0].n_periods, n_periods_calc, 5, "Mismatch in calculated number of periods")
         self.assertAlmostEqual(log.fourier['V(a)'][0].dc_component, dc_component, 2, "Mismatch in DC component")
-        self.assertEqual(len(log.fourier['V(a)'][0].harmonics), 9,"Mismatch in requested number of harmonics")
+        self.assertEqual(len(log.fourier['V(a)'][0].harmonics), 9, "Mismatch in requested number of harmonics")
 
     # 
     # def test_pathlib(self):

@@ -321,25 +321,32 @@ class LTSpiceLogReader(LogfileData):
         _logger.debug(f"Processing LOG file:{log_filename}")
         with open(log_filename, 'r', encoding=self.encoding) as fin:
             line = fin.readline()
+            # init variables, just in case. Not needed really, but helps debugging
+            signal = None
+            n_periods = 0
+            dc_component = 0
 
             while line:
-                if line.startswith("N-Period"):
+                if len(line.strip()) == 0:
+                    # skip empty lines
+                    pass
+                elif line.startswith("N-Period"):
                     # Read number of periods
-                    n_periods = line.strip('\r\n').split("=")[-1]
+                    n_periods = line.strip('\r\n').split("=")[-1].strip()
                     if n_periods == 'all':
                         n_periods = -1
                     else:
                         n_periods = float(n_periods)
+                elif line.startswith("Fourier components of"):
                     # Read signal name
-                    line = fin.readline().strip('\r\n')
-                    signal = line.split(" of ")[-1]
+                    line = line.strip('\r\n')
+                    signal = line.split(" of ")[-1].strip()
+                elif line.startswith("DC component:"):
                     # Read DC component
-                    line = fin.readline().strip('\r\n')
-                    dc_component = float(line.split(':')[-1])
-                    # Skip blank line
-                    fin.readline()
-                    # Skip two header lines
-                    fin.readline()
+                    line = line.strip('\r\n')
+                    dc_component = float(line.split(':')[-1].strip())
+                elif line.startswith("Harmonic"):
+                    # Skip next header line
                     fin.readline()
                     # Read Harmonics table
                     phd = thd = None
@@ -364,7 +371,7 @@ class LTSpiceLogReader(LogfileData):
                     else:
                         self.fourier[signal] = [fourier_data]
 
-                if line.startswith(".step"):
+                elif line.startswith(".step"):
                     self.step_count += 1
                     tokens = line.strip('\r\n').split(' ')
                     for tok in tokens[1:]:
