@@ -577,14 +577,15 @@ class RawRead(object):
                 line_nr = 0
                 while line_nr < len(self._traces):
                     line = raw_file.readline().decode(encoding=self.encoding, errors='ignore')
+                    if len(line) == 0:
+                        raise RuntimeError("Invalid data: end of file encountered too early")                        
                     if len(line.strip()) == 0:
                         continue  # skip empty lines
                     if line_nr == 0:
                         s_point = line.split("\t", 1)[0]
 
                         if point != int(s_point):
-                            _logger.error("Error Reading File")
-                            break
+                            raise RuntimeError(f"Invalid data: point is not in sequence ({point} != {int(s_point)})")
                         value = line[len(s_point):-1]
                     else:
                         value = line[:-1]
