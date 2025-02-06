@@ -34,7 +34,7 @@ temperature to 80 degrees, and update the values of R1 and R2 to 3.3k.
             ".param run = 0"
     )
 
-    for opamp in ('AD712', 'AD820'):
+    for opamp in ('AD712', 'AD820_XU1'):   # don't use AD820, it is defined in the file and will mess up newer LTspice versions
         netlist.set_element_model('XU1', opamp)
         for supply_voltage in (5, 10, 15):
             netlist.set_component_value('V1', supply_voltage)
@@ -92,7 +92,7 @@ each executing in parallel a simulation. This is exemplified in the modified exa
             ".param run = 0"
     )
 
-    for opamp in ('AD712', 'AD820'):
+    for opamp in ('AD712', 'AD820_XU1'):   # don't use AD820, it is defined in the file and will mess up newer LTspice versions
         netlist.set_element_model('XU1', opamp)
         for supply_voltage in (5, 10, 15):
             netlist.set_component_value('V1', supply_voltage)
@@ -131,7 +131,7 @@ An alternative to ``wait_completion`` is to use an iterator as exemplified here:
 
     netlist = SpiceEditor("Batch_Test.asc")  # Open the Spice Model, and creates the .net
 
-    for opamp in ('AD712', 'AD820'):
+    for opamp in ('AD712', 'AD820_XU1'):   # don't use AD820, it is defined in the file and will mess up newer LTspice versions
         netlist.set_element_model('XU1', opamp)
         for supply_voltage in (5, 10, 15):
             netlist.set_component_value('V1', supply_voltage)
