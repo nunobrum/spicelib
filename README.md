@@ -450,7 +450,7 @@ To update all instances of a subcircuit, the subcircuit needs to be be manipulat
  It may be best to rename that subcircuit, since ltspice 24+ will not allow a 'local' subcircuit and a lib to
  refer to the same subcircuit name. You can only avoid renaming it if you no longer use the subcircuit under
  its original name.
- Know that executing any of the 'write' commands below creates a new subcircuit under a new name, called
+ Know that executing any of the 'write' commands creates a new subcircuit under a new name, called
  `{subcircuit_model_name}_{component_name}`, like `AD820_X1`, and sets the model of `X1` to `AD820_X1`.*
 
 ```python
