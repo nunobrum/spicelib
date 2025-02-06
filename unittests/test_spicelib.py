@@ -140,21 +140,6 @@ class test_spicelib(unittest.TestCase):
                 ".meas AC Vout1m FIND V(out) AT 1Hz"
         )
 
-        # expecting:
-        # vout1m: v(out)=(6.02057dB,-1.7676e-08°) at 0.001
-        # gainac: MAX(mag(v(out)))=(6.18952dB,0°) FROM 1 TO 1e+07
-        # fcutac=6.27552e+06 FROM 3.72448e+06 TO 1e+07
-        
-        # with .meas AC Vout1m FIND V(out) AT 1Hz: 
-        # old ltspice: 
-        # vout1m: v(out)=(6.02057dB,-1.7676e-05°) at 1
-        # gainac: MAX(mag(v(out)))=(6.18952dB,0°) FROM 1 TO 1e+07
-        # fcutac=6.27552e+06 FROM 3.72448e+06 TO 1e+07
-        # ltspice 24: 
-        # Vout1m: V(out)=(6.02056972525dB,-1.76759587977e-05°) at 1
-        # GainAC: MAX(mag(V(out)))=(6.18952178475dB,0°) FROM 1 TO 10000000
-        # FcutAC=6277009.19911 FROM 3722990.80089 TO 10000000
-
         raw_file, log_file = runner.run_now(editor, run_filename="no_callback.net")
         print("no_callback", raw_file, log_file)
         log = LTSpiceLogReader(log_file)
@@ -231,7 +216,11 @@ class test_spicelib(unittest.TestCase):
         SE.set_component_value('V1', 'AC 1 0')
         LTC.run(SE, callback=callback_function)
         LTC.wait_completion()
-        # TODO: should add asserts here for completion
+        
+        # Sim Statistics
+        print('Successful/Total Simulations: ' + str(LTC.okSim) + '/' + str(LTC.runno))
+        self.assertEqual(LTC.okSim, 5)
+        self.assertEqual(LTC.runno, 5)        
 
     @unittest.skipIf(False, "Execute All")
     def test_ltsteps_measures(self):
@@ -394,7 +383,7 @@ class test_spicelib(unittest.TestCase):
             print("measure", measure)
             for step in range(log.step_count):
                 print(log.get_measure_value(measure, step), assert_data[measure][step])
-                self.assertAlmostEqual(log.get_measure_value(measure, step), assert_data[measure][step], places=1)
+                self.assertAlmostEqual(log.get_measure_value(measure, step), assert_data[measure][step], places=1)  # TODO the reference data should be adapted, is too imprecise
 
     @unittest.skipIf(False, "Execute All")
     def test_operating_point(self):
@@ -408,8 +397,6 @@ class test_spicelib(unittest.TestCase):
             # log_file = test_dir + "DC op point_1.log"
         raw = RawRead(raw_file)
         traces = [raw.get_trace(trace)[0] for trace in sorted(raw.get_trace_names())]
-
-        # self.assertListEqual(traces, [5e-05, 5e-05, -5e-05, 1.0, 0.5], "Lists are different")
         self.assertListEqual(traces, [4.999999873689376e-05, 4.999999873689376e-05, -4.999999873689376e-05, 1.0, 0.5], "Lists are different")
 
     @unittest.skipIf(False, "Execute All")

@@ -251,7 +251,7 @@ class LogfileData:
         """
         Returns a measure value on a given step.
 
-        :param measure: name of the measurement to get
+        :param measure: name of the measurement to get. This is case insensitive.
         :type measure: str
         :param step: optional step number or slice if the simulation has no steps.
         :type step: int or slice
@@ -285,7 +285,7 @@ class LogfileData:
         """
         Returns the measurements taken at a list of steps provided by the steps list.
 
-        :param measure: name of the measurement to get.
+        :param measure: name of the measurement to get. This is case insensitive.
         :type measure: str
         :param steps: step number, or list of step numbers.
         :type steps: Optional: int or list
@@ -305,7 +305,7 @@ class LogfileData:
         """
         Returns the maximum value of a measurement.
 
-        :param measure: name of the measurement to get
+        :param measure: name of the measurement to get. This is case insensitive.
         :type measure: str
         :param steps: step number, or list of step numbers.
         :type steps: Optional, int or list
@@ -319,7 +319,7 @@ class LogfileData:
         """
         Returns the minimum value of a measurement.
 
-        :param measure: name of the measurement to get
+        :param measure: name of the measurement to get. This is case insensitive.
         :type measure: str
         :param steps: step number, or list of step numbers.
         :type steps: Optional: int or list
@@ -333,7 +333,7 @@ class LogfileData:
         """
         Returns the average value of a measurement.
 
-        :param measure: name of the measurement to get
+        :param measure: name of the measurement to get.  This is case insensitive.
         :type measure: str
         :param steps: step number, or list of step numbers.
         :type steps: Optional: int or list
