@@ -445,11 +445,12 @@ To update all instances of a subcircuit, the subcircuit needs to be be manipulat
 
 *NOTE 2: This implementation changes on the AscEditor and QschEditor.*
 
-*NOTE 3: You cannot modify values of parameters of components/subcirctuits from a library. An exception will
- occur in that case. You should therefore include the component/subcircuit in your file. It may be best to
- rename that subcircuit, since ltspice 24+ will not allow a 'local' subcircuit and a lib to refer to the same
- subcircuit name. You can only avoid renaming it if you no longer use the subcircuit under its own name.
- Know that executing any of the commands below creates a new subcircuit under a new name, called
+*NOTE 3: You cannot modify values or parameters of components/subcircuits from a library. An exception will
+ occur in that case. If you want to modify, you should therefore include the component/subcircuit in your file.
+ It may be best to rename that subcircuit, since ltspice 24+ will not allow a 'local' subcircuit and a lib to
+ refer to the same subcircuit name. You can only avoid renaming it if you no longer use the subcircuit under
+ its original name.
+ Know that executing any of the 'write' commands below creates a new subcircuit under a new name, called
  `{subcircuit_model_name}_{component_name}`, like `AD820_X1`, and sets the model of `X1` to `AD820_X1`.*
 
 ```python
