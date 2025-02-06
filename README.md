@@ -423,7 +423,7 @@ v = my_edt.get_subcircuit("X1").get_component_value("L1")
 v = my_edt["X1:L1"].value
 
 # Likewise, the following are equivalent:
-# Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+# Note that this will not work if the component X1 is from a library. See note 3 below.
 my_edt.set_component_value("X1:L1", 2e-6)  # sets L1  in X1 instance to 2uH
 my_edt["X1:L1"].value = 2e-6  # Same as the instruction above
 
@@ -432,9 +432,7 @@ l = my_edt.get_subcircuit("X1").get_component_parameters('C1')
 l = my_edt["X1:C1"].params
 
 # Likewise, the following are equivalent:
-# Note that this will not work if the component X1 is from a library. An exception will occur in that case.
-# You should therefore include the component/subcircuit in your file. It may be best to rename that subcircuit, since ltspice 24+ will not allow a 'local' subcircuit and a lib to refer to the same subcircuit name. You can only avoid renaming it if you no longer use the subcircuit under its own name. 
-# Know that executing any of the commands below creates a new subcircuit called "{subcircuit_model_name}_{component_name}", like "AD820_X1", and sets the model of "X1" to "AD820_X1".
+# Note that this will not work if the component X1 is from a library. See note 3 below.
 my_edt.get_subcircuit("X1").set_component_parameters("C1", Rser=1)
 my_edt["X1:C1"].set_params(Rser=1) 
 my_edt["X1:C1"].params = dict(Rser=1)
@@ -446,6 +444,13 @@ my_edt["X1:C1"].params = dict(Rser=1)
 To update all instances of a subcircuit, the subcircuit needs to be be manipulated directly, as is done below.*
 
 *NOTE 2: This implementation changes on the AscEditor and QschEditor.*
+
+*NOTE 3: You cannot modify values of parameters of components/subcirctuits from a library. An exception will
+ occur in that case. You should therefore include the component/subcircuit in your file. It may be best to
+ rename that subcircuit, since ltspice 24+ will not allow a 'local' subcircuit and a lib to refer to the same
+ subcircuit name. You can only avoid renaming it if you no longer use the subcircuit under its own name.
+ Know that executing any of the commands below creates a new subcircuit under a new name, called
+ `{subcircuit_model_name}_{component_name}`, like `AD820_X1`, and sets the model of `X1` to `AD820_X1`.*
 
 ```python
 import spicelib
