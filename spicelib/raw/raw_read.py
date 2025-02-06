@@ -557,8 +557,7 @@ class RawRead(object):
                             s = raw_file.read(self.nPoints * 4)
                             var.data = frombuffer(s, dtype=float32)
                         else:
-                            raise RuntimeError(
-                                "Invalid data type {} for trace {}".format(var.numerical_type, var.name))
+                            raise RuntimeError(f"Invalid data type {var.numerical_type} for trace {var.name}")
 
             else:
                 if self.verbose:
@@ -575,11 +574,12 @@ class RawRead(object):
                 _logger.debug("ASCII RAW File")
             # Will start the reading of ASCII Values
             for point in range(self.nPoints):
-                first_var = True
-                for var in self._traces:
+                line_nr = 0
+                while line_nr < len(self._traces):
                     line = raw_file.readline().decode(encoding=self.encoding, errors='ignore')
-                    if first_var:
-                        first_var = False
+                    if len(line.strip()) == 0:
+                        continue  # skip empty lines
+                    if line_nr == 0:
                         s_point = line.split("\t", 1)[0]
 
                         if point != int(s_point):
@@ -588,11 +588,20 @@ class RawRead(object):
                         value = line[len(s_point):-1]
                     else:
                         value = line[:-1]
+                    
+                    var = self._traces[line_nr]
                     if not isinstance(var, DummyTrace):
-                        var.data[point] = float(value)  # TODO this fails with complex value
+                        if var.numerical_type == 'complex':
+                            v = value.split(',')
+                            if len(v) != 2:
+                                raise RuntimeError(f"Invalid data for trace {var.name}: {value} is not a complex value")
+                            var.data[point] = complex(float(v[0]), float(v[1]))
+                        else:
+                            var.data[point] = float(value)
+                    line_nr += 1
         else:
             raw_file.close()
-            raise SpiceReadException("Unsupported RAW File. ""%s""" % self.raw_type)
+            raise SpiceReadException(f"Unsupported RAW File. \"{self.raw_type}\"")
 
         raw_file.close()
 
