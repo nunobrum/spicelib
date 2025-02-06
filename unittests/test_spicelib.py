@@ -148,10 +148,10 @@ class test_spicelib(unittest.TestCase):
         print("vout1m.mag_db=", log.get_measure_value('vout1m').mag_db())
         print("vout1m.ph=", log.get_measure_value('vout1m').ph)
         
-        self.assertEqual(f"{log.get_measure_value('fcutac'):.1e}", "6.3e+06")  # have to be imprecise, different ltspice versions give different replies
+        self.assertAlmostEqual(log.get_measure_value('fcutac'), 6.3e+06, delta=0.1e6)  # have to be imprecise, different ltspice versions give different replies
         # self.assertEqual(log.get_measure_value('vout1m'), 1.9999977173843142 - 1.8777417486008045e-09j)  # excluded, diffifult to make compatible
-        self.assertEqual(f"{log.get_measure_value('vout1m').mag_db():.4f}", "6.0206")
-        self.assertEqual(f"{log.get_measure_value('vout1m').ph:0.4e}", "-1.7676e-05")
+        self.assertAlmostEqual(log.get_measure_value('vout1m').mag_db(), 6.0206, delta=0.0001)
+        self.assertAlmostEqual(log.get_measure_value('vout1m').ph, -1.7676e-05, delta=0.0001e-05)
 
     @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
     def test_run_from_spice_editor(self):
