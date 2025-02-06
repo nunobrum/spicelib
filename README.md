@@ -226,8 +226,9 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 alt_solver = True
-for opamp in ('AD712', 'AD820'):
+for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the file and will mess up newer LTspice versions
     netlist['XU1'].model = opamp
+    # or netlist.set_element_model('XU1', opamp)
     for supply_voltage in (5, 10, 15):
         netlist['V1'].value = supply_voltage
         netlist['V2'].value = -supply_voltage
@@ -391,9 +392,9 @@ AscEditor has some limitations and differences in regard to SpiceEditor.
   OpAmp. AscEditor will require `U1`.
 * AscEditor and SpiceEditor only work with the information in their respective schema/circuit files. The problem is that LTspice does not store any of the underlying symbol's default parameter values in the .asc files. SpiceEditor works on netlists, and netlists do contain all parameters.
 
-      This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`.
+  This can affect the behaviour when using symbols like `OpAmps/UniversalOpAmp2`. Although the LTspice GUI shows the parameters like `Avol`, `GBW` and `Vos`, even when they have the default values, `AscEditor.get_component_parameters()` will not return these parameters unless they have been modified. `SpiceEditor.get_component_parameters()` on the contrary will show all parameters, regardless of if they were modified. It is however possible for AscEditor to set or modify the parameters with `AscEditor.set_component_parameters()`. Example:  `set_component_parameters("U1", Value2="Avol=2Meg GBW=10Meg Slew=10Meg")`.
 
-      Note here that you must know the correct attribute holding that parameter, and make sure that you know and set all the other parameters in that attribute. If the attribute is in 'SpiceLine' however (as with the majority of the simpler components), you may address the parameter individually (see the voltage source example above).
+  Note here that you must know the correct attribute holding that parameter, and make sure that you know and set all the other parameters in that attribute. If the attribute is in 'SpiceLine' however (as with the majority of the simpler components), you may address the parameter individually (see the voltage source example above).
 
 Resumed, it is better to use SpiceEditor than AscEditor, as it is more straightforward. On MacOS, it is recommended to use LTspice under wine, or to export the netlist manually, as MacOS's LTspice does not support automated export of netlists.
 
@@ -424,7 +425,7 @@ v = my_edt.get_subcircuit("X1").get_component_value("L1")
 v = my_edt["X1:L1"].value
 
 # Likewise, the following are equivalent:
-# Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+# Note that this will not work if the component X1 is from a library. See note 3 below.
 my_edt.set_component_value("X1:L1", 2e-6)  # sets L1  in X1 instance to 2uH
 my_edt["X1:L1"].value = 2e-6  # Same as the instruction above
 
@@ -433,17 +434,26 @@ l = my_edt.get_subcircuit("X1").get_component_parameters('C1')
 l = my_edt["X1:C1"].params
 
 # Likewise, the following are equivalent:
-# Note that this will not work if the component X1 is from a library. An exception will occur in that case.
+# Note that this will not work if the component X1 is from a library. See note 3 below.
 my_edt.get_subcircuit("X1").set_component_parameters("C1", Rser=1)
 my_edt["X1:C1"].set_params(Rser=1) 
 my_edt["X1:C1"].params = dict(Rser=1)
 
 # The same goes for SpiceEditor, only that you should use 'XX1' instead of 'X1'
 ```
+
 *NOTE 1: The code above sets only the instance of a subcircuit. A copy of it is done prior to making edits.
 To update all instances of a subcircuit, the subcircuit needs to be be manipulated directly, as is done below.*
 
 *NOTE 2: This implementation changes on the AscEditor and QschEditor.*
+
+*NOTE 3: You cannot modify values or parameters of components/subcircuits from a library. An exception will
+ occur in that case. If you want to modify, you should therefore include the component/subcircuit in your file.
+ It may be best to rename that subcircuit, since ltspice 24+ will not allow a 'local' subcircuit and a lib to
+ refer to the same subcircuit name. You can only avoid renaming it if you no longer use the subcircuit under
+ its original name.
+ Know that executing any of the 'write' commands creates a new subcircuit under a new name, called
+ `{subcircuit_model_name}_{component_name}`, like `AD820_X1`, and sets the model of `X1` to `AD820_X1`.*
 
 ```python
 import spicelib
@@ -470,7 +480,6 @@ my_sub.set_component_parameters("C1", Rser=1)
 my_sub["C1"].set_params(Rser=1) 
 my_sub["C1"].params = dict(Rser=1)
 ```
-
 
 ### Simulation Analysis Toolkit
 
@@ -507,8 +516,11 @@ mc.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides th
 mc.set_parameter_deviation('Vos', 3e-4, 5e-3, 'uniform')  # The keyword 'distribution' is optional
 mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulations
 
-# Finally the netlist is saved to a file. This file contians all the instructions to run the simulation in LTspice
-mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
+manually_simulating_in_LTspice = False
+
+if manually_simulating_in_LTspice:
+    # Finally the netlist is saved to a file. This file contains all the instructions to run the simulation in LTspice
+    mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
 ```
 
 -- in examples/run_montecarlo.py [Example 1]
@@ -595,7 +607,7 @@ accessing data through the class as exemplified here:
 
 from spicelib.log.ltsteps import LTSpiceLogReader
 
-data = LTSpiceLogReader("./testfiles/Batch_Test_AD820_15.log")
+data = LTSpiceLogReader("./testfiles/Batch_Test_Simple_1.log")
 
 print("Number of steps  :", data.step_count)
 step_names = data.get_step_vars()
@@ -795,10 +807,15 @@ Would set only `spicelib.RawRead` file's logging level to warning while the othe
 _Make sure to initialize the root logger before importing the library to be able to see the logs._
 
 ## To whom do I talk?
+
 For support and improvement requests please open an Issue in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
+
 ## History
+
 * Version 1.3.6
-  * Fixed Issue #127 - Points on PARAM values 
+  * Fixed Issue #140 and #131 - Compatibility with LTspice 24+
+  * Fixed issue #137 - More default library paths
+  * Fixed Issue #127 - Points on PARAM values
 * Version 1.3.5
   * Issue #124 Fixed - Problem with .PARAM regex.
   * Using Poetry for generating the wheel packages

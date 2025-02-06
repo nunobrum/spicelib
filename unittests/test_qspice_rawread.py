@@ -167,6 +167,7 @@ class test_spicelib(unittest.TestCase):
         SE = SpiceEditor(test_dir + "testfile.net")
         #, parallel_sims=1)
         tstart = 0
+        bias_file = ""
         for tstop in (2, 5, 8, 10):
             tduration = tstop - tstart
             SE.add_instruction(".tran {}".format(tduration), )

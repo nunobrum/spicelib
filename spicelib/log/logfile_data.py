@@ -177,8 +177,8 @@ class LogfileData:
             raise NotImplementedError("Slicing in not allowed in this class")
         if key in self.stepset:
             return self.stepset[key]
-        if key in self.dataset:
-            return self.dataset[key]  # This will raise an Index Error if not found here.
+        if key.lower() in self.dataset:
+            return self.dataset[key.lower()]  # This will raise an Index Error if not found here.
         raise IndexError("'%s' is not a valid step variable or measurement name" % key)
 
     def has_steps(self):
@@ -202,8 +202,8 @@ class LogfileData:
         """
         if param in self.stepset:
             condition_set = self.stepset[param]
-        elif param in self.dataset:
-            condition_set = self.dataset[param]
+        elif param.lower() in self.dataset:
+            condition_set = self.dataset[param.lower()]
         else:
             raise IndexError("'%s' is not a valid step variable or measurement name" % param)
         # tries to convert the value to integer or float, for consistency with data loading implementation
@@ -251,7 +251,7 @@ class LogfileData:
         """
         Returns a measure value on a given step.
 
-        :param measure: name of the measurement to get
+        :param measure: name of the measurement to get. This is case insensitive.
         :type measure: str
         :param step: optional step number or slice if the simulation has no steps.
         :type step: int or slice
@@ -259,6 +259,7 @@ class LogfileData:
         :return: measurement value
         :rtype: int, float, Complex or str
         """
+        measure = measure.lower()
         if step is None:
             if kwargs:
                 step = self.steps_with_conditions(**kwargs)
@@ -284,13 +285,14 @@ class LogfileData:
         """
         Returns the measurements taken at a list of steps provided by the steps list.
 
-        :param measure: name of the measurement to get.
+        :param measure: name of the measurement to get. This is case insensitive.
         :type measure: str
         :param steps: step number, or list of step numbers.
         :type steps: Optional: int or list
         :return: measurement or list of measurements
         :rtype: list with the values converted to either integer (int) or floating point (float)
         """
+        measure = measure.lower()
         if steps is None:
             return self.dataset[measure]  # Returns everything
         elif isinstance(steps, int):
@@ -303,7 +305,7 @@ class LogfileData:
         """
         Returns the maximum value of a measurement.
 
-        :param measure: name of the measurement to get
+        :param measure: name of the measurement to get. This is case insensitive.
         :type measure: str
         :param steps: step number, or list of step numbers.
         :type steps: Optional, int or list
@@ -317,7 +319,7 @@ class LogfileData:
         """
         Returns the minimum value of a measurement.
 
-        :param measure: name of the measurement to get
+        :param measure: name of the measurement to get. This is case insensitive.
         :type measure: str
         :param steps: step number, or list of step numbers.
         :type steps: Optional: int or list
@@ -331,7 +333,7 @@ class LogfileData:
         """
         Returns the average value of a measurement.
 
-        :param measure: name of the measurement to get
+        :param measure: name of the measurement to get.  This is case insensitive.
         :type measure: str
         :param steps: step number, or list of step numbers.
         :type steps: Optional: int or list

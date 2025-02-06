@@ -107,7 +107,7 @@ def opLogReader(filename: str) -> dict:
             match = is_title.search(line)
             if match is not None:
                 where = match.group(1)
-                dataset[where] = {}  # Creates a dictionary for each component type
+                dataset[where.lower()] = {}  # Creates a dictionary for each component type
             else:
                 cols = re.split(r'\s+', line.rstrip('\r\n'))
                 if len(cols) > 1 and (cols[0].endswith(":") or cols[0] == 'Gmb'):  # The last 'or condition solves an
@@ -116,7 +116,7 @@ def opLogReader(filename: str) -> dict:
                         devices = cols[1:]
                         n_devices = len(devices)
                         for dev in cols[1:]:
-                            dataset[where][dev] = {}
+                            dataset[where.lower()][dev] = {}
                     else:
                         if n_devices > 0 and len(cols) == (n_devices + 1):
                             param = cols[0].rstrip(':')
@@ -125,6 +125,6 @@ def opLogReader(filename: str) -> dict:
                                     value = float(val)
                                 except ValueError:
                                     value = val
-                                dataset[where][devices[i]][param] = value
+                                dataset[where.lower()][devices[i]][param] = value
     log.close()
     return dataset

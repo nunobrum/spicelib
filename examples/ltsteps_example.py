@@ -3,7 +3,7 @@
 
 from spicelib.log.ltsteps import LTSpiceLogReader
 
-data = LTSpiceLogReader("./testfiles/Batch_Test_AD820_15.log")
+data = LTSpiceLogReader("./testfiles/Batch_Test_Simple_1.log")
 
 print("Number of steps  :", data.step_count)
 step_names = data.get_step_vars()

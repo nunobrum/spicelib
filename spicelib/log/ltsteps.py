@@ -172,7 +172,7 @@ class LTSpiceExport(object):
     ::
 
         export_data = LTSpiceExport("export_data_file.txt")
-        for value in export_data.dataset['I(V1)']:
+        for value in export_data.dataset['i(v1)']:
             print(f"Do something with this value {value}")
 
     :param export_filename: path to the Export file.
@@ -205,19 +205,19 @@ class LTSpiceExport(object):
                     if go_header:
                         go_header = False  # This is executed only once
                         for key in self.headers:
-                            self.dataset[key] = []  # Initializes an empty list
+                            self.dataset[key.lower()] = []  # Initializes an empty list
 
                         for key in curr_dic:
-                            self.dataset[key] = []  # Initializes an empty list
+                            self.dataset[key.lower()] = []  # Initializes an empty list
 
             else:
                 values = line.split('\t')
 
                 for key in curr_dic:
-                    self.dataset[key].append(curr_dic[key])
+                    self.dataset[key.lower()].append(curr_dic[key])
 
                 for i in range(len(values)):
-                    self.dataset[self.headers[i]].append(try_convert_value(values[i]))
+                    self.dataset[self.headers[i].lower()].append(try_convert_value(values[i]))
 
         fin.close()
 
@@ -321,25 +321,32 @@ class LTSpiceLogReader(LogfileData):
         _logger.debug(f"Processing LOG file:{log_filename}")
         with open(log_filename, 'r', encoding=self.encoding) as fin:
             line = fin.readline()
+            # init variables, just in case. Not needed really, but helps debugging
+            signal = None
+            n_periods = 0
+            dc_component = 0
 
             while line:
-                if line.startswith("N-Period"):
+                if len(line.strip()) == 0:
+                    # skip empty lines
+                    pass
+                elif line.startswith("N-Period"):
                     # Read number of periods
-                    n_periods = line.strip('\r\n').split("=")[-1]
+                    n_periods = line.strip('\r\n').split("=")[-1].strip()
                     if n_periods == 'all':
                         n_periods = -1
                     else:
                         n_periods = float(n_periods)
+                elif line.startswith("Fourier components of"):
                     # Read signal name
-                    line = fin.readline().strip('\r\n')
-                    signal = line.split(" of ")[-1]
+                    line = line.strip('\r\n')
+                    signal = line.split(" of ")[-1].strip()
+                elif line.startswith("DC component:"):
                     # Read DC component
-                    line = fin.readline().strip('\r\n')
-                    dc_component = float(line.split(':')[-1])
-                    # Skip blank line
-                    fin.readline()
-                    # Skip two header lines
-                    fin.readline()
+                    line = line.strip('\r\n')
+                    dc_component = float(line.split(':')[-1].strip())
+                elif line.startswith("Harmonic"):
+                    # Skip next header line
                     fin.readline()
                     # Read Harmonics table
                     phd = thd = None
@@ -364,7 +371,7 @@ class LTSpiceLogReader(LogfileData):
                     else:
                         self.fourier[signal] = [fourier_data]
 
-                if line.startswith(".step"):
+                elif line.startswith(".step"):
                     self.step_count += 1
                     tokens = line.strip('\r\n').split(' ')
                     for tok in tokens[1:]:
@@ -401,7 +408,7 @@ class LTSpiceLogReader(LogfileData):
                             measurements = [match.group('value')]
                         self.measure_count += 1
                         for k, title in enumerate(headers):
-                            self.dataset[title] = [
+                            self.dataset[title.lower()] = [
                                 try_convert_value(measurements[k])]  # need to be a list for compatibility
                 line = fin.readline()
 
@@ -418,7 +425,7 @@ class LTSpiceLogReader(LogfileData):
                             _logger.debug("Storing Measurement %s (count %d)" % (dataname, len(measurements)))
                             self.measure_count += len(measurements)
                             for k, title in enumerate(headers):
-                                self.dataset[title] = [measure[k] for measure in measurements]
+                                self.dataset[title.lower()] = [measure[k] for measure in measurements]
                         headers = []
                         measurements = []
                     dataname = line[13:]  # text which is after "Measurement: ". len("Measurement: ") -> 13
@@ -449,7 +456,7 @@ class LTSpiceLogReader(LogfileData):
             if len(measurements):
                 self.measure_count += len(measurements)
                 for k, title in enumerate(headers):
-                    self.dataset[title] = [measure[k] for measure in measurements]
+                    self.dataset[title.lower()] = [measure[k] for measure in measurements]
 
             _logger.debug("%d measurements" % len(self.dataset))
             _logger.info("Identified %d steps, read %d measurements" % (self.step_count, self.measure_count))

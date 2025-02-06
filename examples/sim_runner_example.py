@@ -25,8 +25,9 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 alt_solver = True
-for opamp in ('AD712', 'AD820'):
+for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the file and will mess up newer LTspice versions
     netlist['XU1'].model = opamp
+    # or netlist.set_element_model('XU1', opamp)
     for supply_voltage in (5, 10, 15):
         netlist['V1'].value = supply_voltage
         netlist['V2'].value = -supply_voltage

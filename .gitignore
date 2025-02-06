@@ -27,6 +27,7 @@ share/python-wheels/
 MANIFEST
 unittests/temp/
 examples/testfiles/temp/*
+reproducing_error/*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -62,6 +63,9 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+
+# Log files that I do want to keep
+!examples/testfiles/*.log
 
 # Flask stuff:
 instance/
