@@ -1275,5 +1275,5 @@ class SpiceEditor(SpiceCircuit):
         Convenience function for maintaining legacy with legacy code. Runs the SPICE simulation.
         """
         from ..sim.sim_runner import SimRunner
-        Sim = SimRunner(simulator=simulator)
-        return Sim.run(self, wait_resource=wait_resource, callback=callback, timeout=timeout, run_filename=run_filename)
+        runner = SimRunner(simulator=simulator)
+        return runner.run(self, wait_resource=wait_resource, callback=callback, timeout=timeout, run_filename=run_filename)
