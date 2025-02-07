@@ -157,7 +157,7 @@ class test_spicelib(unittest.TestCase):
     def test_run_from_spice_editor(self):
         """Run command on SpiceEditor"""
         print("Starting test_run_from_spice_editor")
-        LTC = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
+        runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator)
         # select spice model
         netlist = SpiceEditor(test_dir + "testfile.net")
         # set default arguments
@@ -171,15 +171,15 @@ class test_spicelib(unittest.TestCase):
         )
         # do parameter sweep
         for res in range(5):
-            # LTC.runs_to_do = range(2)
+            # runner.runs_to_do = range(2)
             netlist.set_parameters(ANA=res)
-            raw, log = LTC.run(netlist).wait_results()
+            raw, log = runner.run(netlist).wait_results()
             print("Raw file '%s' | Log File '%s'" % (raw, log))
-        LTC.wait_completion()
+        runner.wait_completion()
         # Sim Statistics
-        print('Successful/Total Simulations: ' + str(LTC.okSim) + '/' + str(LTC.runno))
-        self.assertEqual(LTC.okSim, 5)
-        self.assertEqual(LTC.runno, 5)
+        print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+        self.assertEqual(runner.okSim, 5)
+        self.assertEqual(runner.runno, 5)
 
     @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
     def test_sim_runner(self):
@@ -193,7 +193,7 @@ class test_spicelib(unittest.TestCase):
         # Forcing to use only one simulation at a time so that the bias file is created before
         # the next simulation is called. Alternatively, wait_completion() can be called after each run
         # or use run_now and call the callback_function manually.
-        LTC = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator, parallel_sims=1)
+        runner = SimRunner(output_folder=temp_dir, simulator=ltspice_simulator, parallel_sims=1)
         # select spice model
         SE = SpiceEditor(test_dir + "testfile.net")
         tstart = 0
@@ -205,22 +205,22 @@ class test_spicelib(unittest.TestCase):
             if tstart != 0:
                 SE.add_instruction(".loadbias {}".format(bias_file))
                 # Put here your parameter modifications
-                # LTC.set_parameters(param1=1, param2=2, param3=3)
+                # runner.set_parameters(param1=1, param2=2, param3=3)
             bias_file = "sim_loadbias_%d.txt" % tstop            
             SE.add_instruction(".savebias {} internal time={}".format(bias_file, tduration))
             tstart = tstop
-            LTC.run(SE, callback=callback_function)
+            runner.run(SE, callback=callback_function)
 
         SE.reset_netlist()
         SE.add_instruction('.ac dec 40 1m 1G')
         SE.set_component_value('V1', 'AC 1 0')
-        LTC.run(SE, callback=callback_function)
-        LTC.wait_completion()
+        runner.run(SE, callback=callback_function)
+        runner.wait_completion()
         
         # Sim Statistics
-        print('Successful/Total Simulations: ' + str(LTC.okSim) + '/' + str(LTC.runno))
-        self.assertEqual(LTC.okSim, 5)
-        self.assertEqual(LTC.runno, 5)        
+        print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+        self.assertEqual(runner.okSim, 5)
+        self.assertEqual(runner.runno, 5)        
 
     @unittest.skipIf(False, "Execute All")
     def test_ltsteps_measures(self):

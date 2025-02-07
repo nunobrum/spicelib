@@ -6,7 +6,7 @@ from spicelib.simulators.ltspice_simulator import LTspice
 simulator = r"C:\Users\nunob\AppData\Local\Programs\ADI\LTspice\LTspice.exe"
 
 # select spice model
-LTC = SimRunner(output_folder='./temp', simulator=LTspice.create_from(simulator))
+runner = SimRunner(output_folder='./temp', simulator=LTspice.create_from(simulator))
 
 netlist = AscEditor('./testfiles/Batch_Test.asc')
 # set default arguments
@@ -27,9 +27,9 @@ for opamp in ('AD712', 'AD820'):
         netlist['V1'].value = supply_voltage
         netlist['V2'].value = -supply_voltage
         print("simulating OpAmp", opamp, "Voltage", supply_voltage)
-        LTC.run(netlist)
+        runner.run(netlist)
 
-for raw, log in LTC:
+for raw, log in runner:
     print("Raw file: %s, Log file: %s" % (raw, log))
     # do something with the data
     # raw_data = RawRead(raw)
@@ -37,8 +37,8 @@ for raw, log in LTC:
     # ...
 
 # Sim Statistics
-print('Successful/Total Simulations: ' + str(LTC.okSim) + '/' + str(LTC.runno))
+print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
 
 enter = input("Press enter to delete created files")
 if enter == '':
-    LTC.file_cleanup()
+    runner.file_cleanup()

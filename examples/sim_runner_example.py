@@ -4,7 +4,7 @@ from spicelib import SpiceEditor
 from spicelib.simulators.ltspice_simulator import LTspice
 
 # select spice model
-LTC = SimRunner(simulator=LTspice, output_folder='./temp')
+runner = SimRunner(simulator=LTspice, output_folder='./temp')
 netlist = SpiceEditor('./testfiles/Batch_Test.net')
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6)
@@ -40,9 +40,9 @@ for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the fi
         else:
             opts.append('-norm')
 
-        LTC.run(netlist, switches=opts)
+        runner.run(netlist, switches=opts)
 
-for raw, log in LTC:
+for raw, log in runner:
     print("Raw file: %s, Log file: %s" % (raw, log))
     # do something with the data
     # raw_data = RawRead(raw)
@@ -58,8 +58,8 @@ netlist.add_instructions(
 )
 
 # Sim Statistics
-print('Successful/Total Simulations: ' + str(LTC.okSim) + '/' + str(LTC.runno))
+print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
 
 enter = input("Press enter to delete created files")
 if enter == '':
-    LTC.file_cleanup()
+    runner.file_cleanup()
