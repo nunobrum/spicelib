@@ -105,7 +105,7 @@ class QspiceLogReader(LogfileData):
         This function makes this call to QPOST and returns the measurement output file path.
 
         Note the call to QPOST includes the path to the circuit netlist. This is assumed to be the name of the
-        logfile, but with the '.net' extension.
+        logfile, but with the '.net' or '.cir' extension.
 
         :param meas_filename: This optional parameter specifies the measurement file name. If not given, it will
             assume the name of the log file but with the extension '.meas'.
@@ -116,7 +116,7 @@ class QspiceLogReader(LogfileData):
         if meas_filename is None:
             meas_filename = self.logname.with_suffix(".meas")
         elif not isinstance(meas_filename, Path):
-            meas_filename = Path
+            meas_filename = Path(meas_filename)
 
         if not Qspice.is_available():
             _logger.error("================== ALERT! ====================")
@@ -129,9 +129,12 @@ class QspiceLogReader(LogfileData):
         # Get the QPOST location, which is the same as the QSPICE location
         qpost = [Qspice.spice_exe[0].replace("QSPICE64.exe", "QPOST.exe")]
         # Guess the name of the .net file
-        netlist = self.logname.with_suffix('.net')
+        netlist = self.logname.with_suffix('.net').absolute()
+        if not Path.exists(netlist):
+            netlist = self.logname.with_suffix('.cir').absolute()
+                    
         # Run the QPOST command
-        cmd_run = qpost + [netlist.absolute(), "-o", meas_filename.absolute()]
+        cmd_run = qpost + [netlist, "-o", meas_filename.absolute()]
         _logger.debug(f"Running QPOST command: {cmd_run}")
         run_function(cmd_run)
         return meas_filename
