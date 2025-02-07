@@ -464,6 +464,23 @@ class test_spicelib(unittest.TestCase):
     @unittest.skipIf(False, "Execute All")
     def test_ac_analysis(self):
         """AC Analysis Test"""
+        
+        def checkresults(raw_file: str, R1: float, C1: float):
+            # Compute the RC AC response with the resistor and capacitor values from the netlist.
+            raw = RawRead(raw_file)
+            vout_trace = raw.get_trace('V(out)')
+            vin_trace = raw.get_trace('V(in)')
+            for point, freq in enumerate(raw.axis):
+                vout1 = vout_trace.get_point_at(freq)
+                vout2 = vout_trace.get_point(point)
+                vin = vin_trace.get_point(point)
+                self.assertEqual(vout1, vout2)
+                self.assertEqual(abs(vin), 1)
+                # Calculate the magnitude of the answer Vout = Vin/(1+jwRC)
+                h = vin / (1 + 2j * pi * freq * R1 * C1)
+                self.assertAlmostEqual(abs(vout1), abs(h), places=5, msg=f"{raw_file}: Difference between theoretical value ans simulation at point {point}")
+                self.assertAlmostEqual(angle(vout1), angle(h), places=5, msg=f"{raw_file}: Difference between theoretical value ans simulation at point {point}")
+        
         print("Starting test_ac_analysis")
         from numpy import pi, angle
         if has_ltspice:
@@ -479,21 +496,13 @@ class test_spicelib(unittest.TestCase):
             # log_file = test_dir + "AC_1.log"
             R1 = 100
             C1 = 10E-6
-        # Compute the RC AC response with the resistor and capacitor values from the netlist.
-        raw = RawRead(raw_file)
-        vout_trace = raw.get_trace('V(out)')
-        vin_trace = raw.get_trace('V(in)')
-        for point, freq in enumerate(raw.axis):
-            vout1 = vout_trace.get_point_at(freq)
-            vout2 = vout_trace.get_point(point)
-            vin = vin_trace.get_point(point)
-            self.assertEqual(vout1, vout2)
-            self.assertEqual(abs(vin), 1)
-            # Calculate the magnitude of the answer Vout = Vin/(1+jwRC)
-            h = vin / (1 + 2j * pi * freq * R1 * C1)
-            self.assertAlmostEqual(abs(vout1), abs(h), 5, f"Difference between theoretical value ans simulation at point {point}")
-            self.assertAlmostEqual(angle(vout1), angle(h), 5, f"Difference between theoretical value ans simulation at point {point}")
-
+        checkresults(raw_file, R1, C1)
+        
+        raw_file = test_dir + "AC_1.ascii.raw"
+        R1 = 100
+        C1 = 10E-6
+        checkresults(raw_file, R1, C1)
+        
     @unittest.skipIf(False, "Execute All")
     def test_ac_analysis_steps(self):
         """AC Analysis Test with steps"""
