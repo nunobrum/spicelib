@@ -40,8 +40,8 @@ for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the fi
         else:
             opts.append('-norm')
 
-        runner.run(netlist, switches=opts)
-
+        runner.run(netlist, switches=opts, exe_log=True)  # run, and log console output fo file
+        
 for raw, log in runner:
     print("Raw file: %s, Log file: %s" % (raw, log))
     # do something with the data

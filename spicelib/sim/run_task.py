@@ -32,6 +32,7 @@ import traceback
 from time import sleep
 from typing import Callable, Union, Any, Tuple, Type
 import logging
+import subprocess
 _logger = logging.getLogger("spicelib.RunTask")
 
 from .process_callback import ProcessCallback
@@ -67,7 +68,8 @@ class RunTask(threading.Thread):
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
                  callback: Union[Type[ProcessCallback], Callable[[Path, Path], Any]],
                  callback_args: dict = None,
-                 switches: Any = None, timeout: float = None, verbose=False):
+                 switches: Any = None, timeout: float = None, verbose: bool = False,
+                 exe_log: bool = False):
 
         super().__init__(name=f"RunTask#{runno}")
         self.start_time = None
@@ -84,6 +86,8 @@ class RunTask(threading.Thread):
         self.raw_file = None
         self.log_file = None
         self.callback_return = None
+        self.exe_log = exe_log
+        self.exe_log_file = None
 
     def print_info(self, logger_fun, message):
         message = f"RunTask #{self.runno}:{message}"
@@ -96,9 +100,16 @@ class RunTask(threading.Thread):
 
         self.start_time = clock_function()
         self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
+        if self.exe_log:
+            self.exe_log_file = self.netlist_file.with_suffix('.exe.log')
 
         # start execution
-        self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout)
+        if self.exe_log:
+            with open(self.exe_log_file, "w") as outfile:
+                self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout,
+                                                  stdout=outfile, stderr=subprocess.STDOUT)
+        else:
+            self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout)
         self.stop_time = clock_function()
         # print simulation time with format HH:MM:SS.mmmmmm
 
