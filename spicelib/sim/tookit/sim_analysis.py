@@ -153,7 +153,7 @@ class SimAnalysis(object):
 
     def cleanup_files(self):
         """Clears all simulation files. Typically used after a simulation run and analysis."""
-        self.runner.file_cleanup()
+        self.runner.cleanup_files()
 
     def simulation(self, index: int):
         """Returns a simulation object"""

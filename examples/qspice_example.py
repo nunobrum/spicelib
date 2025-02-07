@@ -41,4 +41,4 @@ print(results)
 # Sim Statistics
 print('Successful/Total Simulations: ' + str(sim.okSim) + '/' + str(sim.runno))
 input('Press Enter to delete simulation files...')
-sim.file_cleanup()
+sim.cleanup_files()

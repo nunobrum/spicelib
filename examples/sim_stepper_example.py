@@ -35,4 +35,4 @@ Stepper.run_all(callback=processing_data)
 
 # Sim Statistics
 print('Successful/Total Simulations: ' + str(Stepper.okSim) + '/' + str(Stepper.runno))
-runner.file_cleanup()
+runner.cleanup_files()

@@ -41,4 +41,4 @@ print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.ru
 
 enter = input("Press enter to delete created files")
 if enter == '':
-    runner.file_cleanup()
+    runner.cleanup_files()
