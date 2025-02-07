@@ -169,16 +169,17 @@ class LogfileData:
     def __getitem__(self, key):
         """
         __getitem__ implements
-        :key: step or measurement name
+        :key: step or measurement name. This is case insensitive.
         :return: step or measurement set
         :rtype: List[float]
         """
         if isinstance(key, slice):
             raise NotImplementedError("Slicing in not allowed in this class")
+        key = key.lower()
         if key in self.stepset:
             return self.stepset[key]
-        if key.lower() in self.dataset:
-            return self.dataset[key.lower()]  # This will raise an Index Error if not found here.
+        if key in self.dataset:
+            return self.dataset[key]  # This will raise an Index Error if not found here.
         raise IndexError("'%s' is not a valid step variable or measurement name" % key)
 
     def has_steps(self):
@@ -193,17 +194,18 @@ class LogfileData:
         """
         Returns the steps that contain a given condition.
 
-        :param param: parameter identifier on a stepped simulation
+        :param param: parameter identifier on a stepped simulation. This is case insensitive.
         :type param: str
         :param value:
         :type value:
         :return: List of positions that respect the condition of equality with parameter value
         :rtype: List[int]
         """
+        param = param.lower()
         if param in self.stepset:
             condition_set = self.stepset[param]
-        elif param.lower() in self.dataset:
-            condition_set = self.dataset[param.lower()]
+        elif param in self.dataset:
+            condition_set = self.dataset[param]
         else:
             raise IndexError("'%s' is not a valid step variable or measurement name" % param)
         # tries to convert the value to integer or float, for consistency with data loading implementation

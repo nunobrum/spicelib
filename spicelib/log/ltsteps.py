@@ -378,7 +378,7 @@ class LTSpiceLogReader(LogfileData):
                         lhs, rhs = tok.split("=")
                         # Try to convert to int or float
                         rhs = try_convert_value(rhs)
-
+                        lhs = lhs.lower()
                         ll = self.stepset.get(lhs, None)
                         if ll:
                             ll.append(rhs)
