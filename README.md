@@ -354,7 +354,8 @@ console messages without much value. Real time redirecting to the logger is unfo
 with the simultaneous runner. You can redirect the output for example with:
 
 ```python
-# force command console output to a separate file, named like the netlist file, but with extension ".exe.log"
+# force command console output to a separate file, which is
+# named like the netlist file, but with extension ".exe.log"
 runner.run(netlist, exe_log=True)
 ```
 
