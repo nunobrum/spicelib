@@ -409,6 +409,9 @@ class QschEditor(BaseSchematic):
                 symbol = 'X'
                 typ = 'X'
 
+            if refdes[0] != typ[0]:
+                refdes = typ[0] + '´' + refdes
+
             texts = symbol_tag.get_items('text')
             parameters = ""
             if len(texts) > 2:
