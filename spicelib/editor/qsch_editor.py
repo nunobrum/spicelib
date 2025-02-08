@@ -322,7 +322,10 @@ class QschTag:
                 raise IndexError(f"Label '{label}' not found in:{self}")
             else:
                 return default
-        return a[0].tokens[1]
+        if len(a[0].tokens) >= 2:
+            return a[0].tokens[1]
+        else:
+            return default
 
     def get_text_attr(self, index: int) -> str:
         """Returns the text of the attribute at the given index. Unlike get_attr, this method only returns strings."""
@@ -719,10 +722,9 @@ class QschEditor(BaseSchematic):
             return None, None
 
     def _qsch_file_find(self, filename) -> Optional[str]:
-        return search_file_in_containers(filename, 
-                                         *self.custom_lib_paths,
-                                         os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
-                                         *self.simulator_lib_paths)
+        containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
+        # '.'  is the directory where the script is located
+        return search_file_in_containers(filename, *containers)
 
     def get_subcircuit(self, reference: str) -> 'QschEditor':
         subcircuit = self.get_component(reference)
