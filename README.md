@@ -1,6 +1,7 @@
 # README <!-- omit in toc -->
+_current version: 1.3.8_
 
-spicelib is a toolchain of python utilities design to interact with spice simulators, as for example:
+*spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
 * LTspice
 * Ngspice
@@ -818,6 +819,8 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 
 ## History
 
+* Version 1.3.8
+  * Solving deprecation in GitHub artifact actions v3 -> v4
 * Version 1.3.7
   * Fixed Issue #143 - ltsteps example fixed 
   * Fixed Issue #141 - Raw file reader cannot handle complex values (AC analysis) in ASCII RAW files
