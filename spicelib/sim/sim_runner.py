@@ -327,7 +327,9 @@ class SimRunner(AnyRunner):
             callback: Union[Type[ProcessCallback], Callable] = None,
             callback_args: Union[tuple, dict] = None,
             switches=None,
-            timeout: float = None, run_filename: str = None) -> Union[RunTask, None]:
+            timeout: float = None,
+            run_filename: str = None,
+            exe_log: bool = False) -> Union[RunTask, None]:
         """
         Executes a simulation run with the conditions set by the user.
         Conditions are set by the set_parameter, set_component_value or add_instruction functions.
@@ -366,6 +368,10 @@ class SimRunner(AnyRunner):
         :type timeout: float, optional
         :param run_filename: Name to be used for the log and raw file.
         :type run_filename: str or Path
+        :param exe_log: If True, the simulator's execution console messages will be written to a log file 
+            (named ...exe.log) instead of console. This is especially useful when running under wine or when running
+            simultaneous tasks.
+        :type exe_log: bool, optional        
         :returns: The task object of type RunTask
         """
         callback_kwargs = self.validate_callback_args(callback, callback_args)
@@ -382,8 +388,12 @@ class SimRunner(AnyRunner):
             # inside the class.
 
             if (wait_resource is False) or (self.active_threads() < self.parallel_sims):
-                t = RunTask(self.simulator, self.runno, run_netlist_file, callback, callback_kwargs,
-                            cmdline_switches, timeout=timeout, verbose=self.verbose)
+                t = RunTask(
+                    simulator=self.simulator, runno=self.runno, netlist_file=run_netlist_file,
+                    callback=callback, callback_args=callback_kwargs,
+                    switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
+                    exe_log=exe_log
+                )                
                 self.active_tasks.append(t)
                 t.start()
                 sleep(0.01)  # Give slack for the thread to start
@@ -396,7 +406,7 @@ class SimRunner(AnyRunner):
             return None
 
     def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: str = None,
-                timeout: float = None) -> Tuple[str, str]:
+                timeout: float = None, exe_log: bool = False) -> Tuple[str, str]:
         """
         Executes a simulation run with the conditions set by the user.
         Conditions are set by the set_parameter, set_component_value or add_instruction functions.
@@ -412,6 +422,9 @@ class SimRunner(AnyRunner):
         :param timeout: Timeout to be used in waiting for resources. Default time is value defined in this class
             constructor.
         :type timeout: float, optional
+        :param exe_log: If True, the simulator's execution console messages will be written to a log file 
+            (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
+        :type exe_log: bool, optional
         :returns: the raw and log filenames
         """
         if switches is None:
@@ -431,7 +444,8 @@ class SimRunner(AnyRunner):
         t = RunTask(
             simulator=self.simulator, runno=self.runno, netlist_file=run_netlist_file,
             callback=dummy_callback, callback_args=None,
-            switches=cmdline_switches, timeout=timeout, verbose=self.verbose
+            switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
+            exe_log=exe_log
         )
         t.start()
         sleep(0.01)  # Give slack for the thread to start
@@ -574,6 +588,7 @@ class SimRunner(AnyRunner):
             netlistfile = task.netlist_file
             self._del_file_if_exists(netlistfile)  # Delete the netlist file if still exists
             self._del_file_if_exists(task.log_file)  # Delete the log file if was created
+            self._del_file_if_exists(netlistfile.with_suffix('.exe.log'))  # Delete the log file if was created
             self._del_file_if_exists(task.raw_file)  # Delete the raw file if was created
 
             if netlistfile.suffix == '.net' or netlistfile.suffix == '.asc':

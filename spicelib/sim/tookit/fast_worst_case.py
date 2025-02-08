@@ -78,7 +78,9 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             callback_args: Union[tuple, dict] = None,
             switches=None,
             timeout: float = None,
-            run_filename: str = None) -> None:
+            run_filename: str = None,
+            exe_log: bool = False,
+    ) -> None:
         raise NotImplementedError("run_testbench() is not implemented in this class")
 
     def run_analysis(self,
@@ -87,6 +89,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
                      switches=None,
                      timeout: float = None,
                      measure: str = None,
+                     exe_log: bool = True,
                      ):
         """
         As described in the class description, this method will perform a worst case analysis using a faster algorithm.
@@ -147,12 +150,11 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             task = self.run(
                 wait_resource=True,
                 callback=callback, callback_args=callback_args,
-                switches=switches, timeout=timeout)
+                switches=switches, timeout=timeout, exe_log=exe_log)
             self.wait_completion()
             # Get the results from the simulation
             log_data = self.add_log(task)
             return log_data.get_measure_value(measure)
-
 
         for ref in self.device_deviations:
             check_and_add_component(ref)
@@ -175,7 +177,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
         # Simulate the nominal case
         self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,
-                 switches=switches, timeout=timeout)
+                 switches=switches, timeout=timeout, exe_log=exe_log)
 
         # Sequence a change of a component value at a time, setting it to the maximum value
         for ref in self.elements_analysed:
@@ -183,7 +185,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             # Run the simulation
             self.run(wait_resource=True,
                      callback=callback, callback_args=callback_args,
-                     switches=switches, timeout=timeout)
+                     switches=switches, timeout=timeout, exe_log=exe_log)
         self.wait_completion()
         self.analysis_executed = True  # Need to set this to True, so that the next step can be executed
         self.testbench_executed = True  # Idem

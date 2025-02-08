@@ -99,6 +99,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
                      callback_args: Union[tuple, dict] = None,
                      switches=None,
                      timeout: float = None,
+                     exe_log: bool = True,
                      ):
         self.clear_simulation_data()
         self.elements_analysed.clear()
@@ -141,7 +142,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
         # Run the simulation in the nominal case
         self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,
-                 switches=switches, timeout=timeout)
+                 switches=switches, timeout=timeout, exe_log=exe_log)
         last_bit_setting = 0
         for run in range(last_run_number):
             # Preparing the variation on components, but only on the ones that have changed
@@ -173,7 +174,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
             # Run the simulation
             self.run(wait_resource=True,
                      callback=callback, callback_args=callback_args,
-                     switches=switches, timeout=timeout)
+                     switches=switches, timeout=timeout, exe_log=exe_log)
             last_bit_setting = bit_setting
         self.runner.wait_completion()
 

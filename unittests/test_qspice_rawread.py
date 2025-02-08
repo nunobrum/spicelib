@@ -146,7 +146,7 @@ class test_spicelib(unittest.TestCase):
         )
         # do parameter sweep
         for res in range(5):
-            # LTC.runs_to_do = range(2)
+            # runner.runs_to_do = range(2)
             netlist.set_parameters(ANA=res)
             raw, log = runner.run(netlist).wait_results()
             print("Raw file '%s' | Log File '%s'" % (raw, log))

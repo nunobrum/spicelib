@@ -13,7 +13,7 @@ def processing_data(raw_file, log_file):
 
 
 # select spice model
-sim = SimRunner(output_folder='./temp', simulator=Qspice.create_from('C:/Program Files/QSPICE/QSPICE64.exe'))
+runner = SimRunner(output_folder='./temp', simulator=Qspice.create_from('C:/Program Files/QSPICE/QSPICE64.exe'))
 netlist = SpiceEditor('./testfiles/testfile.net')
 # set default arguments
 netlist['R1'].value = '4k'
@@ -26,19 +26,19 @@ sim_no = 1
 # .step dec param cap 1p 10u 1
 for cap in sweep_log(1e-12, 10e-6, 10):
     netlist['C1'].value = cap
-    sim.run(netlist, callback=processing_data, run_filename=f'testfile_qspice_{sim_no}.net')
+    runner.run(netlist, callback=processing_data, run_filename=f'testfile_qspice_{sim_no}.net')
     sim_no += 1
 
 # Reading the data
 results = {}
-for raw_file, vout_max in sim:  # Iterate over the results of the callback function
+for raw_file, vout_max in runner:  # Iterate over the results of the callback function
     results[raw_file.name] = vout_max
 # The block above can be replaced by the following line
-# results = {raw_file.name: vout_max for raw_file, vout_max in sim}
+# results = {raw_file.name: vout_max for raw_file, vout_max in runner}
 
 print(results)
 
 # Sim Statistics
-print('Successful/Total Simulations: ' + str(sim.okSim) + '/' + str(sim.runno))
+print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
 input('Press Enter to delete simulation files...')
-sim.file_cleanup()
+runner.cleanup_files()

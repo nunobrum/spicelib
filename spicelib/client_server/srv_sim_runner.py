@@ -82,7 +82,7 @@ class ServerSimRunner(threading.Thread):
             if self._stop is True:
                 break
         self.runner.wait_completion()
-        self.runner.file_cleanup()  # Delete things that have been left behind
+        self.runner.cleanup_files()  # Delete things that have been left behind
 
     def add_simulation(self, netlist: Union[str, Path, BaseEditor], *, timeout: float = None) -> int:
         """
