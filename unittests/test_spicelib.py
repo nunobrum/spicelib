@@ -48,7 +48,7 @@ sys.path.append(
 from spicelib.log.ltsteps import LTSpiceLogReader
 from spicelib.raw.raw_read import RawRead
 from spicelib.editor.spice_editor import SpiceEditor
-from spicelib.sim.sim_runner import SimRunner
+from spicelib.sim.sim_runner import SimRunner, RunTask
 
 
 def has_ltspice_detect():
@@ -120,6 +120,17 @@ class test_spicelib(unittest.TestCase):
                 runner.run(editor, run_filename=run_netlist_file, callback=processing_data, exe_log=hide_exe_print_statements)
 
         runner.wait_completion()
+        for task in runner.completed_tasks:
+            task: RunTask
+            self.assertTrue(task.netlist_file.exists(), "Created the netlist")
+            self.assertTrue(task.raw_file.exists(), "Created the raw file")
+            self.assertTrue(task.log_file.exists(), "Created the log file")
+        runner.cleanup_files()
+        for task in runner.completed_tasks:
+            task: RunTask
+            self.assertFalse(task.netlist_file.exists(), "Deleted the netlist")
+            self.assertFalse(task.raw_file.exists(), "Deleted the raw file")
+            self.assertFalse(task.log_file.exists(), "Deleted the log file")
 
         # Sim Statistics
         print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))

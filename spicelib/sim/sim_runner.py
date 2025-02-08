@@ -327,7 +327,8 @@ class SimRunner(AnyRunner):
             callback: Union[Type[ProcessCallback], Callable] = None,
             callback_args: Union[tuple, dict] = None,
             switches=None,
-            timeout: float = None, run_filename: str = None,
+            timeout: float = None,
+            run_filename: str = None,
             exe_log: bool = False) -> Union[RunTask, None]:
         """
         Executes a simulation run with the conditions set by the user.
@@ -368,7 +369,8 @@ class SimRunner(AnyRunner):
         :param run_filename: Name to be used for the log and raw file.
         :type run_filename: str or Path
         :param exe_log: If True, the simulator's execution console messages will be written to a log file 
-            (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
+            (named ...exe.log) instead of console. This is especially useful when running under wine or when running
+            simultaneous tasks.
         :type exe_log: bool, optional        
         :returns: The task object of type RunTask
         """
@@ -586,7 +588,7 @@ class SimRunner(AnyRunner):
             netlistfile = task.netlist_file
             self._del_file_if_exists(netlistfile)  # Delete the netlist file if still exists
             self._del_file_if_exists(task.log_file)  # Delete the log file if was created
-            self._del_file_if_exists(task.exe_log_file)  # Delete the log file if was created
+            self._del_file_if_exists(netlistfile.with_suffix('.exe.log'))  # Delete the log file if was created
             self._del_file_if_exists(task.raw_file)  # Delete the raw file if was created
 
             if netlistfile.suffix == '.net' or netlistfile.suffix == '.asc':
