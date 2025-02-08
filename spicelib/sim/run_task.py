@@ -100,8 +100,17 @@ class RunTask(threading.Thread):
 
         self.start_time = clock_function()
         self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
+        if self.exe_log:
+            self.exe_log_file = self.netlist_file.with_suffix('.exe.log')
+
         # start execution
-        self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout, exe_log=self.exe_log)
+        if self.exe_log:
+            # I handle the log file here, and not let simulator.run do it, because I want to be able to delete the log file on cleanup. 
+            with open(self.exe_log_file, "w") as outfile:
+                self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout,
+                                                  stdout=outfile, stderr=subprocess.STDOUT)
+        else:
+            self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout)
         self.stop_time = clock_function()
         # print simulation time with format HH:MM:SS.mmmmmm
 
