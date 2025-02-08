@@ -814,8 +814,9 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 
 * Version 1.3.6
   * Fixed Issue #140 and #131 - Compatibility with LTspice 24+
-  * Fixed issue #137 - More default library paths
+  * Fixed Issue #137 - More default library paths
   * Fixed Issue #127 - Points on PARAM values
+  * Fixed Issue #130 - allow .cir files in QspiceLogReader
 * Version 1.3.5
   * Issue #124 Fixed - Problem with .PARAM regex.
   * Using Poetry for generating the wheel packages
