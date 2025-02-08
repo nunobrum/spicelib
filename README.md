@@ -274,6 +274,8 @@ The example above is using the SpiceEditor to modify a spice netlist, but it is 
 
 The **LTspice** class tries to detect the correct path of the LTspice installation depending on the platform. On Linux it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is severely limited.
 
+If you use the native LTspice, please make sure that you have installed the libraries via Settings: `Operation` tab, `Model Update` button.
+
 **Ngspice** runs natively under Windows, Linux and MacOS (via brew). This library works with Ngspice CLI, and tries to detect the correct executable path, no matter the platform. It cannot (yet) work with the shared library version of Ngspice that is delivered with for example Kicad, you will need to install the CLI version. You can however use Kicad as the schema editor and subsequently save the Ngspice netlist to use it with this library.
 
 For the other simulators, built-in Linux/MacOS support is coming, but you can always try to use it under Linux via setting of the executable paths.
@@ -813,8 +815,9 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 * Version 1.3.6
   * Fixed Issue #141 - Raw file reader cannot handle complex values (AC analysis) in ASCII RAW files
   * Fixed Issue #140 and #131 - Compatibility with LTspice 24+
-  * Fixed issue #137 - More default library paths
+  * Fixed Issue #137 - More default library paths
   * Fixed Issue #127 - Points on PARAM values
+  * Fixed Issue #130 - allow .cir files in QspiceLogReader
   * Minor issues in the examples
 * Version 1.3.5
   * Issue #124 Fixed - Problem with .PARAM regex.

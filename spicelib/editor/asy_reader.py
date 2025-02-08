@@ -273,9 +273,9 @@ class AsyReader(object):
     def get_library(self) -> str:
         """Returns the library name of the model. If not found, returns None."""
         # Searching in this exact order
-        suffixes = ('.lib', '.sub', '.cir', '.txt')
+        suffixes = ('.lib', '.sub', '.cir', '.txt')  # must be lowercase here
         for attr in ('ModelFile', 'SpiceModel', 'SpiceLine', 'SpiceLine2', 'Def_Sub', 'Value', 'Value2'):
-            if attr in self.attributes and (self.attributes[attr].endswith(suffixes)):
+            if attr in self.attributes and (self.attributes[attr].lower().endswith(suffixes)):
                 return self.attributes[attr]
         return self.attributes.get('SpiceModel')
 
