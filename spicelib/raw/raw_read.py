@@ -713,7 +713,7 @@ class RawRead(object):
                     # assert isinstance(trace, DataSet)
                     return trace
             for alias in self.aliases:
-                if alias.casefold() == alias.casefold():
+                if trace_ref.casefold() == alias.casefold():
                     return self._compute_alias(alias)
             raise IndexError(f"{self} doesn't contain trace \"{trace_ref}\"\n"
                              f"Valid traces are {[trc.name for trc in self._traces]}")
