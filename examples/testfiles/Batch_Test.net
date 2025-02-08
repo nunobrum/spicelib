@@ -4,7 +4,7 @@ R1 N001 0 10K
 R2 OUT N001 10K
 V2 -V 0 -15
 V3 IN 0 SINE(0 1 {freq})
-X§U1 IN N001 +V -V OUT AD820
+X§U1 IN N001 +V -V OUT AD820_ALT
 .tran 1m
 .meas TRAN Vout_rms RMS V(OUT)
 .meas TRAN Vin_rms RMS V(IN)
@@ -12,10 +12,11 @@ X§U1 IN N001 +V -V OUT AD820
 .param freq=10k
 .meas Vout1m FIND V(OUT) AT 1m
 .meas TRAN period FIND time WHEN V(out)=0 RISE=1
+.param test_param2 = 10
 .param test_param3 = test_param2 + 1
-.param test_param1 = 12  test_param2=10
+.param test_param1 = 12
 * .step dec param freq 10k 1Meg 10
-.subckt AD820 1 2 3 4 5
+.subckt AD820_ALT 1 2 3 4 5
 A1 N009 0 0 0 0 0 N005 0 OTA g=66u Iout=40u Vhigh=1e308 Vlow=-1e308
 C12 3 2 .25p Rser=2k noiseless
 B3 0 N006 I=1m*dnlim(uplim(V(1),V(3)-.9,.1), V(4)-.2, .1)+100n*V(1)-941.26p

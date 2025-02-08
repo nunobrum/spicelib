@@ -65,6 +65,7 @@ for results in runner:
     print(results)
 
 netlist.reset_netlist()
+netlist.remove_Xinstruction(r"\.meas TRAN.*")  # This is now needed because LTspice no longer supports cross
 netlist.add_instructions(   # Adding additional instructions
         "; Simulation settings",
         ".ac dec 30 10 1Meg",

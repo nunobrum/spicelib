@@ -250,11 +250,11 @@ class ToleranceDeviations(SimAnalysis, ABC):
         # The code below makes the run measure (if it exists) available on the stepset.
         # Note: this was only tested with LTSpice
         if len(self.log_data.stepset) == 0:
-            if 'run' in self.log_data.dataset and len(self.log_data.dataset['run']) > 0:
-                if isinstance(self.log_data.dataset['run'][0], LTComplex):
-                    self.log_data.stepset = {'run': [round(val.real) for val in self.log_data.dataset['run']]}
+            if 'runm' in self.log_data.dataset and len(self.log_data.dataset['runm']) > 0:
+                if isinstance(self.log_data.dataset['runm'][0], LTComplex):
+                    self.log_data.stepset = {'run': [round(val.real) for val in self.log_data.dataset['runm']]}
                 else:
-                    self.log_data.stepset = {'run': self.log_data.dataset['run']}
+                    self.log_data.stepset = {'run': self.log_data.dataset['runm']}
             else:
                 # auto assign a step starting from 0 and incrementing by 1
                 # will use the size of the first element found in the dataset

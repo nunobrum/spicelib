@@ -149,7 +149,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
         self._reset_netlist()  # reset the netlist
         self.play_instructions()  # play the instructions
         self.editor.set_parameter('run', -1)  # This is aligned with the testbench preparation
-        self.editor.add_instruction(".meas run PARAM {run}")
+        self.editor.add_instruction(".meas runm PARAM {run}")
         # Simulate the nominal case
         self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,

@@ -1,7 +1,7 @@
 * C:\sandbox\spicelib_dev\examples\testfiles\Noise.asc
 V1 in 0 10V
 R1 out in 1k
-C1 out 0 1µ
+C1 out 0 1Âµ
 .noise V(out) V1 oct 10 1m 10Meg
 .backanno
 .end

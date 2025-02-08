@@ -137,7 +137,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
         self.play_instructions()  # play the instructions
         # Add the run number to the measurements by using a parameter
         self.editor.set_parameter('run', -1)  # in case the step is commented.
-        self.editor.add_instruction(".meas run PARAM {run}")
+        self.editor.add_instruction(".meas runm PARAM {run}")
         # Run the simulation in the nominal case
         self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,
@@ -187,7 +187,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
         log_data: LogfileData = self.read_logfiles()
         # if applicable, the run parameter shall be transformed into an int
         runs = []
-        for run in log_data.dataset['run']:
+        for run in log_data.dataset['runm']:
             if isinstance(run, complex):
                 runs.append(int(round(run.real, 0)))
             else:

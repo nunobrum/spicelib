@@ -17,7 +17,7 @@ netlist['R1'].set_params(temp=100, tc=0.000050, pwr=None)  # Alternative way of 
 netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
 netlist['V3'].model = "SINE(0 1 3k 0 0 0)"  # Alternative way of modifying the behaviour. Same as the above.
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a component in the subcircuit XU1 instance
-netlist.get_subcircuit_named('AD820')['C13'].value = '2p'  # This changes the value of C13 inside the subcircuit AD820.
+netlist.get_subcircuit_named('AD820_ALT')['C13'].value = '2p'  # This changes the value of C13 inside the subcircuit AD820.
 # Applies to all instances of the subcircuit
 netlist.add_instructions(
     "; Simulation settings",

@@ -14,7 +14,7 @@ netlist.set_parameters(res=0, cap=100e-6)
 netlist['R2'].value = '2k'  # Modifying the value of a resistor
 netlist['R1'].value = '4k'
 netlist['V3'].value = "SINE(0 1 3k 0 0 0)"
-netlist.set_component_value('XU1:C2', 20e-12)  # modifying a component in a subcircuit
+# netlist.set_component_value('U1:C2', 20e-12)  # modifying a component in a subcircuit
 # define simulation
 netlist.add_instructions(
     "; Simulation settings",
@@ -22,7 +22,7 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 
-for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the file and will mess up newer LTspice versions
+for opamp in ('AD712', 'AD820_ALT'):
     netlist['U1'].model = opamp
     for supply_voltage in (5, 10, 15):
         netlist['V1'].value = supply_voltage
