@@ -205,7 +205,7 @@ from spicelib import SpiceEditor
 from spicelib.simulators.ltspice_simulator import LTspice
 
 # select spice model
-LTC = SimRunner(simulator=LTspice, output_folder='./temp')
+runner = SimRunner(simulator=LTspice, output_folder='./temp')
 netlist = SpiceEditor('./testfiles/Batch_Test.net')
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6)
@@ -241,9 +241,9 @@ for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the fi
         else:
             opts.append('-norm')
 
-        LTC.run(netlist, switches=opts)
-
-for raw, log in LTC:
+        runner.run(netlist, switches=opts, exe_log=True)  # run, and log console output fo file
+        
+for raw, log in runner:
     print("Raw file: %s, Log file: %s" % (raw, log))
     # do something with the data
     # raw_data = RawRead(raw)
@@ -259,11 +259,11 @@ netlist.add_instructions(
 )
 
 # Sim Statistics
-print('Successful/Total Simulations: ' + str(LTC.okSim) + '/' + str(LTC.runno))
+print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
 
 enter = input("Press enter to delete created files")
 if enter == '':
-    LTC.file_cleanup()
+    runner.cleanup_files()
 ```
 
 -- in examples/sim_runner_example.py
@@ -348,15 +348,29 @@ AscEditor.set_custom_library_paths("/mypath/lib/sub",
 
 #### Runner log redirection
 
-When you use wine (on Linux or MacOS) or a simulator like NGspice, you may want to redirect the output of `run()`, as 
-it prints a lot of messages without much value. Real time redirecting to the logger is unfortunately not easy. You can 
-redirect the output for example with:
+When you use wine (on Linux or MacOS) or a simulator like NGspice, or if you run simultaneous simulators,
+you may want to redirect the output of `run()` or `run_now()` or `create_netlist()`, as it prints a lot of
+console messages without much value. Real time redirecting to the logger is unfortunately not easy, especially
+with the simultaneous runner. You can redirect the output for example with:
 
 ```python
-# force command output to a separate file
-with open(processlogfile, "w") as outfile:
-    runner.run(netlist, timeout=None, stdout=outfile, stderr=subprocess.STDOUT)
+# force command console output to a separate file, which is
+# named like the netlist file, but with extension ".exe.log"
+runner.run(netlist, exe_log=True)
 ```
+
+This is supported on both the SimRunner and directly on the various simulators (LTspice,..).
+The runner client server function (see `SimClient`) does not (yet) support this, but it is less bothersome there.
+
+If you want more control, use the following construction:
+
+```python
+# force command console output appending to a separate file
+with open(processlogfile, "a") as outfile:
+    sim.run(netlist_fname, timeout=None, stdout=outfile, stderr=subprocess.STDOUT)
+```
+
+This last style is only possible directly on the simulator objects.
 
 #### Adding search paths for symbols and library files
 
@@ -369,6 +383,7 @@ from spicelib import AscEditor
 
 AscEditor.set_custom_library_paths([r"C:\work\MyLTspiceSymbols", r"C:\work\MyLTspiceLibraries"])
 ```
+
 The user can specify one or more search paths. Note that each call to this method will invalidate previously set search 
 paths. Also, note that this is a class method in all available editors, [SpiceEditor, AscEditor and QschEditor], this 
 means that updating one instantiation, will update all other instances of the same class.
@@ -815,6 +830,7 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 * Version 1.3.6
   * Fixed Issue #141 - Raw file reader cannot handle complex values (AC analysis) in ASCII RAW files
   * Fixed Issue #140 and #131 - Compatibility with LTspice 24+
+  * Fixed Issue #145 - Allow easy hiding of simulator's console message
   * Fixed Issue #137 - More default library paths
   * Fixed Issue #127 - Points on PARAM values
   * Fixed Issue #130 - allow .cir files in QspiceLogReader

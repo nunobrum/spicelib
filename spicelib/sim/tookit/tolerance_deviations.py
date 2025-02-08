@@ -165,7 +165,9 @@ class ToleranceDeviations(SimAnalysis, ABC):
                       callback_args: Union[tuple, dict] = None,
                       switches=None,
                       timeout: float = None,
-                      run_filename: str = None):
+                      run_filename: str = None,
+                      exe_log: bool = False,
+                      ):
         """
         Runs the simulations.
         :param runs_per_sim: Maximum number of runs per simulation. If the number of runs is higher than this
@@ -178,6 +180,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
         :param switches: A dictionary with the switches to be passed to the simulator.
         :param timeout: A timeout in seconds. If the simulation is not completed in this time, it will be aborted.
         :param run_filename: The name of the file to be used for the simulation. If None, a temporary file will be used.
+        :param exe_log: Sends the execution log_file to a file "netlist_name.exe.log".
         :return: The callback returns of every batch if a callback function is given. Otherwise, None.
         """
         if self.testbench_prepared is False:
@@ -186,7 +189,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
             self.prepare_testbench()
         else:
             self.play_instructions()
-        self.editor.remove_instruction(".step param run -1 %d 1" % self.last_run_number)  # Needs to remove this instruction
+        self.editor.remove_instruction(".step param run -1 %d 1" % self.last_run_number)  # removes this instruction
         self.clear_simulation_data()
         # calculate the ideal number of runs per simulation to avoid orphan runs. This is to avoid having a simulation
         # with only one run. Which poses a problem for .step instruction
@@ -204,7 +207,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
             self.editor.add_instruction(run_stepping)
             sim = self.runner.run(self.editor, wait_resource=wait_resource, callback=callback,
                                   callback_args=callback_args, switches=switches, timeout=timeout,
-                                  run_filename=run_filename)
+                                  run_filename=run_filename, exe_log=exe_log)
             self.simulations.append(sim)
             self.editor.remove_instruction(run_stepping)
         self.runner.wait_completion()
@@ -271,6 +274,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
                      callback_args: Union[tuple, dict] = None,
                      switches=None,
                      timeout: float = None,
+                     exe_log: bool = True,
                      ):
         """The override of this method should set the self.analysis_executed to True"""
         ...

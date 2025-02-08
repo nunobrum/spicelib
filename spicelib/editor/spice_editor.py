@@ -782,7 +782,7 @@ class SpiceCircuit(BaseEditor):
 
         Usage: ::
 
-         LTC.set_parameter("TEMP", 80)
+         runner.set_parameter("TEMP", 80)
 
         This adds onto the netlist the following line: ::
 
@@ -822,8 +822,8 @@ class SpiceCircuit(BaseEditor):
         For components inside sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
         Usage: ::
 
-            LTC.set_component_value('R1', '3.3k')
-            LTC.set_component_value('X1:C1', '10u')
+            runner.set_component_value('R1', '3.3k')
+            runner.set_component_value('X1:C1', '10u')
 
         :param reference: Reference of the circuit element to be updated.
         :type reference: str
@@ -849,8 +849,8 @@ class SpiceCircuit(BaseEditor):
         """Changes the value of a circuit element, such as a diode model or a voltage supply.
         Usage: ::
 
-            LTC.set_element_model('D1', '1N4148')
-            LTC.set_element_model('V1' "SINE(0 1 3k 0 0 0)")
+            runner.set_element_model('D1', '1N4148')
+            runner.set_element_model('V1' "SINE(0 1 3k 0 0 0)")
 
         :param reference: Reference of the circuit element to be updated.
         :type reference: str
@@ -1275,5 +1275,5 @@ class SpiceEditor(SpiceCircuit):
         Convenience function for maintaining legacy with legacy code. Runs the SPICE simulation.
         """
         from ..sim.sim_runner import SimRunner
-        Sim = SimRunner(simulator=simulator)
-        return Sim.run(self, wait_resource=wait_resource, callback=callback, timeout=timeout, run_filename=run_filename)
+        runner = SimRunner(simulator=simulator)
+        return runner.run(self, wait_resource=wait_resource, callback=callback, timeout=timeout, run_filename=run_filename)

@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Union
 import logging
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
+import subprocess
 
 _logger = logging.getLogger("spicelib.XYCESimulator")
 
@@ -126,8 +127,10 @@ class XyceSimulator(Simulator):
         return ret
 
     @classmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None) -> int:
-        """Executes a LTspice simulation run.
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, 
+            stdout=None, stderr=None,
+            exe_log: bool = False) -> int:
+        """Executes a Xyce simulation run.
 
         :param netlist_file: path to the netlist file
         :type netlist_file: Union[str, Path]
@@ -135,10 +138,15 @@ class XyceSimulator(Simulator):
         :type cmd_line_switches: list, optional
         :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
         :type timeout: float, optional
-        :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), and an existing file object with a valid file descriptor. With the default settings of None, no redirection will occur. 
+        :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), 
+            and an existing file object with a valid file descriptor. 
+            With the default settings of None, no redirection will occur. Also see `exe_log` for a simpler form of control.
         :type stdout: _FILE, optional
-        :param stderr: Like stdout, but affecting the command's error output.
+        :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
+        :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
+            (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
+        :type exe_log: bool, optional            
         :raises SpiceSimulatorError: when the executable is not found.
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :return: return code from the process
@@ -160,4 +168,10 @@ class XyceSimulator(Simulator):
         
         cmd_run = cls.spice_exe + cmd_line_switches + [netlist_file]
         # start execution
-        return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
+        if exe_log:
+            log_exe_file = netlist_file.with_suffix('.exe.log')
+            with open(log_exe_file, "w") as outfile:
+                error = run_function(cmd_run, timeout=timeout, stdout=outfile, stderr=subprocess.STDOUT)
+        else:        
+            error = run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
+        return error
