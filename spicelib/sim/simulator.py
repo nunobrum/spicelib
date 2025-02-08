@@ -172,7 +172,8 @@ class Simulator(ABC):
 
     @classmethod
     @abstractmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None) -> int:
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None,
+            stdout=None, stderr=None, exe_log: bool = False) -> int:
         """This method implements the call for the simulation of the netlist file. This should be overriden by its
         subclass."""
         raise SpiceSimulatorError("This class should be subclassed and this function should be overridden.")
