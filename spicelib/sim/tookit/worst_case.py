@@ -105,6 +105,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
                      callback_args: Union[tuple, dict] = None,
                      switches=None,
                      timeout: float = None,
+                     exe_log: bool = True,
                      ):
         """This method runs the analysis without updating the netlist.
         It will update component values and parameters according to their deviation type and call the simulation.
@@ -153,7 +154,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
         # Simulate the nominal case
         self.run(wait_resource=True,
                  callback=callback, callback_args=callback_args,
-                 switches=switches, timeout=timeout)
+                 switches=switches, timeout=timeout, exe_log=exe_log)
         self.runner.wait_completion()
         # Simulate the worst case
         last_run = self.last_run_number  # Sets all valid bits to 1
@@ -185,7 +186,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
             # Run the simulation
             self.run(wait_resource=True,
                      callback=callback, callback_args=callback_args,
-                     switches=switches, timeout=timeout)
+                     switches=switches, timeout=timeout, exe_log=exe_log)
             last_run = run
         self.runner.wait_completion()
 

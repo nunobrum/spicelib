@@ -78,7 +78,10 @@ class SimAnalysis(object):
             callback: Union[Type[ProcessCallback], Callable] = None,
             callback_args: Union[tuple, dict] = None,
             switches=None,
-            timeout: float = None, run_filename: str = None) -> Union[RunTask, None]:
+            timeout: float = None,
+            run_filename: str = None,
+            exe_log: bool = True,
+            ) -> Union[RunTask, None]:
         """
         Runs the simulations. See runner.run() method for details on arguments.
         """
@@ -88,7 +91,8 @@ class SimAnalysis(object):
                               callback_args=callback_args,
                               switches=switches,
                               timeout=timeout,
-                              run_filename=run_filename)
+                              run_filename=run_filename,
+                              exe_log=exe_log)
         if sim is not None:
             self.simulations.append(sim)
             return sim

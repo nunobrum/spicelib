@@ -180,6 +180,7 @@ class Montecarlo(ToleranceDeviations):
                      switches=None,
                      timeout: float = None,
                      num_runs: int = 1000,
+                     exe_log: bool = True
                      ):
         """This method runs the analysis without updating the netlist.
         It will update component values and parameters according to their deviation type and call the simulation.
@@ -205,7 +206,7 @@ class Montecarlo(ToleranceDeviations):
             # Run the simulation
             rt = self.run(wait_resource=True,
                           callback=callback, callback_args=callback_args,
-                          switches=switches, timeout=timeout)
+                          switches=switches, timeout=timeout, exe_log=exe_log)
 
         self.runner.wait_completion()
         if callback is not None:
