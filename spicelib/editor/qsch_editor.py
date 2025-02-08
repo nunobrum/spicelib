@@ -722,8 +722,8 @@ class QschEditor(BaseSchematic):
             return None, None
 
     def _qsch_file_find(self, filename) -> Optional[str]:
-        containers = [os.path.split(self._qsch_file_path)[0],  # The directory where the script is located
-                      '.'] + self.custom_lib_paths + self.simulator_lib_paths
+        containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
+        # '.'  is the directory where the script is located
         return search_file_in_containers(filename, *containers)
 
     def get_subcircuit(self, reference: str) -> 'QschEditor':
