@@ -25,7 +25,7 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 alt_solver = True
-for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the file and will mess up newer LTspice versions
+for opamp in ('AD712', 'AD820_ALT_XU1'):  # When updating an instance, the instance name gets appended to the subcircuit
     netlist['XU1'].model = opamp
     # or netlist.set_element_model('XU1', opamp)
     for supply_voltage in (5, 10, 15):

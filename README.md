@@ -218,7 +218,7 @@ netlist['R1'].set_params(temp=100, tc=0.000050, pwr=None)  # Alternative way of 
 netlist.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
 netlist['V3'].model = "SINE(0 1 3k 0 0 0)"  # Alternative way of modifying the behaviour. Same as the above.
 netlist.set_component_value('XU1:C2', 20e-12)  # modifying a component in the subcircuit XU1 instance
-netlist.get_subcircuit_named('AD820')['C13'].value = '2p'  # This changes the value of C13 inside the subcircuit AD820.
+netlist.get_subcircuit_named('AD820_ALT')['C13'].value = '2p'  # This changes the value of C13 inside the subcircuit AD820.
 # Applies to all instances of the subcircuit
 netlist.add_instructions(
     "; Simulation settings",
@@ -226,7 +226,7 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 alt_solver = True
-for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the file and will mess up newer LTspice versions
+for opamp in ('AD712', 'AD820_ALT_XU1'):  # When updating an instance, the instance name gets appended to the subcircuit
     netlist['XU1'].model = opamp
     # or netlist.set_element_model('XU1', opamp)
     for supply_voltage in (5, 10, 15):

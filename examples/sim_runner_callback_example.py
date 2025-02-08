@@ -48,7 +48,7 @@ netlist.set_parameter('run', 0)
 
 use_run_now = False
 
-for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the file and will mess up newer LTspice versions
+for opamp in ('AD712', 'AD820_ALT'):  # don't use AD820, it is defined in the file and will mess up newer LTspice versions
     netlist['XU1'].model = opamp
     for supply_voltage in (5, 10, 15):
         netlist['V1'].value = supply_voltage
