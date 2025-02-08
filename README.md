@@ -362,15 +362,6 @@ runner.run(netlist, exe_log=True)
 This is supported on both the SimRunner and directly on the various simulators (LTspice,..).
 The runner client server function (see `SimClient`) does not (yet) support this, but it is less bothersome there.
 
-If you want more control, use the following construction:
-
-```python
-# force command console output appending to a separate file
-with open(processlogfile, "a") as outfile:
-    sim.run(netlist_fname, timeout=None, stdout=outfile, stderr=subprocess.STDOUT)
-```
-
-This last style is only possible directly on the simulator objects.
 
 #### Adding search paths for symbols and library files
 
@@ -827,14 +818,19 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 
 ## History
 
-* Version 1.3.6
+* Version 1.3.7
+  * Fixed Issue #143 - ltsteps example fixed 
   * Fixed Issue #141 - Raw file reader cannot handle complex values (AC analysis) in ASCII RAW files
   * Fixed Issue #140 and #131 - Compatibility with LTspice 24+
   * Fixed Issue #145 - Allow easy hiding of simulator's console message
   * Fixed Issue #137 - More default library paths
-  * Fixed Issue #127 - Points on PARAM values
   * Fixed Issue #130 - allow .cir files in QspiceLogReader
+  * Fixed Issue #129 - Hiearchical Schematic in QSpice (.qsch)
+  * Fixed issue with alias finding in RawRead
+  * Fixed Issue #122 - QSpice netlist generation when component designator is not aligned with prefix
   * Minor issues in the examples
+* Version 1.3.6
+  * Fixed Issue #127 - Points on PARAM values
 * Version 1.3.5
   * Issue #124 Fixed - Problem with .PARAM regex.
   * Using Poetry for generating the wheel packages
