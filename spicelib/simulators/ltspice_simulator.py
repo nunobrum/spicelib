@@ -42,6 +42,7 @@ class LTspice(Simulator):
                             "~/Local Settings/Application Data/Programs/ADI/LTspice/LTspice.exe",
                             "C:/Program Files/ADI/LTspice/LTspice.exe",
                             "C:/Program Files/LTC/LTspiceXVII/XVIIx64.exe",
+                            "C:/Program Files (x86)/LTC/LTspiceXVII/XVIIx64.exe",
                             "C:/Program Files (x86)/LTC/LTspiceIV/scad3.exe"
                             ]
     
