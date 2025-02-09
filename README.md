@@ -818,9 +818,6 @@ _Make sure to initialize the root logger before importing the library to be able
 For support and improvement requests please open an Issue in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
-* Version 1.4.0
-  * Regressing to Python 3.8
-  * Fixed PyLTspice Issue 146 - Adding legacy python path
 * Version 1.3.8
   * Solving deprecation in GitHub artifact actions v3 -> v4
 * Version 1.3.7
