@@ -12,7 +12,7 @@ license = "GPL-3.0"
 keywords = ["spice", "ltspice", "qspice", "ngspice", "electronic simulator", "montecarlo", "worst-case"]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.9"
 numpy = "*"
 scipy = "*"
 psutil = "*"
