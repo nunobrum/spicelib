@@ -820,9 +820,9 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 ## History
 
 * Version TBD
-  * Fixed issue #139 - support xyce raw files
+  * Fixed Issue #139 - support xyce raw files
 * Version 1.4.0 (Python 3.9+ only)
-  * Fixed Isseue #152 - python version compatibility too limited on PyPi.
+  * Fixed Issue #152 - python version compatibility too limited on PyPi.
 * Version 1.3.8
   * Solving deprecation in GitHub artifact actions v3 -> v4
 * Version 1.3.7
