@@ -348,7 +348,7 @@ class RawRead(object):
     :type traces_to_read: str, list or tuple
     :param dialect: The simulator used. 
         Please use from ["ltspice","qspice","ngspice","xyce"]. If not specified, dialect will be auto detected. 
-        This is likely only needed for older versions of ngspice, and for xyce. ltspice and qspice can normally be auto detected.
+        This is likely only needed for older versions of ngspice and xyce. ltspice and qspice can reliably be auto detected.
     :type dialect: str    
     :key headeronly:
         Used to only load the header information and skip the trace data entirely. Use `headeronly=True`.
@@ -461,7 +461,7 @@ class RawRead(object):
         # Cannot be auto detected yet (at least not on 7.9, where there is no "Command:")
         #  Flags: real (for time) and complex (for frequency)
         #  Binary types: always double for time, complex for AC
-        #  and a text section that follows. No idea yet what to do with it.
+        #  and potentially a text (csv) section that follows, that can be ignored.
         
         if dialect is None or len(dialect) == 0:
             # autodetect is needed
@@ -517,7 +517,7 @@ class RawRead(object):
         
         check_raw_size = True
         if reading_xyce:
-            # xyce has a text section that follows the data section (be it ascii or binary). 
+            # Older xyce files can have a text section that follows the data section (be it ascii or binary). 
             # We need to ignore it.
             check_raw_size = False
         
@@ -544,7 +544,6 @@ class RawRead(object):
             var_type = line_elmts[2]
             if ivar == 0:  # If it has an axis, it should be always read
                 # TODO: check for ngspice and xyce
-                # TODO: make unit tests qith test files for all cases, .ac and .step
                 if numerical_type == 'real':
                     axis_numerical_type = 'double'  # It's weird, but LTSpice uses double for the first variable in .OP
                 else:
