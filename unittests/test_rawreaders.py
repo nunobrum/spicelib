@@ -196,8 +196,8 @@ class RawReader_Test(unittest.TestCase):
                 
                 print(f"tracenames: {raw.get_trace_names()}")
                 self.assertEqual(raw.get_trace_names(), testset[simulator]["tran"]["expected_tracenames"], "Difference in trace names")
-                print(f"tracelen: {len(raw.get_trace("time").data)}")
                 tracelen = len(raw.get_trace("time").data)
+                print(f"tracelen: {tracelen}")
                 expected_tracelen = testset[simulator]["tran"]["expected_tracelen"]
                 if isinstance(expected_tracelen, int):
                     self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
