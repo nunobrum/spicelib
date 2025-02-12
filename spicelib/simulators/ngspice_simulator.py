@@ -174,7 +174,9 @@ class NGspiceSimulator(Simulator):
             _logger.error("A specific location of the NGSPICE can be set")
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
-            raise SpiceSimulatorError("Simulator executable not found.")    
+            raise SpiceSimulatorError("Simulator executable not found.")
+        
+        # note: if you want ascii raw files, use "-D filetype=ascii"
         
         if cmd_line_switches is None:
             cmd_line_switches = []

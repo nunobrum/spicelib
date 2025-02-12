@@ -32,6 +32,10 @@ class XyceSimulator(Simulator):
     """Stores the simulator location and command line options and runs simulations."""
     spice_exe = ["C:/Program Files/Xyce 7.6 NORAD/bin/xyce.exe"]
     process_name = "XVIIx64.exe"
+    
+    # TODO: allow direct use under Linux or MacOS, like:
+    # /usr/local/Xyce-Release-7.9.0-NORAD/bin/xyce
+    
     xyce_args = {
         '-b'                : ['-b'],  # batch mode flag for spice compatibility (ignored)
         '-h'                : ['-h'],  # print usage and exit

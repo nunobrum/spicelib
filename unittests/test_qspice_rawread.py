@@ -455,9 +455,9 @@ class test_spicelib(unittest.TestCase):
             self.assertEqual(vout1, vout2)
             self.assertEqual(abs(vin), 1)
             # Calculate the magnitude of the answer Vout = Vin/(1+jwRC)
-            h = vin/(1 + 2j * pi * freq * R1 * C1)
-            self.assertAlmostEqual(abs(vout1), abs(h), 5, f"Difference between theoretical value ans simulation at point {point}")
-            self.assertAlmostEqual(angle(vout1), angle(h), 5, f"Difference between theoretical value ans simulation at point {point}")
+            h = vin / (1 + 2j * pi * freq * R1 * C1)
+            self.assertAlmostEqual(abs(vout1), abs(h), 5, f"Difference between theoretical value and simulation at point {point}")
+            self.assertAlmostEqual(angle(vout1), angle(h), 5, f"Difference between theoretical value and simulation at point {point}")
 
     @unittest.skipIf(False, "Execute All")
     def test_ac_analysis_steps(self):
