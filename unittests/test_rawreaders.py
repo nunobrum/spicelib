@@ -40,6 +40,9 @@ import sys  # python path handling
 import unittest  # performs test
 import logging
 
+sys.path.append(
+    os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
+
 import spicelib
 from spicelib.raw.raw_read import RawRead
 from numpy import pi, angle, exp
