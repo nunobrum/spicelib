@@ -50,3 +50,6 @@ jobs:
       - name: Test Qsch Editor
         run: |
           python ./unittests/test_qsch_editor.py
+      - name: Test RawReaders
+        run: |
+          python ./unittests/test_rawreaders.py          

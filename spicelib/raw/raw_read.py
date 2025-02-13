@@ -346,6 +346,10 @@ class RawRead(object):
         A string or a list containing the list of traces to be read. If None is provided, only the header is read and
         all trace data is discarded. If a '*' wildcard is given or no parameter at all then all traces are read.
     :type traces_to_read: str, list or tuple
+    :param dialect: The simulator used. 
+        Please use from ["ltspice","qspice","ngspice","xyce"]. If not specified, dialect will be auto detected. 
+        This is likely only needed for older versions of ngspice and xyce. ltspice and qspice can reliably be auto detected.
+    :type dialect: str    
     :key headeronly:
         Used to only load the header information and skip the trace data entirely. Use `headeronly=True`.
     """
@@ -373,8 +377,12 @@ class RawRead(object):
         'Frequency Response Analysis',
     )
 
-    def __init__(self, raw_filename: str, traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*', **kwargs):
+    def __init__(self, raw_filename: str, traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*', dialect: str = None, **kwargs):
+        self.dialect = None
+        """The dialect of the spice file read. This is either set on init, or detected """
+        
         self.verbose = kwargs.get('verbose', True)
+        
         raw_filename = Path(raw_filename)
         if traces_to_read is not None:
             assert isinstance(traces_to_read, (str, list, tuple)), "traces_to_read must be a string, a list or None"
@@ -440,13 +448,66 @@ class RawRead(object):
 
         has_axis = self.raw_params['Plotname'] not in ('Operating Point', 'Transfer Function',)
         
-        reading_ltspice = 'Command' in self.raw_params and 'ltspice' in self.raw_params['Command'].lower()
-        reading_qspice = 'Command' in self.raw_params and 'qspice' in self.raw_params['Command'].lower()
-        reading_ngspice = 'Command' in self.raw_params and 'ngspice' in self.raw_params['Command'].lower()  # this will only work from ngspice 44 on. 
-        # TODO: add xyce
+        # clean up given dialect
+        if dialect is not None:
+            if len(dialect) == 0:
+                dialect is None
+            else:
+                dialect = dialect.lower()
+                # given info is correct?
+                if dialect not in ('ltspice', 'qspice', 'ngspice', 'xyce'):
+                    raise ValueError(f"Invalid RAW file dialect: '{dialect}', must be one of 'ltspice', 'qspice', 'ngspice', 'xyce'.")
+                        
+        # autodetect the dialect. This is not always possible
+        autodetected_dialect = None
+        if 'Command' in self.raw_params:
+            if 'ltspice' in self.raw_params['Command'].lower():
+                # Can be auto detected
+                # binary types: depends on flag, see below
+                autodetected_dialect = 'ltspice'
+            if 'qspice' in self.raw_params['Command'].lower():
+                # Can be auto detected
+                # binary types: always double for time, complex for AC
+                # see if I already saw an autodetected dialect
+                if dialect is None and autodetected_dialect is not None:
+                    _logger.warning(f"Dialect is ambiguous: '{self.raw_params['Command']}'. Using qspice.")
+                autodetected_dialect = 'qspice'
+            if 'ngspice' in self.raw_params['Command'].lower():
+                # Can only be auto detected from ngspice 44 on, as before there was no "Command:" 
+                # binary types: always double for time, complex for AC
+                # see if I already saw an autodetected dialect
+                if dialect is None and autodetected_dialect is not None:
+                    _logger.warning(f"Dialect is ambiguous: '{self.raw_params['Command']}'. Using ngspice.")
+                autodetected_dialect = 'ngspice'
+            if 'xyce' in self.raw_params['Command'].lower():
+                # Cannot be auto detected yet (at least not on 7.9, where there is no "Command:")
+                #  Flags: real (for time) and complex (for frequency)
+                #  Binary types: always double for time, complex for AC
+                #  and potentially a text (csv) section that follows, that can be ignored.
+                # see if I already saw an autodetected dialect
+                if dialect is None and autodetected_dialect is not None:
+                    _logger.warning(f"Dialect is ambiguous: '{self.raw_params['Command']}'. Using xyce.")
+                autodetected_dialect = 'xyce'
         
-        if not (reading_ltspice or reading_qspice):  # TODO: remove this section once ngspice 44+ is commonplace. Older versions did not print the 'Command' line
-            reading_ngspice = True
+        if dialect:
+            if autodetected_dialect is not None:
+                if dialect != autodetected_dialect:
+                    _logger.warning(f"Dialect specified as {dialect}, but the file seems to be from {autodetected_dialect}. Trying to read it anyway.")
+        else:
+            # no dialect given. Take the autodetected version
+            dialect = autodetected_dialect
+
+        # Do I have something?
+        if not dialect:
+            raise RuntimeError("RAW file dialect is not specified and could not be auto detected.")
+                
+        # and tell the outside world
+        self.dialect = dialect
+        
+        # set the specifics per dialect
+        check_raw_size = dialect != 'xyce'  # Older xyce files can have a text section that follows the data section (be it ascii or binary). We need to ignore it.
+        always_double = dialect != 'ltspice'  # qspice, ngspice and xyce use doubles for everything outside of AC files
+        frequency_double = dialect == 'qspice'  # qspice uses double also for frequency for AC files
         
         self._traces = []
         self.steps = None
@@ -455,9 +516,9 @@ class RawRead(object):
         if 'complex' in self.raw_params['Flags'] or self.raw_params['Plotname'] == 'AC Analysis':
             numerical_type = 'complex'
         else:
-            if reading_qspice or reading_ngspice:  # QSPICE and ngspice use doubles for everything
+            if always_double:  # qspice, ngspice and xyce use doubles for everything outside of AC
                 numerical_type = 'double'
-            elif reading_ltspice and "double" in self.raw_params['Flags']:  # LTspice: .options numdgt = 7 sets this flag for double precision
+            elif "double" in self.raw_params['Flags']:  # LTspice: .options numdgt = 7 sets this flag for double precision
                 numerical_type = 'double'
             else:
                 numerical_type = 'real'
@@ -471,12 +532,12 @@ class RawRead(object):
             var_type = line_elmts[2]
             if ivar == 0:  # If it has an axis, it should be always read
                 if numerical_type == 'real':
-                    axis_numerical_type = 'double'  # It's weird, but LTSpice uses double for the first variable in .OP
+                    # only ltspice gets here, in non AC
+                    axis_numerical_type = 'double'  # LTSpice uses double for the first variable in .OP
+                elif numerical_type == 'complex' and frequency_double:
+                    axis_numerical_type = 'double'  # QSPICE uses double for frequency for .AC files
                 else:
-                    if reading_qspice:
-                        axis_numerical_type = 'double'  # QSPICE uses double for frequency while reading .AC files
-                    else:
-                        axis_numerical_type = numerical_type
+                    axis_numerical_type = numerical_type
                 self.axis = Axis(name, var_type, self.nPoints, axis_numerical_type)
                 trace = self.axis
             elif (traces_to_read == "*") or (name in traces_to_read):
@@ -534,7 +595,8 @@ class RawRead(object):
                     raise RuntimeError(
                         f"Invalid data type {trace.numerical_type} for trace {trace.name}")
                 scan_functions.append(fun)
-            if calc_block_size != self.block_size:
+
+            if check_raw_size and calc_block_size != self.block_size:
                 raise RuntimeError(
                     f"Error in calculating the block size. Expected {calc_block_size} bytes, but found {self.block_size} bytes. ")
 
@@ -775,7 +837,7 @@ class RawRead(object):
 
     def _load_step_information(self, filename: Path):
         if 'Command' not in self.raw_params:
-            # probably ngspice before v44. And anyway, ngspice does not support the '.step' directive
+            # probably ngspice before v44 or xyce. And anyway, ngspice does not support the '.step' directive
             # FYI: ngspice can do something like .step via a control section with while loop.
             raise SpiceReadException("Unsupported simulator. Only LTspice and QSPICE are supported.")
         
