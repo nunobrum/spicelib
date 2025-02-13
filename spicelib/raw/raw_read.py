@@ -376,13 +376,13 @@ class RawRead(object):
         'Noise Spectral Density',
         'Frequency Response Analysis',
     )
-    
-    dialect = None
-    """ The dialect of the spice file read. This is either set on init, or detected
-    """
 
-    def __init__(self, raw_filename: str, traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*', dialect: str = None,  **kwargs):
+    def __init__(self, raw_filename: str, traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*', dialect: str = None, **kwargs):
+        self.dialect = None
+        """The dialect of the spice file read. This is either set on init, or detected """
+        
         self.verbose = kwargs.get('verbose', True)
+        
         raw_filename = Path(raw_filename)
         if traces_to_read is not None:
             assert isinstance(traces_to_read, (str, list, tuple)), "traces_to_read must be a string, a list or None"
@@ -448,78 +448,66 @@ class RawRead(object):
 
         has_axis = self.raw_params['Plotname'] not in ('Operating Point', 'Transfer Function',)
         
-        reading_ltspice = 'Command' in self.raw_params and 'ltspice' in self.raw_params['Command'].lower()
-        # Can be auto detected
-        # binary types: depends on flag, see below
-        reading_qspice = 'Command' in self.raw_params and 'qspice' in self.raw_params['Command'].lower()
-        # Can be auto detected
-        # binary types: always double for time, complex for AC
-        reading_ngspice = 'Command' in self.raw_params and 'ngspice' in self.raw_params['Command'].lower()  
-        # Can only be auto detected from ngspice 44 on, as before there was no "Command:" 
-        # binary types: always double for time, complex for AC
-        reading_xyce = 'Command' in self.raw_params and 'xyce' in self.raw_params['Command'].lower() 
-        # Cannot be auto detected yet (at least not on 7.9, where there is no "Command:")
-        #  Flags: real (for time) and complex (for frequency)
-        #  Binary types: always double for time, complex for AC
-        #  and potentially a text (csv) section that follows, that can be ignored.
+        # clean up given dialect
+        if dialect is not None:
+            if len(dialect) == 0:
+                dialect is None
+            else:
+                dialect = dialect.lower()
+                # given info is correct?
+                if dialect not in ('ltspice', 'qspice', 'ngspice', 'xyce'):
+                    raise ValueError(f"Invalid RAW file dialect: '{dialect}', must be one of 'ltspice', 'qspice', 'ngspice', 'xyce'.")
+                        
+        # autodetect the dialect. This is not always possible
+        autodetected_dialect = None
+        if 'Command' in self.raw_params:
+            if 'ltspice' in self.raw_params['Command'].lower():
+                # Can be auto detected
+                # binary types: depends on flag, see below
+                autodetected_dialect = 'ltspice'
+            if 'qspice' in self.raw_params['Command'].lower():
+                # Can be auto detected
+                # binary types: always double for time, complex for AC
+                # see if I already saw an autodetected dialect
+                if dialect is None and autodetected_dialect is not None:
+                    _logger.warning(f"Dialect is ambiguous: '{self.raw_params['Command']}'. Using qspice.")
+                autodetected_dialect = 'qspice'
+            if 'ngspice' in self.raw_params['Command'].lower():
+                # Can only be auto detected from ngspice 44 on, as before there was no "Command:" 
+                # binary types: always double for time, complex for AC
+                # see if I already saw an autodetected dialect
+                if dialect is None and autodetected_dialect is not None:
+                    _logger.warning(f"Dialect is ambiguous: '{self.raw_params['Command']}'. Using ngspice.")
+                autodetected_dialect = 'ngspice'
+            if 'xyce' in self.raw_params['Command'].lower():
+                # Cannot be auto detected yet (at least not on 7.9, where there is no "Command:")
+                #  Flags: real (for time) and complex (for frequency)
+                #  Binary types: always double for time, complex for AC
+                #  and potentially a text (csv) section that follows, that can be ignored.
+                # see if I already saw an autodetected dialect
+                if dialect is None and autodetected_dialect is not None:
+                    _logger.warning(f"Dialect is ambiguous: '{self.raw_params['Command']}'. Using xyce.")
+                autodetected_dialect = 'xyce'
         
-        if dialect is None or len(dialect) == 0:
-            # autodetect is needed
-            dialect = None
-            if reading_ltspice:
-                dialect = "ltspice"
-            elif reading_qspice:
-                dialect = "qspice"
-            elif reading_ngspice:
-                dialect = "ngspice"
-            elif reading_xyce:
-                dialect = "xyce"
+        if dialect:
+            if autodetected_dialect is not None:
+                if dialect != autodetected_dialect:
+                    _logger.warning(f"Dialect specified as {dialect}, but the file seems to be from {autodetected_dialect}. Trying to read it anyway.")
+        else:
+            # no dialect given. Take the autodetected version
+            dialect = autodetected_dialect
 
         # Do I have something?
         if not dialect:
             raise RuntimeError("RAW file dialect is not specified and could not be auto detected.")
                 
-        # now see if I have contradictory detections
-        dialect = dialect.lower()
-        if dialect not in ('ltspice', 'qspice', 'ngspice', 'xyce'):
-            raise ValueError(f"Invalid RAW file dialect: '{dialect}', must be one of 'ltspice', 'qspice', 'ngspice', 'xyce'.")
-        if dialect == 'ltspice':
-            if (reading_qspice or reading_ngspice or reading_xyce):
-                _logger.warning("Dialect specified as LTSpice, but the file seems to be from another simulator. Trying to read it anyway.")
-            reading_ltspice = True
-            reading_qspice = False
-            reading_ngspice = False
-            reading_xyce = False
-        elif dialect == 'qspice':
-            if (reading_ltspice or reading_ngspice or reading_xyce):
-                _logger.warning("Dialect specified as QSpice, but the file seems to be from another simulator. Trying to read it anyway.")  
-            reading_ltspice = False
-            reading_qspice = True
-            reading_ngspice = False
-            reading_xyce = False
-        elif dialect == 'ngspice':
-            if (reading_ltspice or reading_qspice or reading_xyce):
-                _logger.warning("Dialect specified as NGSpice, but the file seems to be from another simulator. Trying to read it anyway.") 
-            reading_ltspice = False
-            reading_qspice = False
-            reading_ngspice = True
-            reading_xyce = False
-        elif dialect == 'xyce':
-            if (reading_ltspice or reading_qspice or reading_ngspice):
-                _logger.warning("Dialect specified as Xyce, but the file seems to be from another simulator. Trying to read it anyway.")    
-            reading_ltspice = False
-            reading_qspice = False
-            reading_ngspice = False
-            reading_xyce = True
-            
         # and tell the outside world
         self.dialect = dialect
         
-        check_raw_size = True
-        if reading_xyce:
-            # Older xyce files can have a text section that follows the data section (be it ascii or binary). 
-            # We need to ignore it.
-            check_raw_size = False
+        # set the specifics per dialect
+        check_raw_size = dialect != 'xyce'  # Older xyce files can have a text section that follows the data section (be it ascii or binary). We need to ignore it.
+        always_double = dialect != 'ltspice'  # qspice, ngspice and xyce use doubles for everything outside of AC files
+        frequency_double = dialect == 'qspice'  # qspice uses double also for frequency for AC files
         
         self._traces = []
         self.steps = None
@@ -528,9 +516,9 @@ class RawRead(object):
         if 'complex' in self.raw_params['Flags'] or self.raw_params['Plotname'] == 'AC Analysis':
             numerical_type = 'complex'
         else:
-            if reading_qspice or reading_ngspice or reading_xyce:  # qspice, ngspice and xyce use doubles for everything
+            if always_double:  # qspice, ngspice and xyce use doubles for everything outside of AC
                 numerical_type = 'double'
-            elif reading_ltspice and "double" in self.raw_params['Flags']:  # LTspice: .options numdgt = 7 sets this flag for double precision
+            elif "double" in self.raw_params['Flags']:  # LTspice: .options numdgt = 7 sets this flag for double precision
                 numerical_type = 'double'
             else:
                 numerical_type = 'real'
@@ -543,14 +531,13 @@ class RawRead(object):
             name = line_elmts[1]
             var_type = line_elmts[2]
             if ivar == 0:  # If it has an axis, it should be always read
-                # TODO: check for ngspice and xyce
                 if numerical_type == 'real':
-                    axis_numerical_type = 'double'  # It's weird, but LTSpice uses double for the first variable in .OP
+                    # only ltspice gets here, in non AC
+                    axis_numerical_type = 'double'  # LTSpice uses double for the first variable in .OP
+                elif numerical_type == 'complex' and frequency_double:
+                    axis_numerical_type = 'double'  # QSPICE uses double for frequency for .AC files
                 else:
-                    if reading_qspice:
-                        axis_numerical_type = 'double'  # QSPICE uses double for frequency while reading .AC files
-                    else:
-                        axis_numerical_type = numerical_type
+                    axis_numerical_type = numerical_type
                 self.axis = Axis(name, var_type, self.nPoints, axis_numerical_type)
                 trace = self.axis
             elif (traces_to_read == "*") or (name in traces_to_read):
