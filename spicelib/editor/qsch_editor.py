@@ -666,7 +666,8 @@ class QschEditor(BaseSchematic):
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
                 sub_circuit_name = value + os.path.extsep + 'qsch'
-                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name)
+                mydir = self.circuit_file.parent.absolute().as_posix()
+                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name, mydir)
                 if sub_circuit_schematic_file:
                     sub_schematic = QschEditor(sub_circuit_schematic_file)
                     sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
@@ -720,9 +721,29 @@ class QschEditor(BaseSchematic):
                         return tag, match
         else:
             return None, None
+        
+    def get_all_parameter_names(self) -> List[str]:
+        """
+        Returns all parameter names from the netlist.
 
-    def _qsch_file_find(self, filename) -> Optional[str]:
-        containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
+        :return: A list of parameter names found in the netlist
+        :rtype: List[str]
+        """
+        param_names = []
+        param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
+        text_tags = self.schematic.get_items('text')
+        for tag in text_tags:
+            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+            if line.upper().startswith('.PARAM'):
+                matches = param_regex.finditer(line)
+                for match in matches:
+                    param_name = match.group('name')
+                    param_names.append(param_name.upper())
+        return sorted(param_names)
+
+    def _qsch_file_find(self, filename: str, work_dir: str = '.') -> Optional[str]:
+        containers = [work_dir] + self.custom_lib_paths + self.simulator_lib_paths
         # '.'  is the directory where the script is located
         return search_file_in_containers(filename, *containers)
 
