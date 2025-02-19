@@ -433,12 +433,13 @@ class QschEditor(BaseSchematic):
 
                 # schedule to write .SUBCKT clauses at the end
                 if model not in subcircuits_to_write:
-                    pins = symbol_tag.get_items("pin")
-                    sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
-                    subcircuits_to_write[model] = (
-                        component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
-                        sub_ports,  # and also storing the port position now, so to save time later.
-                    )
+                    if '_SUBCKT' in component.attributes:
+                        pins = symbol_tag.get_items("pin")
+                        sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
+                        subcircuits_to_write[model] = (
+                            component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
+                            sub_ports,  # and also storing the port position now, so to save time later.
+                        )
                 nets = " ".join(component.ports)
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
@@ -671,6 +672,8 @@ class QschEditor(BaseSchematic):
                 if sub_circuit_schematic_file:
                     sub_schematic = QschEditor(sub_circuit_schematic_file)
                     sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
+                else:
+                    _logger.debug(f"Subcircuit {sub_circuit_name} not found")
 
         for text_tag in self.schematic.get_items('text'):
             x, y = text_tag.get_attr(QSCH_TEXT_POS)
@@ -743,6 +746,7 @@ class QschEditor(BaseSchematic):
         return search_file_in_containers(filename, *containers)
 
     def get_subcircuit(self, reference: str) -> 'QschEditor':
+        """Returns an QschEditor file corresponding to the symbol"""
         subcircuit = self.get_component(reference)
         if '_SUBCKT' in subcircuit.attributes:  # Optimization: if it was already stored, return it
             return subcircuit.attributes['_SUBCKT']

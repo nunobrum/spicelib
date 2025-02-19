@@ -304,7 +304,9 @@ class AscEditor(BaseSchematic):
     def get_subcircuit(self, reference: str) -> 'AscEditor':
         """Returns an AscEditor file corresponding to the symbol"""
         sub = self.get_component(reference)
-        return sub.attributes['_SUBCKT']
+        if '_SUBCKT' in sub.attributes:
+            return sub.attributes['_SUBCKT']
+        raise AttributeError(f"An associated subcircuit was not found for {reference}")
 
     def get_component_info(self, reference) -> dict:
         """Returns the reference information as a dictionary"""
