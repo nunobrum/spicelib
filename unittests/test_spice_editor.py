@@ -122,6 +122,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + 'opamptest_output_1.net', golden_dir + 'opamptest_output_1.net')
 
     def test_parameter_edit(self):
+        self.assertEqual(self.edt.get_all_parameter_names(), ['RES', 'TEMP'])
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameter('TEMP', 25)
         self.assertEqual(self.edt.get_parameter('TEMP'), '25', "Tested TEMP Parameter")  # add assertion here

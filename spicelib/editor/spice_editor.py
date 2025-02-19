@@ -394,6 +394,24 @@ class SpiceCircuit(BaseEditor):
             line_no += 1
         return -1, None  # If it fails, it returns an invalid line number and No match
 
+    def get_all_parameter_names(self) -> List[str]:
+        """
+        Returns all parameter names from the netlist.
+
+        :return: A list of parameter names found in the netlist
+        :rtype: List[str]
+        """
+        param_names = []
+        search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
+        for line in self.netlist:
+            cmd = get_line_command(line)
+            if cmd == '.PARAM':
+                matches = search_expression.finditer(line)
+                for match in matches:
+                    param_name = match.group('name')
+                    param_names.append(param_name.upper())
+        return sorted(param_names)
+
     def get_subcircuit_names(self) -> List[str]:
         """
         Returns a list of the names of the sub-circuits in the netlist.
