@@ -723,12 +723,7 @@ class QschEditor(BaseSchematic):
             return None, None
         
     def get_all_parameter_names(self) -> List[str]:
-        """
-        Returns all parameter names from the netlist.
-
-        :return: A list of parameter names found in the netlist
-        :rtype: List[str]
-        """
+        # docstring inherited from BaseEditor
         param_names = []
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         text_tags = self.schematic.get_items('text')

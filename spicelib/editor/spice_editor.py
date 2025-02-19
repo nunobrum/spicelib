@@ -395,12 +395,7 @@ class SpiceCircuit(BaseEditor):
         return -1, None  # If it fails, it returns an invalid line number and No match
 
     def get_all_parameter_names(self) -> List[str]:
-        """
-        Returns all parameter names from the netlist.
-
-        :return: A list of parameter names found in the netlist
-        :rtype: List[str]
-        """
+        # docstring inherited from BaseEditor
         param_names = []
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for line in self.netlist:
