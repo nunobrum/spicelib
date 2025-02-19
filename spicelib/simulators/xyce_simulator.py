@@ -74,7 +74,7 @@ class XyceSimulator(Simulator):
         '-prf'              : ['-prf', '<path>'],  # <param file name>      specify a file with simulation parameters
         '-rsf'              : ['-rsf', '<path>'],  # specify a file to save simulation responses functions.
         '-r'                : ['-r', '<path>'],  # <file>   generate a rawfile named <file> in binary format
-        '-a'                : ['-a', '<path>'],  # use with -r <file> to output in ascii format
+        '-a'                : ['-a'],  # use with -r <file> to output in ascii format
         '-randseed'         : ['-randseed', '<int_option>'],
         # <number>          seed random number generator used by expressions and sampling methods
     }
