@@ -736,8 +736,8 @@ class QschEditor(BaseSchematic):
                     param_names.append(param_name.upper())
         return sorted(param_names)
 
-    def _qsch_file_find(self, filename: str, work_dir: str = '.') -> Optional[str]:
-        containers = [work_dir] + self.custom_lib_paths + self.simulator_lib_paths
+    def _qsch_file_find(self, filename) -> Optional[str]:
+        containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
         # '.'  is the directory where the script is located
         return search_file_in_containers(filename, *containers)
 
