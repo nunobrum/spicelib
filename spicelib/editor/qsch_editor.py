@@ -433,13 +433,12 @@ class QschEditor(BaseSchematic):
 
                 # schedule to write .SUBCKT clauses at the end
                 if model not in subcircuits_to_write:
-                    if '_SUBCKT' in component.attributes:
-                        pins = symbol_tag.get_items("pin")
-                        sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
-                        subcircuits_to_write[model] = (
-                            component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
-                            sub_ports,  # and also storing the port position now, so to save time later.
-                        )
+                    pins = symbol_tag.get_items("pin")
+                    sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
+                    subcircuits_to_write[model] = (
+                        component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
+                        sub_ports,  # and also storing the port position now, so to save time later.
+                    )
                 nets = " ".join(component.ports)
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
@@ -667,13 +666,10 @@ class QschEditor(BaseSchematic):
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
                 sub_circuit_name = value + os.path.extsep + 'qsch'
-                mydir = self.circuit_file.parent.absolute().as_posix()
-                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name, mydir)
+                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name)
                 if sub_circuit_schematic_file:
                     sub_schematic = QschEditor(sub_circuit_schematic_file)
                     sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
-                else:
-                    _logger.debug(f"Subcircuit {sub_circuit_name} not found")
 
         for text_tag in self.schematic.get_items('text'):
             x, y = text_tag.get_attr(QSCH_TEXT_POS)
