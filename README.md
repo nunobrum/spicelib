@@ -820,6 +820,7 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 ## History
 
 * Version TBD
+  * Fixed Issue #158 - improve xyce path detection, improve runner switch parameter help texts
   * Fixed Issue #139 - support xyce raw files
 * Version 1.4.0 (Python 3.9+ only)
   * Fixed Issue #152 - python version compatibility too limited on PyPi.
