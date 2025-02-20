@@ -433,12 +433,13 @@ class QschEditor(BaseSchematic):
 
                 # schedule to write .SUBCKT clauses at the end
                 if model not in subcircuits_to_write:
-                    pins = symbol_tag.get_items("pin")
-                    sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
-                    subcircuits_to_write[model] = (
-                        component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
-                        sub_ports,  # and also storing the port position now, so to save time later.
-                    )
+                    if '_SUBCKT' in component.attributes:
+                        pins = symbol_tag.get_items("pin")
+                        sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
+                        subcircuits_to_write[model] = (
+                            component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
+                            sub_ports,  # and also storing the port position now, so to save time later.
+                        )
                 nets = " ".join(component.ports)
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
@@ -499,7 +500,8 @@ class QschEditor(BaseSchematic):
                     netlist_file.write(line.strip() + '\n')
 
         for library in libraries_to_include:
-            library_path = self._qsch_file_find(library)
+            mydir = self.circuit_file.parent.absolute().as_posix()
+            library_path = self._qsch_file_find(library, mydir)
             if library_path is None:
                 netlist_file.write(f'.lib {library}\n')
             else:
@@ -666,10 +668,13 @@ class QschEditor(BaseSchematic):
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
                 sub_circuit_name = value + os.path.extsep + 'qsch'
-                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name)
+                mydir = self.circuit_file.parent.absolute().as_posix()
+                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name, mydir)
                 if sub_circuit_schematic_file:
                     sub_schematic = QschEditor(sub_circuit_schematic_file)
                     sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
+                else:
+                    _logger.warning(f"Subcircuit '{sub_circuit_name}' not found. Have you set the correct search paths?")
 
         for text_tag in self.schematic.get_items('text'):
             x, y = text_tag.get_attr(QSCH_TEXT_POS)
@@ -721,9 +726,11 @@ class QschEditor(BaseSchematic):
         else:
             return None, None
 
-    def _qsch_file_find(self, filename) -> Optional[str]:
+    def _qsch_file_find(self, filename: str, work_dir: str = None) -> Optional[str]:
         containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
         # '.'  is the directory where the script is located
+        if (work_dir is not None) and work_dir != ".":
+            containers = [work_dir] + containers  # put work directory first
         return search_file_in_containers(filename, *containers)
 
     def get_subcircuit(self, reference: str) -> 'QschEditor':
