@@ -175,7 +175,7 @@ class QschEditorEmbeddedSubckt(unittest.TestCase):
     def test_embedded_subckt(self):
         self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "Qspice_bug_embedded_subckt.qsch")
         self.edt.save_netlist(temp_dir + 'qsch_embedded_subckt.net')
-        # equalFiles(self, temp_dir + 'qsch_embedded_subckt.net', golden_dir + "qsch_embedded_subckt.net")
+        equalFiles(self, temp_dir + 'qsch_embedded_subckt.net', golden_dir + "qsch_embedded_subckt.net")
 
 
 if __name__ == '__main__':

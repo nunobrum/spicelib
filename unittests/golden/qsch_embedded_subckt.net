@@ -1,9 +1,9 @@
-* /workspace/spicelib/examples/testfiles/Qspice_bug_embedded_subckt.qsch
+* C:\Users\hans\Documents\workspace\spicelib\reproducing_error\154\bug_test.qsch
 V1 IN 0 1
 R1 OUT 0 1Meg
-.subckt X2â€¢P OUT IN
+.subckt X2•P OUT IN
 E1 OUT 0 IN 0 {P}
 .ends P
-X2 OUT IN X2â€¢P P=2
+X2 OUT IN X2•P P=2
 .tran 0 1m 0 100n uic
 .end

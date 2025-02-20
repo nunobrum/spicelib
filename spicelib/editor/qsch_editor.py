@@ -37,7 +37,7 @@ __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 __all__ = ('QschEditor', 'QschTag', 'QschReadingError')
 
-_logger = logging.getLogger("qspice.QschEditor")
+_logger = logging.getLogger("spicelib.QschEditor")
 
 QSCH_HEADER = (255, 216, 255, 219)
 
@@ -255,10 +255,18 @@ class QschTag:
     def tag(self) -> str:
         """Returns the tag id of the object. The tag id is the first token in the tag."""
         return self.tokens[0]
+    
+    @property
+    def compound_tag(self) -> str:
+        """Returns the tag id of the object. The tag id is a concatenation of the first and second token in the tag."""
+        return self.tokens[0] + " " + self.tokens[1]  
 
     def get_items(self, item) -> List['QschTag']:
         """Returns a list of children tags that match the given tag id."""
-        answer = [tag for tag in self.items if tag.tag == item]
+        if " " in item:
+            answer = [tag for tag in self.items if tag.compound_tag == item]
+        else:
+            answer = [tag for tag in self.items if tag.tag == item]
         return answer
 
     def get_attr(self, index: int):
@@ -312,9 +320,19 @@ class QschTag:
             raise ValueError("Object not supported in set_attr")
         self.tokens[index] = value_str
 
-    def get_text(self, label, default: str = None) -> str:
+    def get_text(self, label: str, default: str = None) -> str:
         """
-        Returns the text of the first child tag that matches the given label.
+        Returns the text of the first child tag that matches the given label. The label can have up to 1 space in it.
+        It will return the entire text of the tag, after the label.
+        If the label is not found, it returns the default value.
+
+        :param label: label to be found. Can have up to 1 space (e.g. "library file" or "shorted pins")
+        :type label: str
+        :param default: Default value, defaults to None
+        :type default: str, optional
+        :raises IndexError: When the label is not found and the default value is None
+        :return: the found text or the default value
+        :rtype: str
         """
         a = self.get_items(label + ':')
         if len(a) != 1:
@@ -322,8 +340,12 @@ class QschTag:
                 raise IndexError(f"Label '{label}' not found in:{self}")
             else:
                 return default
-        if len(a[0].tokens) >= 2:
-            return a[0].tokens[1]
+        if " " in label:
+            start_pos = 2
+        else:
+            start_pos = 1
+        if len(a[0].tokens) > start_pos:
+            return ' '.join(a[0].tokens[start_pos:])
         else:
             return default
 
@@ -352,7 +374,7 @@ class QschEditor(BaseSchematic):
     
     :meta hide-value:
     """    
-        
+
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()
         self._qsch_file_path = Path(qsch_file)
@@ -427,9 +449,26 @@ class QschEditor(BaseSchematic):
                     ports += ['¥'] * (16 - len(ports))
 
             nets = " ".join(ports)
+            
+            have_embedded_subcircuit = False
+            # Check the libraries and embedded subcircuits
+            library_name = symbol_tag.get_text('library file', default="")
+            if library_name and (library_name not in libraries_to_include):
+                marker = "|.subckt"
+                if library_name.startswith(marker):
+                    # This is an embedded subcircuit, print it here, not at the end. It must be printed before the component
+                    sub_circuit_content = library_name[len(marker):].strip()  # The section after "|.subckt"
+                    sub_circuit_content = sub_circuit_content.replace("\\n", "\n")
+                    netlist_file.write(f".subckt {refdes}•{sub_circuit_content}\n")
+                    have_embedded_subcircuit = True
+                else:
+                    # List the libraries at the end
+                    libraries_to_include.append(library_name)            
 
             if typ == 'X':
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"
 
                 # schedule to write .SUBCKT clauses at the end
                 if model not in subcircuits_to_write:
@@ -445,6 +484,8 @@ class QschEditor(BaseSchematic):
 
             elif typ in ('QP', 'QN'):
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 if symbol == 'NPNS' or symbol == 'PNPS' or symbol == 'LPNP':
                     ports[3] = '[' + ports[3] + ']'
                     nets = ' '.join(ports)
@@ -454,6 +495,8 @@ class QschEditor(BaseSchematic):
                     netlist_file.write(f'{refdes} {nets} [0] {model} {symbol}{parameters}\n')
             elif typ in ('MN', 'MP'):
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 if symbol == 'NMOSB' or symbol == 'PMOSB':
                     symbol = symbol[0:4]
                 if len(ports) == 3:
@@ -462,29 +505,31 @@ class QschEditor(BaseSchematic):
                     netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             elif typ == 'T':
                 model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
             elif typ in ('JN', 'JP'):
                 model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 if symbol.startswith('Pwr'):  # Hack alert. I don't know why the symbol is Pwr
                     symbol = symbol[3:]  # remove the Pwr from the symbol
                 netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             elif typ == '×':
                 model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} «{nets}» {model}{parameters}\n')
             elif typ in ('ZP', 'ZN'):
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             else:
                 value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
                 netlist_file.write(f'{refdes} {nets} {value}{parameters}\n')
                 # else:
                 #     netlist_file.write(f'{symbol}†{refdes} {nets} {value}\n')
-
-            library_tags = symbol_tag.get_items('library')
-            for lib in library_tags:
-                library_name = lib.get_text_attr(2)
-                if library_name not in libraries_to_include:
-                    libraries_to_include.append(library_name)
 
         for sub_circuit in subcircuits_to_write:
             sub_circuit_schematic, ports = subcircuits_to_write[sub_circuit]
@@ -621,6 +666,7 @@ class QschEditor(BaseSchematic):
 
         components = self.schematic.get_items('component')
         for component in components:
+            have_embedded_subcircuit = False
             symbol: QschTag = component.get_items('symbol')[0]
             texts = symbol.get_items('text')
             if len(texts) < 2:
@@ -634,6 +680,10 @@ class QschEditor(BaseSchematic):
             sch_comp.position = Point(x, y)
             sch_comp.rotation = orientation * 45
             sch_comp.attributes['type'] = symbol.get_text('type', "X")  # Assuming a sub-circuit
+            # a bit complicated way to detect embedded subcircuits: they are in the library tag,
+            lib = symbol.get_text('library file', "-")
+            if lib.startswith("|.subckt"):
+                have_embedded_subcircuit = True
             sch_comp.attributes['description'] = symbol.get_text('description', "No Description")
             sch_comp.attributes['value'] = value
             sch_comp.attributes['tag'] = component
@@ -667,14 +717,15 @@ class QschEditor(BaseSchematic):
 
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
-                sub_circuit_name = value + os.path.extsep + 'qsch'
-                mydir = self.circuit_file.parent.absolute().as_posix()
-                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name, mydir)
-                if sub_circuit_schematic_file:
-                    sub_schematic = QschEditor(sub_circuit_schematic_file)
-                    sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
-                else:
-                    _logger.warning(f"Subcircuit '{sub_circuit_name}' not found. Have you set the correct search paths?")
+                if not have_embedded_subcircuit:
+                    sub_circuit_name = value + os.path.extsep + 'qsch'
+                    mydir = self.circuit_file.parent.absolute().as_posix()
+                    sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name, mydir)
+                    if sub_circuit_schematic_file:
+                        sub_schematic = QschEditor(sub_circuit_schematic_file)
+                        sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
+                    else:
+                        _logger.warning(f"Subcircuit '{sub_circuit_name}' not found. Have you set the correct search paths?")
 
         for text_tag in self.schematic.get_items('text'):
             x, y = text_tag.get_attr(QSCH_TEXT_POS)
