@@ -34,11 +34,11 @@
     «symbol Proportional
       «type: X»
       «description: Proportional»
-      «library file: |.subckt P OUT IN\nE1 OUT 0 IN 0 {P}\n.ends P»
+      «library file: |.subckt mycomp OUT IN\nE1 OUT 0 IN 0 {P}\n.ends mycomp»
       «shorted pins: false»
       «triangle (-100,200) (-100,-200) (300,0) 0 0 0x1000000 0x2000000 -1 -1»
       «text (-100,250) 1 6 2 0x1000000 -1 -1 "X2"»
-      «text (0,0) 1 0 0 0x1000000 -1 -1 "P"»
+      «text (0,0) 1 0 0 0x1000000 -1 -1 "mycomp"»
       «text (0,-300) 1 0 0 0x1000000 -1 -1 "P=2"»
       «pin (300,0) (30,150) 0.63 13 0 0x0 -1 "OUT"»
       «pin (-100,0) (-100,10) 0.63 14 0 0x0 -1 "IN"»
