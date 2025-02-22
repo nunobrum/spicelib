@@ -207,30 +207,46 @@ class QschTag:
                 self.items.append(child)
             elif stream[i] == '»':
                 stop = i + 1
+                break
+            elif stream[i] == '\n':
                 if i > i0:
-                    self.tokens.append(stream[i0:i])
-                return self, stop
-            elif stream[i] == ' ' or stream[i] == '\n':
-                if i > i0:
-                    self.tokens.append(stream[i0:i])
+                    tokens = stream[i0:i].split(' ')  # No text here, so we can make it simpler
+                    self.tokens.extend(tokens)
                 i0 = i + 1
-            elif stream[i] == '"':
-                # get all characters until the next " sign
-                i += 1
-                while stream[i] != '"':
-                    i += 1
-            elif stream[i] == '(':
-                # todo: support also [] and {}
-                nested = 1
-                while nested > 0:
-                    i += 1
-                    if stream[i] == '(':
-                        nested += 1
-                    elif stream[i] == ')':
-                        nested -= 1
             i += 1
         else:
             raise IOError("Missing » when reading file")
+        line = stream[i0:i]
+        # Now dividing the
+        if ': ' in line:
+            tokens = line.split(': ')
+            self.tokens.extend(tokens)
+        else:
+            i = i0 = 0
+            while i < len(line):
+                c = line[i]
+                if c == ' ' or c == '\n':
+                    if i > i0:
+                        self.tokens.append(line[i0:i])
+                    i0 = i + 1
+                elif c == '"':
+                    # get all characters until the next " sign
+                    i += 1
+                    while c != '"':
+                        i += 1
+                # elif c == '(':
+                #     # todo: support also [] and {}
+                #     nested = 1
+                #     while nested > 0:
+                #         i += 1
+                #         if line[i] == '(':
+                #             nested += 1
+                #         elif line[i] == ')':
+                #             nested -= 1
+                i += 1
+            if i > i0:
+                self.tokens.append(line[i0:i])
+        return self, stop
 
     def __str__(self):
         """Returns only the first line of the tag. The children are not shown."""
@@ -256,17 +272,9 @@ class QschTag:
         """Returns the tag id of the object. The tag id is the first token in the tag."""
         return self.tokens[0]
     
-    @property
-    def compound_tag(self) -> str:
-        """Returns the tag id of the object. The tag id is a concatenation of the first and second token in the tag."""
-        return self.tokens[0] + " " + self.tokens[1]  
-
     def get_items(self, item) -> List['QschTag']:
         """Returns a list of children tags that match the given tag id."""
-        if " " in item:
-            answer = [tag for tag in self.items if tag.compound_tag == item]
-        else:
-            answer = [tag for tag in self.items if tag.tag == item]
+        answer = [tag for tag in self.items if tag.tag == item]
         return answer
 
     def get_attr(self, index: int):
@@ -293,10 +301,13 @@ class QschTag:
             try:
                 value = int(a)
             except ValueError:
-                value = float(a)
+                try:
+                    value = float(a)
+                except ValueError:
+                    value = a
             return value
 
-    def set_attr(self, index: int, value):
+    def set_attr(self, index: int, value: Union[str, int, tuple]):
         """Sets the attribute at the given index. The attribute can be a string, an integer or a tuple.
         Integer values are written as integers, strings are written between quotes unless it starts with "0x"
         and tuples are written between parenthesis.
@@ -304,7 +315,7 @@ class QschTag:
         :param index: The index of the attribute to be set
         :type index: int
         :param value: The value to be set
-        :type value: Union[str, int, tuple]
+        :type value: Union[str, int, Tuple[Any, Any]]
         :return: Nothing
         """
         if isinstance(value, int):

@@ -177,6 +177,14 @@ class QschEditorEmbeddedSubckt(unittest.TestCase):
         self.edt.save_netlist(temp_dir + 'qsch_embedded_subckt.net')
         equalFiles(self, temp_dir + 'qsch_embedded_subckt.net', golden_dir + "qsch_embedded_subckt.net")
 
+    def test_sub_circuit(self):
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "Qspice_top.qsch")
+        # get sub-circuit
+        sub = self.edt.get_subcircuit("X2")
+        sub_desc = self.edt.get_component_value('X2')
+        self.assertEqual("sub_circuit2", sub_desc, "Value mismatch")
+        self.assertEqual('10K', sub.get_component_value("R1"))
+
 
 if __name__ == '__main__':
     unittest.main()
