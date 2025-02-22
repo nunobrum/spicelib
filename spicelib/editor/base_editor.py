@@ -478,6 +478,16 @@ class BaseEditor(ABC):
         :raises: ParameterNotFoundError - In case the component is not found
         """
         ...
+        
+    @abstractmethod
+    def get_all_parameter_names(self, param: str) -> str:
+        """
+        Returns all parameter names from the netlist.
+
+        :return: A list of parameter names found in the netlist
+        :rtype: List[str]
+        """
+        ...        
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         """Adds a parameter to the SPICE netlist.

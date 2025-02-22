@@ -720,6 +720,21 @@ class QschEditor(BaseSchematic):
                         return tag, match
         else:
             return None, None
+        
+    def get_all_parameter_names(self) -> List[str]:
+        # docstring inherited from BaseEditor
+        param_names = []
+        param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
+        text_tags = self.schematic.get_items('text')
+        for tag in text_tags:
+            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+            if line.upper().startswith('.PARAM'):
+                matches = param_regex.finditer(line)
+                for match in matches:
+                    param_name = match.group('name')
+                    param_names.append(param_name.upper())
+        return sorted(param_names)
 
     def _qsch_file_find(self, filename) -> Optional[str]:
         containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
@@ -727,6 +742,7 @@ class QschEditor(BaseSchematic):
         return search_file_in_containers(filename, *containers)
 
     def get_subcircuit(self, reference: str) -> 'QschEditor':
+        """Returns an QschEditor file corresponding to the symbol"""
         subcircuit = self.get_component(reference)
         if '_SUBCKT' in subcircuit.attributes:  # Optimization: if it was already stored, return it
             return subcircuit.attributes['_SUBCKT']

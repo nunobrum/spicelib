@@ -304,7 +304,9 @@ class AscEditor(BaseSchematic):
     def get_subcircuit(self, reference: str) -> 'AscEditor':
         """Returns an AscEditor file corresponding to the symbol"""
         sub = self.get_component(reference)
-        return sub.attributes['_SUBCKT']
+        if '_SUBCKT' in sub.attributes:
+            return sub.attributes['_SUBCKT']
+        raise AttributeError(f"An associated subcircuit was not found for {reference}")
 
     def get_component_info(self, reference) -> dict:
         """Returns the reference information as a dictionary"""
@@ -332,7 +334,19 @@ class AscEditor(BaseSchematic):
                     if match.group("name").upper() == param_name_uppercase:
                         return match, directive
         return None, None
-
+    
+    def get_all_parameter_names(self) -> List[str]:
+        # docstring inherited from BaseEditor
+        param_names = []
+        search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
+        for directive in self.directives:
+            if directive.text.upper().startswith(".PARAM"):
+                matches = search_expression.finditer(directive.text)
+                for match in matches:            
+                    param_name = match.group('name')
+                    param_names.append(param_name.upper())
+        return sorted(param_names)
+    
     def get_parameter(self, param: str) -> str:
         match, directive = self._get_param_named(param)
         if match:
