@@ -171,34 +171,9 @@ def decap(s: str) -> str:
     return regex.sub(r"\1=\2", s)
 
 
-def smart_split(line: str) -> List[str]:
+def smart_split(s):
     """Splits a string into chunks based on spaces. What is inside "" is not divided."""
-    i = i0 = 0
-    tokens = []
-    while i < len(line):
-        c = line[i]
-        if c == '"':
-            # get all characters until the next " sign
-            i += 1
-            while line[i] != '"':
-                i += 1
-        elif c == ' ' or c == '\n':
-            if i > i0:
-                tokens.append(line[i0:i])
-            i0 = i + 1
-        # elif c == '(':
-        #     # todo: support also [] and {}
-        #     nested = 1
-        #     while nested > 0:
-        #         i += 1
-        #         if line[i] == '(':
-        #             nested += 1
-        #         elif line[i] == ')':
-        #             nested -= 1
-        i += 1
-    if i > i0:
-        tokens.append(line[i0:i])
-    return tokens
+    return re.findall(r'[^"\s]+|"[^"]*"', s)
 
 
 class QschReadingError(IOError):
