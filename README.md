@@ -819,15 +819,17 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 
 ## History
 
-* Version TBD
+* Version 1.4.1
   * Fixed Issue #158 - improve xyce path detection, improve runner switch parameter help texts
+  * Fixed Issue #154 - support embedded subcircuits in Qspice
   * Fixed Issue #139 - support xyce raw files
+  * Added `get_all_parameter_names()` function to all editors (#159)
 * Version 1.4.0 (Python 3.9+ only)
   * Fixed Issue #152 - python version compatibility too limited on PyPi.
 * Version 1.3.8
   * Solving deprecation in GitHub artifact actions v3 -> v4
 * Version 1.3.7
-  * Fixed Issue #143 - ltsteps example fixed 
+  * Fixed Issue #143 - ltsteps example fixed
   * Fixed Issue #141 - Raw file reader cannot handle complex values (AC analysis) in ASCII RAW files
   * Fixed Issue #140 and #131 - Compatibility with LTspice 24+
   * Fixed Issue #145 - Allow easy hiding of simulator's console message

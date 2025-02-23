@@ -26,7 +26,7 @@ from spicelib.editor.asc_editor import AscEditor
 from spicelib.editor.qsch_editor import QschEditor
 from spicelib.utils.file_search import find_file_in_directory
 
-_logger = logging.getLogger()
+_logger = logging.getLogger("spicelib.AscToQsch")
 
 
 def main():

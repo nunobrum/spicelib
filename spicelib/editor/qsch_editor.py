@@ -37,7 +37,7 @@ __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 __all__ = ('QschEditor', 'QschTag', 'QschReadingError')
 
-_logger = logging.getLogger("qspice.QschEditor")
+_logger = logging.getLogger("spicelib.QschEditor")
 
 QSCH_HEADER = (255, 216, 255, 219)
 
@@ -171,6 +171,11 @@ def decap(s: str) -> str:
     return regex.sub(r"\1=\2", s)
 
 
+def smart_split(s):
+    """Splits a string into chunks based on spaces. What is inside "" is not divided."""
+    return re.findall(r'[^"\s]+|"[^"]*"', s)
+
+
 class QschReadingError(IOError):
     ...
 
@@ -205,32 +210,31 @@ class QschTag:
                 child, i = QschTag.parse(stream, i)
                 i0 = i + 1
                 self.items.append(child)
-            elif stream[i] == '»':
-                stop = i + 1
-                if i > i0:
-                    self.tokens.append(stream[i0:i])
-                return self, stop
-            elif stream[i] == ' ' or stream[i] == '\n':
-                if i > i0:
-                    self.tokens.append(stream[i0:i])
-                i0 = i + 1
             elif stream[i] == '"':
                 # get all characters until the next " sign
                 i += 1
                 while stream[i] != '"':
                     i += 1
-            elif stream[i] == '(':
-                # todo: support also [] and {}
-                nested = 1
-                while nested > 0:
-                    i += 1
-                    if stream[i] == '(':
-                        nested += 1
-                    elif stream[i] == ')':
-                        nested -= 1
+            elif stream[i] == '»':
+                stop = i + 1
+                break
+            elif stream[i] == '\n':
+                if i > i0:
+                    tokens = smart_split(stream[i0:i])
+                    self.tokens.extend(tokens)
+                i0 = i + 1
             i += 1
         else:
             raise IOError("Missing » when reading file")
+        line = stream[i0:i]
+        # Now dividing the
+        if ': ' in line:
+            name, text = line.split(': ')
+            self.tokens.append(name + ":")
+            self.tokens.append(text)
+        else:
+            self.tokens.extend(smart_split(line))
+        return self, stop
 
     def __str__(self):
         """Returns only the first line of the tag. The children are not shown."""
@@ -255,7 +259,7 @@ class QschTag:
     def tag(self) -> str:
         """Returns the tag id of the object. The tag id is the first token in the tag."""
         return self.tokens[0]
-
+    
     def get_items(self, item) -> List['QschTag']:
         """Returns a list of children tags that match the given tag id."""
         answer = [tag for tag in self.items if tag.tag == item]
@@ -285,10 +289,13 @@ class QschTag:
             try:
                 value = int(a)
             except ValueError:
-                value = float(a)
+                try:
+                    value = float(a)
+                except ValueError:
+                    value = a
             return value
 
-    def set_attr(self, index: int, value):
+    def set_attr(self, index: int, value: Union[str, int, tuple]):
         """Sets the attribute at the given index. The attribute can be a string, an integer or a tuple.
         Integer values are written as integers, strings are written between quotes unless it starts with "0x"
         and tuples are written between parenthesis.
@@ -296,7 +303,7 @@ class QschTag:
         :param index: The index of the attribute to be set
         :type index: int
         :param value: The value to be set
-        :type value: Union[str, int, tuple]
+        :type value: Union[str, int, Tuple[Any, Any]]
         :return: Nothing
         """
         if isinstance(value, int):
@@ -312,9 +319,19 @@ class QschTag:
             raise ValueError("Object not supported in set_attr")
         self.tokens[index] = value_str
 
-    def get_text(self, label, default: str = None) -> str:
+    def get_text(self, label: str, default: str = None) -> str:
         """
-        Returns the text of the first child tag that matches the given label.
+        Returns the text of the first child tag that matches the given label. The label can have up to 1 space in it.
+        It will return the entire text of the tag, after the label.
+        If the label is not found, it returns the default value.
+
+        :param label: label to be found. Can have up to 1 space (e.g. "library file" or "shorted pins")
+        :type label: str
+        :param default: Default value, defaults to None
+        :type default: str, optional
+        :raises IndexError: When the label is not found and the default value is None
+        :return: the found text or the default value
+        :rtype: str
         """
         a = self.get_items(label + ':')
         if len(a) != 1:
@@ -352,7 +369,7 @@ class QschEditor(BaseSchematic):
     
     :meta hide-value:
     """    
-        
+
     def __init__(self, qsch_file: str, create_blank: bool = False):
         super().__init__()
         self._qsch_file_path = Path(qsch_file)
@@ -427,23 +444,43 @@ class QschEditor(BaseSchematic):
                     ports += ['¥'] * (16 - len(ports))
 
             nets = " ".join(ports)
+            
+            have_embedded_subcircuit = False
+            # Check the libraries and embedded subcircuits
+            library_name = symbol_tag.get_text('library file', default="")
+            if library_name and (library_name not in libraries_to_include):
+                marker = "|.subckt"
+                if library_name.startswith(marker):
+                    # This is an embedded subcircuit, print it here, not at the end. It must be printed before the component
+                    sub_circuit_content = library_name[len(marker):].strip()  # The section after "|.subckt"
+                    sub_circuit_content = sub_circuit_content.replace("\\n", "\n")
+                    netlist_file.write(f".subckt {refdes}•{sub_circuit_content}\n")
+                    have_embedded_subcircuit = True
+                else:
+                    # List the libraries at the end
+                    libraries_to_include.append(library_name)            
 
             if typ == 'X':
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"
 
                 # schedule to write .SUBCKT clauses at the end
                 if model not in subcircuits_to_write:
-                    pins = symbol_tag.get_items("pin")
-                    sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
-                    subcircuits_to_write[model] = (
-                        component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
-                        sub_ports,  # and also storing the port position now, so to save time later.
-                    )
+                    if '_SUBCKT' in component.attributes:
+                        pins = symbol_tag.get_items("pin")
+                        sub_ports = " ".join(pin.get_attr(QSCH_SYMBOL_PIN_NET) for pin in pins)
+                        subcircuits_to_write[model] = (
+                            component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
+                            sub_ports,  # and also storing the port position now, so to save time later.
+                        )
                 nets = " ".join(component.ports)
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
             elif typ in ('QP', 'QN'):
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 if symbol == 'NPNS' or symbol == 'PNPS' or symbol == 'LPNP':
                     ports[3] = '[' + ports[3] + ']'
                     nets = ' '.join(ports)
@@ -453,6 +490,8 @@ class QschEditor(BaseSchematic):
                     netlist_file.write(f'{refdes} {nets} [0] {model} {symbol}{parameters}\n')
             elif typ in ('MN', 'MP'):
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 if symbol == 'NMOSB' or symbol == 'PMOSB':
                     symbol = symbol[0:4]
                 if len(ports) == 3:
@@ -461,29 +500,31 @@ class QschEditor(BaseSchematic):
                     netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             elif typ == 'T':
                 model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
             elif typ in ('JN', 'JP'):
                 model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 if symbol.startswith('Pwr'):  # Hack alert. I don't know why the symbol is Pwr
                     symbol = symbol[3:]  # remove the Pwr from the symbol
                 netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             elif typ == '×':
                 model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} «{nets}» {model}{parameters}\n')
             elif typ in ('ZP', 'ZN'):
                 model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
+                if have_embedded_subcircuit:
+                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             else:
                 value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
                 netlist_file.write(f'{refdes} {nets} {value}{parameters}\n')
                 # else:
                 #     netlist_file.write(f'{symbol}†{refdes} {nets} {value}\n')
-
-            library_tags = symbol_tag.get_items('library')
-            for lib in library_tags:
-                library_name = lib.get_text_attr(2)
-                if library_name not in libraries_to_include:
-                    libraries_to_include.append(library_name)
 
         for sub_circuit in subcircuits_to_write:
             sub_circuit_schematic, ports = subcircuits_to_write[sub_circuit]
@@ -499,7 +540,8 @@ class QschEditor(BaseSchematic):
                     netlist_file.write(line.strip() + '\n')
 
         for library in libraries_to_include:
-            library_path = self._qsch_file_find(library)
+            mydir = self.circuit_file.parent.absolute().as_posix()
+            library_path = self._qsch_file_find(library, mydir)
             if library_path is None:
                 netlist_file.write(f'.lib {library}\n')
             else:
@@ -619,6 +661,7 @@ class QschEditor(BaseSchematic):
 
         components = self.schematic.get_items('component')
         for component in components:
+            have_embedded_subcircuit = False
             symbol: QschTag = component.get_items('symbol')[0]
             texts = symbol.get_items('text')
             if len(texts) < 2:
@@ -632,6 +675,10 @@ class QschEditor(BaseSchematic):
             sch_comp.position = Point(x, y)
             sch_comp.rotation = orientation * 45
             sch_comp.attributes['type'] = symbol.get_text('type', "X")  # Assuming a sub-circuit
+            # a bit complicated way to detect embedded subcircuits: they are in the library tag,
+            lib = symbol.get_text('library file', "-")
+            if lib.startswith("|.subckt"):
+                have_embedded_subcircuit = True
             sch_comp.attributes['description'] = symbol.get_text('description', "No Description")
             sch_comp.attributes['value'] = value
             sch_comp.attributes['tag'] = component
@@ -665,11 +712,15 @@ class QschEditor(BaseSchematic):
 
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
-                sub_circuit_name = value + os.path.extsep + 'qsch'
-                sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name)
-                if sub_circuit_schematic_file:
-                    sub_schematic = QschEditor(sub_circuit_schematic_file)
-                    sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
+                if not have_embedded_subcircuit:
+                    sub_circuit_name = value + os.path.extsep + 'qsch'
+                    mydir = self.circuit_file.parent.absolute().as_posix()
+                    sub_circuit_schematic_file = self._qsch_file_find(sub_circuit_name, mydir)
+                    if sub_circuit_schematic_file:
+                        sub_schematic = QschEditor(sub_circuit_schematic_file)
+                        sch_comp.attributes['_SUBCKT'] = sub_schematic  # Store it for future use.
+                    else:
+                        _logger.warning(f"Subcircuit '{sub_circuit_name}' not found. Have you set the correct search paths?")
 
         for text_tag in self.schematic.get_items('text'):
             x, y = text_tag.get_attr(QSCH_TEXT_POS)
@@ -720,13 +771,31 @@ class QschEditor(BaseSchematic):
                         return tag, match
         else:
             return None, None
+        
+    def get_all_parameter_names(self) -> List[str]:
+        # docstring inherited from BaseEditor
+        param_names = []
+        param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
+        text_tags = self.schematic.get_items('text')
+        for tag in text_tags:
+            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+            if line.upper().startswith('.PARAM'):
+                matches = param_regex.finditer(line)
+                for match in matches:
+                    param_name = match.group('name')
+                    param_names.append(param_name.upper())
+        return sorted(param_names)
 
-    def _qsch_file_find(self, filename) -> Optional[str]:
+    def _qsch_file_find(self, filename: str, work_dir: str = None) -> Optional[str]:
         containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
         # '.'  is the directory where the script is located
+        if (work_dir is not None) and work_dir != ".":
+            containers = [work_dir] + containers  # put work directory first
         return search_file_in_containers(filename, *containers)
 
     def get_subcircuit(self, reference: str) -> 'QschEditor':
+        """Returns an QschEditor file corresponding to the symbol"""
         subcircuit = self.get_component(reference)
         if '_SUBCKT' in subcircuit.attributes:  # Optimization: if it was already stored, return it
             return subcircuit.attributes['_SUBCKT']

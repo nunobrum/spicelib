@@ -1,0 +1,20 @@
+* C:\sandbox\spicelib_dev\examples\testfiles\Qspice_top.qsch
+V1 N04 0 PWL 0 0 1m 5
+R1 N01 0 10K
+V2 N02 0 5
+X2 N04 N03 N02 0 N01 sub_circuit2
+V3 N03 0 1
+
+.subckt sub_circuit2 INP INN VDD VSS OUT
+R1 INN N01 10K
+R2 INP N02 10K
+R3 VSS N02 22K
+R4 OUT N01 22K
+Ã1 N03 VSS OUT N01 N02 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ RRopAmp Avol=100K GBW=5Meg Slew=5Meg Rload=2K Phi=60
+D1 VSS N03 MM3Z5V1T1G
+R5 VDD N03 220
+.lib C:\PROGRA~1\QSPICE\Zener.txt
+.ends sub_circuit2
+
+.tran 1m
+.end

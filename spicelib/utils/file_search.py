@@ -77,4 +77,5 @@ def search_file_in_containers(filename, *containers) -> Optional[str]:
                 if filefound is not None:
                     _logger.debug(f"Found '{filefound}'")
                     return filefound
+    _logger.debug(f"Searching for '{filename}': NOT Found")
     return None

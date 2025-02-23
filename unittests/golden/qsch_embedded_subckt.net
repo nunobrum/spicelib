@@ -1,0 +1,9 @@
+* C:\Users\hans\Documents\workspace\spicelib\reproducing_error\154\bug_test.qsch
+V1 IN 0 1
+R1 OUT 0 1Meg
+.subckt X2•mycomp OUT IN
+E1 OUT 0 IN 0 {P}
+.ends mycomp
+X2 OUT IN X2•mycomp P=2
+.tran 0 1m 0 100n uic
+.end
