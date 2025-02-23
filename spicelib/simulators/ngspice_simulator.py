@@ -72,10 +72,10 @@ class NGspiceSimulator(Simulator):
         _logger.debug(f"Found ngspice installed in: '{spice_exe}' ")
     
     ngspice_args = {
-        '-a'            : ['-a'],
-        '--autorun'     : ['--autorun'],  # run the loaded netlist
-        '-b'            : ['-b'],
-        '--batch'       : ['--batch'],  # process FILE in batch mode
+        # '-a'            : ['-a'],
+        # '--autorun'     : ['--autorun'],  # run the loaded netlist
+        # '-b'            : ['-b'],
+        # '--batch'       : ['--batch'],  # process FILE in batch mode
         '-c'            : ['-c', '<FILE>'],  #
         '--circuitfile' : ['--circuitfile', '<FILE>'],  # set the circuitfile
         '-D'            : ['-D', 'var_value'],  #
@@ -84,23 +84,23 @@ class NGspiceSimulator(Simulator):
         '--interactive' : ['--interactive'],  # run in interactive mode
         '-n'            : ['-n'],  #
         '--no-spiceinit': ['--no-spiceinit'],  # don't load the local or user's config file
-        '-o'            : ['-o', '<FILE>'],  #
-        '--output'      : ['--output', '<FILE>'],  # set the outputfile
-        '-p'            : ['-p'],  #
-        '--pipe'        : ['--pipe'],  # run in I/O pipe mode
+        # '-o'            : ['-o', '<FILE>'],  #
+        # '--output'      : ['--output', '<FILE>'],  # set the outputfile
+        # '-p'            : ['-p'],  #
+        # '--pipe'        : ['--pipe'],  # run in I/O pipe mode
         '-q'            : ['-q'],  #
         '--completion'  : ['--completion'],  # activate command completion
-        '-r'            : ['-r'],  #
-        '--rawfile'     : ['--rawfile', '<FILE>'],  # set the rawfile output
+        # '-r'            : ['-r'],  #
+        # '--rawfile'     : ['--rawfile', '<FILE>'],  # set the rawfile output
         '--soa-log'     : ['--soa-log', '<FILE>'],  # set the outputfile for SOA warnings
         '-s'            : ['-s'],  #
         '--server'      : ['--server'],  # run spice as a server process
         '-t'            : ['-t', '<TERM>'],  #
         '--term'        : ['--term', '<TERM>'],  # set the terminal type
-        '-h'            : ['-h'],  #
-        '--help'        : ['--help'],  # display this help and exit
-        '-v'            : ['-v'],  #
-        '--version'     : ['--version'],  # output version information and exit
+        # '-h'            : ['-h'],  #
+        # '--help'        : ['--help'],  # display this help and exit
+        # '-v'            : ['-v'],  #
+        # '--version'     : ['--version'],  # output version information and exit
     }
     """:meta private:"""
     
@@ -108,12 +108,26 @@ class NGspiceSimulator(Simulator):
     _compatibility_mode = 'kiltpsa'
 
     @classmethod
-    def valid_switch(cls, switch, parameter='') -> list:
+    def valid_switch(cls, switch: str, parameter: str = '') -> list:
         """
         Validates a command line switch. The following options are available for NGSpice:
+        
+        * `-c, --circuitfile=FILE`: set the circuitfile
+        * `-D, --define=variable[=value]`: define variable to true/[value]
+        * `-n, --no-spiceinit`: don't load the local or user's config file
+        * `-q, --completion`: activate command completion
+        * `--soa-log=FILE`: set the outputfile for SOA warnings
+        * `-s, --server`: run spice as a server process
+        * `-t, --term=TERM`: set the terminal type
+        
+        The following parameters will already be filled in by spicelib, and cannot be set:
+        
+        * `-a  --autorun`: run the loaded netlist
+        * `-b, --batch`: process FILE in batch mode
+        * `-o, --output=FILE`: set the outputfile
+        * `-r, --rawfile=FILE`: set the rawfile output
 
-        :param switch: switch to be added. If the switch is not on the list above, it should be correctly formatted with
-                    the preceding '-' switch
+        :param switch: switch to be added.
         :type switch: str
         :param parameter: parameter for the switch
         :type parameter: str, optional
@@ -122,10 +136,22 @@ class NGspiceSimulator(Simulator):
         """
         ret = []  # This is an empty switch
         parameter = parameter.strip()
+
+        # format check
+        if switch is None:
+            return []
+        switch = switch.strip()
+        if len(switch) == 0:
+            return []
+        if switch[0] != '-':
+            switch = '-' + switch
+        
+        # will be set anyway?
+        if switch in cls._default_run_switches:
+            _logger.info(f"Switch {switch} is already in the default switches")
+            return []        
+        
         if switch in cls.ngspice_args:
-            if switch in cls._default_run_switches:
-                _logger.info(f"Switch {switch} is already in the default switches")
-                return ret
             if cls.set_compatibility_mode and (switch == '-D' or switch == '--define') and parameter.lower().startswith("ngbehavior"):
                 _logger.info(f"Switch {switch} {parameter} is already in the default switches, use 'set_compatibility_mode' instead")
                 return ret                
@@ -139,7 +165,7 @@ class NGspiceSimulator(Simulator):
             else:
                 ret = switch_list
         else:
-            _logger.warning(f"Invalid Switch {switch}")
+            raise ValueError(f"Invalid Switch '{switch}'")
         return ret
 
     @classmethod
@@ -147,6 +173,9 @@ class NGspiceSimulator(Simulator):
             stdout=None, stderr=None, 
             exe_log: bool = False) -> int:
         """Executes a NGspice simulation run.
+        
+        A raw file and a log file will be generated, with the same name as the netlist file, 
+        but with `.raw` and `.log` extension.
 
         :param netlist_file: path to the netlist file
         :type netlist_file: Union[str, Path]
@@ -168,7 +197,7 @@ class NGspiceSimulator(Simulator):
         :return: return code from the process
         :rtype: int
         """
-        if not cls.spice_exe:
+        if not cls.is_available():
             _logger.error("================== ALERT! ====================")
             _logger.error("Unable to find the NGSPICE executable.")
             _logger.error("A specific location of the NGSPICE can be set")
@@ -190,7 +219,7 @@ class NGspiceSimulator(Simulator):
         if cls._compatibility_mode:
             extra_switches = ['-D', f"ngbehavior={cls._compatibility_mode}"]
         # TODO: -a seems useless with -b, however it is still defined in the default switches. Need to check if it is really needed.
-        cmd_run = cls.spice_exe + cmd_line_switches + extra_switches + ['-b'] + ['-o'] + [logfile] + ['-r'] + [rawfile] + [netlist_file]
+        cmd_run = cls.spice_exe + cmd_line_switches + extra_switches + ['-b'] + ['-o'] + [logfile] + ['-r'] + [rawfile] + [netlist_file.as_posix()]
         # start execution
         if exe_log:
             log_exe_file = netlist_file.with_suffix('.exe.log')
@@ -201,33 +230,24 @@ class NGspiceSimulator(Simulator):
         return error
     
     @classmethod
-    def set_compatibility_mode(cls, mode: str):
+    def set_compatibility_mode(cls, mode: str = _compatibility_mode):
         """
         Set the compatibility mode. It has become mandatory in recent ngspice versions, as the default 'all' is no longer valid.
         
-        A good default seems to be "kiltpsa" (KiCad, LTspice, PSPICE, netlists)
+        A good default seems to be "kiltpsa" (KiCad, LTspice, PSPICE, netlists).
         
-        The following compatibility modes are available (as of mid 2024, ngspice v43):
+        The following compatibility modes are available (as of end 2024, ngspice v44):
         
-        * a : complete netlist transformed
-        
-        * ps : PSPICE compatibility
-        
-        * hs : HSPICE compatibility
-        
-        * spe : Spectre compatibility
-        
-        * lt : LTSPICE compatibility
-        
-        * s3 : Spice3 compatibility
-        
-        * ll : all (currently not used)
-        
-        * ki : KiCad compatibility
-        
-        * eg : EAGLE compatibility
-        
-        * mc : for ’make check’
+        * `a : complete netlist transformed`
+        * `ps : PSPICE compatibility`        
+        * `hs : HSPICE compatibility`
+        * `spe : Spectre compatibility`
+        * `lt : LTSPICE compatibility`
+        * `s3 : Spice3 compatibility`
+        * `ll : all (currently not used)`
+        * `ki : KiCad compatibility`
+        * `eg : EAGLE compatibility`
+        * `mc : for ’make check’`
         
         :param mode: the compatibility mode to be set. Set to None to remove the compatibility setting.
         :type mode: str

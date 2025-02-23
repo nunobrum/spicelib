@@ -136,34 +136,36 @@ class LTspice(Simulator):
         _logger.debug(f"Found LTspice installed in: '{spice_exe}' ")
 
     ltspice_args = {
-        'alt'                : ['-alt'],  # Set solver to Alternate.
-        'ascii'              : ['-ascii'],  # Use ASCII.raw files. Seriously degrades program performance.
+        '-alt'                : ['-alt'],  # Set solver to Alternate.
+        '-ascii'              : ['-ascii'],  # Use ASCII.raw files. Seriously degrades program performance.
         # 'batch'            : ['-b <path>'], # Used by run command: Run in batch mode.E.g. "ltspice.exe-b deck.cir" will leave the data infile deck.raw
-        'big'                : ['-big'],  # Start as a maximized window.
-        'encrypt'            : ['-encrypt'],
+        '-big'                : ['-big'],  # Start as a maximized window.
+        '-encrypt'            : ['-encrypt'],
         # Encrypt a model library.For 3rd parties wishing to allow people to use libraries without
         # revealing implementation details. Not used by AnalogDevices models.
-        'fastaccess'         : ['-FastAccess'],  # Batch conversion of a binary.rawfile to Fast Access format.
-        'FixUpSchematicFonts': ['-FixUpSchematicFonts'],
+        '-fastaccess'         : ['-FastAccess'],  # Batch conversion of a binary.rawfile to Fast Access format.
+        '-FixUpSchematicFonts': ['-FixUpSchematicFonts'],
         # Convert the font size field of very old user - authored schematic text to the modern default.
-        'FixUpSymbolFonts'   : ['-FixUpSymbolFonts'],
+        '-FixUpSymbolFonts'   : ['-FixUpSymbolFonts'],
         # Convert the font size field of very old user - authored symbols to the modern default.
         # See Changelog.txt for application hints.
-        'ini'                : ['- ini', '<path>'],  # Specify an .ini file to use other than %APPDATA%\LTspice.ini
-        'I'                  : ['-I<path>'],  # Specify a path to insert in the symbol and file search paths.
+        '-ini'                : ['- ini', '<path>'],  # Specify an .ini file to use other than %APPDATA%\LTspice.ini
+        '-I'                  : ['-I<path>'],  # Specify a path to insert in the symbol and file search paths.
         # Must be the last specified option.
         # No space between "-I" and < path > is allowed.
-        'max'                : ['-max'],  # Synonym for -big
-        'netlist'            : ['-netlist'],  # Batch conversion of a schematic to a netlist.
-        'norm'               : ['-norm'],  # Set solver to Normal.
-        'PCBnetlist': ['-PCBnetlist'],  # Batch conversion of a schematic to a PCB format netlist.
+        '-max'                : ['-max'],  # Synonym for -big
+        '-netlist'            : ['-netlist'],  # Batch conversion of a schematic to a netlist.
+        '-norm'               : ['-norm'],  # Set solver to Normal.
+        '-PCBnetlist': ['-PCBnetlist'],  # Batch conversion of a schematic to a PCB format netlist.
         # 'run'              : ['-Run', '-b', '{path}'],  # Start simulating the schematic opened on the command line without
         # pressing the Run button.
-        'SOI'                : ['-SOI'],  # Allow MOSFET's to have up to 7 nodes even in subcircuit expansion.
-        'sync'               : ['-sync'],  # Update component libraries
-        'uninstall'          : ['-uninstall'],  # Please don't. Executes one step of the uninstallation process.
+        '-SOI'                : ['-SOI'],  # Allow MOSFET's to have up to 7 nodes even in subcircuit expansion.
+        '-sync'               : ['-sync'],  # Update component libraries
+        # '-uninstall'          : ['-uninstall'],  # Please don't. Executes one step of the uninstallation process. >> Not used in this implementation.
     }
     """:meta private:"""
+    
+    _default_run_switches = ['-Run', '-b']    
 
     @classmethod
     def using_macos_native_sim(cls) -> bool:
@@ -175,47 +177,32 @@ class LTspice(Simulator):
         return sys.platform == "darwin" and cls.spice_exe and "wine" not in cls.spice_exe[0].lower()
 
     @classmethod
-    def valid_switch(cls, switch, path='') -> list:
+    def valid_switch(cls, switch: str, path: str = '') -> list:
         """
         Validates a command line switch. The following options are available for Windows/wine LTspice:
 
-            * 'alt' : Set solver to Alternate.
-
-            * 'ascii'     : Use ASCII.raw files. Seriously degrades program performance.
-
-            * 'encrypt'   : Encrypt a model library.For 3rd parties wishing to allow people to use libraries without
-                            revealing implementation details. Not used by AnalogDevices models.
-
-            * 'fastaccess': Batch conversion of a binary.rawfile to Fast Access format.
-
-            * 'FixUpSchematicFonts' : Convert the font size field of very old user - authored schematic text to the
-                                    modern default.
-
-            * 'FixUpSymbolFonts' : Convert the font size field of very old user - authored symbols to the modern
-                default. See Changelog.txt for application hints.
-
-            * 'ini <path>' : Specify an .ini file to use other than %APPDATA%\\LTspice.ini
-
-            * 'I<path>' : Specify a path to insert in the symbol and file search paths. Must be the last specified
-                option.
-
-            * 'netlist'   :  Batch conversion of a schematic to a netlist.
-
-            * 'normal'    :  Set solver to Normal.
-
-            * 'PCBnetlist':  Batch conversion of a schematic to a PCB format netlist.
-
-            * 'SOI'       :  Allow MOSFET's to have up to 7 nodes even in subcircuit expansion.
-
-            * 'sync'      : Update component libraries
-
-            * 'uninstall' :  Executes one step of the uninstallation process. Please don't.
+        * `-alt`: Set solver to Alternate.
+        * `-ascii`: Use ASCII.raw files. Seriously degrades program performance.
+        * `-encrypt`: Encrypt a model library.For 3rd parties wishing to allow people to use libraries without revealing implementation details. Not used by AnalogDevices models.
+        * `-fastaccess`: Batch conversion of a binary.rawfile to Fast Access format.
+        * `-FixUpSchematicFonts`: Convert the font size field of very old user - authored schematic text to the modern default.
+        * `-FixUpSymbolFonts`: Convert the font size field of very old user - authored symbols to the modern default. See Changelog.txt for application hints.
+        * `-ini <path>`: Specify an .ini file to use other than %APPDATA%\\LTspice.ini
+        * `-I<path>`: Specify a path to insert in the symbol and file search paths. Must be the last specified option.
+        * `-netlist`: Batch conversion of a schematic to a netlist.
+        * `-normal`: Set solver to Normal.
+        * `-PCBnetlistBatch`: Conversion of a schematic to a PCB format netlist.
+        * `-SOI`: Allow MOSFET's to have up to 7 nodes even in subcircuit expansion.
+        * `-sync`: Update component libraries
             
-            MacOS native LTspice accepts no command line switches (yet). 
+        The following parameters will already be filled in by spicelib, and cannot be set:
+        
+        * `-Run`: Start simulating the schematic opened on the command line without pressing the Run button.
+        * `-b`: Run in batch mode.
+                
+        MacOS native LTspice accepts no command line switches (yet), use it under wine for full support.
 
-
-        :param switch: switch to be added. If the switch is not on the list above, it should be correctly formatted with
-                       the preceding '-' switch
+        :param switch: switch to be added.
         :type switch: str
         :param path: path to the file related to the switch being given.
         :type path: str, optional
@@ -227,18 +214,35 @@ class LTspice(Simulator):
             # this is the native LTspice. It has no useful command line switches (except '-b').
             raise ValueError("MacOS native LTspice does not support command line switches. Use it under wine for full support.")
             
+        # format check
+        if switch is None:
+            return []
+        switch = switch.strip()
+        if len(switch) == 0:
+            return []
+        if switch[0] != '-':
+            switch = '-' + switch
+        
+        # will be set anyway?
+        if switch in cls._default_run_switches:
+            _logger.info(f"Switch {switch} is already in the default switches")
+            return []        
+            
         if switch in cls.ltspice_args:
             switches = cls.ltspice_args[switch]
             switches = [switch.replace('<path>', path) for switch in switches]
             return switches
         else:
-            raise ValueError("Invalid switch for class ")
+            raise ValueError(f"Invalid Switch '{switch}'")
 
     @classmethod
     def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, 
             stdout=None, stderr=None,
             exe_log: bool = False) -> int:
         """Executes a LTspice simulation run.
+        
+        A raw file and a log file will be generated, with the same name as the netlist file, 
+        but with `.raw` and `.log` extension.        
 
         :param netlist_file: path to the netlist file
         :type netlist_file: Union[str, Path]
@@ -260,7 +264,7 @@ class LTspice(Simulator):
         :return: return code from the process
         :rtype: int
         """
-        if not cls.spice_exe:
+        if not cls.is_available():
             _logger.error("================== ALERT! ====================")
             _logger.error("Unable to find a LTspice executable.")
             _logger.error("A specific location of the LTSPICE can be set")
@@ -272,7 +276,9 @@ class LTspice(Simulator):
             cmd_line_switches = []
         elif isinstance(cmd_line_switches, str):
             cmd_line_switches = [cmd_line_switches]
-        netlist_file = Path(netlist_file)        
+        netlist_file = Path(netlist_file)
+        
+        # cannot set raw and log file names or extensions. They are always '<netlist_file>.raw' and '<netlist_file>.log'
         
         if sys.platform == "linux" or sys.platform == "darwin":
             if cls.using_macos_native_sim():

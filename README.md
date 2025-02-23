@@ -819,7 +819,8 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 
 ## History
 
-* Version TBD
+* Version 1.4.1
+  * Fixed Issue #158 - improve xyce path detection, improve runner switch parameter help texts
   * Fixed Issue #154 - support embedded subcircuits in Qspice
   * Fixed Issue #139 - support xyce raw files
   * Added `get_all_parameter_names()` function to all editors (#159)

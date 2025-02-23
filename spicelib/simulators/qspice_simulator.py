@@ -80,57 +80,76 @@ class Qspice(Simulator):
         _logger.debug(f"Found Qspice installed in: '{spice_exe}' ")
 
     qspice_args = {
-        'ASCII'     : ['-ASCII'],  # Use ASCII file format for the output data(.qraw) file.
-        'binary'    : ['-binary'],  # Use binary file format for the output data(.qraw) file.
-        'BSIM1'    : ['-BSIM1'],  # Use the charge-conserving BSIM1 charge model for MOS1, MOS2, and MOS3.
-        'Meyer'    : ['-Meyer'],  # Use the Meyer Capacitance model for MOS1, MOS2, and MOS3.
-        'o'         : ['-o', '<path>'],  # Specify the name of a file for the console output.
-        # 'p'         : ['-p'],  # Take the netlist piped from stdin. Not used in this implementation.
-        'ProtectSelections': ['-ProtectSelections', '<path>'],  # Protect sections marked with .prot/.unprot with encryption.
-        'ProtectSubcircuits': ['-ProtectSubcircuits', '<path>'],  # Protect the body of subcircuits with encryption.
-        'r'       : ['-r', '<path>'],  # Specify the name of the output data(.qraw) file.
+        '-ASCII'     : ['-ASCII'],  # Use ASCII file format for the output data(.qraw) file.
+        '-ascii'     : ['-ASCII'],  # lowercase also works. Not sure about the others, so keep it this way.
+        '-binary'    : ['-binary'],  # Use binary file format for the output data(.qraw) file.
+        '-BSIM1'    : ['-BSIM1'],  # Use the charge-conserving BSIM1 charge model for MOS1, MOS2, and MOS3.
+        '-Meyer'    : ['-Meyer'],  # Use the Meyer Capacitance model for MOS1, MOS2, and MOS3.
+        '-o'         : ['-o', '<path>'],  # Specify the name of a file for the console output.
+        # '-p'         : ['-p'],  # Take the netlist piped from stdin. >> Not used in this implementation.
+        '-ProtectSelections': ['-ProtectSelections', '<path>'],  # Protect sections marked with .prot/.unprot with encryption.
+        '-ProtectSubcircuits': ['-ProtectSubcircuits', '<path>'],  # Protect the body of subcircuits with encryption.
+        '-r'       : ['-r', '<path>'],  # Specify the name of the output data(.qraw) file.
     }
     """:meta private:"""
+    
+    _default_run_switches = ['-o']
+    
 
     @classmethod
-    def valid_switch(cls, switch, path='') -> list:
+    def valid_switch(cls, switch: str, path: str = '') -> list:
         """
         Validates a command line switch. The following options are available for QSPICE:
         
-            * 'ASCII': Use ASCII file format for the output data(.qraw) file.
+        * `-ASCII`: Use ASCII file format for the output data(.qraw) file.
+        * `-binary`: Use binary file format for the output data(.qraw) file.
+        * `-BSIM1`: Use the charge-conserving BSIM1 charge model for MOS1, MOS2, and MOS3.
+        * `-Meyer`: Use the Meyer Capacitance model for MOS1, MOS2, and MOS3.
+        * `-ProtectSelections <path>`: Protect sections marked with .prot/.unprot with encryption.
+        * `-ProtectSubcircuits <path>`: Protect the body of subcircuits with encryption.
+        * `-r <path>`: Specify the name of the output data(.qraw) file.
+        
+        The following parameters will already be filled in by spicelib, and cannot be set:
 
-            * 'binary': Use binary file format for the output data(.qraw) file.
-
-            * 'BSIM1': Use the charge-conserving BSIM1 charge model for MOS1, MOS2, and MOS3.
-
-            * 'Meyer': Use the Meyer Capacitance model for MOS1, MOS2, and MOS3.
-
-            * 'o <path>': Specify the name of a file for the console output.
-
-            * 'ProtectSelections <path>': Protect sections marked with .prot/.unprot with encryption.
-
-            * 'ProtectSubcircuits <path>': Protect the body of subcircuits with encryption.
-
-            * 'r <path>': Specify the name of the output data(.qraw) file.
-
-        :param switch: switch to be added. If the switch is not on the list above, it should be correctly formatted with the preceding '-' switch
+        * `-o <path>`: Specify the name of a file for the console output.
+        
+        :param switch: switch to be added.
         :type switch: str
         :param path: path to the file related to the switch being given.
         :type path: str, optional
         :return: Nothing
         """
+        
+        # format check
+        if switch is None:
+            return []
+        switch = switch.strip()
+        if len(switch) == 0:
+            return []
+        if switch[0] != '-':
+            switch = '-' + switch
+        
+        # will be set anyway?
+        if switch in cls._default_run_switches:
+            _logger.info(f"Switch {switch} is already in the default switches")
+            return []        
+        
+        # read from the dictionary
         if switch in cls.qspice_args:
             switches = cls.qspice_args[switch]
             switches = [switch.replace('<path>', path) for switch in switches]
             return switches
         else:
-            raise ValueError("Invalid switch for class ")
+            raise ValueError(f"Invalid Switch '{switch}'")
 
     @classmethod
     def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, 
             stdout=None, stderr=None,
             exe_log: bool = False) -> int:
         """Executes a Qspice simulation run.
+        
+        A raw file and a log file will be generated, with the same name as the netlist file, 
+        but with `.qraw` and `.log` extension. You can however change the raw file name using the `-r` switch.
 
         :param netlist_file: path to the netlist file
         :type netlist_file: Union[str, Path]
@@ -152,7 +171,7 @@ class Qspice(Simulator):
         :return: return code from the process
         :rtype: int
         """
-        if not cls.spice_exe:
+        if not cls.is_available():
             _logger.error("================== ALERT! ====================")
             _logger.error("Unable to find the QSPICE executable.")
             _logger.error("A specific location of the QSPICE can be set")
@@ -164,10 +183,10 @@ class Qspice(Simulator):
             cmd_line_switches = []
         elif isinstance(cmd_line_switches, str):
             cmd_line_switches = [cmd_line_switches]
-        netlist_file = Path(netlist_file)
+        netlist_file = Path(netlist_file).absolute()  # need absolute path, as early 2025 qspice has a strange repetition bug
                 
         log_file = Path(netlist_file).with_suffix('.log').as_posix()
-        cmd_run = cls.spice_exe + ['-o', log_file] + [netlist_file] + cmd_line_switches
+        cmd_run = cls.spice_exe + ['-o', log_file] + [netlist_file.as_posix()] + cmd_line_switches
         # start execution
         if exe_log:
             log_exe_file = netlist_file.with_suffix('.exe.log')
