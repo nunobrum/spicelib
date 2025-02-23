@@ -171,6 +171,36 @@ def decap(s: str) -> str:
     return regex.sub(r"\1=\2", s)
 
 
+def smart_split(line: str) -> List[str]:
+    """Splits a string into chunks based on spaces. What is inside "" is not divided."""
+    i = i0 = 0
+    tokens = []
+    while i < len(line):
+        c = line[i]
+        if c == '"':
+            # get all characters until the next " sign
+            i += 1
+            while line[i] != '"':
+                i += 1
+        elif c == ' ' or c == '\n':
+            if i > i0:
+                tokens.append(line[i0:i])
+            i0 = i + 1
+        # elif c == '(':
+        #     # todo: support also [] and {}
+        #     nested = 1
+        #     while nested > 0:
+        #         i += 1
+        #         if line[i] == '(':
+        #             nested += 1
+        #         elif line[i] == ')':
+        #             nested -= 1
+        i += 1
+    if i > i0:
+        tokens.append(line[i0:i])
+    return tokens
+
+
 class QschReadingError(IOError):
     ...
 
@@ -205,12 +235,17 @@ class QschTag:
                 child, i = QschTag.parse(stream, i)
                 i0 = i + 1
                 self.items.append(child)
+            elif stream[i] == '"':
+                # get all characters until the next " sign
+                i += 1
+                while stream[i] != '"':
+                    i += 1
             elif stream[i] == '»':
                 stop = i + 1
                 break
             elif stream[i] == '\n':
                 if i > i0:
-                    tokens = stream[i0:i].split(' ')  # No text here, so we can make it simpler
+                    tokens = smart_split(stream[i0:i])
                     self.tokens.extend(tokens)
                 i0 = i + 1
             i += 1
@@ -219,33 +254,11 @@ class QschTag:
         line = stream[i0:i]
         # Now dividing the
         if ': ' in line:
-            tokens = line.split(': ')
-            self.tokens.extend(tokens)
+            name, text = line.split(': ')
+            self.tokens.append(name + ":")
+            self.tokens.append(text)
         else:
-            i = i0 = 0
-            while i < len(line):
-                c = line[i]
-                if c == ' ' or c == '\n':
-                    if i > i0:
-                        self.tokens.append(line[i0:i])
-                    i0 = i + 1
-                elif c == '"':
-                    # get all characters until the next " sign
-                    i += 1
-                    while c != '"':
-                        i += 1
-                # elif c == '(':
-                #     # todo: support also [] and {}
-                #     nested = 1
-                #     while nested > 0:
-                #         i += 1
-                #         if line[i] == '(':
-                #             nested += 1
-                #         elif line[i] == ')':
-                #             nested -= 1
-                i += 1
-            if i > i0:
-                self.tokens.append(line[i0:i])
+            self.tokens.extend(smart_split(line))
         return self, stop
 
     def __str__(self):
@@ -351,12 +364,8 @@ class QschTag:
                 raise IndexError(f"Label '{label}' not found in:{self}")
             else:
                 return default
-        if " " in label:
-            start_pos = 2
-        else:
-            start_pos = 1
-        if len(a[0].tokens) > start_pos:
-            return ' '.join(a[0].tokens[start_pos:])
+        if len(a[0].tokens) >= 2:
+            return a[0].tokens[1]
         else:
             return default
 
