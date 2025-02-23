@@ -820,6 +820,7 @@ For support and improvement requests please open an Issue in [GitHub spicelib is
 ## History
 
 * Version TBD
+  * Fixed Issue #154 - support embedded subcircuits in Qspice
   * Fixed Issue #139 - support xyce raw files
   * Added `get_all_parameter_names()` function to all editors (#159)
 * Version 1.4.0 (Python 3.9+ only)

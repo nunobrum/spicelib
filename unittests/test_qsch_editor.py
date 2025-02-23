@@ -171,5 +171,25 @@ class QschEditorFloatingNet(unittest.TestCase):
         equalFiles(self, temp_dir + 'qsch_floating_net.net', golden_dir + "qsch_floating_net.net")
 
 
+class QschEditorEmbeddedSubckt(unittest.TestCase):
+
+    def test_embedded_subckt(self):
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "Qspice_bug_embedded_subckt.qsch")
+        self.edt.save_netlist(temp_dir + 'qsch_embedded_subckt.net')
+        equalFiles(self, temp_dir + 'qsch_embedded_subckt.net', golden_dir + "qsch_embedded_subckt.net")
+
+    def test_sub_circuit(self):
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "Qspice_top.qsch")
+        # get sub-circuit
+        sub = self.edt.get_subcircuit("X2")
+        sub_desc = self.edt.get_component_value('X2')
+        self.assertEqual("sub_circuit2", sub_desc, "Value mismatch")
+        self.assertEqual('10K', sub.get_component_value("R1"))
+        self.assertEqual('22K', sub.get_component_value("R4"))
+        sub.set_component_value('R5', 220)
+        self.edt.save_netlist(temp_dir + 'Qspice_top_edit.net')
+        equalFiles(self, golden_dir + 'Qspice_top_edit.net', temp_dir + 'Qspice_top_edit.net')
+
+
 if __name__ == '__main__':
     unittest.main()

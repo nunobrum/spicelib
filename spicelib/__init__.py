@@ -18,12 +18,14 @@ def all_loggers():
     """
     return [
         "spicelib.AscEditor",
+        "spicelib.AscToQsch",
         "spicelib.AsyReader",
         "spicelib.BaseEditor",
         "spicelib.BaseSchematic",
         "spicelib.LTSpiceSimulator",
         "spicelib.LTSteps",
         "spicelib.NGSpiceSimulator",
+        "spicelib.QschEditor",
         "spicelib.qspice_log_reader",
         "spicelib.QSpiceSimulator",
         "spicelib.RawRead",
