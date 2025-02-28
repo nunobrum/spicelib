@@ -67,7 +67,7 @@ class XyceSimulator(Simulator):
         process_name = None
     else:
         process_name = Simulator.guess_process_name(spice_exe[0])
-        _logger.debug(f"Found ngspice installed in: '{spice_exe}' ")
+        _logger.debug(f"Found xyce installed in: '{spice_exe}' ")
             
     xyce_args = {
         # '-b'                : ['-b'],  # batch mode flag for spice compatibility (ignored)

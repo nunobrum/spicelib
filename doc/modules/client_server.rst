@@ -17,7 +17,7 @@ use the following command:
 
 .. code-block:: bash
 
-    python -m spicelib.run_server --port 9000 --parallel 4 --output ./temp
+    python -m spicelib.scripts.run_server --port 9000 --parallel 4 --output ./temp LTSpice 300
 
 Make sure that each machine is on the same network and that the port is open.
 If port is not specified, the default port is 9000.
@@ -32,7 +32,7 @@ On the client side, you can use the following code to run the simulation:
     import logging
 
     # In order for this, to work, you need to have a server running. To start a server, run the following command:
-    # python -m spicelib.run_server --port 9000 --parallel 4 --output ./temp
+    # python -m spicelib.scripts.run_server --port 9000 --parallel 4 --output ./temp LTSpice 300
 
     _logger = logging.getLogger("spicelib.SimClient")
     _logger.setLevel(logging.DEBUG)
