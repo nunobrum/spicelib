@@ -35,7 +35,7 @@ def main():
                     "SimClient class."
                     "The argument is the simulator to be used (LTSpice, NGSpice, XYCE, etc.)"
     )
-    parser.add_argument('simulator', type=str, nargs='?', default="LTSpice", choices=supported_sims,
+    parser.add_argument('simulator', type=str.lower, nargs='?', default="LTSpice", choices=supported_sims,
                         help="Simulator to be used (LTSpice, NGSpice, XYCE, etc.). Default is LTSpice")
     parser.add_argument("-p", "--port", type=int, default=9000,
                         help="Port to run the server. Default is 9000")
