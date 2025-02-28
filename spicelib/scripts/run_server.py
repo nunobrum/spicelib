@@ -27,7 +27,7 @@ import keyboard
 
 def main():
     
-    supported_sims = ["LTSpice", "NGSpice", "Xyce"]
+    supported_sims = ["ltspice", "ngspice", "xyce"]
     parser = argparse.ArgumentParser(
         description="Run the LTSpice Server. This is a command line interface to the SimServer class."
                     "The SimServer class is used to run simulations in parallel using a server-client architecture."
