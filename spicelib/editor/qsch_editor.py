@@ -444,8 +444,8 @@ class QschEditor(BaseSchematic):
                     ports += ['¥'] * (16 - len(ports))
 
             nets = " ".join(ports)
+            model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
             
-            has_dedicated_model = False
             # Check the libraries and embedded subcircuits
             library_name = symbol_tag.get_text('library file', default="")
             if library_name.startswith('|'):
@@ -455,16 +455,12 @@ class QschEditor(BaseSchematic):
                                   library_name, re.MULTILINE)
                 new_line = new_line.replace("\\n", "\n")
                 netlist_file.write(new_line+'\n')
-                has_dedicated_model = True
+                model = f"{refdes}•{model}"
             elif library_name and (library_name not in libraries_to_include):
                 # List the libraries at the end
                 libraries_to_include.append(library_name)
 
             if typ == 'X':
-                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                if has_dedicated_model:
-                    model = f"{refdes}•{model}"
-
                 # schedule to write .SUBCKT clauses at the end
                 if model not in subcircuits_to_write:
                     if '_SUBCKT' in component.attributes:
@@ -478,9 +474,6 @@ class QschEditor(BaseSchematic):
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
             elif typ in ('QP', 'QN'):
-                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                if has_dedicated_model:
-                    model = f"{refdes}•{model}"                
                 if symbol == 'NPNS' or symbol == 'PNPS' or symbol == 'LPNP':
                     ports[3] = '[' + ports[3] + ']'
                     nets = ' '.join(ports)
@@ -489,9 +482,6 @@ class QschEditor(BaseSchematic):
                 else:
                     netlist_file.write(f'{refdes} {nets} [0] {model} {symbol}{parameters}\n')
             elif typ in ('MN', 'MP'):
-                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                if has_dedicated_model:
-                    model = f"{refdes}•{model}"                
                 if symbol == 'NMOSB' or symbol == 'PMOSB':
                     symbol = symbol[0:4]
                 if len(ports) == 3:
@@ -500,33 +490,17 @@ class QschEditor(BaseSchematic):
                     netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             elif typ == 'T':
                 model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
-                if has_dedicated_model:
-                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
             elif typ in ('JN', 'JP'):
-                model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
-                if has_dedicated_model:
-                    model = f"{refdes}•{model}"                
                 if symbol.startswith('Pwr'):  # Hack alert. I don't know why the symbol is Pwr
                     symbol = symbol[3:]  # remove the Pwr from the symbol
                 netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             elif typ == '×':
-                model = decap(texts[1].get_text_attr(QSCH_TEXT_STR_ATTR))
-                if has_dedicated_model:
-                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} «{nets}» {model}{parameters}\n')
             elif typ in ('ZP', 'ZN'):
-                model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                if has_dedicated_model:
-                    model = f"{refdes}•{model}"                
                 netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
             else:
-                value = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
-                if has_dedicated_model:
-                    value = f"{refdes}•{value}"
-                netlist_file.write(f'{refdes} {nets} {value}{parameters}\n')
-                # else:
-                #     netlist_file.write(f'{symbol}†{refdes} {nets} {value}\n')
+                netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
         for sub_circuit in subcircuits_to_write:
             sub_circuit_schematic, ports = subcircuits_to_write[sub_circuit]
