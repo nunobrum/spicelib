@@ -35,7 +35,7 @@ def main():
                     "SimClient class."
                     "The argument is the simulator to be used (LTSpice, NGSpice, XYCE, etc.)"
     )
-    parser.add_argument('simulator', type=str.lower, nargs='?', default="LTSpice", choices=supported_sims,
+    parser.add_argument('simulator', type=str, nargs='?', default="ltspice", choices=supported_sims,
                         help="Simulator to be used (LTSpice, NGSpice, XYCE, etc.). Default is LTSpice")
     parser.add_argument("-p", "--port", type=int, default=9000,
                         help="Port to run the server. Default is 9000")
@@ -45,10 +45,6 @@ def main():
                         help="Maximum number of parallel simulations. Default is 4")
     parser.add_argument('timeout', type=int, nargs='?', default=300,
                         help="Timeout for the simulations. Default is 300 seconds (5 minutes)")
-
-    if len(sys.argv) == 0:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
 
     args = parser.parse_args()
     if args.parallel < 1:
