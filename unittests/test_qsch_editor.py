@@ -101,8 +101,8 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.set_parameters(new_param=120, other_param="voila")
         self.edt.save_as(temp_dir + 'test_parameter_output.qsch')
         equalFiles(self, golden_dir + 'test_parameter_output.qsch', temp_dir + 'test_parameter_output.qsch')
-        self.edt.save_netlist(temp_dir + 'test_parameter_output.net')
-        equalFiles(self, golden_dir + 'test_parameter_output.net', temp_dir + 'test_parameter_output.net')
+        self.edt.save_netlist(temp_dir + 'test_parameter_output_qsch.net')
+        equalFiles(self, golden_dir + 'test_parameter_output_qsch.net', temp_dir + 'test_parameter_output_qsch.net')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
         self.edt.set_parameter('other_param', "Pronto")
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
