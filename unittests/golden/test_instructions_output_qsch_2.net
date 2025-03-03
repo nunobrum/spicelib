@@ -1,0 +1,13 @@
+* C:\sandbox\spicelib_dev\examples\testfiles\DC sweep.qsch
+R1 N01 N02 10K
+R2 N02 0 {res}
+D1 N02 0 D
+Vin N01 0 1
+.step temp 0 100 50
+.param res=10K
+.ac dec 10 1 100K
+.op
+.param temp=0
+.save V(vout)
+.lib C:\PROGRA~1\QSPICE\Diode.txt
+.end

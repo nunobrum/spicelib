@@ -1,0 +1,15 @@
+* C:\sandbox\spicelib_dev\examples\testfiles\DC sweep.qsch
+R1 N01 N02 10K
+R2 N02 0 {res}
+D1 N02 0 D
+Vin N01 0 1
+.step temp 0 100 50
+.param res=10K
+.dc Vin 1 10 9
+.op
+.param temp=0
+.param new_param=120
+.param other_param=voila
+.param other_param=Pronto
+.lib C:\PROGRA~1\QSPICE\Diode.txt
+.end
