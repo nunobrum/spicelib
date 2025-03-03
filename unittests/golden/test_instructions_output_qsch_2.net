@@ -5,10 +5,9 @@ D1 N02 0 D
 Vin N01 0 1
 .step temp 0 100 50
 .param res=10K
-.dc Vin 1 10 9
+.ac dec 10 1 100K
 .op
-.param temp=25
-.param new_param=120
-.param other_param=voila
+.param temp=0
+.save V(vout)
 .lib C:\PROGRA~1\QSPICE\Diode.txt
 .end

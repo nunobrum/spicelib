@@ -534,9 +534,12 @@ class QschEditor(BaseSchematic):
             netlist_file.write(f".ends {sub_circuit}\n")
             netlist_file.write("\n")
 
-        for directive in self.directives:
-            for line in directive.text.split('\\n'):
-                if directive.type != TextTypeEnum.COMMENT:  # Comments are not written to the netlist
+        text_tags = self.schematic.get_items('text')
+        for text_tag in text_tags:
+            lines = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+            lines = lines.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+            for line in lines.split('\\n'):
+                if text_tag.get_attr(QSCH_TEXT_COMMENT) != 1:  # Comments are not written to the netlist
                     netlist_file.write(line.strip() + '\n')
 
         for library in libraries_to_include:

@@ -98,10 +98,18 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameter('TEMP', 25)
         self.assertEqual(self.edt.get_parameter('TEMP'), '25', "Tested TEMP Parameter")  # add assertion here
-        self.edt.save_netlist(temp_dir + 'test_parameter_output.qsch')
-        equalFiles(self, temp_dir + 'test_parameter_output.qsch', golden_dir + 'test_parameter_output.qsch')
+        self.edt.set_parameters(new_param=120, other_param="voila")
+        self.edt.save_as(temp_dir + 'test_parameter_output.qsch')
+        equalFiles(self, golden_dir + 'test_parameter_output.qsch', temp_dir + 'test_parameter_output.qsch')
+        self.edt.save_netlist(temp_dir + 'test_parameter_output.net')
+        equalFiles(self, golden_dir + 'test_parameter_output.net', temp_dir + 'test_parameter_output.net')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
+        self.edt.set_parameter('other_param', "Pronto")
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
+        self.edt.save_as(temp_dir + 'test_parameter_output1.qsch')
+        equalFiles(self, golden_dir + 'test_parameter_output1.qsch', temp_dir + 'test_parameter_output1.qsch')
+        self.edt.save_netlist(temp_dir + 'test_parameter_output1.net')
+        equalFiles(self, golden_dir + 'test_parameter_output1.net', temp_dir + 'test_parameter_output1.net')
 
     def test_instructions(self):
         self.edt.add_instruction('.ac dec 10 1 100K')
@@ -109,15 +117,20 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt.add_instruction('.save I(R1)')
         self.edt.add_instruction('.save I(R2)')
         self.edt.add_instruction('.save I(D1)')
-        self.edt.save_netlist(temp_dir + 'test_instructions_output.qsch')
+        self.edt.save_as(temp_dir + 'test_instructions_output.qsch')
         equalFiles(self, temp_dir + 'test_instructions_output.qsch', golden_dir + 'test_instructions_output.qsch')
+        self.edt.save_netlist(temp_dir + 'test_instructions_output_qsch.net')
+        equalFiles(self, temp_dir + 'test_instructions_output_qsch.net', golden_dir + 'test_instructions_output_qsch.net')
         self.edt.remove_instruction('.save I(R1)')
-        self.edt.save_netlist(temp_dir + 'test_instructions_output_1.qsch')
+        self.edt.save_as(temp_dir + 'test_instructions_output_1.qsch')
         equalFiles(self, temp_dir + 'test_instructions_output_1.qsch', golden_dir + 'test_instructions_output_1.qsch')
+        self.edt.save_netlist(temp_dir + 'test_instructions_output_qsch_1.net')
+        equalFiles(self, temp_dir + 'test_instructions_output_qsch_1.net', golden_dir + 'test_instructions_output_qsch_1.net')
         self.edt.remove_Xinstruction(r"\.save\sI\(.*\)")  # removes all .save instructions for currents
-        self.edt.save_netlist(temp_dir + 'test_instructions_output_2.qsch')
+        self.edt.save_as(temp_dir + 'test_instructions_output_2.qsch')
         equalFiles(self, temp_dir + 'test_instructions_output_2.qsch', golden_dir + 'test_instructions_output_2.qsch')
-
+        self.edt.save_netlist(temp_dir + 'test_instructions_output_qsch_2.net')
+        equalFiles(self, temp_dir + 'test_instructions_output_qsch_2.net', golden_dir + 'test_instructions_output_qsch_2.net')
 
 class QschEditorRotation(unittest.TestCase):
 
