@@ -130,10 +130,27 @@ class AnyRunner(Protocol):
             callback: Union[Type[ProcessCallback], Callable] = None,
             callback_args: Union[tuple, dict] = None,
             switches=None,
-            timeout: float = None, run_filename: str = None) -> Union[RunTask, None]:
+            timeout: float = None,
+            run_filename: str = None,
+            exe_log: bool = False) -> Union[RunTask, None]:
         ...
 
     def wait_completion(self, timeout=None, abort_all_on_timeout=False) -> bool:
+        ...
+    
+    @property
+    def runno(self) -> int:
+        """number of total runs"""
+        ...
+    
+    @property
+    def failSim(self) -> int:
+        """number of failed simulations"""
+        ...
+    
+    @property
+    def okSim(self) -> int:
+        """number of successful completed simulations"""
         ...
 
 
@@ -177,9 +194,9 @@ class SimRunner(AnyRunner):
         self.completed_tasks = []
         self._iterator_counter = 0  # Note: Nested iterators are not supported
 
-        self.runno = 0  # number of total runs
-        self.failSim = 0  # number of failed simulations
-        self.okSim = 0  # number of successful completed simulations
+        self._runno = 0  # number of total runs
+        self._failSim = 0  # number of failed simulations
+        self._okSim = 0  # number of successful completed simulations
         # self.failParam = []  # collects for later user investigation of failed parameter sets
 
         # Gets a simulator.
@@ -196,6 +213,18 @@ class SimRunner(AnyRunner):
         # _logger.debug("Waiting for all spawned sim_tasks to finish.")
         self.wait_completion(abort_all_on_timeout=True)  # Kill all pending simulations
         # _logger.debug("Exiting SimRunner")
+
+    @property
+    def runno(self) -> int:
+        return self._runno
+
+    @property
+    def failSim(self) -> int:
+        return self._failSim
+
+    @property
+    def okSim(self) -> int:
+        return self._okSim
 
     def set_simulator(self, spice_tool: Type[Simulator]) -> None:
         """
@@ -263,12 +292,12 @@ class SimRunner(AnyRunner):
         if netlist.suffix == '.qsch':
             # The Qsch files can't be simulated, so, they have to be converted to netlist first.
             netlist = netlist.with_suffix('.net')
-        return "%s_%i%s" % (netlist.stem, self.runno, netlist.suffix)
+        return "%s_%i%s" % (netlist.stem, self._runno, netlist.suffix)
 
     def _prepare_sim(self, netlist: Union[str, Path, BaseEditor], run_filename: str):
         """Internal function"""
         # update number of simulation
-        self.runno += 1  # Incrementing internal simulation number
+        self._runno += 1  # Incrementing internal simulation number
         # Harmonize the netlist into a Path object pointing to a netlist file on the right output folder
         if isinstance(netlist, BaseEditor):
             if run_filename is None:
@@ -389,7 +418,7 @@ class SimRunner(AnyRunner):
 
             if (wait_resource is False) or (self.active_threads() < self.parallel_sims):
                 t = RunTask(
-                    simulator=self.simulator, runno=self.runno, netlist_file=run_netlist_file,
+                    simulator=self.simulator, runno=self._runno, netlist_file=run_netlist_file,
                     callback=callback, callback_args=callback_kwargs,
                     switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
                     exe_log=exe_log
@@ -400,9 +429,9 @@ class SimRunner(AnyRunner):
                 return t  # Returns the task object
             sleep(0.1)  # Give Time for other simulations to end
         else:
-            _logger.error("Timeout waiting for resources for simulation %d" % self.runno)
+            _logger.error("Timeout waiting for resources for simulation %d" % self._runno)
             if self.verbose:
-                _logger.warning("Timeout on launching simulation %d." % self.runno)
+                _logger.warning("Timeout on launching simulation %d." % self._runno)
             return None
 
     def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: str = None,
@@ -442,7 +471,7 @@ class SimRunner(AnyRunner):
             return None
 
         t = RunTask(
-            simulator=self.simulator, runno=self.runno, netlist_file=run_netlist_file,
+            simulator=self.simulator, runno=self._runno, netlist_file=run_netlist_file,
             callback=dummy_callback, callback_args=None,
             switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
             exe_log=exe_log
@@ -452,10 +481,10 @@ class SimRunner(AnyRunner):
         t.join(timeout + 1)  # Give one second slack in relation to the task timeout
         self.completed_tasks.append(t)
         if t.retcode == 0:
-            self.okSim += 1
+            self._okSim += 1
         else:
             # simulation failed
-            self.failSim += 1
+            self._failSim += 1
         return t.raw_file, t.log_file  # Returns the raw and log file
 
     def active_threads(self):
@@ -477,10 +506,10 @@ class SimRunner(AnyRunner):
                 i += 1
             else:
                 if self.active_tasks[i].retcode == 0:
-                    self.okSim += 1
+                    self._okSim += 1
                 else:
                     # simulation failed
-                    self.failSim += 1
+                    self._failSim += 1
                 task = self.active_tasks.pop(i)
                 self.completed_tasks.append(task)
 
@@ -539,6 +568,8 @@ class SimRunner(AnyRunner):
         self.update_completed()
         if timeout is not None:
             stop_time = clock_function() + timeout
+        else:
+            stop_time = None
         while len(self.active_tasks) > 0:
             sleep(1)
             self.update_completed()
@@ -550,7 +581,7 @@ class SimRunner(AnyRunner):
                         self.kill_all_spice()
                     return False
 
-        return self.failSim == 0
+        return self._failSim == 0
 
     @staticmethod
     def _del_file_if_exists(workfile: Path):
