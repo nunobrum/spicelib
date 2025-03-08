@@ -23,9 +23,8 @@
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
-from typing import Callable, Union, Type
-from typing import Iterable
 import pathlib
+from typing import Callable, Union, Type, Iterable, Dict, List
 from functools import wraps
 import logging
 
@@ -33,7 +32,7 @@ from spicelib.sim.process_callback import ProcessCallback
 
 _logger = logging.getLogger("spicelib.SimStepper")
 from ..editor.base_editor import BaseEditor
-from .sim_runner import AnyRunner, SimRunner
+from .sim_runner import AnyRunner
 
 
 class StepInfo(object):
@@ -49,7 +48,7 @@ class StepInfo(object):
         return f"Iteration on {self.what} {self.elem} : {self.iter}"
 
 
-class SimStepper(object):
+class SimStepper(AnyRunner):
     """This class is intended to be used for simulations with many parameter sweeps. This provides a more
     user-friendly interface than the SpiceEditor/SimRunner class when there are many parameters to be stepped.
 
@@ -92,7 +91,9 @@ class SimStepper(object):
     def __init__(self, circuit: BaseEditor, runner: AnyRunner):
         self.runner = runner
         self.netlist = circuit
-        self.iter_list = []
+        self.iter_list: List[StepInfo] = []
+        self.current_values = {}
+        self.sim_info = {}
 
     @wraps(BaseEditor.add_instruction)
     def add_instruction(self, instruction: str):
@@ -113,22 +114,27 @@ class SimStepper(object):
     @wraps(BaseEditor.set_parameters)
     def set_parameters(self, **kwargs):
         self.netlist.set_parameters(**kwargs)
+        self.current_values.update(**kwargs)
 
     @wraps(BaseEditor.set_parameter)
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         self.netlist.set_parameter(param, value)
+        self.current_values[param] = value
 
     @wraps(BaseEditor.set_component_values)
     def set_component_values(self, **kwargs):
         self.netlist.set_component_values(**kwargs)
+        self.current_values.update(**kwargs)
 
     @wraps(BaseEditor.set_component_value)
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         self.netlist.set_component_value(device, value)
+        self.current_values[device] = value
 
     @wraps(BaseEditor.set_element_model)
     def set_element_model(self, element: str, model: str) -> None:
         self.netlist.set_element_model(element, model)
+        self.current_values[element] = model
 
     def add_param_sweep(self, param: str, iterable: Iterable):
         """Adds a dimension to the simulation, where the param is swept."""
@@ -160,15 +166,42 @@ class SimStepper(object):
     def run_all(self,
                 callback: Union[Type[ProcessCallback], Callable] = None,
                 callback_args: Union[tuple, dict] = None,
-                switches = None,
+                switches=None,
                 timeout: float = None,
-                use_loadbias='Auto',
-                wait_completion=True) -> None:
-        assert use_loadbias in ('Auto', 'Yes', 'No'), "use_loadbias argument must be 'Auto', 'Yes' or 'No'"
-        if (use_loadbias == 'Auto' and self.total_number_of_simulations() > 10) or use_loadbias == 'Yes':
-            # It will choose to use .SAVEBIAS/.LOADBIAS if the number of simulaitons is higher than 10
-            # TODO: Make a first simulation and storing the bias
-            pass
+                wait_completion: bool = True,
+                filenamer: Callable[[Dict[str, str]], str] = None,
+                exe_log: bool = False,
+                ) -> None:
+        """
+        Runs all sweeps configured with the methods:
+
+            - add_value_sweep()
+            - add_model_sweep()
+            - add_param_sweep()
+
+        This function will call the SimRunner run method for each combination of the sweeps defined.
+        The parameters are mostly the same as in the SimRunner.run() method, except the filenamer and
+        wait_completion parameters.
+
+        :param callback: See the SimRunner run method.
+        :type: callback: function(raw_file: Path, log_file: Path, ...), optional
+        :param callback_args: See the SimRunner run method.
+        :type callback_args: dict or tuple, optional
+        :param switches: Command line switches override
+        :type switches: list
+        :param timeout: See the SimRunner run method.
+        :type timeout: float, optional
+        :param wait_completion:  See the SimRunner run method.
+        :type wait_completion: bool, optional
+        :param filenamer:
+            A function that receives a dictionary in keyword form (**dict) and returns a string. This string will be
+            passed to the run_filename parameter on the SimRunner run method. It is important that the function assures
+            a unique filename per simulation.
+        :type filenamer: Callable receiving keyword parameters.
+        :param exe_log: See the SimRunner run method.
+        :type exe_log: bool, optional
+        :returns: Nothing
+        """
         iter_no = 0
         iterators = [iter(step.iter) for step in self.iter_list]
         while True:
@@ -179,6 +212,8 @@ class SimStepper(object):
                     iterators[iter_no] = iter(self.iter_list[iter_no].iter)
                     iter_no -= 1
                     continue
+
+                self.current_values[self.iter_list[iter_no].elem] = value
                 if self.iter_list[iter_no].what == 'param':
                     self.netlist.set_parameter(self.iter_list[iter_no].elem, value)
                 elif self.iter_list[iter_no].what == 'component':
@@ -191,35 +226,79 @@ class SimStepper(object):
                 iter_no += 1
             if iter_no < 0:
                 break
-            self.runner.run(self.netlist, callback=callback, callback_args=callback_args,
-                            switches=switches, timeout=timeout)  # Like this a recursion is avoided
+
+            run_filename = filenamer(**self.current_values) if filenamer else None
+
+            task = self.runner.run(self.netlist, callback=callback, callback_args=callback_args,
+                                   switches=switches, timeout=timeout, run_filename=run_filename, exe_log=exe_log)
+
+            # Now storing the simulation information
+            if task and task.netlist_file:
+                sim_info = self.current_values.copy()
+                sim_info['netlist'] = task.netlist_file.name
+                self.sim_info[task.runno] = sim_info
+
             iter_no = len(self.iter_list) - 1  # Resets the counter to start next iteration
         if wait_completion:
             # Now waits for the simulations to end
             self.runner.wait_completion()
 
-    def run(self):
-        """Rather uses run_all instead"""
-        self.run_all()
+    def export_step_info(self, export_filename: Union[pathlib.Path, str], delimiter: str = ";"):
+        """
+        Exports the stepping values to a CSV file. It writes a row per each simulation done.
+        The columns are all the values that were set during the session. The value on each row is the value
+        of the parameter or component value/model at each simulation.
+        This information can also be accessed using the sim_info attribute. The sim_info contains a di
+
+        :param export_filename: export file path
+        :type export_filename: str or pathlib.Path
+        :param delimiter: delimiter character on the CSV
+        :type delimiter: str
+        """
+        import csv
+
+        rows = [runno for runno in self.sim_info]
+        rows.sort()
+
+        # Extract column names from the first dictionary
+        fieldnames = ['runno'] + list(self.sim_info[rows[0]].keys())
+
+        # Open a CSV file for writing
+        with open(export_filename, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=delimiter,
+                                    quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+
+            # Write the header
+            writer.writeheader()
+
+            # Write the data
+            for runno in rows:
+                row_data_with_id = {'runno': runno}
+                row_data_with_id.update(self.sim_info[runno])
+                writer.writerow(row_data_with_id)
+
+    # def run(self, netlist: Union[str, pathlib.Path, BaseEditor], *,
+    #         wait_resource: bool = True,
+    #         callback: Union[Type[ProcessCallback], Callable] = None,
+    #         callback_args: Union[tuple, dict] = None,
+    #         switches=None,
+    #         timeout: float = None,
+    #         run_filename: str = None,
+    #         exe_log: bool = False) -> Union[RunTask, None]:
+    #     """Rather uses run_all instead"""
+    #     self.run_all()
 
     @property
     def okSim(self):
+        """Number of successful simulations"""
         return self.runner.okSim
 
     @property
     def runno(self):
+        """Number simulations done."""
         return self.runner.runno
 
-
-if __name__ == "__main__":
-    from spicelib.utils.sweep_iterators import *
-
-    test = SimStepper("../../tests/DC sweep.asc")
-    test.verbose = True
-    test.set_parameter('R1', 3)
-    test.add_param_sweep("res", [10, 11, 9])
-    test.add_value_sweep("R1", sweep_log(0.1, 10))
-    # test.add_model_sweep("D1", ("model1", "model2"))
-    test.run_all()
-    print("Finished")
-    exit(0)
+    @property
+    def failSim(self):
+        """Number of failed simulations"""
+        return self.runner.failSim

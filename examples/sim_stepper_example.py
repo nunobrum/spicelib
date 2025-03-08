@@ -30,9 +30,10 @@ Stepper.add_model_sweep('XU1', ('AD712', 'AD820_ALT'))
 Stepper.add_value_sweep('V1', (5, 10, 15))
 # Stepper.add_value_sweep('V1', (-5, -10, -15))
 
-# run_netlist_file = "{}_{}_{}.net".format(Stepper.circuit_radic, opamp, supply_voltage)
-Stepper.run_all(callback=processing_data)
+run_netlist_file = "run_OPAMP_{XU1}_VDD_{V1}.net"
+Stepper.run_all(callback=processing_data, filenamer=run_netlist_file.format)
 
 # Sim Statistics
 print('Successful/Total Simulations: ' + str(Stepper.okSim) + '/' + str(Stepper.runno))
+Stepper.export_step_info("./temp2/export.csv")
 runner.cleanup_files()
