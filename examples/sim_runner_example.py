@@ -49,14 +49,6 @@ for raw, log in runner:
     # log_data = LTSpiceLogReader(log)
     # ...
 
-netlist.reset_netlist()
-netlist.add_instructions(
-    "; Simulation settings",
-    ".ac dec 30 10 1Meg",
-    ".meas AC Gain MAX mag(V(out)) ; find the peak response and call it ""Gain""",
-    ".meas AC Fcut TRIG mag(V(out))=Gain/sqrt(2) FALL=last"
-)
-
 # Sim Statistics
 print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
 
