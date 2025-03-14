@@ -329,6 +329,8 @@ def consume16bytes(f):
 
 def namify(spice_ref: str):
     """Translate from V(0,n01) to V__n01__ and I(R1) to I__R1__"""
+    if spice_ref.lower() in ('time', 'frequency'):
+        return spice_ref
     matchobj = re.match(r'(V|I|P)\((\w+)\)', spice_ref)
     if matchobj:
         return f'{matchobj.group(1)}__{matchobj.group(2)}__'
