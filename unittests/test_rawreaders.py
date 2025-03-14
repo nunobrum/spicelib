@@ -186,6 +186,13 @@ class RawReader_Test(unittest.TestCase):
                     self.assertAlmostEqual(abs(vout1), abs(h), 5, f"Difference between theoretical value and simulation at point {point}")
                     self.assertAlmostEqual(angle(vout1), angle(h), 5, f"Difference between theoretical value and simulation at point {point}")
 
+                # see if we can read alias traces as well
+                test_name = "i(r1)"
+                if test_name in (name.lower() for name in raw.get_trace_names()):
+                    tracelen = len(raw.get_trace(test_name).data)
+                    print(f"tracelen, alt: {tracelen}")
+                    self.assertEqual(tracelen, testset[simulator]["ac"]["expected_tracelen"], "Not the expected number of points for alternative trace")
+                    
     def test_rawreaders_tran(self):
         for simulator in testset:
             dialect = None
@@ -240,6 +247,17 @@ class RawReader_Test(unittest.TestCase):
                     vout = vin * (1 - exp(-1 * tm / (R1 * C1))) 
                     # print(f"testing pt {point} for time {tm}: vin={vin}, vout_sim={vout1}, vout_th={vout}")
                     self.assertAlmostEqual(abs(vout1), vout, 3, f"Difference between theoretical value and simulation at point {point}")
+
+                # see if we can read alias traces as well
+                test_name = "i(r1)"
+                if test_name in (name.lower() for name in raw.get_trace_names()):
+                    tracelen = len(raw.get_trace(test_name).data)
+                    print(f"tracelen, alt: {tracelen}")
+                    expected_tracelen = testset[simulator]["tran"]["expected_tracelen"]
+                    if isinstance(expected_tracelen, int):
+                        self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points for alternative trace")
+                    else:
+                        self.assertEqual(tracelen, expected_tracelen[fileno], "Not the expected number of points for alternative trace")
 
                 fileno += 1
                 
