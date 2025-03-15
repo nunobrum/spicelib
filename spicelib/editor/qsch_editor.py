@@ -742,6 +742,7 @@ class QschEditor(BaseSchematic):
         param_name_upped = param_name.upper()
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
+            # FIXME: ignore comment lines. With for example: if text_tag.get_attr(QSCH_TEXT_COMMENT) != 1:            
             line = tag.get_attr(QSCH_TEXT_STR_ATTR)
             line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if line.upper().startswith('.PARAM'):
@@ -757,6 +758,7 @@ class QschEditor(BaseSchematic):
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
+            # FIXME: ignore comment lines. With for example: if text_tag.get_attr(QSCH_TEXT_COMMENT) != 1:
             line = tag.get_attr(QSCH_TEXT_STR_ATTR)
             line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if line.upper().startswith('.PARAM'):
