@@ -936,7 +936,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * future version
-    * Fixed Issues #181 - get_trace fails when trace is alias and engineering notation is used
+    * Fixed Issue #181 - get_trace fails when trace is alias and engineering notation is used
 * Version 1.4.2
     * SimRunner runno, okSim and failSim are now readonly attributes
     * SimStepper now stores all netlist updates. This information can now be exported to a CSV file.
