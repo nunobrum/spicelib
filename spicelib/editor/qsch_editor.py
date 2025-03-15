@@ -515,8 +515,9 @@ class QschEditor(BaseSchematic):
             lines = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             lines = lines.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             for line in lines.split('\\n'):
-                if text_tag.get_attr(QSCH_TEXT_COMMENT) != 1:  # Comments are not written to the netlist
-                    netlist_file.write(line.strip() + '\n')
+                if text_tag.get_attr(QSCH_TEXT_COMMENT) != 1 or \
+                   line.upper().startswith(".PARAM"):  # Comments are not written to the netlist, but params yes
+                    netlist_file.write(line.strip() + "\n")
 
         for library in libraries_to_include:
             mydir = self.circuit_file.parent.absolute().as_posix()
