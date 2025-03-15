@@ -6,7 +6,7 @@ Abscissa:     0.000000000000000e+00     5.000000000000000e-03
 No. Variables: 5
 No. Points: 1034                 
 Command: QSPICE64, Build Feb 11 2025 08:06:48
-.param temp=27
+.param temp=.027k
 .alias I(R1) (0.001mho*V(in,out))
 Variables:
 	0	Time	time
