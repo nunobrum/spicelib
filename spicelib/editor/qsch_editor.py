@@ -454,7 +454,7 @@ class QschEditor(BaseSchematic):
                                   fr".\1 {refdes}•\2 \3",
                                   library_name, re.MULTILINE)
                 new_line = new_line.replace("\\n", "\n")
-                netlist_file.write(new_line+'\n')
+                netlist_file.write(new_line + '\n')
                 model = f"{refdes}•{model}"
             elif library_name and (library_name not in libraries_to_include):
                 # List the libraries at the end
@@ -742,13 +742,13 @@ class QschEditor(BaseSchematic):
         param_name_upped = param_name.upper()
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
-            # FIXME: ignore comment lines. With for example: if text_tag.get_attr(QSCH_TEXT_COMMENT) != 1:            
-            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
-            line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
-            if line.upper().startswith('.PARAM'):
-                for match in param_regex.finditer(line):
-                    if match.group("name").upper() == param_name_upped:
-                        return tag, match
+            if tag.get_attr(QSCH_TEXT_COMMENT) != 1:  # ignore comments
+                line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+                line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+                if line.upper().startswith('.PARAM'):
+                    for match in param_regex.finditer(line):
+                        if match.group("name").upper() == param_name_upped:
+                            return tag, match
         else:
             return None, None
         
@@ -758,14 +758,14 @@ class QschEditor(BaseSchematic):
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
-            # FIXME: ignore comment lines. With for example: if text_tag.get_attr(QSCH_TEXT_COMMENT) != 1:
-            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
-            line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
-            if line.upper().startswith('.PARAM'):
-                matches = param_regex.finditer(line)
-                for match in matches:
-                    param_name = match.group('name')
-                    param_names.append(param_name.upper())
+            if tag.get_attr(QSCH_TEXT_COMMENT) != 1:  # ignore comments
+                line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+                line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+                if line.upper().startswith('.PARAM'):
+                    matches = param_regex.finditer(line)
+                    for match in matches:
+                        param_name = match.group('name')
+                        param_names.append(param_name.upper())
         return sorted(param_names)
 
     def _qsch_file_find(self, filename: str, work_dir: str = None) -> Optional[str]:
