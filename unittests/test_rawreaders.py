@@ -249,6 +249,7 @@ class RawReader_Test(unittest.TestCase):
                     self.assertAlmostEqual(abs(vout1), vout, 3, f"Difference between theoretical value and simulation at point {point}")
 
                 # see if we can read alias traces as well
+                # Note that in the qspice ASCII file, there is a param with eng notation. That is on purpose, as caused a bug.
                 test_name = "i(r1)"
                 if test_name in (name.lower() for name in raw.get_trace_names()):
                     tracelen = len(raw.get_trace(test_name).data)
