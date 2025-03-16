@@ -650,6 +650,9 @@ class AscEditor(BaseSchematic):
         i = 0
         while i < len(self.directives):
             if instruction in self.directives[i].text:
+                if instruction.type == TextTypeEnum.COMMENT:
+                    i += 1
+                    continue  # this is a comment                       
                 text = self.directives[i].text
                 del self.directives[i]
                 _logger.info(f"Instruction {text} removed")
@@ -667,6 +670,9 @@ class AscEditor(BaseSchematic):
         i = 0
         while i < len(self.directives):
             instruction = self.directives[i].text
+            if instruction.type == TextTypeEnum.COMMENT:
+                i += 1
+                continue  # this is a comment            
             if regex.match(instruction) is not None:
                 instr_removed = True
                 del self.directives[i]
