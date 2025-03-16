@@ -650,7 +650,7 @@ class AscEditor(BaseSchematic):
         i = 0
         while i < len(self.directives):
             if instruction in self.directives[i].text:
-                if instruction.type == TextTypeEnum.COMMENT:
+                if self.directives[i].type == TextTypeEnum.COMMENT:
                     i += 1
                     continue  # this is a comment                       
                 text = self.directives[i].text
@@ -670,7 +670,7 @@ class AscEditor(BaseSchematic):
         i = 0
         while i < len(self.directives):
             instruction = self.directives[i].text
-            if instruction.type == TextTypeEnum.COMMENT:
+            if self.directives[i].type == TextTypeEnum.COMMENT:
                 i += 1
                 continue  # this is a comment            
             if regex.match(instruction) is not None:
