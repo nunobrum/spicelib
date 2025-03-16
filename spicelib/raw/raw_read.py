@@ -221,6 +221,7 @@ from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
 import numpy as np
 from numpy import zeros, complex128, float32, float64, frombuffer, angle
+from ..editor.base_editor import scan_eng
 import logging
 import re
 _logger = logging.getLogger("spicelib.RawRead")
@@ -753,7 +754,7 @@ class RawRead(object):
             raise NotImplementedError(f'Unrecognized alias type for alias : "{alias}"')
         trace = TraceRead(alias, whattype, self.nPoints, self.axis, 'double')
         local_vars = {'pi': 3.1415926536, 'e': 2.7182818285}  # This is the dictionary that will be used to compute the alias
-        local_vars.update({name: float(value) for name, value in self.spice_params.items()})
+        local_vars.update({name: scan_eng(value) for name, value in self.spice_params.items()})
         local_vars.update({namify(trace.name): trace.data for trace in self._traces})
         try:
             trace.data = eval(formula, local_vars)
