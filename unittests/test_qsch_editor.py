@@ -203,6 +203,15 @@ class QschEditorEmbeddedSubckt(unittest.TestCase):
         self.edt.save_netlist(temp_dir + 'Qspice_top_edit.net')
         equalFiles(self, golden_dir + 'Qspice_top_edit.net', temp_dir + 'Qspice_top_edit.net')
 
+    def test_bad_param(self):
+        # This tests for a .param that is a comment. It should not be found therefore.
+        self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "Qspice_bad_param.qsch")
+        try:
+            self.edt.get_parameter("R")
+            self.fail("Should have raised an exception")
+        except Exception:
+            pass        
+
 
 if __name__ == '__main__':
     unittest.main()

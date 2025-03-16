@@ -454,7 +454,7 @@ class QschEditor(BaseSchematic):
                                   fr".\1 {refdes}•\2 \3",
                                   library_name, re.MULTILINE)
                 new_line = new_line.replace("\\n", "\n")
-                netlist_file.write(new_line+'\n')
+                netlist_file.write(new_line + '\n')
                 model = f"{refdes}•{model}"
             elif library_name and (library_name not in libraries_to_include):
                 # List the libraries at the end
@@ -742,6 +742,8 @@ class QschEditor(BaseSchematic):
         param_name_upped = param_name.upper()
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
+            if tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue
             line = tag.get_attr(QSCH_TEXT_STR_ATTR)
             line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if line.upper().startswith('.PARAM'):
@@ -757,6 +759,8 @@ class QschEditor(BaseSchematic):
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
+            if tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue
             line = tag.get_attr(QSCH_TEXT_STR_ATTR)
             line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if line.upper().startswith('.PARAM'):
