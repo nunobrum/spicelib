@@ -1048,6 +1048,8 @@ class QschEditor(BaseSchematic):
     def remove_instruction(self, instruction: str) -> None:
         # docstring inherited from BaseEditor
         for text_tag in self.schematic.get_items('text'):
+            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue            
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             if instruction in text:
                 self.schematic.items.remove(text_tag)
@@ -1062,6 +1064,8 @@ class QschEditor(BaseSchematic):
         regex = re.compile(search_pattern, re.IGNORECASE)
         instr_removed = False
         for text_tag in self.schematic.get_items('text'):
+            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue            
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if regex.match(text):
