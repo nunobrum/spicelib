@@ -328,6 +328,8 @@ class AscEditor(BaseSchematic):
         param_name_uppercase = param_name.upper()
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for directive in self.directives:
+            if directive.type == TextTypeEnum.COMMENT:
+                continue  # this is a comment, skip it            
             if directive.text.upper().startswith(".PARAM"):
                 matches = search_expression.finditer(directive.text)
                 for match in matches:
@@ -340,6 +342,8 @@ class AscEditor(BaseSchematic):
         param_names = []
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for directive in self.directives:
+            if directive.type == TextTypeEnum.COMMENT:
+                continue  # this is a comment, skip it
             if directive.text.upper().startswith(".PARAM"):
                 matches = search_expression.finditer(directive.text)
                 for match in matches:            
@@ -633,7 +637,7 @@ class AscEditor(BaseSchematic):
                     continue  # this is a comment
                 directive_command = directive.text.split()[0].upper()
                 if directive_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
-                    directive.text = instruction
+                    self.directives[i].text = instruction
                     self.updated = True
                     return  # Job done, can exit this method
                 i += 1
@@ -649,10 +653,10 @@ class AscEditor(BaseSchematic):
     def remove_instruction(self, instruction: str) -> None:
         i = 0
         while i < len(self.directives):
-            if instruction in self.directives[i].text:
-                if self.directives[i].type == TextTypeEnum.COMMENT:
-                    i += 1
-                    continue  # this is a comment                       
+            if self.directives[i].type == TextTypeEnum.COMMENT:
+                i += 1
+                continue  # this is a comment   
+            if instruction in self.directives[i].text:                    
                 text = self.directives[i].text
                 del self.directives[i]
                 _logger.info(f"Instruction {text} removed")
@@ -669,10 +673,10 @@ class AscEditor(BaseSchematic):
         instr_removed = False
         i = 0
         while i < len(self.directives):
-            instruction = self.directives[i].text
             if self.directives[i].type == TextTypeEnum.COMMENT:
                 i += 1
                 continue  # this is a comment            
+            instruction = self.directives[i].text
             if regex.match(instruction) is not None:
                 instr_removed = True
                 del self.directives[i]
