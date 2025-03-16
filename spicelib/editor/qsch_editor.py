@@ -742,13 +742,14 @@ class QschEditor(BaseSchematic):
         param_name_upped = param_name.upper()
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
-            if tag.get_attr(QSCH_TEXT_COMMENT) != 1:  # ignore comments
-                line = tag.get_attr(QSCH_TEXT_STR_ATTR)
-                line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
-                if line.upper().startswith('.PARAM'):
-                    for match in param_regex.finditer(line):
-                        if match.group("name").upper() == param_name_upped:
-                            return tag, match
+            if tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue
+            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+            if line.upper().startswith('.PARAM'):
+                for match in param_regex.finditer(line):
+                    if match.group("name").upper() == param_name_upped:
+                        return tag, match
         else:
             return None, None
         
@@ -758,14 +759,15 @@ class QschEditor(BaseSchematic):
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         text_tags = self.schematic.get_items('text')
         for tag in text_tags:
-            if tag.get_attr(QSCH_TEXT_COMMENT) != 1:  # ignore comments
-                line = tag.get_attr(QSCH_TEXT_STR_ATTR)
-                line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
-                if line.upper().startswith('.PARAM'):
-                    matches = param_regex.finditer(line)
-                    for match in matches:
-                        param_name = match.group('name')
-                        param_names.append(param_name.upper())
+            if tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue
+            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
+            if line.upper().startswith('.PARAM'):
+                matches = param_regex.finditer(line)
+                for match in matches:
+                    param_name = match.group('name')
+                    param_names.append(param_name.upper())
         return sorted(param_names)
 
     def _qsch_file_find(self, filename: str, work_dir: str = None) -> Optional[str]:
