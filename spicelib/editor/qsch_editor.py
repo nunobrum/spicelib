@@ -533,6 +533,13 @@ class QschEditor(BaseSchematic):
         # Note: the .END or .ENDCKT must be inserted by the calling function
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+        """
+        Saves the current state of the netlist to a .qsh or to a .net or .cir file.
+
+        :param run_netlist_file: File name of the netlist file. Can be .qsch, .net or .cir
+        :type run_netlist_file: Path or str
+        :returns: Nothing
+        """        
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
 

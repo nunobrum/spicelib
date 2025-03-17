@@ -79,9 +79,20 @@ class AscEditor(BaseSchematic):
         return self.asc_file_path
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+        """
+        Saves the current state of the netlist to a .asc file. 
+        For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
+
+        :param run_netlist_file: File name of the netlist file.
+        :type run_netlist_file: Path or str
+        :returns: Nothing
+        """        
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
-        run_netlist_file = run_netlist_file.with_suffix(".asc")
+        if run_netlist_file.suffix in ('.net', '.cir'):
+            raise ValueError("Use the `LTspice.create_netlist()` method instead")
+        if run_netlist_file.suffix != '.asc':
+            run_netlist_file = run_netlist_file.with_suffix(".asc")
         with open(run_netlist_file, 'w', encoding=self.encoding) as asc:
             _logger.info(f"Writing ASC file {run_netlist_file}")
 
