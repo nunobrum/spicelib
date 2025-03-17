@@ -936,6 +936,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * future version
+    * Fixed Issue #186 - Allow VerAlign in AsyReader, and make alignment case insensitive
     * Fixed Issue #177 and #181 - get_trace fails when trace is alias and engineering notation is used
     * Fixed Issue #178 - ignore Qspice parameters that are comments
 * Version 1.4.2
