@@ -162,11 +162,14 @@ class AsyReader(object):
                     if len(line_elements) == 6:
                         x = int(line_elements[1])
                         y = int(line_elements[2])
+                        alignment = line_elements[3]
 
-                        text = Text(Point(x, y), text=line_elements[5], size=int(line_elements[4]),
+                        text = Text(Point(x, y), 
+                                    text=line_elements[5], 
+                                    size=int(line_elements[4]),
                                     type=TextTypeEnum.COMMENT,
-                                    textAlignment=HorAlign(line_elements[3]),
                                     )
+                        text = asc_text_align_set(text, alignment)
                         self.windows.append(text)
                     else:
                         # Text in asy not supported however non-critical and not neccesary to crash the program.
