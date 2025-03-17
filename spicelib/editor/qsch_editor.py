@@ -533,6 +533,13 @@ class QschEditor(BaseSchematic):
         # Note: the .END or .ENDCKT must be inserted by the calling function
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+        """
+        Saves the current state of the netlist to a .qsh or to a .net or .cir file.
+
+        :param run_netlist_file: File name of the netlist file. Can be .qsch, .net or .cir
+        :type run_netlist_file: Path or str
+        :returns: Nothing
+        """        
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
 
@@ -1048,6 +1055,8 @@ class QschEditor(BaseSchematic):
     def remove_instruction(self, instruction: str) -> None:
         # docstring inherited from BaseEditor
         for text_tag in self.schematic.get_items('text'):
+            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue            
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             if instruction in text:
                 self.schematic.items.remove(text_tag)
@@ -1062,6 +1071,8 @@ class QschEditor(BaseSchematic):
         regex = re.compile(search_pattern, re.IGNORECASE)
         instr_removed = False
         for text_tag in self.schematic.get_items('text'):
+            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue            
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if regex.match(text):

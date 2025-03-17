@@ -131,6 +131,21 @@ class ASC_Editor_Test(unittest.TestCase):
         equalFiles(self, temp_dir + 'test_instructions_output_2.qsch', golden_dir + 'test_instructions_output_2.qsch')
         self.edt.save_netlist(temp_dir + 'test_instructions_output_qsch_2.net')
         equalFiles(self, temp_dir + 'test_instructions_output_qsch_2.net', golden_dir + 'test_instructions_output_qsch_2.net')
+        
+    def test_comments(self):
+        myfile = "comment_test.qsch"
+        my_edt = spicelib.editor.qsch_editor.QschEditor(test_dir + myfile)
+
+        self.assertEqual(my_edt.get_all_parameter_names(), ["R"])
+        my_edt.add_instruction(".ac test")  # OK
+        my_edt.add_instruction(".option blabla")  # OK
+        my_edt.remove_instruction(".option SavePowers")  # OK
+        my_edt.remove_Xinstruction(r"\.model.*")  # OK
+        my_edt.set_parameter("R", 1e6)  # OK
+        
+        my_edt.save_netlist(temp_dir + myfile)
+        equalFiles(self, temp_dir + myfile, golden_dir + myfile)
+
 
 class QschEditorRotation(unittest.TestCase):
 

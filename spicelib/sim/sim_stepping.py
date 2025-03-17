@@ -108,7 +108,7 @@ class SimStepper(AnyRunner):
         self.netlist.remove_instruction(instruction)
 
     @wraps(BaseEditor.remove_Xinstruction)
-    def remove_Xinstruction(self, search_pattern) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> None:
         self.netlist.remove_Xinstruction(search_pattern)
 
     @wraps(BaseEditor.set_parameters)

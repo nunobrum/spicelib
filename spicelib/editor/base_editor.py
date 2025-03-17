@@ -765,7 +765,7 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
-    def remove_instruction(self, instruction) -> None:
+    def remove_instruction(self, instruction: str) -> None:
         """
         Removes a SPICE instruction from the netlist.
 
@@ -796,9 +796,9 @@ class BaseEditor(ABC):
 
         .. code-block:: python
 
-            editor.remove_Xinstruction("\\.AC.*")
+            editor.remove_Xinstruction(r"\\.AC.*")
 
-        :param search_pattern: The list of instructions to remove. Each instruction is of the type 'str'
+        :param search_pattern: The list of instructions to remove. Each instruction is of the type 'str'. In general it is best to use a raw string (r).
         :type search_pattern: str
         :returns: Nothing
         """

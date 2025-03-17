@@ -216,6 +216,20 @@ class ASC_Editor_Test(unittest.TestCase):
         """Test file with 'Version 4.1'
         """
         my_edt = spicelib.editor.asc_editor.AscEditor(test_dir + "testcomp_4_1.asc")
+        
+    def test_comments(self):
+        myfile = "comment_test.asc"
+        my_edt = spicelib.editor.asc_editor.AscEditor(test_dir + myfile)
+
+        self.assertEqual(my_edt.get_all_parameter_names(), ["R"])
+        my_edt.add_instruction(".ac test")  # OK
+        my_edt.add_instruction(".option blabla")  # OK
+        my_edt.remove_instruction(".option SavePowers")  # OK
+        my_edt.remove_Xinstruction(r"\.model.*")  # OK
+        my_edt.set_parameter("R", 1e6)  # OK
+        
+        my_edt.save_netlist(temp_dir + myfile)
+        self.equalFiles(temp_dir + myfile, golden_dir + myfile)
                 
     def equalFiles(self, file1, file2):
         with open(file1, 'r') as f1:
