@@ -1,0 +1,10 @@
+ÿØÿÛ«schematic
+  «text (0,0) 1 7 1 0x1000000 -1 -1 "ï»¿.tran 0 1m 0 100n uic"»
+  «text (0,100) 1 7 1 0x1000000 -1 -1 "ï»¿.model D D(Ron=1m Roff=1Meg Vfwd=0.8)"»
+  «text (0,200) 1 7 1 0x1000000 -1 -1 "ï»¿.param R = 100"»
+  «text (0,300) 1 7 1 0x1000000 -1 -1 "ï»¿.option SavePowers"»
+  «text (0,400) 1 7 0 0x1000000 -1 -1 "ï»¿.ac test"»
+  «text (0,600) 1 7 0 0x1000000 -1 -1 "ï»¿.param R = 1Meg"»
+  «text (0,-240) 1 0 0 0x1000000 -1 -1 "ï»¿.option blabla"»
+»
+
