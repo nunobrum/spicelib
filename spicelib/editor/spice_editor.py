@@ -1036,13 +1036,13 @@ class SpiceCircuit(BaseEditor):
         # docstring is in the parent class
         pass
 
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str) -> bool:
         # docstring is in the parent class
-        pass
+        return False
 
-    def remove_Xinstruction(self, search_pattern: str) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
         # docstring is in the parent class
-        pass
+        return False
 
     @property
     def circuit_file(self) -> Path:
@@ -1207,7 +1207,7 @@ class SpiceEditor(SpiceCircuit):
                 line = len(self.netlist) - 2  # This is where typically the .backanno instruction is
             self.netlist.insert(line, instruction)
 
-    def remove_instruction(self, instruction) -> None:
+    def remove_instruction(self, instruction) -> bool:
         # docstring is in the parent class
 
         # TODO: Make it more intelligent so it recognizes .models, .param and .subckt
@@ -1218,10 +1218,12 @@ class SpiceEditor(SpiceCircuit):
         if instruction in self.netlist:
             self.netlist.remove(instruction)
             _logger.info(f'Instruction "{instruction}" removed')
+            return True
         else:
             _logger.error(f'Instruction "{instruction}" not found.')
+            return False
 
-    def remove_Xinstruction(self, search_pattern: str) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
         # docstring is in the parent class
         regex = re.compile(search_pattern, re.IGNORECASE)
         i = 0
@@ -1234,8 +1236,11 @@ class SpiceEditor(SpiceCircuit):
                 _logger.info(f'Instruction "{line}" removed')
             else:
                 i += 1
-        if not instr_removed:
+        if instr_removed:
+            return True
+        else:
             _logger.error(f'No instruction matching pattern "{search_pattern}" was found')
+            return False
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         # docstring is in the parent class
