@@ -125,11 +125,11 @@ class SimAnalysis(object):
     def add_instruction(self, new_instruction: str):
         self.received_instructions.append(('add_instruction', new_instruction))
 
-    def remove_instruction(self, instruction: str):
-        self.received_instructions.append(('remove_instruction', instruction))
+    def remove_instruction(self, instruction: str) -> bool:
+        return self.received_instructions.append(('remove_instruction', instruction))
 
-    def remove_Xinstruction(self, search_pattern: str):
-        self.received_instructions.append(('remove_Xinstruction', search_pattern))
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
+        return self.received_instructions.append(('remove_Xinstruction', search_pattern))
 
     def play_instructions(self):
         if self.instructions_added:

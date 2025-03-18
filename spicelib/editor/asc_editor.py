@@ -661,7 +661,7 @@ class AscEditor(BaseSchematic):
         self.directives.append(directive)
         self.updated = True
 
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str) -> bool:
         i = 0
         while i < len(self.directives):
             if self.directives[i].type == TextTypeEnum.COMMENT:
@@ -672,14 +672,14 @@ class AscEditor(BaseSchematic):
                 del self.directives[i]
                 _logger.info(f"Instruction {text} removed")
                 self.updated = True
-                return  # Job done, can exit this method
+                return True  # Job done, can exit this method
             i += 1
 
         msg = f'Instruction "{instruction}" not found'
         _logger.error(msg)
-        raise RuntimeError(msg)
+        return False
 
-    def remove_Xinstruction(self, search_pattern: str) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
         regex = re.compile(search_pattern, re.IGNORECASE)
         instr_removed = False
         i = 0
@@ -696,6 +696,8 @@ class AscEditor(BaseSchematic):
                 i += 1
         if instr_removed:
             self.updated = True
+            return True
         else:
             msg = f'Instructions matching "{search_pattern}" not found'
             _logger.error(msg)
+            return False
