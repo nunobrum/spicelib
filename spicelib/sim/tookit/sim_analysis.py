@@ -100,7 +100,7 @@ class SimAnalysis(object):
     def wait_completion(self):
         self.runner.wait_completion()
 
-    @wraps(BaseEditor.reset_netlist)
+    @wraps(BaseEditor.reset_netlist, updated=())  # updated=() solves conflict between wraps and abstract classes
     def reset_netlist(self):
         """Resets the netlist to the original state and clears the instructions added by the user."""
         self._reset_netlist()

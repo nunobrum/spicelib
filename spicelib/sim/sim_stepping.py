@@ -95,43 +95,43 @@ class SimStepper(AnyRunner):
         self.current_values = {}
         self.sim_info = {}
 
-    @wraps(BaseEditor.add_instruction)
+    @wraps(BaseEditor.add_instruction, updated=())  # updated=() solves conflict between wraps and abstract classes
     def add_instruction(self, instruction: str):
         self.netlist.add_instruction(instruction)
 
-    @wraps(BaseEditor.add_instructions)
+    @wraps(BaseEditor.add_instructions, updated=())  # updated=() solves conflict between wraps and abstract classes
     def add_instructions(self, *instructions) -> None:
         self.netlist.add_instructions(*instructions)
 
-    @wraps(BaseEditor.remove_instruction)
+    @wraps(BaseEditor.remove_instruction, updated=())  # updated=() solves conflict between wraps and abstract classes
     def remove_instruction(self, instruction) -> bool:
         return self.netlist.remove_instruction(instruction)
 
-    @wraps(BaseEditor.remove_Xinstruction)
+    @wraps(BaseEditor.remove_Xinstruction, updated=())  # updated=() solves conflict between wraps and abstract classes
     def remove_Xinstruction(self, search_pattern: str) -> bool:
         return self.netlist.remove_Xinstruction(search_pattern)
 
-    @wraps(BaseEditor.set_parameters)
+    @wraps(BaseEditor.set_parameters, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_parameters(self, **kwargs):
         self.netlist.set_parameters(**kwargs)
         self.current_values.update(**kwargs)
 
-    @wraps(BaseEditor.set_parameter)
+    @wraps(BaseEditor.set_parameter, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         self.netlist.set_parameter(param, value)
         self.current_values[param] = value
 
-    @wraps(BaseEditor.set_component_values)
+    @wraps(BaseEditor.set_component_values, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_component_values(self, **kwargs):
         self.netlist.set_component_values(**kwargs)
         self.current_values.update(**kwargs)
 
-    @wraps(BaseEditor.set_component_value)
+    @wraps(BaseEditor.set_component_value, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         self.netlist.set_component_value(device, value)
         self.current_values[device] = value
 
-    @wraps(BaseEditor.set_element_model)
+    @wraps(BaseEditor.set_element_model, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_element_model(self, element: str, model: str) -> None:
         self.netlist.set_element_model(element, model)
         self.current_values[element] = model
