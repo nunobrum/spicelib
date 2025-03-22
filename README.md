@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.2_
+_current version: 1.4.3_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -8,6 +8,12 @@ _current version: 1.4.2_
 * Ngspice
 * QSPICE
 * Xyce
+
+[Ad] For finding the best values for passive components I've created the [WizEIA Calculator](htpps://WizEIA.com). 
+It's awesome.
+
+-- Nuno Brum, creator of this library.   
+
 
 **Table of Contents**
 
@@ -935,11 +941,13 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 
-* future version
+* Version 1.4.3
     * Fixed Issue #188 - remove_(X)instruction now returns a boolean
     * Fixed Issue #186 - Allow VerAlign in AsyReader, and make alignment case insensitive
     * Fixed Issue #177 and #181 - get_trace fails when trace is alias and engineering notation is used
     * Fixed Issue #184 and #178 - improve handling of comments
+    * Fixed Issue #175 - Conflict between @wraps and abstract classes
+    * Shameless promotion of [WizEIA resistance calculator](htpps://WizEIA.com)
 * Version 1.4.2
     * SimRunner runno, okSim and failSim are now readonly attributes
     * SimStepper now stores all netlist updates. This information can now be exported to a CSV file.
