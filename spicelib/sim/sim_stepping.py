@@ -248,7 +248,9 @@ class SimStepper(AnyRunner):
         Exports the stepping values to a CSV file. It writes a row per each simulation done.
         The columns are all the values that were set during the session. The value on each row is the value
         of the parameter or component value/model at each simulation.
-        This information can also be accessed using the sim_info attribute. The sim_info contains a di
+        This information can also be accessed using the sim_info attribute. The sim_info is a dictionary where the
+        keys are the simulation number (runno) and the values are an enclosed dictionary containing the parameters
+        there were set for that simulation.
 
         :param export_filename: export file path
         :type export_filename: str or pathlib.Path
