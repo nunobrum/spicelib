@@ -9,7 +9,7 @@ _current version: 1.4.3_
 * QSPICE
 * Xyce
 
-[Ad] For finding the best values for passive components I've created the [WizEIA Calculator](htpps://WizEIA.com). 
+[Ad] For finding the best values for passive components I've created the [WizEIA Calculator](https://WizEIA.com). 
 It's awesome.
 
 -- Nuno Brum, creator of this library.   
@@ -947,7 +947,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Fixed Issue #177 and #181 - get_trace fails when trace is alias and engineering notation is used
     * Fixed Issue #184 and #178 - improve handling of comments
     * Fixed Issue #175 - Conflict between @wraps and abstract classes
-    * Shameless promotion of [WizEIA resistance calculator](htpps://WizEIA.com)
+    * Shameless promotion of [WizEIA resistance calculator](https://WizEIA.com)
 * Version 1.4.2
     * SimRunner runno, okSim and failSim are now readonly attributes
     * SimStepper now stores all netlist updates. This information can now be exported to a CSV file.
