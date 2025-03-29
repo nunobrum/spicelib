@@ -100,8 +100,15 @@ class RunTask(threading.Thread):
         self.start_time = clock_function()
         self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
         # start execution
-        self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout,
-                                          exe_log=self.exe_log)
+        try:
+            self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, 
+                                              self.timeout, exe_log=self.exe_log)
+        except subprocess.TimeoutExpired:
+            self.print_info(_logger.error, "Simulation Timeout")
+            self.retcode = -1
+        except Exception as e:
+            self.print_info(_logger.error, "Simulation Failed: %s" % e)
+            self.retcode = -1
         self.stop_time = clock_function()
         # print simulation time with format HH:MM:SS.mmmmmm
 
@@ -146,12 +153,12 @@ class RunTask(threading.Thread):
                         self.print_info(_logger.info, "Callback Finished. Time elapsed: %s" % format_time_difference(
                             self.stop_time - callback_start_time))
                 else:
-                    self.print_info(_logger.info, 'Simulation Finished. No Callback function given')
+                    self.print_info(_logger.info, "Simulation Finished. No Callback function given")
             else:
                 self.print_info(_logger.error, "Simulation Raw file or Log file were not found")
         else:
             # simulation failed
-            self.print_info(_logger.error, ": Simulation Aborted. Time elapsed: %s" % sim_time)
+            self.print_info(_logger.error, "Simulation Aborted. Time elapsed: %s" % sim_time)
             if self.log_file.exists():
                 self.log_file = self.log_file.replace(self.log_file.with_suffix('.fail'))
 
