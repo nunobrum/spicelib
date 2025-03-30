@@ -58,7 +58,15 @@ class ServerSimRunner(threading.Thread):
         self._stop = False
 
     def run(self) -> None:
-        """This function makes a direct manipulation of the structures of SimRunner. This option is """
+        """
+        Implements the SimServer process. Basically iy makes the housekeeping of the SimRunner vacuuming the
+        completed_tasks structure there and populated an richer version inside this class which also contains
+        the zipfile that was created by the callback function.
+        This function makes a direct manipulation of the structures of SimRunner. This option is not the most proper
+        but, it helps keeping the SimRunner as simple as possible, and the extra complexity associated with the Server
+        is done by this class.
+        When the server is stopped this process cleans all the files that were not yet cleaned.
+        """
         while True:
             self.runner.update_completed()
             while len(self.runner.completed_tasks) > 0:
