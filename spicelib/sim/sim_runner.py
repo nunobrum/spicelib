@@ -101,17 +101,18 @@ simulation is finished.
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2020, Fribourg Switzerland"
 
-__all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask', 'clock_function']
+__all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask']
 
 import shutil
 import inspect  # Library used to get the arguments of the callback function
+import time
 from pathlib import Path
 from time import sleep, thread_time as clock
 from typing import Callable, Union, Type, Protocol, Tuple
 import logging
 
 from .process_callback import ProcessCallback
-from ..sim.run_task import RunTask, clock_function
+from ..sim.run_task import RunTask
 from ..sim.simulator import Simulator
 from ..editor.base_editor import BaseEditor
 
@@ -567,7 +568,7 @@ class SimRunner(AnyRunner):
         """
         self.update_completed()
         if timeout is not None:
-            stop_time = clock_function() + timeout
+            stop_time = time.time() + timeout
         else:
             stop_time = None
         while len(self.active_tasks) > 0:
@@ -576,7 +577,7 @@ class SimRunner(AnyRunner):
             if timeout is None:
                 stop_time = self._maximum_stop_time()
             if stop_time is not None:  # This can happen if timeout was set as none everywhere
-                if clock_function() > stop_time:
+                if time.time() > stop_time:
                     if abort_all_on_timeout:
                         self.kill_all_spice()
                     return False
@@ -660,7 +661,7 @@ class SimRunner(AnyRunner):
             # Then go through the active tasks to get the maximum timeout
             stop_time = self._maximum_stop_time()
 
-            if stop_time is not None and clock_function() > stop_time:  # All tasks are on timeout condition
+            if stop_time is not None and time.time() > stop_time:  # All tasks are on timeout condition
                 raise SimRunnerTimeoutError(f"Exceeded {self.timeout} seconds waiting for tasks to finish")
 
             # Wait for the active tasks to finish with a timeout
