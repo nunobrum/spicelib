@@ -59,7 +59,7 @@ class ServerSimRunner(threading.Thread):
 
     def run(self) -> None:
         """
-        Implements the SimServer process. Basically iy makes the housekeeping of the SimRunner vacuuming the
+        Implements the SimServer process. Basically it makes the housekeeping of the SimRunner vacuuming the
         completed_tasks structure there and populated an richer version inside this class which also contains
         the zipfile that was created by the callback function.
         This function makes a direct manipulation of the structures of SimRunner. This option is not the most proper
