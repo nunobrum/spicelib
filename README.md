@@ -941,6 +941,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 
+* Next release
+    * Fix addition of parameters (e.g. `ic`) to Inductances via `SpiceEditor.set_component_parameters` - PR #197
 * Version 1.4.3
     * Fixed Issue #188 - remove_(X)instruction now returns a boolean
     * Fixed Issue #186 - Allow VerAlign in AsyReader, and make alignment case insensitive
