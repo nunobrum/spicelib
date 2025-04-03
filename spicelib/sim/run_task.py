@@ -105,10 +105,10 @@ class RunTask(threading.Thread):
                                               self.timeout, exe_log=self.exe_log)
         except subprocess.TimeoutExpired:
             self.print_info(_logger.error, "Simulation Timeout")
-            self.retcode = -1
+            self.retcode = -2
         except Exception as e:
             self.print_info(_logger.error, "Simulation Failed: %s" % e)
-            self.retcode = -1
+            self.retcode = -2
         self.stop_time = clock_function()
         # print simulation time with format HH:MM:SS.mmmmmm
 
