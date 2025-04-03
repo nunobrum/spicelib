@@ -103,11 +103,11 @@ class RunTask(threading.Thread):
         try:
             self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, 
                                               self.timeout, exe_log=self.exe_log)
-        except subprocess.TimeoutExpired:
-            self.print_info(_logger.error, "Simulation Timeout")
-            self.retcode = -2
+        # except subprocess.TimeoutExpired:
+        #    self.print_info(_logger.error, "Simulation Timeout")
+        #    self.retcode = -2
         except Exception as e:
-            self.print_info(_logger.error, "Simulation Failed: %s" % e)
+            self.print_info(_logger.error, f"Simulation Failed. {e.__class__.__name__}: {e}")
             self.retcode = -2
         self.stop_time = clock_function()
         # print simulation time with format HH:MM:SS.mmmmmm
