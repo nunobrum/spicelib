@@ -410,6 +410,10 @@ class SimRunner(AnyRunner):
 
         if timeout is None:
             timeout = self.timeout
+        else:
+            if timeout < 0:
+                raise ValueError("Timeout must be a positive value")
+            self.timeout = timeout  # Update the timeout value in the instance, so other methods can use it.
 
         t0 = clock()  # Store the time for timeout calculation
         while clock() - t0 < timeout + 1:  # Give one second slack in relation to the task timeout
