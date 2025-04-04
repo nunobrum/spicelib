@@ -44,7 +44,7 @@ END_LINE_TERM = '\n'  #: This controls the end of line terminator used
 FLOAT_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
 
 # Regular expression for a number with decimal qualifier and unit
-NUMBER_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?(Meg|[kmuµnpfgt])?[a-zA-Z]*"
+NUMBER_RGX = FLOAT_RGX + r"(Meg|[kmuµnpfgt])?[a-zA-Z]*"
 
 # Parameters expression of the type: PARAM=value
 PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.]+)?)*)?"
@@ -77,7 +77,9 @@ REPLACE_REGEXS = {
     'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" + 
          PARAM_RGX + ".*?$",  # JFET
     'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
-    'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>({)?(?(5).*}|([0-9\.E+-]+(Meg|[kmuµnpgt])?H?))).*$",  # Inductance
+    'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+"
+         + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpgt]?)H?") 
+         + PARAM_RGX + r".*?$",  # Inductance
     'M': r"^(?P<designator>M§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # MOSFET
     'O': r"^(?P<designator>O§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # Lossy Transmission Line
     'Q': r"^(?P<designator>Q§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # Bipolar
