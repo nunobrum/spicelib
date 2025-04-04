@@ -479,31 +479,31 @@ means that updating one instantiation, will update all other instances of the sa
 
 Not all elements support value editing or parameter editing.
 
-| Type | Description | Symbol names | Value editing | Parameter editing |
+| Type | Description | Form | Value editing | Parameter editing |
 |:---:|:---|:---|:---:|:---:|
-| A | Special Functions<br>(LTSpice only) | `INV`, `BUF`, `AND`, `OR`, `XOR`, `SCHMITT`, `SCHMTBUF`, `SCHMTINV`, `DFLOP`, `VARISTOR`, `MODULATE` | no | no |
-| B | Arbitrary Behavioral Voltage or Current Sources | `BV`, `BI`, `BR`, `BP` | TODO | TODO |
-| C | Capacitor | `CAP`, `POLCAP` | yes | yes |
-| D | Diode | `DIODE`, `ZENER`, `SCHOTTKY`, `VARACTOR`, `LED`, `TVS` | yes | yes |
-| E | Voltage Dependent Voltage Source | `E`, `E2` | yes | TODO |
-| F | Current Dependent Current Source | `F` | yes | TODO |
-| G | Voltage Dependent Current Source | `G`, `G2` | yes | TODO |
-| H | Current Dependent Voltage Source | `H` | yes | TODO |
-| I | Current Source | `CURRENT` | yes | yes |
-| J | JFET | `NJF`, `PJF` | yes | yes |
-| K | Mutual Inductance |  | yes | TODO |
-| L | Inductor | `IND`, `IND2` | yes | yes |
-| M | MOSFET | `NMOS`, `NMOS3`, `PMOS`, `PMOS3` | yes | yes |
-| O | Lossy Transmission Line | `LTLIN` | yes | yes |
-| Q | Bipolar Transistor | `NPN`, `PNP`, `NPN2`, `PNP2` | yes | yes |
-| R | Resistor | `RES`, `RES2`| yes | yes |
-| S | Voltage Controlled Switch | `SW` | yes | TODO |
-| T | Lossless Transmission Line | `TLINE` | yes | TODO |
-| U | Uniform RC-line | `URC` | yes | TODO |
-| V | Voltage Source | `VOLTAGE`, `BATTERY` | yes | yes |
-| W | Current Controlled Switch | `CSW` | yes | TODO |
-| X | Subcircuit |  | yes | yes |
-| Z | MESFET and IGBT | `MESFET`, `NIGBT`, `PIGBT` | yes | TODO |
+| A | Special Functions<br>(LTSpice only) |  | no | no |
+| B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | TODO | TODO |
+| C | Capacitor | `Cxxx n1 n2 value [parmkey=parmvalue]...` | yes | yes |
+| D | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
+| E | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
+| F | Current Dependent Current Source | `Fxxx n+ n- value...` | includes parameters | not separately |
+| G | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
+| H | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
+| I | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
+| J | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
+| K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | TODO | no |
+| L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes | yes |
+| M | MOSFET | `Mxxx Nd Ng Ns Nb value [parmkey=parmvalue]...` | holds model.<br>no support for 'off' | yes |
+| O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
+| Q | Bipolar Transistor | `Qxxx Collector Base Emittervalue [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
+| R | Resistor | `Rxxx n1 n2 value [parmkey=parmvalue]...` | yes | yes |
+| S | Voltage Controlled Switch | `Sxxx n1 n2 nc+ nc- value...` | includes parameters | not separately |
+| T | Lossless Transmission Line | `Txxx L+ L- R+ R- value...` | includes parameters | not separately |
+| U | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
+| V | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
+| W | Current Controlled Switch | `Wxxx n1 n2 value...` | includes parameters | not separately |
+| X | Subcircuit | many forms | yes | yes |
+| Z | MESFET and IGBT | `Zxxx Nd Ng Ns value...` | holds model and parameters.<br>no support for 'area' or 'off' | not separately |
 
 For a detailed reference to the elements, see amongst others:
 
