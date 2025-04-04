@@ -9,10 +9,10 @@ _current version: 1.4.3_
 * QSPICE
 * Xyce
 
-[Ad] For finding the best values for passive components I've created the [WizEIA Calculator](https://WizEIA.com). 
+[Ad] For finding the best values for passive components I've created the [WizEIA Calculator](https://WizEIA.com).
 It's awesome.
 
--- Nuno Brum, creator of this library.   
+-- Nuno Brum, creator of this library.
 
 
 **Table of Contents**
@@ -34,6 +34,7 @@ It's awesome.
     - [Executable and Library paths](#executable-and-library-paths)
     - [Runner log redirection](#runner-log-redirection)
     - [Adding search paths for symbols and library files](#adding-search-paths-for-symbols-and-library-files)
+    - [Limitations and specifics of SpiceEditor](#limitations-and-specifics-of-spiceeditor)
     - [Limitations and specifics of AscEditor](#limitations-and-specifics-of-asceditor)
     - [Hierarchial circuits: reading and editing](#hierarchial-circuits-reading-and-editing)
   - [Simulation Analysis Toolkit](#simulation-analysis-toolkit)
@@ -471,8 +472,43 @@ AscEditor.set_custom_library_paths([r"C:\work\MyLTspiceSymbols", r"C:\work\MyLTs
 ```
 
 The user can specify one or more search paths. Note that each call to this method will invalidate previously set search
-paths. Also, note that this is a class method in all available editors, [SpiceEditor, AscEditor and QschEditor], this
+paths. Also, note that this is a class method in all available editors (SpiceEditor, AscEditor and QschEditor), this
 means that updating one instantiation, will update all other instances of the same class.
+
+#### Limitations and specifics of SpiceEditor
+
+Not all elements support value editing or parameter editing.
+
+| Type | Description | Symbol names | Value editing | Parameter editing |
+|:---:|:---|:---|:---:|:---:|
+| A | Special Functions<br>(LTSpice only) | `INV`, `BUF`, `AND`, `OR`, `XOR`, `SCHMITT`, `SCHMTBUF`, `SCHMTINV`, `DFLOP`, `VARISTOR`, `MODULATE` | no | no |
+| B | Arbitrary Behavioral Voltage or Current Sources | `BV`, `BI`, `BR`, `BP` | TODO | TODO |
+| C | Capacitor | `CAP`, `POLCAP` | yes | yes |
+| D | Diode | `DIODE`, `ZENER`, `SCHOTTKY`, `VARACTOR`, `LED`, `TVS` | yes | yes |
+| E | Voltage Dependent Voltage Source | `E`, `E2` | yes | TODO |
+| F | Current Dependent Current Source | `F` | yes | TODO |
+| G | Voltage Dependent Current Source | `G`, `G2` | yes | TODO |
+| H | Current Dependent Voltage Source | `H` | yes | TODO |
+| I | Current Source | `CURRENT` | yes | yes |
+| J | JFET | `NJF`, `PJF` | yes | yes |
+| K | Mutual Inductance |  | yes | TODO |
+| L | Inductor | `IND`, `IND2` | yes | yes |
+| M | MOSFET | `NMOS`, `NMOS3`, `PMOS`, `PMOS3` | yes | yes |
+| O | Lossy Transmission Line | `LTLIN` | yes | yes |
+| Q | Bipolar Transistor | `NPN`, `PNP`, `NPN2`, `PNP2` | yes | yes |
+| R | Resistor | `RES`, `RES2`| yes | yes |
+| S | Voltage Controlled Switch | `SW` | yes | TODO |
+| T | Lossless Transmission Line | `TLINE` | yes | TODO |
+| U | Uniform RC-line | `URC` | yes | TODO |
+| V | Voltage Source | `VOLTAGE`, `BATTERY` | yes | yes |
+| W | Current Controlled Switch | `CSW` | yes | TODO |
+| X | Subcircuit |  | yes | yes |
+| Z | MESFET and IGBT | `MESFET`, `NIGBT`, `PIGBT` | yes | TODO |
+
+For a detailed reference to the elements, see amongst others:
+
+* <https://ltwiki.org/files/LTspiceHelp.chm.html>
+* <https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml>
 
 #### Limitations and specifics of AscEditor
 
