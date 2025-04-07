@@ -80,6 +80,7 @@ class RunTask(threading.Thread):
         self.log_file = None
         self.callback_return = None
         self.exe_log = exe_log
+        self.exception_text = None
 
     def print_info(self, logger_fun, message):
         message = f"RunTask #{self.runno}:{message}"
@@ -97,8 +98,9 @@ class RunTask(threading.Thread):
             self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, 
                                               self.timeout, exe_log=self.exe_log)
         except Exception as e:
-            self.print_info(_logger.error, f"Simulation Failed. {e.__class__.__name__}: {e}")
+            self.exception_text = f"{e.__class__.__name__}: {e}"
             self.retcode = -2
+            self.print_info(_logger.error, f"Simulation Failed. {self.exception_text}")
         self.stop_time = time.time()
         # print simulation time with format HH:MM:SS.mmmmmm
 
@@ -159,6 +161,7 @@ class RunTask(threading.Thread):
         it returns a tuple with (raw_file, log_file). If a callback function is defined, and the simulation succeeded,
         it returns whatever the callback function is returning. If the simulation failed and a callback function is defined,
         it returns None.
+        
         :returns: Tuple with the path to the raw file and the path to the log file
         :rtype: tuple(str, str) or None
         """
@@ -179,6 +182,7 @@ class RunTask(threading.Thread):
     def wait_results(self) -> Union[Any, Tuple[str, str]]:
         """
         Waits for the completion of the task and returns a tuple with the raw and log files.
+        
         :returns: Tuple with the path to the raw file and the path to the log file. See get_results() for more details.
         :rtype: tuple(str, str)
         """
