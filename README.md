@@ -484,26 +484,26 @@ Not all elements support value editing or parameter editing.
 | A | Special Functions<br>(LTSpice only) |  | no | no |
 | B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | yes<br>Values with embedded '=' signs are not supported, use '<' or '>' | yes |
 | C | Capacitor | `Cxxx n1 n2 value [parmkey=parmvalue]...` | yes<br>Formulas are supported but must be enclosed by "" or '' or {} or contain no spaces.<br>Charge formulated expressions ('Q=...') are not supported | yes |
-| D | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'on/off' | yes |
-| E | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
-| F | Current Dependent Current Source | `Fxxx n+ n- value...` | includes parameters | not separately |
-| G | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
-| H | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
-| I | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
-| J | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'on/off' | yes |
+| D TODO | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'on/off' | yes |
+| E TODO | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
+| F TODO | Current Dependent Current Source | `Fxxx n+ n- value...` | includes parameters | not separately |
+| G TODO | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
+| H TODO | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
+| I TODO | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
+| J TODO | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'on/off' | yes |
 | K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | yes | no |
 | L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes<br>Formulas are supported but must be enclosed by "" or '' or {} or contain no spaces. | yes |
-| M | MOSFET | `Mxxx Nd Ng Ns Nb value [parmkey=parmvalue]...` | holds model.<br>no support for 'on/off' | yes |
-| O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
-| Q | Bipolar Transistor | `Qxxx Collector Base Emittervalue [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
+| M TODO | MOSFET | `Mxxx Nd Ng Ns Nb value [parmkey=parmvalue]...` | holds model.<br>no support for 'on/off' | yes |
+| O TODO | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
+| Q TODO | Bipolar Transistor | `Qxxx Collector Base Emittervalue [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
 | R | Resistor | `Rxxx n1 n2 value [parmkey=parmvalue]...` | yes<br>Formulas are supported but must be enclosed by "" or '' or {} or contain no spaces. | yes |
-| S | Voltage Controlled Switch | `Sxxx n1 n2 nc+ nc- value...` | includes parameters | not separately |
+| S TODO | Voltage Controlled Switch | `Sxxx n1 n2 nc+ nc- value...` | includes parameters | not separately |
 | T | Lossless Transmission Line | `Txxx L+ L- R+ R- [parmkey=parmvalue]...` | no | yes |
-| U | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
-| V | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
-| W | Current Controlled Switch | `Wxxx n1 n2 Vref value` | holds model.<br>no support for 'on/off' | no |
-| X | Subcircuit | many forms | yes | yes |
-| Z | MESFET and IGBT | `Zxxx Nd Ng Ns value...` | holds model and parameters.<br>no support for 'area' or 'on/off' | not separately |
+| U TODO | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
+| V TODO | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
+| W TODO | Current Controlled Switch | `Wxxx n1 n2 Vref value` | holds model.<br>no support for 'on/off' | no |
+| X TODO | Subcircuit | many forms | yes | yes |
+| Z TODO | MESFET and IGBT | `Zxxx Nd Ng Ns value...` | holds model and parameters.<br>no support for 'area' or 'on/off' | not separately |
 
 For a detailed reference to the elements, see amongst others:
 
