@@ -484,26 +484,26 @@ Not all elements support value editing or parameter editing.
 | A | Special Functions<br>(LTSpice only) |  | no | no |
 | B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | yes<br>Values with '=' signs are not supported, use '<' or '>' | yes |
 | C | Capacitor | `Cxxx n1 n2 value [parmkey=parmvalue]...` | yes | yes |
-| D | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
+| D | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'on/off' | yes |
 | E | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
 | F | Current Dependent Current Source | `Fxxx n+ n- value...` | includes parameters | not separately |
 | G | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
 | H | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
 | I | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
-| J | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
+| J | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'on/off' | yes |
 | K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | TODO | no |
 | L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes | yes |
-| M | MOSFET | `Mxxx Nd Ng Ns Nb value [parmkey=parmvalue]...` | holds model.<br>no support for 'off' | yes |
+| M | MOSFET | `Mxxx Nd Ng Ns Nb value [parmkey=parmvalue]...` | holds model.<br>no support for 'on/off' | yes |
 | O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
 | Q | Bipolar Transistor | `Qxxx Collector Base Emittervalue [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
 | R | Resistor | `Rxxx n1 n2 value [parmkey=parmvalue]...` | yes | yes |
 | S | Voltage Controlled Switch | `Sxxx n1 n2 nc+ nc- value...` | includes parameters | not separately |
-| T | Lossless Transmission Line | `Txxx L+ L- R+ R- value...` | includes parameters | not separately |
+| T | Lossless Transmission Line | `Txxx L+ L- R+ R- [parmkey=parmvalue]...` | no | yes |
 | U | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
 | V | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
-| W | Current Controlled Switch | `Wxxx n1 n2 value...` | includes parameters | not separately |
+| W | Current Controlled Switch | `Wxxx n1 n2 Vref value` | holds model.<br>no support for 'on/off' | no |
 | X | Subcircuit | many forms | yes | yes |
-| Z | MESFET and IGBT | `Zxxx Nd Ng Ns value...` | holds model and parameters.<br>no support for 'area' or 'off' | not separately |
+| Z | MESFET and IGBT | `Zxxx Nd Ng Ns value...` | holds model and parameters.<br>no support for 'area' or 'on/off' | not separately |
 
 For a detailed reference to the elements, see amongst others:
 

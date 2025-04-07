@@ -364,9 +364,29 @@ class SpiceEditor_Test(unittest.TestCase):
             "B3": ["I=cos(v(1))+sin(v(2))", {"ic": 1e-6, "delay": 10}],
             "B4": ["R=V(1) < 0? 2 : 1", {}],
             "B5": ["B=V(NC_01)", {"VprXover": "50mV"}],
+            "C1": ["10µ", {}],
+            "D1": ["1N914", {}],
+            "E1": ["1", {}],
+            "F1": ["I1", {}],
+            "G1": ["1", {}],
+            "H1": ["I1", {}],
+            "I1": ["1", {}],
+            "J1": ["2N3819", {}],
+            "K1": ["1", {}],
+            "L1": ["1", {}],
+            "M1": ["BSP89", {}],
+            "O1": ["LTRA", {}],
+            "Q1": ["2N2222", {}],
+            "R1": ["1", {}],
+            "S1": ["SW", {}],
+            "T1": ["", {"Td": "50n", "Z0": 50}],
+            "U1": ["URC", {}],
+            "V1": ["1", {}],
+            "W1": ["W", {}],
+            "XU2": ["AD549", {}],
+            "Z1": ["NMF", {}],            
         }
-        # elments = edt.get_components()
-        # self.assertEqual(len(elments), len(expected_values), "Tested number of elements")
+        # print(f"components: {edt.get_components()}")
         for el, exp in expected.items():
             value = exp[0]
             self.assertEqual(edt.get_component_value(el).casefold(), value.casefold(), f"Tested {el} Value")

@@ -88,12 +88,12 @@ REPLACE_REGEXS = {
          "(R=)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kRmuµnpfgt])?\d*") +
          PARAM_RGX + ".*?$",  # Resistor
     'S': r"^(?P<designator>S§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Voltage Controlled Switch
-    'T': r"^(?P<designator>T§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Lossless Transmission
+    'T': r"^(?P<designator>T§?\w+)(?P<nodes>(\s+\S+){4})\s?(?P<value>)?" + PARAM_RGX + r"\\?$",  # Lossless Transmission
     'U': r"^(?P<designator>U§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>.*)$",  # Uniform RC-line
     'V': r"^(?P<designator>V§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*?)"
          r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.]+)*)$",  # Independent Voltage Source
     # ex: V1 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
-    'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Current Controlled Switch
+    'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>.*)$",  # Current Controlled Switch
     # This implementation replaces everything after the 2 first nets
     'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>[\w\.]+)"
          r"(\s+params:)?" + PARAM_RGX + r"\\?$",  # Sub-circuit. The value is the last before any key-value parameters
