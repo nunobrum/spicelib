@@ -491,7 +491,7 @@ Not all elements support value editing or parameter editing.
 | H | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
 | I | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
 | J | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'on/off' | yes |
-| K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | TODO | no |
+| K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | yes | no |
 | L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes | yes |
 | M | MOSFET | `Mxxx Nd Ng Ns Nb value [parmkey=parmvalue]...` | holds model.<br>no support for 'on/off' | yes |
 | O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |

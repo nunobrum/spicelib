@@ -77,7 +77,7 @@ REPLACE_REGEXS = {
     # This implementation replaces everything after the 2 first nets
     'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" + 
          PARAM_RGX + ".*?$",  # JFET
-    'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
+    'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,99})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
     'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+"
          + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpgt]?)H?") 
          + PARAM_RGX + r".*?$",  # Inductance
