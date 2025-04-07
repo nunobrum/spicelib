@@ -941,6 +941,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 
+* Future version
+    * Fixed Issue #192 - add information about timeouts and other exceptions to runner
 * Version 1.4.3
     * Fixed Issue #188 - remove_(X)instruction now returns a boolean
     * Fixed Issue #186 - Allow VerAlign in AsyReader, and make alignment case insensitive
