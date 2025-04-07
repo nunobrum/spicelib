@@ -44,24 +44,25 @@ END_LINE_TERM = '\n'  #: This controls the end of line terminator used
 FLOAT_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
 
 # Regular expression for a number with decimal qualifier and unit
-NUMBER_RGX = FLOAT_RGX + r"(Meg|[kmuµnpfgt])?[a-zA-Z]*"
+# NUMBER_RGX = FLOAT_RGX + r"(Meg|[kmuµnpfgt])?[a-zA-Z]*"
 
 # Parameters expression of the type: PARAM=value
-PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.]+)?)*)?"
+PARAM_RGX = r"(?P<params>(\s+\w+\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.]+)?)*)?"
 
 
 def VALUE_RGX(number_regex):
-    """Named Regex for a value or a formula."""
-    return r"(?P<value>(?P<formula>{)?(?(formula).*}|" + number_regex + "))"
+    """Named Regex for a value, or a formula that is a single word, or is enclosed by "" or '' or {}."""
+    return "(?P<value>(?P<number>" + number_regex + ")?(?P<formula1>\")?(?P<formula2>')?(?P<formula3>{)?" + \
+           "(?(number)|(?(formula1).*\"|(?(formula2).*'|(?(formula3).*}|\\S*)))))"
 
 
 REPLACE_REGEXS = {
     'A': r"",  # LTspice Only : Special Functions, Parameter substitution not supported
-    'B': r"^(?P<designator>B§?[VI]?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>[VIBR]\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.\<\>\?\:]+)*)" + 
+    'B': r"^(?P<designator>B§?[VI]?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>[VIBR]\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.\<\>\?\:\"\']+)*)" + 
          PARAM_RGX + r"\\?$",  # Behavioral source
-    'C': r"^(?P<designator>C§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+" +
-         VALUE_RGX(FLOAT_RGX + r"[muµnpfgt]?F?") +
-         PARAM_RGX + r".*?$",  # Capacitor
+    'C': r"^(?P<designator>C§?\w+)(?P<nodes>(\s+\S+){2})\s+" +
+         r"(C\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"[muµnpfgt]?F?") +
+         PARAM_RGX + r"\\?$",  # Capacitor
     'D': r"^(?P<designator>D§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>\w+)" +
          PARAM_RGX + ".*?$",  # Diode
     'E': r"^(?P<designator>E§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>.*)$",  # Voltage Dependent Voltage Source
@@ -78,15 +79,15 @@ REPLACE_REGEXS = {
     'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" + 
          PARAM_RGX + ".*?$",  # JFET
     'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,99})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
-    'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+"
+    'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})\s+"
          + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpgt]?)H?") 
-         + PARAM_RGX + r".*?$",  # Inductance
+         + PARAM_RGX + r"\\?$",  # Inductance
     'M': r"^(?P<designator>M§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # MOSFET
     'O': r"^(?P<designator>O§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # Lossy Transmission Line
     'Q': r"^(?P<designator>Q§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # Bipolar
-    'R': r"^(?P<designator>R§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+" +
-         "(R=)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpfgt])?R?\d*") +
-         PARAM_RGX + ".*?$",  # Resistor
+    'R': r"^(?P<designator>R§?\w+)(?P<nodes>(\s+\S+){2})\s+" +
+         r"(R\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpfgt])?R?\d*") +
+         PARAM_RGX + r"\\?$",  # Resistor
     'S': r"^(?P<designator>S§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Voltage Controlled Switch
     'T': r"^(?P<designator>T§?\w+)(?P<nodes>(\s+\S+){4})\s?(?P<value>)?" + PARAM_RGX + r"\\?$",  # Lossless Transmission
     'U': r"^(?P<designator>U§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>.*)$",  # Uniform RC-line
@@ -120,7 +121,12 @@ REPLACE_REGEXS = {
 SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
 
 # Code Optimization objects, avoiding repeated compilation of regular expressions
-component_replace_regexs = {prefix: re.compile(pattern, re.IGNORECASE) for prefix, pattern in REPLACE_REGEXS.items()}
+component_replace_regexs = {}
+for prefix, pattern in REPLACE_REGEXS.items():
+    # print(f"Compiling regex for {prefix}: {pattern}")
+    component_replace_regexs[prefix] = re.compile(pattern, re.IGNORECASE)
+    
+# component_replace_regexs = {prefix: re.compile(pattern, re.IGNORECASE) for prefix, pattern in REPLACE_REGEXS.items()}
 subckt_regex = re.compile(r"^.SUBCKT\s+(?P<name>[\w\.]+)", re.IGNORECASE)
 lib_inc_regex = re.compile(r"^\.(LIB|INC)\s+(.*)$", re.IGNORECASE)
 
@@ -190,8 +196,19 @@ def _parse_params(params_str: str) -> dict:
     Parses the parameters string and returns a dictionary with the parameters.
     """
     params = OrderedDict()
+    # Remove any leading or trailing spaces
+    params_str = params_str.strip()
+    while ' =' in params_str:
+        # Remove any spaces before the '=' sign
+        params_str = params_str.replace(' =', '=')
+    while '= ' in params_str:
+        # Remove any spaces after the '=' sign
+        params_str = params_str.replace('= ', '=')
     for param in params_str.split():
-        key, value = param.split('=')
+        try:
+            key, value = param.split('=')
+        except ValueError:
+            raise ValueError(f"Invalid parameter format: {param}")
         params[key] = try_convert_value(value)
     return params
 
@@ -550,7 +567,7 @@ class SpiceCircuit(BaseEditor):
                     raise ValueError("set_component_parameters() expects to receive a dictionary")
                 if match and match.groupdict().get('params'):
                     params_str = match.group('params')
-                    params = self._parse_params(params_str)
+                    params = _parse_params(params_str)
                 else:
                     params = {}
 
@@ -750,23 +767,12 @@ class SpiceCircuit(BaseEditor):
         component = self.get_component(reference)
         return component.attributes.get(attribute, None)
 
-    @staticmethod
-    def _parse_params(params_str: str) -> dict:
-        """
-        Parses the parameters string and returns a dictionary with the parameters.
-        """
-        params = OrderedDict()
-        for param in params_str.split():
-            key, value = param.split('=')
-            params[key] = try_convert_value(value)
-        return params
-
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
         if match and match.groupdict().get('params'):
             params_str = match.group('params')
-            return self._parse_params(params_str)
+            return _parse_params(params_str)
         else:
             return {}
 

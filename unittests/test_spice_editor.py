@@ -364,7 +364,12 @@ class SpiceEditor_Test(unittest.TestCase):
             "B3": ["I=cos(v(1))+sin(v(2))", {"ic": 1e-6, "delay": 10}],
             "B4": ["R=V(1) < 0? 2 : 1", {}],
             "B5": ["B=V(NC_01)", {"VprXover": "50mV"}],
-            "C1": ["10µ", {}],
+            #
+            "C1": ["10µ", {"rser": 10, "temp": 60}],
+            "C2": ["10µF", {"tc1": 40}],
+            "C3": ["'V(cc) < {Vt} ? {C1} : {Ch}'", {"tc1": -1e-03, "tc2": 1.3e-05}],
+            "C4": ["1u*(4*atan(V(a,b)/4)*2+V(a,b))/3", {}],      
+            #
             "D1": ["1N914", {}],
             "E1": ["1", {}],
             "F1": ["I1", {}],
@@ -372,14 +377,22 @@ class SpiceEditor_Test(unittest.TestCase):
             "H1": ["I1", {}],
             "I1": ["1", {}],
             "J1": ["2N3819", {}],
+            #
             "K1": ["1", {}],
             "K2": ["0.1", {}],
-            "L1": ["1", {}],
+            #
+            "L1": ["1", {"temp": 13}],
+            "L2": ["1H", {}],
+            "L3": ["\"V(cc) < {Vt} ? {L1} : {L2}\"", {"temp": 13}],
+            #
             "M1": ["BSP89", {}],
             "O1": ["LTRA", {}],
             "Q1": ["2N2222", {}],
-            "R1": ["1", {}],
-            "R2": ["2k5", {}],
+            #
+            "R1": ["1", {"temp": 12}],
+            "R2": ["2k5r", {}],
+            "R3": ["'V(cc) < {Vt} ? {R1} : {R2}'", {"temp": 13}],
+            #            
             "S1": ["SW", {}],
             "T1": ["", {"Td": "50n", "Z0": 50}],
             "U1": ["URC", {}],
@@ -390,6 +403,7 @@ class SpiceEditor_Test(unittest.TestCase):
         }
         # print(f"components: {edt.get_components()}")
         for el, exp in expected.items():
+            print(f"Testing {el}")
             value = exp[0]
             self.assertEqual(edt.get_component_value(el).casefold(), value.casefold(), f"Tested {el} Value")
             params = edt.get_component_parameters(el)
