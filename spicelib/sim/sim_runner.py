@@ -243,9 +243,9 @@ class SimRunner(AnyRunner):
             * netlist_file: Path to the netlist file
             * raw_file: Path to the raw file
             * log_file: Path to the log file
-            * retcode: Return code of the simulation. -2 means an exception was raised, -1 means the simulation undefined, any other values are the return code of the simulator            
-            * exception_text: Exception information in case of an exception during simulation
-            * callback_return: Return value of the callback function
+            * retcode: Return code of the simulator. -2 means an exception was raised, -1 means the simulation is undefined.            
+            * exception_text: Exception information in case of an exception during simulation. None is no exception was raised.
+            * callback_return: Return value of the callback function. None is no callback was used.
             * start_time: Start time of the simulation
             * stop_time: Stop time of the simulation
             
