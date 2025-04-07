@@ -244,8 +244,8 @@ class SimRunner(AnyRunner):
             * raw_file: Path to the raw file
             * log_file: Path to the log file
             * retcode: Return code of the simulator. -2 means an exception was raised, -1 means the simulation is undefined.            
-            * exception_text: Exception information in case of an exception during simulation. None is no exception was raised.
-            * callback_return: Return value of the callback function. None is no callback was used.
+            * exception_text: Exception information in case of an exception during simulation. None if no exception was raised.
+            * callback_return: Return value of the callback function. None if no callback was used.
             * start_time: Start time of the simulation
             * stop_time: Stop time of the simulation
             
