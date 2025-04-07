@@ -378,6 +378,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "O1": ["LTRA", {}],
             "Q1": ["2N2222", {}],
             "R1": ["1", {}],
+            "R2": ["2k5", {}],
             "S1": ["SW", {}],
             "T1": ["", {"Td": "50n", "Z0": 50}],
             "U1": ["URC", {}],
