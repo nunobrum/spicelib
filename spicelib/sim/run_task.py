@@ -25,25 +25,18 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2023, Fribourg Switzerland"
 
 from pathlib import Path
-import sys
 import threading
 import time
 import traceback
 from time import sleep
 from typing import Callable, Union, Any, Tuple, Type
 import logging
-import subprocess
 _logger = logging.getLogger("spicelib.RunTask")
 
 from .process_callback import ProcessCallback
 from .simulator import Simulator
 
 END_LINE_TERM = '\n'
-
-if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-    clock_function = time.time
-else:
-    clock_function = time.clock
 
 
 def format_time_difference(time_diff):
@@ -97,7 +90,7 @@ class RunTask(threading.Thread):
     def run(self):
         # Running the Simulation
 
-        self.start_time = clock_function()
+        self.start_time = time.time()
         self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
         # start execution
         try:
@@ -109,7 +102,7 @@ class RunTask(threading.Thread):
         except Exception as e:
             self.print_info(_logger.error, f"Simulation Failed. {e.__class__.__name__}: {e}")
             self.retcode = -2
-        self.stop_time = clock_function()
+        self.stop_time = time.time()
         # print simulation time with format HH:MM:SS.mmmmmm
 
         # Calculate the time difference
@@ -149,7 +142,7 @@ class RunTask(threading.Thread):
                             self.callback_return = return_or_process
                     finally:
                         callback_start_time = self.stop_time
-                        self.stop_time = clock_function()
+                        self.stop_time = time.time()
                         self.print_info(_logger.info, "Callback Finished. Time elapsed: %s" % format_time_difference(
                             self.stop_time - callback_start_time))
                 else:
