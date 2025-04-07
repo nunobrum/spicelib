@@ -57,7 +57,8 @@ def VALUE_RGX(number_regex):
 
 REPLACE_REGEXS = {
     'A': r"",  # LTspice Only : Special Functions, Parameter substitution not supported
-    'B': r"^(?P<designator>B§?[VI]?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Behavioral source
+    'B': r"^(?P<designator>B§?[VI]?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>[VIBR]\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.\<\>\?\:]+)*)" + 
+         PARAM_RGX + r"\\?$",  # Behavioral source
     'C': r"^(?P<designator>C§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+" +
          VALUE_RGX(FLOAT_RGX + r"[muµnpfgt]?F?") +
          PARAM_RGX + r".*?$",  # Capacitor

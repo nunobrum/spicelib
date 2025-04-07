@@ -482,7 +482,7 @@ Not all elements support value editing or parameter editing.
 | Type | Description | Form | Value editing | Parameter editing |
 |:---:|:---|:---|:---:|:---:|
 | A | Special Functions<br>(LTSpice only) |  | no | no |
-| B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | TODO | TODO |
+| B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | yes<br>Values with '=' signs are not supported, use '<' or '>' | yes |
 | C | Capacitor | `Cxxx n1 n2 value [parmkey=parmvalue]...` | yes | yes |
 | D | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model.<br>no support for 'area' or 'off' | yes |
 | E | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |

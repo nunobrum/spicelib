@@ -60,9 +60,9 @@ def check_value(test, regex, line, value, msg=None):
 class SpiceEditor_Test(unittest.TestCase):
 
     def setUp(self):
-        self.edt = spicelib.editor.spice_editor.SpiceEditor(test_dir + "DC sweep.net")
-        self.edt2 = spicelib.editor.spice_editor.SpiceEditor(test_dir + "opamptest.net")
-        self.edt3 = spicelib.editor.spice_editor.SpiceEditor(test_dir + "/amp3/amp3.net")
+        self.edt = spicelib.SpiceEditor(test_dir + "DC sweep.net")
+        self.edt2 = spicelib.SpiceEditor(test_dir + "opamptest.net")
+        self.edt3 = spicelib.SpiceEditor(test_dir + "/amp3/amp3.net")
 
     def test_component_editing_1(self):
         self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here
@@ -326,7 +326,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + "top_circuit_edit2.net", golden_dir + "top_circuit_edit2.net")
 
     def test_semiconductor_edits(self):
-        #inspecting W/L parameters
+        # inspecting W/L parameters
         params = self.edt3["XOPAMP:M11"].params
         print(params)
         self.assertAlmostEqual(2.5175e-05, params['W'])
@@ -342,17 +342,37 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt3["XOPAMP:M12"].set_params(L=4E-6)
         updated_params = self.edt3["XOPAMP:M11"].params
         print(updated_params)
-        self.assertAlmostEqual(2*actual_width, updated_params['W'])
+        self.assertAlmostEqual(2 * actual_width, updated_params['W'])
         self.edt3.save_netlist(temp_dir + "amp3_instance_edits.net")
         self.equalFiles(golden_dir + "amp3_instance_edits.net", temp_dir + "amp3_instance_edits.net")
         # Reverts all modifications
         self.edt3.reset_netlist()
         opamp = self.edt3.get_subcircuit_named("PFC.SUB")
         # Updating the opamp
-        opamp.set_component_parameters("M11", W=2*actual_width)
+        opamp.set_component_parameters("M11", W=2 * actual_width)
         self.edt3.save_netlist(temp_dir + "amp3_subcircuit_edits.net")
         self.equalFiles(golden_dir + "amp3_subcircuit_edits.net", temp_dir + "amp3_subcircuit_edits.net")
 
-
+    def test_elements(self):
+        """Test reading and writing elements with the Editor.
+        """
+        edt = spicelib.SpiceEditor(test_dir + "all_elements_lt.net")
+        # Check the element list for expected values and parameters
+        expected = {
+            "B1": ["V=1", {"tc1": 2}],
+            "B2": ["V=V(1) < {Vlow} ? {Vlow} : V(1) > {Vhigh} ? {Vhigh} : V(1)", {"delay": 1}],
+            "B3": ["I=cos(v(1))+sin(v(2))", {"ic": 1e-6, "delay": 10}],
+            "B4": ["R=V(1) < 0? 2 : 1", {}],
+            "B5": ["B=V(NC_01)", {"VprXover": "50mV"}],
+        }
+        # elments = edt.get_components()
+        # self.assertEqual(len(elments), len(expected_values), "Tested number of elements")
+        for el, exp in expected.items():
+            value = exp[0]
+            self.assertEqual(edt.get_component_value(el).casefold(), value.casefold(), f"Tested {el} Value")
+            params = edt.get_component_parameters(el)
+            self.assertEqual(params, exp[1], f"Tested {el} Parameters")
+            
+            
 if __name__ == '__main__':
     unittest.main()
