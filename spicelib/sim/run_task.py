@@ -96,9 +96,6 @@ class RunTask(threading.Thread):
         try:
             self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, 
                                               self.timeout, exe_log=self.exe_log)
-        # except subprocess.TimeoutExpired:
-        #    self.print_info(_logger.error, "Simulation Timeout")
-        #    self.retcode = -2
         except Exception as e:
             self.print_info(_logger.error, f"Simulation Failed. {e.__class__.__name__}: {e}")
             self.retcode = -2
@@ -159,8 +156,11 @@ class RunTask(threading.Thread):
         """
         Returns the simulation outputs if the simulation and callback function has already finished.
         If the simulation is not finished, it simply returns None. If no callback function is defined, then
-        it returns a tuple with (raw_file, log_file). If a callback function is defined, it returns whatever
-        the callback function is returning.
+        it returns a tuple with (raw_file, log_file). If a callback function is defined, and the simulation succeeded,
+        it returns whatever the callback function is returning. If the simulation failed and a callback function is defined,
+        it returns None.
+        :returns: Tuple with the path to the raw file and the path to the log file
+        :rtype: tuple(str, str) or None
         """
         if self.is_alive():
             return None
@@ -179,7 +179,7 @@ class RunTask(threading.Thread):
     def wait_results(self) -> Union[Any, Tuple[str, str]]:
         """
         Waits for the completion of the task and returns a tuple with the raw and log files.
-        :returns: Tuple with the path to the raw file and the path to the log file
+        :returns: Tuple with the path to the raw file and the path to the log file. See get_results() for more details.
         :rtype: tuple(str, str)
         """
         while self.is_alive() or self.retcode == -1:
