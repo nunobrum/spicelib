@@ -371,12 +371,16 @@ class SpiceEditor_Test(unittest.TestCase):
             "C4": ["1u*(4*atan(V(a,b)/4)*2+V(a,b))/3", {}],      
             #
             "D1": ["1N914", {}],
+            "D2": ["1N4001", {"m": 1, "n": 2}],
+            #
             "E1": ["1", {}],
             "F1": ["I1", {}],
             "G1": ["1", {}],
             "H1": ["I1", {}],
             "I1": ["1", {}],
+            #
             "J1": ["2N3819", {}],
+            "J2": ["2N3819", {"ic": "1,2", "temp": 6}],
             #
             "K1": ["1", {}],
             "K2": ["0.1", {}],
@@ -386,8 +390,13 @@ class SpiceEditor_Test(unittest.TestCase):
             "L3": ["\"V(cc) < {Vt} ? {L1} : {L2}\"", {"temp": 13}],
             #
             "M1": ["BSP89", {}],
+            "M2": ["BSP89", {"temp": 2}],
+            "M3": ["Si4410DY", {}],
+            #
             "O1": ["LTRA", {}],
+            #
             "Q1": ["2N2222", {}],
+            "Q2": ["BC517", {"temp": 60, "ic": "0.6,5"}],
             #
             "R1": ["1", {"temp": 12}],
             "R2": ["2k5r", {}],
@@ -397,9 +406,10 @@ class SpiceEditor_Test(unittest.TestCase):
             "T1": ["", {"Td": "50n", "Z0": 50}],
             "U1": ["URC", {}],
             "V1": ["1", {}],
-            "W1": ["W", {}],
+            "W1": ["W on", {}],
             "XU2": ["AD549", {}],
-            "Z1": ["NMF", {}],            
+            "Z1": ["NMF", {}], 
+            "Z2": ["NMF", {"ic": "1,2", "area": 1.4}],        
         }
         # print(f"components: {edt.get_components()}")
         for el, exp in expected.items():

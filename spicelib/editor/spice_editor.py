@@ -47,7 +47,7 @@ FLOAT_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
 # NUMBER_RGX = FLOAT_RGX + r"(Meg|[kmuµnpfgt])?[a-zA-Z]*"
 
 # Parameters expression of the type: PARAM=value
-PARAM_RGX = r"(?P<params>(\s+\w+\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.]+)?)*)?"
+PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)?)*)?"
 
 
 def VALUE_RGX(number_regex):
@@ -58,11 +58,18 @@ def VALUE_RGX(number_regex):
 
 REPLACE_REGEXS = {
     'A': r"",  # LTspice Only : Special Functions, Parameter substitution not supported
+    # Bxxx n001 n002 [VIRP]=<expression> [ic=<value>] ...
     'B': r"^(?P<designator>B§?[VI]?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>[VIBR]\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.\<\>\?\:\"\']+)*)" + 
          PARAM_RGX + r"\\?$",  # Behavioral source
+    # Cxxx n1 n2 <capacitance> [ic=<value>] ...
+    # Cxxx n+ n- <value> <mname> <m=val> <scale=val> <temp=val> ...
+    # Cxxx n1 n2 C=<capacitance> [ic=<value>] ...
+    # Cxxx n1 n2 Q=<expression> [ic=<value>] [m=<value>] ...         
     'C': r"^(?P<designator>C§?\w+)(?P<nodes>(\s+\S+){2})\s+" +
-         r"(C\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"[muµnpfgt]?F?") +
+         r"(C\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"[muµnpfgt]?F?\d*") +
          PARAM_RGX + r"\\?$",  # Capacitor
+    # Dxxx anode cathode <model> [area] [off] [m=<val>] [n=<val>] [temp=<value>] ...
+    # Dxxx n+ n- mname <area=val> <m=val> <pj=val> <off> ...         
     'D': r"^(?P<designator>D§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>\w+)" +
          PARAM_RGX + ".*?$",  # Diode
     'E': r"^(?P<designator>E§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>.*)$",  # Voltage Dependent Voltage Source
@@ -72,30 +79,39 @@ REPLACE_REGEXS = {
     'G': r"^(?P<designator>G§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>.*)$",  # Voltage Dependent Current Source
     # This only supports changing gain values
     'H': r"^(?P<designator>H§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Voltage Dependent Current Source
-    # This implementation replaces everything after the 2 first nets
     'I': r"^(?P<designator>I§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*?)"
          r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.]+)*)$",  # Independent Current Source
-    # This implementation replaces everything after the 2 first nets
-    'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" + 
-         PARAM_RGX + ".*?$",  # JFET
+    # Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
+    'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" + PARAM_RGX + r"\\?$",  # JFET
+    # Kxxx Lyyy Lzzz ... value
     'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,99})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
+    # Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
+    # Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>
     'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})\s+"
-         + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpgt]?)H?") 
-         + PARAM_RGX + r"\\?$",  # Inductance
-    'M': r"^(?P<designator>M§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # MOSFET
+         r"(L\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpgt])?H?\d*") +
+         PARAM_RGX + r"\\?$",  # Inductance
+    # Mxxx Nd Ng Ns Nb <model> [m=<value>] [L=<len>] ...
+    # Mxxx Nd Ng Ns <model> [L=<len>] [W=<width>]
+    'M': r"^(?P<designator>M§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + r"\\?$",  # MOSFET
     'O': r"^(?P<designator>O§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # Lossy Transmission Line
-    'Q': r"^(?P<designator>Q§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # Bipolar
+    # Qxxx nc nb ne <ns> <tj> mname <area=val> <areac=val> ...
+    # Qxxx Collector Base Emitter [Substrate Node] model [area] [off] [IC=<Vbe, Vce>] [temp=<T>]
+    'Q': r"^(?P<designator>Q§?\w+)(?P<nodes>(\s+\S+){3,5})\s+(?P<value>\w+)" + PARAM_RGX + r"\\?$",  # Bipolar
+    # Rxxx n1 n2 <value> [tc=tc1, tc2, ...] [temp=<value>] ...
+    # Rxxx n+ n- <value> <mname> <l=length> <w=width> ...
+    # Rxxx n+ n- R = 'expression' <tc1=value> <tc2=value> <noisy=0> ...
     'R': r"^(?P<designator>R§?\w+)(?P<nodes>(\s+\S+){2})\s+" +
          r"(R\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpfgt])?R?\d*") +
          PARAM_RGX + r"\\?$",  # Resistor
+    # Sxxx n1 n2 nc+ nc- <model> [on,off]
     'S': r"^(?P<designator>S§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Voltage Controlled Switch
     'T': r"^(?P<designator>T§?\w+)(?P<nodes>(\s+\S+){4})\s?(?P<value>)?" + PARAM_RGX + r"\\?$",  # Lossless Transmission
     'U': r"^(?P<designator>U§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>.*)$",  # Uniform RC-line
     'V': r"^(?P<designator>V§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*?)"
          r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.]+)*)$",  # Independent Voltage Source
     # ex: V1 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
+    # Wxxx n1 n2 Vnam <model> [on,off]
     'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>.*)$",  # Current Controlled Switch
-    # This implementation replaces everything after the 2 first nets
     'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>[\w\.]+)"
          r"(\s+params:)?" + PARAM_RGX + r"\\?$",  # Sub-circuit. The value is the last before any key-value parameters
     # This is structured differently than the others as it will accept any number of nodes.
@@ -103,7 +119,8 @@ REPLACE_REGEXS = {
     # ex: XU1 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
     #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=1 bla_sp2 = 1
     #     XU1 in out1 -V +V out1 GND OPAx189_float
-    'Z': r"^(?P<designator>Z§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+).*$",
+    # Zxxx D G S model [area] [m=<value>] [off] [IC=<Vds, Vgs>] [temp=<value>]
+    'Z': r"^(?P<designator>Z§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" + PARAM_RGX + r"\\?$",
 
     # MESFET and IBGT. TODO: Parameters substitution not supported
     '@': r"^(?P<designator>@§?\d+)(?P<nodes>(\s+\S+){2})\s?(?P<params>(.*)*)$",
@@ -195,15 +212,22 @@ def _parse_params(params_str: str) -> dict:
     """
     Parses the parameters string and returns a dictionary with the parameters.
     """
+    def condense_spaces(s: str) -> str:
+        """Condenses spaces in a string"""
+        return re.sub(r'\s+', ' ', s).strip()
+    
     params = OrderedDict()
     # Remove any leading or trailing spaces
     params_str = params_str.strip()
-    while ' =' in params_str:
-        # Remove any spaces before the '=' sign
-        params_str = params_str.replace(' =', '=')
-    while '= ' in params_str:
-        # Remove any spaces after the '=' sign
-        params_str = params_str.replace('= ', '=')
+    # condense all space sequences to a single space
+    params_str = re.sub(r'\s+', ' ', params_str).strip()
+    # Remove any spaces before or after the '=' sign
+    params_str = params_str.replace(' =', '=')
+    params_str = params_str.replace('= ', '=')
+    # Remove any spaces before or after the ',' sign (for constructions like "key=val1, val2")
+    params_str = params_str.replace(' ,', ',')
+    params_str = params_str.replace(', ', ',')
+    # now split in pairs
     for param in params_str.split():
         try:
             key, value = param.split('=')
