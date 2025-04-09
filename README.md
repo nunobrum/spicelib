@@ -501,7 +501,7 @@ Not all elements support value editing or parameter editing, and not all element
 | R | Resistor | `Rxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | S | Voltage Controlled Switch | `Sxxx n1 n2 nc+ nc- value [on\|off]` | holds model and state | no |
 | T | Lossless Transmission Line | `Txxx L+ L- R+ R- [parmkey=parmvalue]...` | no | yes |
-| U<br>(ltspice and ngspice) | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
+| U<br>(ltspice, ngspice) | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
 | U<br>(xyce) | Digital Devices | `Uxxx type (2..99 nodes) value [parmkey=parmvalue]...` | includes all from 2nd node on | not separately |
 | V | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes, can be value or expression | yes |
 | W | Current Controlled Switch | `Wxxx n1 n2 Vref value [on\|off]` | holds model and state | no |
@@ -511,12 +511,12 @@ Not all elements support value editing or parameter editing, and not all element
 | Y<br>(xyce)    | various, deprecated | | no | no | 
 | Z | MESFET and IGBT | `Zxxx Nd Ng Ns value [parmkey=parmvalue]...` | holds model | yes (2) |
 | Ã<br>(qspice)  | MultGmAmp and RRopAmp | `Ãxxx (16 nodes) ¥ ¥ ¥ ¥ ¥ ¥ value [parmkey=parmvalue]...` | holds model | yes |
-| ¥<br>(qspice)  | various | `¥nnn (16 nodes) value [parmkey=parmvalue]...` | holds model | yes |
-| €<br>(qspice)  | DAC | `€nnn (32 nodes) value [parmkey=parmvalue]...` | holds model | yes |
-| £<br>(qspice)  | Dual Gate Driver | `£nnn (64 nodes) value [parmkey=parmvalue]...` | holds model | yes |
-| Ø<br>(qspice)  | DLL | `Ønnn (1..99 nodes) value [parmkey=parmvalue]...` | holds model | yes |
-| ×<br>(qspice)  | Transformer | `×nnn (4..100 nodes) [parmkey=parmvalue]...` | no | yes |
-| Ö<br>(ltspice) | Specialised OTA | `Önnn (1..99 nodes) value [parmkey=parmvalue]...` | yes | yes |
+| ¥<br>(qspice)  | various | `¥xxx (16 nodes) value [parmkey=parmvalue]...` | holds model | yes |
+| €<br>(qspice)  | DAC | `€xxx (32 nodes) value [parmkey=parmvalue]...` | holds model | yes |
+| £<br>(qspice)  | Dual Gate Driver | `£xxx (64 nodes) value [parmkey=parmvalue]...` | holds model | yes |
+| Ø<br>(qspice)  | DLL | `Øxxx (1..99 nodes) value [parmkey=parmvalue]...` | holds model | yes |
+| ×<br>(qspice)  | Transformer | `×xxx (4..100 nodes) [parmkey=parmvalue]...` | no | yes |
+| Ö<br>(ltspice) | Specialised OTA | `Öxxx (1..99 nodes) value [parmkey=parmvalue]...` | yes | yes |
 
 ---
 Notes:
@@ -1002,7 +1002,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Next release
-    * Fix addition of parameters (e.g. `ic`) to Inductances via `SpiceEditor.set_component_parameters` - PR #197
+    * Fixed Issues #197 and #198 - Improved support for many elements, documented limitations
 * Version 1.4.3
     * Fixed Issue #188 - remove_(X)instruction now returns a boolean
     * Fixed Issue #186 - Allow VerAlign in AsyReader, and make alignment case insensitive
