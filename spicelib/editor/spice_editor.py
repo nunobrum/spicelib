@@ -107,7 +107,7 @@ def VALUE_RGX(prefix: str, number_regex_suffix: str) -> str:
 # Parameters expression of the type: key = value. 
 # key must be a full word without signs or dots
 # Value may be composite, and contain multiple spaces and quotes. Will expect to finish the line.
-PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,\'\"\s]+)?)*)?\\?\s*$"
+PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)?)*)?\\?\s*$"
 
     
 REPLACE_REGEXS = {
