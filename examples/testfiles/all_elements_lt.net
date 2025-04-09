@@ -23,10 +23,12 @@ C4 NC_03 NC_04 1u*(4*atan(V(a,b)/4)*2+V(a,b))/3
 D1 NC_05 NC_06 1N914
 D2 NC_05 NC_06 1N4001 m=1 n=2
 
-E1 NC_07 NC_08 NC_09 NC_10 1
-F1 NC_11 NC_12 I1
-G1 NC_13 NC_14 NC_15 NC_16 1
-H1 NC_17 NC_18 I1
+E1 NC_07 NC_08 NC_09 NC_10 formula
+E2 NC_07 NC_08 formula
+F1 NC_11 NC_12 formula
+G1 NC_13 NC_14 NC_15 NC_16 formula
+G2 NC_13 NC_14 formula
+H1 NC_17 NC_18 formula
 
 * Ixxx n+ n- <current> [AC=<amplitude>] [load]
 * Ixxx n+ n- PULSE(Ioff Ion Tdelay Trise Tfall Ton Tperiod Ncycles)
@@ -102,6 +104,7 @@ V2 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser
 * Wxxx n1 n2 Vnam <model> [on,off]
 W1 NC_56 NC_57 V1 W on
 
+* Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
 XU1 1 2 a
 X§U2 NC_58 NC_59 NC_60 NC_61 NC_62 AD549
 XU3 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg

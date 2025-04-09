@@ -373,10 +373,13 @@ class SpiceEditor_Test(unittest.TestCase):
             "D1": ["1N914", {}],
             "D2": ["1N4001", {"m": 1, "n": 2}],
             #
-            "E1": ["1", {}],
-            "F1": ["I1", {}],
-            "G1": ["1", {}],
-            "H1": ["I1", {}],
+            "E1": ["nc_09 nc_10 formula", {}],
+            "E2": ["formula", {}],
+            "F1": ["formula", {}],
+            "G1": ["nc_15 nc_16 formula", {}],
+            "G2": ["formula", {}],
+            "H1": ["formula", {}],
+            #
             "I1": ["1", {}],
             "I2": ["2 AC 1", {"Rser": 3}],
             #

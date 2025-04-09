@@ -485,10 +485,10 @@ Not all elements support value editing or parameter editing.
 | B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | yes, can be a value or a formula<br>Formulas with embedded '=' signs are not supported, use '<' or '>' | yes |
 | C | Capacitor | `Cxxx n1 n2 value [parmkey=parmvalue]...` | yes (1)<br>Charge formulated expressions ('Q=...') are not supported. | yes |
 | D | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model | yes (2) |
-| E TODO | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
-| F TODO | Current Dependent Current Source | `Fxxx n+ n- value...` | includes parameters | not separately |
-| G TODO | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
-| H TODO | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
+| E | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | includes everything after first 2 nodes | not separately |
+| F | Current Dependent Current Source | `Fxxx n+ n- value...` | includes parameters | not separately |
+| G | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | includes everything after first 2 nodes | not separately |
+| H | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
 | I | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes, can be value or expression | yes |
 | J | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model | yes (2) |
 | K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | yes | no |
@@ -503,7 +503,7 @@ Not all elements support value editing or parameter editing.
 | U | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
 | V | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes, can be value or expression | yes |
 | W | Current Controlled Switch | `Wxxx n1 n2 Vref value [on\|off]` | holds model and state | no |
-| X TODO | Subcircuit | many forms | yes | yes |
+| X | Subcircuit | `Xxxx n1 n2 n3... value parmkey=parmvalue]...` | holds subcircuit name | yes |
 | Y | Single Lossy Transmission Line | `Yxxx n1 n2 n3 n4 value [parmkey=parmvalue]...` | holds model | yes (2) |
 | Z | MESFET and IGBT | `Zxxx Nd Ng Ns value [parmkey=parmvalue]...` | holds model | yes (2) |
 

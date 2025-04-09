@@ -119,12 +119,25 @@ REPLACE_REGEXS = {
     # Dxxx anode cathode <model> [area] [off] [m=<val>] [n=<val>] [temp=<value>] ...
     # Dxxx n+ n- mname <area=val> <m=val> <pj=val> <off> ...         
     'D': PREFIX_AND_NODES_RGX("D", 2) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Diode
-    'E': PREFIX_AND_NODES_RGX("E", 2, 4) + ANY_VALUE_RGX,  # Voltage Dependent Voltage Source
-    # this only supports changing gain values
+    # Exxx n+ n- nc+ nc- <gain>
+    # Exxx n+ n- nc+ nc- table=(<value pair>, <value pair>, ...)
+    # Exxx n+ n- nc+ nc- Laplace=<func(s)>...
+    # Exxx n+ n- value={<expression>}
+    # Exxx n+ n- POLY(<N>) <(node1+,node1-) (node2+,node2-)+ ... (nodeN+,nodeN-)> <c0 c1 c2 c3 c4 ...>
+    'E': PREFIX_AND_NODES_RGX("E", 2) + ANY_VALUE_RGX,  # Voltage Dependent Voltage Source
+    # Fxxx n+ n- <Vnam> <gain>
+    # Fxxx n+ n- value={<expression>}
+    # Fxxx n+ n- POLY(<N>) <V1 V2 ... VN> <c0 c1 c2 c3 c4 ...>
     'F': PREFIX_AND_NODES_RGX("F", 2) + ANY_VALUE_RGX,  # Current Dependent Current Source
-    # This implementation replaces everything after the 2 first nets
-    'G': PREFIX_AND_NODES_RGX("G", 2, 4) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
-    # This only supports changing gain values
+    # Gxxx n+ n- nc+ nc- <gain>
+    # Gxxx n+ n- nc+ nc- table=(<value pair>, <value pair>, ...)
+    # Gxxx n+ n- nc+ nc- Laplace=<func(s)> [window=<time>] [nfft=<number>] [mtol=<number>]
+    # Gxxx n+ n- nc+ nc- value={<expression>}
+    # Gxxx n+ n- POLY(<N>) <(node1+,node1-) (node2+,node2-) ... (nodeN+,nodeN-)> <c0 c1 c2 c3 c4 ...>
+    'G': PREFIX_AND_NODES_RGX("G", 2) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
+    # Hxxx n+ n- <Vnam> <transresistance>
+    # Hxxx n+ n- value={<expression>}
+    # Hxxx n+ n- POLY(<N>) <V1 V2 ... VN> <c0 c1 c2 c3 c4 ...>
     'H': PREFIX_AND_NODES_RGX("H", 2) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
     # Ixxx n+ n- <current> [AC=<amplitude>] [load]
     # Ixxx n+ n- PULSE(Ioff Ion Tdelay Trise Tfall Ton Tperiod Ncycles)
@@ -174,8 +187,7 @@ REPLACE_REGEXS = {
     'V': PREFIX_AND_NODES_RGX("V", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)*)$",  # Independent Voltage Source
     # Wxxx n1 n2 Vnam <model> [on,off]
     'W': PREFIX_AND_NODES_RGX("W", 3) + ANY_VALUE_RGX,  # Current Controlled Switch
-    # This is structured differently than the others as it will accept any number of nodes.
-    # But it only supports 1 value without any spaces in it (unlike V for example).
+    # Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
     # ex: XU1 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
     #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
     #     XU1 in out1 -V +V out1 GND OPAx189_float    
