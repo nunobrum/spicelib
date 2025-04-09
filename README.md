@@ -482,12 +482,12 @@ Not all elements support value editing or parameter editing, and not all element
 | Type | Description | Form | Value editing | Parameter editing |
 |:---:|:---|:---|:---:|:---:|
 | A | Special Functions |  | no | no |
-| B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | yes, can be a value or a formula<br>Formulas with embedded '=' signs are not supported, use '<' or '>' | yes |
-| C | Capacitor | `Cxxx n1 n2 value [parmkey=parmvalue]...` | yes (1)<br>Charge formulated expressions ('Q=...') are not supported. | yes |
+| B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | yes (4) | yes |
+| C | Capacitor | `Cxxx n1 n2 value [parmkey=parmvalue]...` | yes (1)(5)| yes |
 | D | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model | yes (2) |
-| E | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | includes everything after first 2 nodes | not separately |
+| E | Voltage Dependent Voltage Source | `Exxx n+ n- [nc+ nc-] value...` | (6) | not separately |
 | F | Current Dependent Current Source | `Fxxx n+ n- value...` | includes parameters | not separately |
-| G | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | includes everything after first 2 nodes | not separately |
+| G | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | (6) | not separately |
 | H | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
 | I | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes, can be value or expression | yes |
 | J | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model | yes (2) |
@@ -495,22 +495,22 @@ Not all elements support value editing or parameter editing, and not all element
 | L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | M | MOSFET | `Mxxx Nd Ng Ns [Nb] value [parmkey=parmvalue]...` | holds model | yes (2) |
 | O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
-| P<br>(ngspice) | Couple Multiconductor Line | `Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 value [parmkey=parmvalue]...` | holds model | yes |
+| P<br>(ngspice) | Coupled Multiconductor Line | `Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 value [parmkey=parmvalue]...` | holds model | yes |
 | P<br>(xyce) | Port Device | `Pxxx NI1 NI2 value [parmkey=parmvalue]...` | value (3) | yes |
 | Q | Bipolar Transistor | `Qxxx Collector Base Emitter [Substrate] [Junction] value [parmkey=parmvalue]...` | holds model (2) | yes |
 | R | Resistor | `Rxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | S | Voltage Controlled Switch | `Sxxx n1 n2 nc+ nc- value [on\|off]` | holds model and state | no |
 | T | Lossless Transmission Line | `Txxx L+ L- R+ R- [parmkey=parmvalue]...` | no | yes |
 | U<br>(ltspice, ngspice) | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
-| U<br>(xyce) | Digital Devices | `Uxxx type (2..99 nodes) value [parmkey=parmvalue]...` | includes all from 2nd node on | not separately |
+| U<br>(xyce) | Digital Devices | `Uxxx type (2..99 nodes) value [parmkey=parmvalue]...` | (6) | not separately |
 | V | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes, can be value or expression | yes |
 | W | Current Controlled Switch | `Wxxx n1 n2 Vref value [on\|off]` | holds model and state | no |
 | X | Subcircuit | `Xxxx n1 n2 n3... value [parmkey=parmvalue]...` | holds subcircuit name | yes |
 | Y<br>(ngspice) | Single Lossy Transmission Line | `Yxxx n1 n2 n3 n4 value [parmkey=parmvalue]...` | holds model | yes (2) |
 | Y<br>(qspice)  | Piezoelectric Crystal | `Yxxx n+ n- value [parmkey=parmvalue]...` | holds frequency | yes |
-| Y<br>(xyce)    | various, deprecated | | no | no | 
-| Z | MESFET and IGBT | `Zxxx Nd Ng Ns value [parmkey=parmvalue]...` | holds model | yes (2) |
-| Ã<br>(qspice)  | MultGmAmp and RRopAmp | `Ãxxx (16 nodes) ¥ ¥ ¥ ¥ ¥ ¥ value [parmkey=parmvalue]...` | holds model | yes |
+| Y<br>(xyce)    | various, deprecated | | no | no |
+| Z | MESFET, IGBT | `Zxxx Nd Ng Ns value [parmkey=parmvalue]...` | holds model | yes (2) |
+| Ã<br>(qspice)  | MultGmAmp, RRopAmp | `Ãxxx (16 nodes) value [parmkey=parmvalue]...` | holds model | yes |
 | ¥<br>(qspice)  | various | `¥xxx (16 nodes) value [parmkey=parmvalue]...` | holds model | yes |
 | €<br>(qspice)  | DAC | `€xxx (32 nodes) value [parmkey=parmvalue]...` | holds model | yes |
 | £<br>(qspice)  | Dual Gate Driver | `£xxx (64 nodes) value [parmkey=parmvalue]...` | holds model | yes |
@@ -524,6 +524,9 @@ Notes:
 1. Can hold either the value, model name, or a formula. Formulas must be enclosed by "" or '' or {} or contain no spaces.
 2. No proper individual support for 'area', 'on', 'off' or 'thermal' if they are not part of a key-value pair. Composite parameter values (like `ic=vbe, vce`  or `turns=1 .5 .5 .5`) are allowed.
 3. The format specification is `[[DC] <value>]`, but the parser only supports 1 value. So value must be specified, and 'DC' will be ignored, if present.
+4. Can be a value or a formula. Formulas with embedded '=' signs are not supported, use '<' or '>'.
+5. Charge formulated expressions ('Q=...') are not supported.
+6. Includes everything after first 2 nodes.
 
 ---
 
