@@ -356,22 +356,24 @@ class SpiceEditor_Test(unittest.TestCase):
     def test_elements(self):
         """Test reading and writing elements with the Editor.
         """
-        edt = spicelib.SpiceEditor(test_dir + "all_elements_lt.net")
+        my_netlist = "all_elements_lt.net"
+        edt = spicelib.SpiceEditor(test_dir + my_netlist)
         # Check the element list for expected values and parameters
+        # make sure there a few with 3 or more parameters
         expected = {
             "B1": ["V=1", {"tc1": 2}],
             "B2": ["V=V(1) < {Vlow} ? {Vlow} : V(1) > {Vhigh} ? {Vhigh} : V(1)", {"delay": 1}],
-            "B3": ["I=cos(v(1))+sin(v(2))", {"ic": 1e-6, "delay": 10}],
+            "B3": ["I=cos(v(1))+sin(v(2))", {"ic": "1e-6,4", "delay": 10, "a": "b"}],
             "B4": ["R=V(1) < 0? 2 : 1", {}],
             "B5": ["B=V(NC_01)", {"VprXover": "50mV"}],
             #
-            "C1": ["10µ", {"rser": 10, "temp": 60}],
+            "C1": ["10µ", {"rser": 10, "c": "' with spaces '", "temp": 60}],
             "C2": ["10µF", {"tc1": 40}],
             "C3": ["'V(cc) < {Vt} ? {C1} : {Ch}'", {"tc1": -1e-03, "tc2": 1.3e-05}],
             "C4": ["1u*(4*atan(V(a,b)/4)*2+V(a,b))/3", {}],
             #
             "D1": ["1N914", {}],
-            "D2": ["1N4001", {"m": 1, "n": 2}],
+            "D2": ["1N4001", {"m": 1, "n": 2, "a": 1e9}],
             #
             "E1": ["nc_09 nc_10 formula", {}],
             "E2": ["formula", {}],
@@ -381,7 +383,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "H1": ["formula", {}],
             #
             "I1": ["1", {}],
-            "I2": ["2 AC 1", {"Rser": 3}],
+            "I2": ["2 AC 1", {"c4": "\"bla bla\"", "Rser": 3, "bb": "aa"}],
             #
             "J1": ["2N3819", {}],
             "J2": ["2N3819", {"ic": "1,2", "temp": 6}],
@@ -391,7 +393,7 @@ class SpiceEditor_Test(unittest.TestCase):
             #
             "L1": ["1", {"temp": 13}],
             "L2": ["1H", {}],
-            "L3": ["\"V(cc) < {Vt} ? {L1} : {L2}\"", {"temp": 13}],
+            "L3": ["\"V(cc) < {Vt} ? {L1} : {L2}\"", {"bb": "aa", "temp": 13}],
             #
             "M1": ["BSP89", {}],
             "M2": ["BSP89", {"temp": 2}],
@@ -440,14 +442,73 @@ class SpiceEditor_Test(unittest.TestCase):
         }
         # print(f"components: {edt.get_components()}")
         for el, exp in expected.items():
-            print(f"Testing {el}")
+            # print(f"Reading {el}")
             value = exp[0]
-            self.assertEqual(edt.get_component_value(el).casefold(), value.casefold(), f"Tested {el} Value")
+            self.assertEqual(edt.get_component_value(el).casefold(), value.casefold(), f"Test reading {el} Value")
             params = edt.get_component_parameters(el)
-            self.assertEqual(params, exp[1], f"Tested {el} Parameters")
+            self.assertEqual(params, exp[1], f"Test reading {el} Parameters")
+        
+        new_value_default = "1e-9"
+        new_values = {
+            "B": "V=1e-9"
+        }
+        new_param = {"blabla": "1 2 3 4 5 6 7"}
+        new_param_value = 1e-9
+        seq = 0  
+        for el, exp in expected.items():
+            value = exp[0]
+            params = exp[1]
+            new_value = new_value_default
+            # modify value
+            if len(value) > 0:
+                if el[0] in new_values.keys():
+                    new_value = new_values[el[0]]
+                # print(f"Modifying {el}")
+                edt.set_component_value(el, new_value)
+                self.assertEqual(edt.get_component_value(el).casefold(), new_value.casefold(), f"Test reading back {el} Value")
+            # modfy parameter
+            if len(params) >= 3:
+                # get the nth parameter (there must be more efficient ways, but this is simple)
+                my_nr = 0
+                my_change_key = None
+                my_del_key = None
+                for k, v in params.items():
+                    if my_nr == seq:
+                        my_change_key = k
+                    if my_nr == (seq + 1) % 3:
+                        my_del_key = k
+                    my_nr += 1
+                    if my_nr >= 3:
+                        break
+                # print(f"Modifying parameter '{my_change_key}' (nr {seq}) from {el} parameters, to {new_param_value}")
+                edt.set_component_parameters(el, **{my_change_key: new_param_value})
+                # adapt my expected value
+                exp[1][my_change_key] = new_param_value
+                seq += 1
+                if seq >= 3:
+                    seq = 1
+                params = edt.get_component_parameters(el)
+                self.assertEqual(params, exp[1], f"Test reading {el} Parameters after change existing parameter")
+                # add new parameter
+                # print(f"Adding parameter {new_param} to {el} parameters")
+                edt.set_component_parameters(el, **new_param)
+                exp[1].update(new_param)
+                params = edt.get_component_parameters(el)
+                self.assertEqual(params, exp[1], f"Test reading {el} Parameters after adding parameter")
+                # remove n+1th parameter
+                # print(f"Deleting parameter '{my_del_key}' from {el} parameters")
+                edt.set_component_parameters(el, **{my_del_key: None})
+                del exp[1][my_del_key]
+                params = edt.get_component_parameters(el)
+                self.assertEqual(params, exp[1], f"Test reading {el} Parameters after deleting parameter")
+                
+        # save file, compare
+        edt.save_netlist(temp_dir + my_netlist)
+        self.equalFiles(temp_dir + my_netlist, golden_dir + my_netlist)
+            
 
 
 if __name__ == '__main__':
     unittest.main()
     # runner = unittest.TextTestRunner(verbosity=2)
-    # runner.run(SpiceEditor_Test("test_subcircuits_edit"))
+    # runner.run(SpiceEditor_Test("test_elements"))

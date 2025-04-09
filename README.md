@@ -521,11 +521,11 @@ Not all elements support value editing or parameter editing, and not all element
 ---
 Notes:
 
-1. Can hold either the value, model name, or a formula. Formulas must be enclosed by "" or '' or {} or contain no spaces.
-2. No proper individual support for 'area', 'on', 'off' or 'thermal' if they are not part of a key-value pair. Composite parameter values (like `ic=vbe, vce`  or `turns=1 .5 .5 .5`) are allowed.
-3. The format specification is `[[DC] <value>]`, but the parser only supports 1 value. So value must be specified, and 'DC' will be ignored, if present.
-4. Can be a value or a formula. Formulas with embedded '=' signs are not supported, use '<' or '>'.
-5. Charge formulated expressions ('Q=...') are not supported.
+1. Can hold either the value, model name, or a formula. Formulas must be enclosed by `""` or `''` or `{}` or contain no spaces.
+2. There is no proper individual support for `area`, `on`, `off` or `thermal` if they are not part of a key-value pair. Composite parameter values (like `ic=vbe, vce`  or `turns=1 .5 .5 .5`) are allowed.
+3. The format specification is `[[DC] <value>]`, but the parser only supports 1 value. So value must be specified, and `DC` will be ignored, if present.
+4. Can be a value or a formula. Formulas with embedded `=` signs are not supported, use `<` or `>`.
+5. Charge formulated expressions (`Q=...`) are not supported.
 6. Includes everything after first 2 nodes.
 
 ---

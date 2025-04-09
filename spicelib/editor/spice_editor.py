@@ -106,8 +106,8 @@ def VALUE_RGX(prefix: str, number_regex_suffix: str) -> str:
     
 # Parameters expression of the type: key = value. 
 # key must be a full word without signs or dots
-# Value may be composite, and contain multiple spaces. Will expect to finish the line.
-PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,\s]+)?)*)?\\?\s*$"
+# Value may be composite, and contain multiple spaces and quotes. Will expect to finish the line.
+PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,\'\"\s]+)?)*)?\\?\s*$"
 
     
 REPLACE_REGEXS = {
@@ -151,9 +151,9 @@ REPLACE_REGEXS = {
     # Ixxx n+ n- R=<value>
     # Ixxx n+ n- PWL(t1 i1 t2 i2 t3 i3...)
     # Ixxx n+ n- wavefile=<filename> [chan=<nnn>]
-    'I': PREFIX_AND_NODES_RGX("I", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)*)$",  # Independent Current Source
+    'I': PREFIX_AND_NODES_RGX("I", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)*)$",  # Independent Current Source
     # Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
-    'J': PREFIX_AND_NODES_RGX("J", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX + r"\\?$",  # JFET
+    'J': PREFIX_AND_NODES_RGX("J", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # JFET
     # Kxxx Lyyy Lzzz ... value
     'K': PREFIX_AND_NODES_RGX("K", 2, 99) + r"\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
     # Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
@@ -188,7 +188,7 @@ REPLACE_REGEXS = {
     # Vxxx n+ n- PWL(t1 v1 t2 v2 t3 v3...)
     # Vxxx n+ n- wavefile=<filename> [chan=<nnn>]
     # ex: V1 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
-    'V': PREFIX_AND_NODES_RGX("V", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)*)$",  # Independent Voltage Source
+    'V': PREFIX_AND_NODES_RGX("V", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)*)$",  # Independent Voltage Source
     # Wxxx n1 n2 Vnam <model> [on,off]
     'W': PREFIX_AND_NODES_RGX("W", 3) + ANY_VALUE_RGX,  # Current Controlled Switch
     # Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]

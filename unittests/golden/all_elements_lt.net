@@ -3,32 +3,32 @@
 * This file is not meant to be used in a simulation.
 
 * Bxxx n001 n002 [VIRP]=<expression> [ic=<value>] ...
-B1 NC_01 NC_02 V=1 tc1=2
-B2 NC_01 NC_02 V=V(1) < {Vlow} ? {Vlow} : V(1) > {Vhigh} ? {Vhigh} : V(1) delay=1
-B3 NC_01 NC_02 I=cos(v(1))+sin(v(2)) ic=1e-6, 4 delay=10 a=b
-B4 NC_01 NC_02 R=V(1) < 0? 2 : 1
-B5 NC_01 NC_02 B=V(NC_01) VprXover=50mV
+B1 NC_01 NC_02 V=1e-9 tc1=2
+B2 NC_01 NC_02 V=1e-9 delay=1
+B3 NC_01 NC_02 V=1e-9 ic=1e-09 a=b blabla=1 2 3 4 5 6 7
+B4 NC_01 NC_02 V=1e-9
+B5 NC_01 NC_02 V=1e-9 VprXover=50mV
 
 * Cxxx n1 n2 <capacitance> [ic=<value>] ...
 * Cxxx n+ n- <value> <mname> <m=val> <scale=val> <temp=val> ...
 * Cxxx n1 n2 C=<capacitance> [ic=<value>] ...
 * Cxxx n1 n2 Q=<expression> [ic=<value>] [m=<value>] ...
-C1 NC_03 NC_04 10µ rser=10 c =' with spaces ' temp=60
-C2 NC_03 NC_04 c = 10µF tc1 = 40
-C3 NC_03 NC_04 c = 'V(cc) < {Vt} ? {C1} : {Ch}' tc1=-1e-03 tc2=1.3e-05
-C4 NC_03 NC_04 1u*(4*atan(V(a,b)/4)*2+V(a,b))/3
+C1 NC_03 NC_04 1e-9 rser=10 c=1e-09 blabla=1 2 3 4 5 6 7
+C2 NC_03 NC_04 c = 1e-9 tc1 = 40
+C3 NC_03 NC_04 c = 1e-9 tc1=-1e-03 tc2=1.3e-05
+C4 NC_03 NC_04 1e-9
 
 * Dxxx anode cathode <model> [area] [off] [m=<val>] [n=<val>] [temp=<value>] ...
 * Dxxx n+ n- mname <area=val> <m=val> <pj=val> <off> ...
-D1 NC_05 NC_06 1N914
-D2 NC_05 NC_06 1N4001 m=1 n=2 a = 1e9
+D1 NC_05 NC_06 1e-9
+D2 NC_05 NC_06 1e-9 n=2 a=1e-09 blabla=1 2 3 4 5 6 7
 
-E1 NC_07 NC_08 NC_09 NC_10 formula
-E2 NC_07 NC_08 formula
-F1 NC_11 NC_12 formula
-G1 NC_13 NC_14 NC_15 NC_16 formula
-G2 NC_13 NC_14 formula
-H1 NC_17 NC_18 formula
+E1 NC_07 NC_08 1e-9
+E2 NC_07 NC_08 1e-9
+F1 NC_11 NC_12 1e-9
+G1 NC_13 NC_14 1e-9
+G2 NC_13 NC_14 1e-9
+H1 NC_17 NC_18 1e-9
 
 * Ixxx n+ n- <current> [AC=<amplitude>] [load]
 * Ixxx n+ n- PULSE(Ioff Ion Tdelay Trise Tfall Ton Tperiod Ncycles)
@@ -39,59 +39,59 @@ H1 NC_17 NC_18 formula
 * Ixxx n+ n- R=<value>
 * Ixxx n+ n- PWL(t1 i1 t2 i2 t3 i3...)
 * Ixxx n+ n- wavefile=<filename> [chan=<nnn>]
-I1 NC_19 NC_20 1
-I2 NC_08 NC_09 2 AC 1 c4="bla bla" Rser=3 bb=aa 
+I1 NC_19 NC_20 1e-9
+I2 NC_08 NC_09 1e-9 c4="bla bla" Rser=1e-09 blabla=1 2 3 4 5 6 7
 
 * Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
-J1 NC_21 NC_22 NC_23 2N3819
-J2 NC_21 NC_22 NC_23 2N3819 ic=1, 2 temp=6
+J1 NC_21 NC_22 NC_23 1e-9
+J2 NC_21 NC_22 NC_23 1e-9 ic=1, 2 temp=6
 
 * Kxxx Lyyy Lzzz ... value
-K1 L2 L3 1
-K2 L2 L3 L4 L5 L6 0.1
+K1 L2 L3 1e-9
+K2 L2 L3 L4 L5 L6 1e-9
 
 * Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
 * Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>
-L1 NC_28 NC_29 1 temp=13
-L2 NC_28 NC_29 1H
-L3 NC_28 NC_29 "V(cc) < {Vt} ? {L1} : {L2}" bb=aa temp=13
+L1 NC_28 NC_29 1e-9 temp=13
+L2 NC_28 NC_29 1e-9
+L3 NC_28 NC_29 1e-9 bb=aa temp=13
 
 * Mxxx Nd Ng Ns Nb <model> [m=<value>] [L=<len>] ...
 * Mxxx Nd Ng Ns <model> [L=<len>] [W=<width>]
-M1 NC_30 NC_31 NC_32 NC_33 BSP89
-M2 NC_30 NC_31 NC_32 NC_33 BSP89 temp=2
-M3 Nd Ng Ns Si4410DY
+M1 NC_30 NC_31 NC_32 NC_33 1e-9
+M2 NC_30 NC_31 NC_32 NC_33 1e-9 temp=2
+M3 Nd Ng Ns 1e-9
 
 * Oxxx L+ L- R+ R- <model>
-O1 NC_34 NC_35 NC_36 NC_37 LTRA
+O1 NC_34 NC_35 NC_36 NC_37 1e-9
 
 * (ngspice) Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 mname <LEN=LENGTH>
-P1 NI1 NI2 GND1 NO1 NO2 GND2 mname LEN=2
+P1 NI1 NI2 GND1 NO1 NO2 GND2 1e-9 LEN=2
 * (xyce) P<name> <+ node> <- node> [[DC] <value>] port=port number [Z0 = value]....
-P2 NI1 NI2 DC 12 port=2 Z0=50
+P2 NI1 NI2 DC 1e-9 port=2 Z0=50
 
 * Qxxx nc nb ne <ns> <tj> mname <area=val> <areac=val> ...
 * Qxxx Collector Base Emitter [Substrate Node] model [area] [off] [IC=<Vbe, Vce>] [temp=<T>]
-Q1 NC_38 NC_39 NC_40 0 2N2222
-Q2 NC_38 NC_39 NC_40 BC517 temp=60 ic=0.6, 5
+Q1 NC_38 NC_39 NC_40 0 1e-9
+Q2 NC_38 NC_39 NC_40 1e-9 temp=60 ic=0.6, 5
 
 * Rxxx n1 n2 <value> [tc=tc1, tc2, ...] [temp=<value>] ...
 * Rxxx n+ n- <value> <mname> <l=length> <w=width> ...
 * Rxxx n+ n- R = 'expression' <tc1=value> <tc2=value> <noisy=0> ...
-R1 in out 10k
-R2 NC_41 NC_42 R=2k5R
-R3 NC_41 NC_42 'V(cc) < {Vt} ? {R1} : {R2}' temp=13
-R4 in out 10k tol=1% pwr=0.1
+R1 in out 1e-9
+R2 NC_41 NC_42 R= 1e-9
+R3 NC_41 NC_42 1e-9 temp=13
+R4 in out 1e-9 tol=1% pwr=0.1
 
 * Sxxx n1 n2 nc+ nc- <model> [on,off]
-S1 NC_43 NC_44 NC_45 NC_46 SW
+S1 NC_43 NC_44 NC_45 NC_46 1e-9
 
 * Txxx L+ L- R+ R- Zo=<value> Td=<value>
 T1 NC_47 NC_48 NC_49 NC_50 Td=50n Z0=50
 
 * Uxxx N1 N2 Ncom <model> L=<len> [N=<lumps>]
-U1 NC_51 NC_52 NC_53 URC
-U2 NC_51 NC_52 NC_53 URC len=2
+U1 NC_51 NC_52 NC_53 1e-9
+U2 NC_51 NC_52 NC_53 1e-9 len=2
 
 * Vxxx n+ n- <voltage> [AC=<amplitude>] [Rser=<value>] [Cpar=<value>]
 * Vxxx n+ n- PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod Ncycles)
@@ -100,33 +100,33 @@ U2 NC_51 NC_52 NC_53 URC len=2
 * Vxxx n+ n- SFFM(Voff Vamp Fcar MDI Fsig)
 * Vxxx n+ n- PWL(t1 v1 t2 v2 t3 v3...)
 * Vxxx n+ n- wavefile=<filename> [chan=<nnn>]
-V1 NC_54 NC_55 1
-V2 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
+V1 NC_54 NC_55 1e-9
+V2 NC_08 NC_09 1e-9 Rser=3 Cpar=4
 
 * Wxxx n1 n2 Vnam <model> [on,off]
-W1 NC_56 NC_57 V1 W on
+W1 NC_56 NC_57 V1 1e-9
 
 * Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
-XU1 1 2 a
-X§U2 NC_58 NC_59 NC_60 NC_61 NC_62 AD549
-XU3 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
-XU4 in out1 V1 V2 out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
-XU5 in out1 V1 V2 out1 GND OPAx189_float  
+XU1 1 2 1e-9
+XU2 NC_58 NC_59 NC_60 NC_61 NC_62 1e-9
+XU3 NC_01 NC_02 NC_03 NC_04 NC_05 1e-9 GBW=10Meg Slew=1e-09 Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg blabla=1 2 3 4 5 6 7
+XU4 in out1 V1 V2 out1 1e-9 bla_v2=1% bla_sp1=1e-09 blabla=1 2 3 4 5 6 7
+XU5 in out1 V1 V2 out1 GND 1e-9
 
 * (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
 * Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]
-Y1 1 0 2 0 ymod LEN=2
-Y2 1 0 1e8 q=10
+Y1 1 0 2 0 1e-9 LEN=2
+Y2 1 0 1e-9 q=10
 
 * Zxxx D G S model [area] [m=<value>] [off] [IC=<Vds, Vgs>] [temp=<value>]
-Z1 NC_63 NC_64 NC_65 NMF
-Z2 NC_63 NC_64 NC_65 NMF ic=1, 2 area=1.4
+Z1 NC_63 NC_64 NC_65 1e-9
+Z2 NC_63 NC_64 NC_65 1e-9 ic=1, 2 area=1.4
 
 * Ãnnn VDD VSS OUT IN- IN+ MULT+ MULT- IN-- IN++ EN ¥ ¥ ¥ ¥ ¥ ¥ <TYPE> [INSTANCE PARAMETERS]
-Ã1 VDD VSS OUT IN- IN+ MULT+ MULT- IN-- IN++ EN ¥ ¥ ¥ ¥ ¥ ¥ TYPE I=5
+Ã1 VDD VSS OUT IN- IN+ MULT+ MULT- IN-- IN++ EN ¥ ¥ ¥ ¥ ¥ ¥ 1e-9 I=5
 
 * ¥nnn N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16 <TYPE> [INSTANCE PARAMETERS]
-¥1 N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16 TYPE I=5
+¥1 N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16 1e-9 I=5
 
 * ×nnn «PRI+ PRI- SEC1+ SEC1- SEC2+ SEC2 [...]» <TURNS=N1 N2 N3 ...> [Additional
 Instance Parameters]
