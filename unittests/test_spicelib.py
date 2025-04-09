@@ -39,6 +39,7 @@ import os  # platform independent paths
 # Python Libs
 import sys  # python path handling
 import unittest  # performs test
+import pprint  # pretty print handling
 
 #
 # Module libs
@@ -120,6 +121,7 @@ class test_spicelib(unittest.TestCase):
                 runner.run(editor, run_filename=run_netlist_file, callback=processing_data, exe_log=hide_exe_print_statements)
 
         runner.wait_completion()
+        pprint.pprint(runner.sim_info())
         for task in runner.completed_tasks:
             task: RunTask
             self.assertTrue(task.netlist_file.exists(), "Created the netlist")
