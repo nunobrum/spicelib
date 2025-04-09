@@ -27,7 +27,18 @@ E1 NC_07 NC_08 NC_09 NC_10 1
 F1 NC_11 NC_12 I1
 G1 NC_13 NC_14 NC_15 NC_16 1
 H1 NC_17 NC_18 I1
+
+* Ixxx n+ n- <current> [AC=<amplitude>] [load]
+* Ixxx n+ n- PULSE(Ioff Ion Tdelay Trise Tfall Ton Tperiod Ncycles)
+* Ixxx n+ n- SINE(Ioffset Iamp Freq Td Theta Phi Ncycles)
+* Ixxx n+ n- EXP(I1 I2 Td1 Tau1 Td2 Tau2)
+* Ixxx n+ n- SFFM(Ioff Iamp Fcar MDI Fsig)
+* Ixxx n+ n- <value> step(<value1>, [<value2>], [<value3>, ...]) [load]
+* Ixxx n+ n- R=<value>
+* Ixxx n+ n- PWL(t1 i1 t2 i2 t3 i3...)
+* Ixxx n+ n- wavefile=<filename> [chan=<nnn>]
 I1 NC_19 NC_20 1
+I2 NC_08 NC_09 2 AC 1 Rser=3
 
 * Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
 J1 NC_21 NC_22 NC_23 2N3819
@@ -49,7 +60,11 @@ M1 NC_30 NC_31 NC_32 NC_33 BSP89
 M2 NC_30 NC_31 NC_32 NC_33 BSP89 temp=2
 M3 Nd Ng Ns Si4410DY
 
+* Oxxx L+ L- R+ R- <model>
 O1 NC_34 NC_35 NC_36 NC_37 LTRA
+
+* Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 mname <LEN=LENGTH>
+P1 NI1 NI2 GND1 NO1 NO2 GND2 mname LEN=2
 
 * Qxxx nc nb ne <ns> <tj> mname <area=val> <areac=val> ...
 * Qxxx Collector Base Emitter [Substrate Node] model [area] [off] [IC=<Vbe, Vce>] [temp=<T>]
@@ -59,22 +74,42 @@ Q2 NC_38 NC_39 NC_40 BC517 temp=60 ic=0.6, 5
 * Rxxx n1 n2 <value> [tc=tc1, tc2, ...] [temp=<value>] ...
 * Rxxx n+ n- <value> <mname> <l=length> <w=width> ...
 * Rxxx n+ n- R = 'expression' <tc1=value> <tc2=value> <noisy=0> ...
-R1 NC_41 NC_42 1 temp=12
+R1 in out 10k
 R2 NC_41 NC_42 R=2k5R
 R3 NC_41 NC_42 'V(cc) < {Vt} ? {R1} : {R2}' temp=13
+R4 in out 10k tol=1% pwr=0.1
 
 * Sxxx n1 n2 nc+ nc- <model> [on,off]
 S1 NC_43 NC_44 NC_45 NC_46 SW
 
+* Txxx L+ L- R+ R- Zo=<value> Td=<value>
 T1 NC_47 NC_48 NC_49 NC_50 Td=50n Z0=50
+
+* Uxxx N1 N2 Ncom <model> L=<len> [N=<lumps>]
 U1 NC_51 NC_52 NC_53 URC
+U2 NC_51 NC_52 NC_53 URC len=2
+
+* Vxxx n+ n- <voltage> [AC=<amplitude>] [Rser=<value>] [Cpar=<value>]
+* Vxxx n+ n- PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod Ncycles)
+* Vxxx n+ n- SINE(Voffset Vamp Freq Td Theta Phi Ncycles)
+* Vxxx n+ n- EXP(V1 V2 Td1 Tau1 Td2 Tau2)
+* Vxxx n+ n- SFFM(Voff Vamp Fcar MDI Fsig)
+* Vxxx n+ n- PWL(t1 v1 t2 v2 t3 v3...)
+* Vxxx n+ n- wavefile=<filename> [chan=<nnn>]
 V1 NC_54 NC_55 1
 V2 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
 
 * Wxxx n1 n2 Vnam <model> [on,off]
 W1 NC_56 NC_57 V1 W on
 
+XU1 1 2 a
 X§U2 NC_58 NC_59 NC_60 NC_61 NC_62 AD549
+XU3 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
+XU4 in out1 V1 V2 out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
+XU5 in out1 V1 V2 out1 GND OPAx189_float  
+
+* Yxxx N1 0 N2 0 mname <LEN=LENGTH>
+Y1 1 0 2 0 ymod LEN=2
 
 * Zxxx D G S model [area] [m=<value>] [off] [IC=<Vds, Vgs>] [temp=<value>]
 Z1 NC_63 NC_64 NC_65 NMF

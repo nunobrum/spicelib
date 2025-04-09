@@ -226,7 +226,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertIsNone(regex_x.match('R1 N1 N2 10k'), "Invalid prefix")
         self.assertEqual('SUB1', regex_x.match('X12 N1 N2 N3 SUB1').group('value'), "Tested Subcircuit Value")
         self.assertEqual('SUB1', regex_x.match('X12 N1 N2 N3 N4 SUB1 x=123 y=4u').group('value'), "Tested Subcircuit Value")
-        self.assertEqual(' x=123 y=4u', regex_x.match('X12 N1 N2 N3 N4 SUB1 x=123 y=4u').group('params'), "Tested Subcircuit Parameters")
+        self.assertEqual('x=123 y=4u', regex_x.match('X12 N1 N2 N3 N4 SUB1 x=123 y=4u').group('params'), "Tested Subcircuit Parameters")
         self.assertEqual(' N1 N2 N3 N4', regex_x.match('X12 N1 N2 N3 N4 SUB1 x=123 y=4u').group('nodes'), "Tested Subcircuit Ports")
 
     def test_independent_sources(self):
@@ -378,6 +378,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "G1": ["1", {}],
             "H1": ["I1", {}],
             "I1": ["1", {}],
+            "I2": ["2 AC 1", {"Rser": 3}],
             #
             "J1": ["2N3819", {}],
             "J2": ["2N3819", {"ic": "1,2", "temp": 6}],
@@ -395,19 +396,35 @@ class SpiceEditor_Test(unittest.TestCase):
             #
             "O1": ["LTRA", {}],
             #
+            "P1": ["mname", {"LEN": 2}],            
+            #
             "Q1": ["2N2222", {}],
             "Q2": ["BC517", {"temp": 60, "ic": "0.6,5"}],
             #
-            "R1": ["1", {"temp": 12}],
+            "R1": ["10k", {}],
             "R2": ["2k5r", {}],
             "R3": ["'V(cc) < {Vt} ? {R1} : {R2}'", {"temp": 13}],
+            "R4": ["10k", {"tol": "1%", "pwr": 0.1}],
             #            
             "S1": ["SW", {}],
             "T1": ["", {"Td": "50n", "Z0": 50}],
+            #
             "U1": ["URC", {}],
+            "U2": ["URC", {"len": 2}],   
+            #
             "V1": ["1", {}],
+            "V2": ["PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2", {"Rser": 3, "Cpar": 4}],
+            #
             "W1": ["W on", {}],
+            #
+            "XU1": ["a", {}],
             "XU2": ["AD549", {}],
+            "XU3": ["level2", {"Avol": "1Meg", "GBW": "10Meg", "Slew": "10Meg", "Ilimit": "25m", "Rail": 0, "Vos": 0, "En": 0, "Enk": 0, "In": 0, "Ink": 0, "Rin": "500Meg"}],
+            "XU4": ["OPAx189", {"bla_v2": "1%", "bla_sp1": 2, "bla_sp2": 3}],
+            "XU5": ["OPAx189_float", {}],
+            #
+            "Y1": ["ymod", {"LEN": 2}],
+            #
             "Z1": ["NMF", {}], 
             "Z2": ["NMF", {"ic": "1,2", "area": 1.4}],        
         }
@@ -422,3 +439,5 @@ class SpiceEditor_Test(unittest.TestCase):
             
 if __name__ == '__main__':
     unittest.main()
+    # runner = unittest.TextTestRunner(verbosity=2)
+    # runner.run(SpiceEditor_Test("test_subcircuits_edit"))

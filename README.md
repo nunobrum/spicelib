@@ -489,20 +489,22 @@ Not all elements support value editing or parameter editing.
 | F TODO | Current Dependent Current Source | `Fxxx n+ n- value...` | includes parameters | not separately |
 | G TODO | Voltage Dependent Current Source | `Gxxx n+ n- [nc+ nc-] value...` | includes parameters | not separately |
 | H TODO | Current Dependent Voltage Source | `Hxxx n+ n- value...` | includes parameters | not separately |
-| I TODO | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
+| I | Current Source | `Ixxx n+ n- value [parmkey=parmvalue]...` | yes, can be value or expression | yes |
 | J | JFET | `Jxxx n+ n- value [parmkey=parmvalue]...` | holds model | yes (2) |
 | K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | yes | no |
 | L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | M | MOSFET | `Mxxx Nd Ng Ns [Nb] value [parmkey=parmvalue]...` | holds model | yes (2) |
-| O TODO | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
+| O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
+| P | Couple Multiconductor Line | `Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 value [parmkey=parmvalue]...` | holds model | yes |
 | Q | Bipolar Transistor | `Qxxx Collector Base Emitter [Substrate] [Junction] value [parmkey=parmvalue]...` | holds model (2) | yes |
 | R | Resistor | `Rxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | S | Voltage Controlled Switch | `Sxxx n1 n2 nc+ nc- value [on\|off]` | holds model and state | no |
 | T | Lossless Transmission Line | `Txxx L+ L- R+ R- [parmkey=parmvalue]...` | no | yes |
-| U TODO | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
-| V TODO | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes | yes |
+| U | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
+| V | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes, can be value or expression | yes |
 | W | Current Controlled Switch | `Wxxx n1 n2 Vref value [on\|off]` | holds model and state | no |
 | X TODO | Subcircuit | many forms | yes | yes |
+| Y | Single Lossy Transmission Line | `Yxxx n1 n2 n3 n4 value [parmkey=parmvalue]...` | holds model | yes (2) |
 | Z | MESFET and IGBT | `Zxxx Nd Ng Ns value [parmkey=parmvalue]...` | holds model | yes (2) |
 
 ---
