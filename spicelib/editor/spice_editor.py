@@ -68,7 +68,8 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> 
         nodes_str += "," + str(nodes_max)
         # designator: word
         # nodes: 1 or more words with signs and . allowed. DO NOT include '=' (like with \S) as it will mess up params
-    return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.]+){" + nodes_str + "})"
+        # The ¥ is for qspice
+    return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥]+){" + nodes_str + "})"
 
 
 # Potential model name, probably needs expanding. Will require a leading space
@@ -103,8 +104,10 @@ def VALUE_RGX(prefix: str, number_regex_suffix: str) -> str:
         "(?(number)|(?(formula1).*\"|(?(formula2).*'|(?(formula3).*}|\\S*)))))"
 
     
-# Parameters expression of the type: key = value. Value may be composite, and contain spaces. Will expect to finish the line.
-PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)?)*)?\\?$"
+# Parameters expression of the type: key = value. 
+# key must be a full word without signs or dots
+# Value may be composite, and contain multiple spaces. Will expect to finish the line.
+PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,\s]+)?)*)?\\?\s*$"
 
     
 REPLACE_REGEXS = {
@@ -162,7 +165,7 @@ REPLACE_REGEXS = {
     # Oxxx L+ L- R+ R- <model>
     'O': PREFIX_AND_NODES_RGX("O", 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Lossy Transmission Line
     # Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 mname <LEN=LENGTH>
-    'P': PREFIX_AND_NODES_RGX("P", 2, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Coupled Multiconductor Line
+    'P': PREFIX_AND_NODES_RGX("P", 2, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Coupled Multiconductor Line (ngspice) or Port Device (xyce)
     # Qxxx nc nb ne <ns> <tj> mname <area=val> <areac=val> ...
     # Qxxx Collector Base Emitter [Substrate Node] model [area] [off] [IC=<Vbe, Vce>] [temp=<T>]
     'Q': PREFIX_AND_NODES_RGX("Q", 3, 5) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Bipolar
@@ -174,8 +177,9 @@ REPLACE_REGEXS = {
     'S': PREFIX_AND_NODES_RGX("S", 4) + ANY_VALUE_RGX,  # Voltage Controlled Switch
     # Txxx L+ L- R+ R- Zo=<value> Td=<value>
     'T': PREFIX_AND_NODES_RGX("T", 4) + NO_VALUE_RGX + PARAM_RGX,  # Lossless Transmission
-    # Uxxx N1 N2 Ncom <model> L=<len> [N=<lumps>]
-    'U': PREFIX_AND_NODES_RGX("U", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Uniform RC-line
+    # (ltspice and ngspice) Uxxx N1 N2 Ncom <model> L=<len> [N=<lumps>]
+    # (xyce) U<name> <type> <digital power node> <digital ground node> [node]* <model name>
+    'U': PREFIX_AND_NODES_RGX("U", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Uniform RC-line (ltspice and ngspice)
     # Vxxx n+ n- <voltage> [AC=<amplitude>] [Rser=<value>] [Cpar=<value>]
     # Vxxx n+ n- PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod Ncycles)
     # Vxxx n+ n- SINE(Voffset Vamp Freq Td Theta Phi Ncycles)
@@ -192,22 +196,28 @@ REPLACE_REGEXS = {
     #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
     #     XU1 in out1 -V +V out1 GND OPAx189_float    
     'X': PREFIX_AND_NODES_RGX("X", 1, 99) + MODEL_OR_VALUE_RGX + r"(?:\s+(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?\\?\s*$",
-    # Yxxx N1 0 N2 0 mname <LEN=LENGTH>
-    'Y': PREFIX_AND_NODES_RGX("Y", 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Single Lossy Transmission Line
+    # (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
+    # (qspice) Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]
+    'Y': PREFIX_AND_NODES_RGX("Y", 2, 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Single Lossy Transmission Line
     # Zxxx D G S model [area] [m=<value>] [off] [IC=<Vds, Vgs>] [temp=<value>]
     'Z': PREFIX_AND_NODES_RGX("Z", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,
 
     # MESFET and IBGT. TODO: Parameters substitution not supported
     '@': r"^(?P<designator>@§?\d+)(?P<nodes>(\s+\S+){2})\s?(?P<params>(.*)*)$",
-    # Frequency Noise Analysis (FRA) wiggler
+    
+    # TODO: Frequency Noise Analysis (FRA) wiggler
     # pattern = r'^@(\d+)\s+(\w+)\s+(\w+)(?:\s+delay=(\d+\w+))?(?:\s+fstart=(\d+\w+))?(?:\s+fend=(\d+\w+))?(?:\s+oct=(\d+))?(?:\s+fcoarse=(\d+\w+))?(?:\s+nmax=(\d+\w+))?\s+(\d+)\s+(\d+\w+)\s+(\d+)(?:\s+pp0=(\d+\.\d+))?(?:\s+pp1=(\d+\.\d+))?(?:\s+f0=(\d+\w+))?(?:\s+f1=(\d+\w+))?(?:\s+tavgmin=(\d+\w+))?(?:\s+tsettle=(\d+\w+))?(?:\s+acmag=(\d+))?$'
-    'Ã': r"^(?P<designator>Ã\w+)(?P<nodes>(\s+\S+){16})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component Ã
-    '¥': r"^(?P<designator>¥\w+)(?P<nodes>(\s+\S+){16})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component ¥
-    '€': r"^(?P<designator>€\w+)(?P<nodes>(\s+\S+){32})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component €
-    '£': r"^(?P<designator>£\w+)(?P<nodes>(\s+\S+){64})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component £
-    'Ø': r"^(?P<designator>Ø\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component Ø
-    '×': r"^(?P<designator>×\w+)(?P<nodes>(\s+\S+){4,16})\s+(?P<value>.*)(?P<params>(\w+\s+){1,8})\s*\\?$",  # QSPICE proprietaty component ×
-    'Ö': r"^(?P<designator>Ö\w+)(?P<nodes>(\s+\S+){5})\s+(?P<params>.*)\s*\\?$",  # LTspice proprietary component Ö
+    
+    # QSPICE Unique components:
+    # Ãnnn VDD VSS OUT IN- IN+ MULT+ MULT- IN-- IN++ EN ¥ ¥ ¥ ¥ ¥ ¥ <TYPE> [INSTANCE PARAMETERS]
+    # etc...
+    'Ã': PREFIX_AND_NODES_RGX("Ã", 16) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MultGmAmp and RRopAmp
+    '¥': PREFIX_AND_NODES_RGX("¥", 16) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Various
+    '€': PREFIX_AND_NODES_RGX("€", 32) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DAC
+    '£': PREFIX_AND_NODES_RGX("£", 64) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Dual Gate Driver
+    'Ø': PREFIX_AND_NODES_RGX("Ø", 1, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DLL
+    '×': PREFIX_AND_NODES_RGX("×", 4, 100) + NO_VALUE_RGX + PARAM_RGX,  # transformer
+    'Ö': PREFIX_AND_NODES_RGX("Ö", 5) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # specialised OTA
 }
 
 SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
@@ -309,17 +319,31 @@ def _clean_line(line: str) -> str:
 def _parse_params(params_str: str) -> dict:
     """
     Parses the parameters string and returns a dictionary with the parameters.
+    The parameters are in the form of key=value, separated by spaces.
+    The values may contain spaces or sequences with comma separation
+
+    :param params_str: input
+    :type params_str: str
+    :raises ValueError: invalid format
+    :return: dict with parameters
+    :rtype: dict
     """
     params = OrderedDict()
+    # make sure all spaces are condensed and there are no spaces around the = sign
     params_str = _clean_line(params_str)
+    if len(params_str) == 0:
+        return {}
+    
+    params = {}
     # now split in pairs
-    for param in params_str.split():
-        try:
-            key, value = param.split('=')
-        except ValueError:
-            raise ValueError(f"Invalid parameter format: '{params_str}'")
-        params[key] = try_convert_value(value)
-    return params
+    pattern = r"(\w+)=(.*?)(?<!\\)(?=\s+\w+=|$)"
+    matches = re.findall(pattern, params_str)
+    if matches:
+        for key, value in matches:
+            params[key] = try_convert_value(value)
+        return params
+    else:
+        raise ValueError(f"Invalid parameter format: '{params_str}'")
 
 
 class UnrecognizedSyntaxError(Exception):

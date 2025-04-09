@@ -255,7 +255,7 @@ class SpiceEditor_Test(unittest.TestCase):
         """Test subcircuits editing in the Spice Editor.
         The input is based on a top circuit plus a subcircuit that is not in a library.
         It uses the exact same tests as in test_asc_editor.py:test_subcircuits_edit():
-        
+
         * Check the subcomponent list
         * test various methods of reading and changing the value of a component
           * get_component_value() on a compound component name
@@ -268,34 +268,34 @@ class SpiceEditor_Test(unittest.TestCase):
         * writing to a new file
         """
         # It requires an input file in UTF-8, as otherwise the µ character is not recognized when doing equalFiles
-        
+
         sc = "XX1"  # need an extra X here, as I'm in SpiceEditor, and not in AscEditor
         # load the file here, as this is somewhat tricky, and I don't want to block the other tests too early
         my_edt = spicelib.editor.spice_editor.SpiceEditor(test_dir + "top_circuit.net")
-        
+
         self.assertEqual(my_edt.get_subcircuit(sc).get_components(), ['C1', 'X2', 'L1'], "Subcircuit component list")
 
         # START identical part with test_asc_editor.py:test_subcircuits_edit()
         self.assertEqual(my_edt.get_component_value(sc + ":L1"), "1µ", "Subcircuit Value for X1:L1, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "1µ", "Subcircuit Value for X1:L1, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 1e-6, msg="Subcircuit Value for X1:L1, float comparison")
-        
+
         my_edt.set_component_value(sc + ":L1", 2e-6)  # set float value, on compound component name
         self.assertEqual(my_edt[sc + ":L1"].value_str, "2u", "Subcircuit Value_str for X1:L1, after 1st change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "2u", "Subcircuit Value for X1:L1, after 1st change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 2e-6, msg="Subcircuit Value for X1:L1, after 1st change, float comparison")
-        
+
         my_edt[sc + ":L1"].value = "3µH"  # set string value via compound method
         self.assertEqual(my_edt[sc + ":L1"].value_str, "3µH", "Subcircuit Value_str for X1:L1, after 2nd change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "3µH", "Subcircuit Value for X1:L1, after 2nd change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 3e-6, msg="Subcircuit Value for X1:L1, after 2nd change, float comparison")
-        
-        # now change the value to 4uH, because I don't want to deal with the µ character in equalFiles(). 
+
+        # now change the value to 4uH, because I don't want to deal with the µ character in equalFiles().
         my_edt.get_subcircuit(sc)["L1"].value = "4uH"  # set string value via indirect method
         self.assertEqual(my_edt[sc + ":L1"].value_str, "4uH", "Subcircuit Value_str for X1:L1, after 3rd change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "4uH", "Subcircuit Value for X1:L1, after 3rd change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 4e-6, msg="Subcircuit Value for X1:L1, after 3rd change, float comparison")
-        
+
         my_edt[sc + ":C1"].value = 22e-9
         self.assertEqual(my_edt[sc + ":C1"].value_str, "22n", "Subcircuit Value_str for X1:C1, after change")
         self.assertAlmostEqual(my_edt.get_component_floatvalue(sc + ":C1"), 22e-9, msg="Subcircuit Value for X1:C1, after change")
@@ -309,11 +309,11 @@ class SpiceEditor_Test(unittest.TestCase):
             test_exiting_param_set4=27,
             test_add_parameter=34.45, )
         # END identical part with test_asc_editor.py:test_subcircuits_edit()
-        
-        # Set component parameter 
+
+        # Set component parameter
         my_edt.get_subcircuit(sc).set_component_parameters("C1", Rser=1)  # set string value via indirect method
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_parameters("C1"), {"Rser": 1}, "Subcircuit parameters for X1:C1")
-        
+
         my_edt.save_netlist(temp_dir + "top_circuit_edit.net")
         self.equalFiles(temp_dir + "top_circuit_edit.net", golden_dir + "top_circuit_edit.net")
 
@@ -368,7 +368,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "C1": ["10µ", {"rser": 10, "temp": 60}],
             "C2": ["10µF", {"tc1": 40}],
             "C3": ["'V(cc) < {Vt} ? {C1} : {Ch}'", {"tc1": -1e-03, "tc2": 1.3e-05}],
-            "C4": ["1u*(4*atan(V(a,b)/4)*2+V(a,b))/3", {}],      
+            "C4": ["1u*(4*atan(V(a,b)/4)*2+V(a,b))/3", {}],
             #
             "D1": ["1N914", {}],
             "D2": ["1N4001", {"m": 1, "n": 2}],
@@ -399,7 +399,8 @@ class SpiceEditor_Test(unittest.TestCase):
             #
             "O1": ["LTRA", {}],
             #
-            "P1": ["mname", {"LEN": 2}],            
+            "P1": ["mname", {"LEN": 2}],
+            "P2": ["12", {"port": 2, "Z0": 50}],  # 'DC' gets lost in translation
             #
             "Q1": ["2N2222", {}],
             "Q2": ["BC517", {"temp": 60, "ic": "0.6,5"}],
@@ -408,12 +409,12 @@ class SpiceEditor_Test(unittest.TestCase):
             "R2": ["2k5r", {}],
             "R3": ["'V(cc) < {Vt} ? {R1} : {R2}'", {"temp": 13}],
             "R4": ["10k", {"tol": "1%", "pwr": 0.1}],
-            #            
+            #
             "S1": ["SW", {}],
             "T1": ["", {"Td": "50n", "Z0": 50}],
             #
             "U1": ["URC", {}],
-            "U2": ["URC", {"len": 2}],   
+            "U2": ["URC", {"len": 2}],
             #
             "V1": ["1", {}],
             "V2": ["PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2", {"Rser": 3, "Cpar": 4}],
@@ -427,9 +428,15 @@ class SpiceEditor_Test(unittest.TestCase):
             "XU5": ["OPAx189_float", {}],
             #
             "Y1": ["ymod", {"LEN": 2}],
+            "Y2": ["1e8", {"q": 10}],
             #
-            "Z1": ["NMF", {}], 
-            "Z2": ["NMF", {"ic": "1,2", "area": 1.4}],        
+            "Z1": ["NMF", {}],
+            "Z2": ["NMF", {"ic": "1,2", "area": 1.4}],
+            #
+            "Ã1": ["TYPE", {"I": 5}],
+            "¥1": ["TYPE", {"I": 5}],
+            "×1": ["", {"turns": "1 .5 .5"}],
+            "×2": ["", {"turns": "1 .5 .5 .5", "L": 2}]
         }
         # print(f"components: {edt.get_components()}")
         for el, exp in expected.items():
@@ -438,8 +445,8 @@ class SpiceEditor_Test(unittest.TestCase):
             self.assertEqual(edt.get_component_value(el).casefold(), value.casefold(), f"Tested {el} Value")
             params = edt.get_component_parameters(el)
             self.assertEqual(params, exp[1], f"Tested {el} Parameters")
-            
-            
+
+
 if __name__ == '__main__':
     unittest.main()
     # runner = unittest.TextTestRunner(verbosity=2)

@@ -477,11 +477,11 @@ means that updating one instantiation, will update all other instances of the sa
 
 #### Limitations and specifics of SpiceEditor
 
-Not all elements support value editing or parameter editing.
+Not all elements support value editing or parameter editing, and not all elements are supported by all Spice variants.
 
 | Type | Description | Form | Value editing | Parameter editing |
 |:---:|:---|:---|:---:|:---:|
-| A | Special Functions<br>(LTSpice only) |  | no | no |
+| A | Special Functions |  | no | no |
 | B | Arbitrary Behavioral Voltage or Current Sources | `Bxxx n+ n- (i\|v\|r\|p)=value [parmkey=parmvalue]...` | yes, can be a value or a formula<br>Formulas with embedded '=' signs are not supported, use '<' or '>' | yes |
 | C | Capacitor | `Cxxx n1 n2 value [parmkey=parmvalue]...` | yes (1)<br>Charge formulated expressions ('Q=...') are not supported. | yes |
 | D | Diode | `Dxxx anode cathode value [parmkey=parmvalue]...` | holds model | yes (2) |
@@ -495,23 +495,35 @@ Not all elements support value editing or parameter editing.
 | L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | M | MOSFET | `Mxxx Nd Ng Ns [Nb] value [parmkey=parmvalue]...` | holds model | yes (2) |
 | O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
-| P | Couple Multiconductor Line | `Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 value [parmkey=parmvalue]...` | holds model | yes |
+| P<br>(ngspice) | Couple Multiconductor Line | `Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 value [parmkey=parmvalue]...` | holds model | yes |
+| P<br>(xyce) | Port Device | `Pxxx NI1 NI2 value [parmkey=parmvalue]...` | value (3) | yes |
 | Q | Bipolar Transistor | `Qxxx Collector Base Emitter [Substrate] [Junction] value [parmkey=parmvalue]...` | holds model (2) | yes |
 | R | Resistor | `Rxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | S | Voltage Controlled Switch | `Sxxx n1 n2 nc+ nc- value [on\|off]` | holds model and state | no |
 | T | Lossless Transmission Line | `Txxx L+ L- R+ R- [parmkey=parmvalue]...` | no | yes |
-| U | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
+| U<br>(ltspice and ngspice) | Uniform RC-line | `Uxxx n1 n2 ncom value...` | includes parameters | not separately |
+| U<br>(xyce) | Digital Devices | `Uxxx type (2..99 nodes) value [parmkey=parmvalue]...` | includes all from 2nd node on | not separately |
 | V | Voltage Source | `Vxxx n+ n- value [parmkey=parmvalue]...` | yes, can be value or expression | yes |
 | W | Current Controlled Switch | `Wxxx n1 n2 Vref value [on\|off]` | holds model and state | no |
-| X | Subcircuit | `Xxxx n1 n2 n3... value parmkey=parmvalue]...` | holds subcircuit name | yes |
-| Y | Single Lossy Transmission Line | `Yxxx n1 n2 n3 n4 value [parmkey=parmvalue]...` | holds model | yes (2) |
+| X | Subcircuit | `Xxxx n1 n2 n3... value [parmkey=parmvalue]...` | holds subcircuit name | yes |
+| Y<br>(ngspice) | Single Lossy Transmission Line | `Yxxx n1 n2 n3 n4 value [parmkey=parmvalue]...` | holds model | yes (2) |
+| Y<br>(qspice)  | Piezoelectric Crystal | `Yxxx n+ n- value [parmkey=parmvalue]...` | holds frequency | yes |
+| Y<br>(xyce)    | various, deprecated | | no | no | 
 | Z | MESFET and IGBT | `Zxxx Nd Ng Ns value [parmkey=parmvalue]...` | holds model | yes (2) |
+| Ã<br>(qspice)  | MultGmAmp and RRopAmp | `Ãxxx (16 nodes) ¥ ¥ ¥ ¥ ¥ ¥ value [parmkey=parmvalue]...` | holds model | yes |
+| ¥<br>(qspice)  | various | `¥nnn (16 nodes) value [parmkey=parmvalue]...` | holds model | yes |
+| €<br>(qspice)  | DAC | `€nnn (32 nodes) value [parmkey=parmvalue]...` | holds model | yes |
+| £<br>(qspice)  | Dual Gate Driver | `£nnn (64 nodes) value [parmkey=parmvalue]...` | holds model | yes |
+| Ø<br>(qspice)  | DLL | `Ønnn (1..99 nodes) value [parmkey=parmvalue]...` | holds model | yes |
+| ×<br>(qspice)  | Transformer | `×nnn (4..100 nodes) [parmkey=parmvalue]...` | no | yes |
+| Ö<br>(ltspice) | Specialised OTA | `Önnn (1..99 nodes) value [parmkey=parmvalue]...` | yes | yes |
 
 ---
 Notes:
 
 1. Can hold either the value, model name, or a formula. Formulas must be enclosed by "" or '' or {} or contain no spaces.
-2. No support for 'area', 'on', 'off' or 'thermal' if they are not part of a key-value pair. Composite parameter values (like `ic=vbe, vce`) are allowed.
+2. No proper individual support for 'area', 'on', 'off' or 'thermal' if they are not part of a key-value pair. Composite parameter values (like `ic=vbe, vce`  or `turns=1 .5 .5 .5`) are allowed.
+3. The format specification is `[[DC] <value>]`, but the parser only supports 1 value. So value must be specified, and 'DC' will be ignored, if present.
 
 ---
 
@@ -519,6 +531,8 @@ For a detailed reference to the elements, see amongst others:
 
 * <https://ltwiki.org/files/LTspiceHelp.chm.html>
 * <https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml>
+* <https://github.com/KSKelvin-Github/Qspice/blob/main/Guideline/Qspice%20-%20Device%20Reference%20Guide%20by%20KSKelvin.pdf>
+* <https://xyce.sandia.gov/files/xyce/Xyce_Reference_Guide_7.6.pdf>
 
 #### Limitations and specifics of AscEditor
 
