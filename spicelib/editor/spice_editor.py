@@ -200,9 +200,9 @@ REPLACE_REGEXS = {
     # (qspice) Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]
     'Y': PREFIX_AND_NODES_RGX("Y", 2, 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Single Lossy Transmission Line
     # Zxxx D G S model [area] [m=<value>] [off] [IC=<Vds, Vgs>] [temp=<value>]
-    'Z': PREFIX_AND_NODES_RGX("Z", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,
-
-    # MESFET and IBGT. TODO: Parameters substitution not supported
+    'Z': PREFIX_AND_NODES_RGX("Z", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MESFET, IBGT
+    
+    # TODO
     '@': r"^(?P<designator>@§?\d+)(?P<nodes>(\s+\S+){2})\s?(?P<params>(.*)*)$",
     
     # TODO: Frequency Noise Analysis (FRA) wiggler
@@ -217,6 +217,8 @@ REPLACE_REGEXS = {
     '£': PREFIX_AND_NODES_RGX("£", 64) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Dual Gate Driver
     'Ø': PREFIX_AND_NODES_RGX("Ø", 1, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DLL
     '×': PREFIX_AND_NODES_RGX("×", 4, 100) + NO_VALUE_RGX + PARAM_RGX,  # transformer
+    
+    # LTSPICE Unique components:
     'Ö': PREFIX_AND_NODES_RGX("Ö", 5) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # specialised OTA
 }
 
