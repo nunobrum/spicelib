@@ -45,26 +45,14 @@ END_LINE_TERM = '\n'  #: This controls the end of line terminator used
 # See _insert_section()
 
 # Regular expressions for the different components
-FLOAT_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
+# FLOAT_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
 
 # Regular expression for a number with decimal qualifier and unit
 # NUMBER_RGX = FLOAT_RGX + r"(Meg|[kmuµnpfgt])?[a-zA-Z]*"
 
-# Parameters expression of the type: key = value. Value may be composite, and contain spaces.
-PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)?)*)?"
 
-# Potential model name, probably needs expanding
-MODEL_VALUE_RGX = r"(?P<value>[\w\.\-]+)"
-
-# the rest of the line. Cannot be used with PARAM
-ANY_VALUE_RGX = r"\s+(?P<value>.*)$"
-
-# no value
-NO_VALUE_RGX = r"\s?(?P<value>)?"
-
-
-def DESIGNATOR_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> str:
-    """Create regex for the designator and nodes
+def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> str:
+    """Create regex for the designator and nodes. Will not consume a trailing space.
 
     :param prefix: the prefix character of the element. 1 character.
     :type prefix: str
@@ -83,34 +71,61 @@ def DESIGNATOR_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> 
     return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.]+){" + nodes_str + "})"
 
 
-def VALUE_RGX(number_regex: str) -> str:
-    """Named Regex for a value, or a formula that is a single word, or is enclosed by "" or '' or {}."""
-    return "(?P<value>(?P<number>" + number_regex + ")?(?P<formula1>\")?(?P<formula2>')?(?P<formula3>{)?" + \
-           "(?(number)|(?(formula1).*\"|(?(formula2).*'|(?(formula3).*}|\\S*)))))"
+# Potential model name, probably needs expanding. Will require a leading space
+MODEL_OR_VALUE_RGX = r"\s+(?P<value>[\w\.\-]+)"
+
+# the rest of the line. Cannot be used with PARAM. Will require a leading space, and finish the line
+ANY_VALUE_RGX = r"\s+(?P<value>.*)$"
+
+# maybe a value. Will require a leading space
+MAYBE_VALUE_RGX = r"\s+(?P<value>.*?)"
+
+# no value
+NO_VALUE_RGX = r"\s?(?P<value>)?"
 
 
+def VALUE_RGX(prefix: str, number_regex_suffix: str) -> str:
+    """Regex for a value, or a formula that is a single word, or is enclosed by "" or '' or {}.
+    Will require a leading space, but not a trailing space.
+
+    :param prefix: optional parameter style prefix letter for the value matching. Must be empty or 1 character.
+    :type prefix: str
+    :param number_regex_suffix: a regex that represents any decimal qualifiers or units
+    :type number_regex_suffix: str
+    :return: the regex for a regular value
+    :rtype: str
+    """
+    my_prefix = ""
+    if len(prefix) == 1:
+        my_prefix = "(" + prefix + "\\s?=\\s?)?"
+    return "\\s+" + my_prefix + "(?P<value>(?P<number>[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?" + \
+        number_regex_suffix + ")?(?P<formula1>\")?(?P<formula2>')?(?P<formula3>{)?" + \
+        "(?(number)|(?(formula1).*\"|(?(formula2).*'|(?(formula3).*}|\\S*)))))"
+
+    
+# Parameters expression of the type: key = value. Value may be composite, and contain spaces. Will expect to finish the line.
+PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)?)*)?\\?$"
+
+    
 REPLACE_REGEXS = {
     'A': r"",  # LTspice Only : Special Functions, Parameter substitution not supported
     # Bxxx n001 n002 [VIRP]=<expression> [ic=<value>] ...
-    'B': DESIGNATOR_NODES_RGX("B", 2) + r"\s+(?P<value>[VIBR]\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.\<\>\?\:\"\']+)*)" + 
-         PARAM_RGX + r"\\?$",  # Behavioral source
+    'B': PREFIX_AND_NODES_RGX("B", 2) + r"\s+(?P<value>[VIBR]\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.\<\>\?\:\"\']+)*)" + PARAM_RGX,  # Behavioral source
     # Cxxx n1 n2 <capacitance> [ic=<value>] ...
     # Cxxx n+ n- <value> <mname> <m=val> <scale=val> <temp=val> ...
     # Cxxx n1 n2 C=<capacitance> [ic=<value>] ...
     # Cxxx n1 n2 Q=<expression> [ic=<value>] [m=<value>] ...         
-    'C': DESIGNATOR_NODES_RGX("C", 2) + r"\s+" +
-         r"(C\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"[muµnpfgt]?F?\d*") +
-         PARAM_RGX + r"\\?$",  # Capacitor
+    'C': PREFIX_AND_NODES_RGX("C", 2) + VALUE_RGX("C", r"[muµnpfgt]?F?\d*") + PARAM_RGX,  # Capacitor
     # Dxxx anode cathode <model> [area] [off] [m=<val>] [n=<val>] [temp=<value>] ...
     # Dxxx n+ n- mname <area=val> <m=val> <pj=val> <off> ...         
-    'D': DESIGNATOR_NODES_RGX("D", 2) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + ".*?$",  # Diode
-    'E': DESIGNATOR_NODES_RGX("E", 2, 4) + ANY_VALUE_RGX,  # Voltage Dependent Voltage Source
+    'D': PREFIX_AND_NODES_RGX("D", 2) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Diode
+    'E': PREFIX_AND_NODES_RGX("E", 2, 4) + ANY_VALUE_RGX,  # Voltage Dependent Voltage Source
     # this only supports changing gain values
-    'F': DESIGNATOR_NODES_RGX("F", 2) + ANY_VALUE_RGX,  # Current Dependent Current Source
+    'F': PREFIX_AND_NODES_RGX("F", 2) + ANY_VALUE_RGX,  # Current Dependent Current Source
     # This implementation replaces everything after the 2 first nets
-    'G': DESIGNATOR_NODES_RGX("G", 2, 4) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
+    'G': PREFIX_AND_NODES_RGX("G", 2, 4) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
     # This only supports changing gain values
-    'H': DESIGNATOR_NODES_RGX("H", 2) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
+    'H': PREFIX_AND_NODES_RGX("H", 2) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
     # Ixxx n+ n- <current> [AC=<amplitude>] [load]
     # Ixxx n+ n- PULSE(Ioff Ion Tdelay Trise Tfall Ton Tperiod Ncycles)
     # Ixxx n+ n- SINE(Ioffset Iamp Freq Td Theta Phi Ncycles)
@@ -120,39 +135,34 @@ REPLACE_REGEXS = {
     # Ixxx n+ n- R=<value>
     # Ixxx n+ n- PWL(t1 i1 t2 i2 t3 i3...)
     # Ixxx n+ n- wavefile=<filename> [chan=<nnn>]
-    'I': DESIGNATOR_NODES_RGX("I", 2) + r"\s+(?P<value>.*?)"
-         r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)*)$",  # Independent Current Source
+    'I': PREFIX_AND_NODES_RGX("I", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)*)$",  # Independent Current Source
     # Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
-    'J': DESIGNATOR_NODES_RGX("J", 3) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + r"\\?$",  # JFET
+    'J': PREFIX_AND_NODES_RGX("J", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX + r"\\?$",  # JFET
     # Kxxx Lyyy Lzzz ... value
-    'K': DESIGNATOR_NODES_RGX("K", 2, 99) + r"\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
+    'K': PREFIX_AND_NODES_RGX("K", 2, 99) + r"\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
     # Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
     # Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>
-    'L': DESIGNATOR_NODES_RGX("L", 2) + r"\s+"
-         r"(L\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpgt])?H?\d*") +
-         PARAM_RGX + r"\\?$",  # Inductance
+    'L': PREFIX_AND_NODES_RGX("L", 2) + VALUE_RGX("L", r"(Meg|[kmuµnpgt])?H?\d*") + PARAM_RGX,  # Inductance
     # Mxxx Nd Ng Ns Nb <model> [m=<value>] [L=<len>] ...
     # Mxxx Nd Ng Ns <model> [L=<len>] [W=<width>]
-    'M': DESIGNATOR_NODES_RGX("M", 3, 4) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + r"\\?$",  # MOSFET
+    'M': PREFIX_AND_NODES_RGX("M", 3, 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MOSFET
     # Oxxx L+ L- R+ R- <model>
-    'O': DESIGNATOR_NODES_RGX("O", 4) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + r"\\?$",  # Lossy Transmission Line
+    'O': PREFIX_AND_NODES_RGX("O", 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Lossy Transmission Line
     # Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 mname <LEN=LENGTH>
-    'P': DESIGNATOR_NODES_RGX("P", 2, 99) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + r"\\?$",  # Coupled Multiconductor Line
+    'P': PREFIX_AND_NODES_RGX("P", 2, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Coupled Multiconductor Line
     # Qxxx nc nb ne <ns> <tj> mname <area=val> <areac=val> ...
     # Qxxx Collector Base Emitter [Substrate Node] model [area] [off] [IC=<Vbe, Vce>] [temp=<T>]
-    'Q': DESIGNATOR_NODES_RGX("Q", 3, 5) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + r"\\?$",  # Bipolar
+    'Q': PREFIX_AND_NODES_RGX("Q", 3, 5) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Bipolar
     # Rxxx n1 n2 <value> [tc=tc1, tc2, ...] [temp=<value>] ...
     # Rxxx n+ n- <value> <mname> <l=length> <w=width> ...
     # Rxxx n+ n- R = 'expression' <tc1=value> <tc2=value> <noisy=0> ...
-    'R': DESIGNATOR_NODES_RGX("R", 2) + r"\s+" +
-         r"(R\s?=\s?)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kmuµnpfgt])?R?\d*") +
-         PARAM_RGX + r"\\?$",  # Resistor
+    'R': PREFIX_AND_NODES_RGX("R", 2) + VALUE_RGX("R", r"(Meg|[kmuµnpfgt])?R?\d*") + PARAM_RGX,  # Resistor
     # Sxxx n1 n2 nc+ nc- <model> [on,off]
-    'S': DESIGNATOR_NODES_RGX("S", 4) + ANY_VALUE_RGX,  # Voltage Controlled Switch
+    'S': PREFIX_AND_NODES_RGX("S", 4) + ANY_VALUE_RGX,  # Voltage Controlled Switch
     # Txxx L+ L- R+ R- Zo=<value> Td=<value>
-    'T': DESIGNATOR_NODES_RGX("T", 4) + NO_VALUE_RGX + PARAM_RGX + r"\\?$",  # Lossless Transmission
+    'T': PREFIX_AND_NODES_RGX("T", 4) + NO_VALUE_RGX + PARAM_RGX,  # Lossless Transmission
     # Uxxx N1 N2 Ncom <model> L=<len> [N=<lumps>]
-    'U': DESIGNATOR_NODES_RGX("U", 3) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + r"\\?$",  # Uniform RC-line
+    'U': PREFIX_AND_NODES_RGX("U", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Uniform RC-line
     # Vxxx n+ n- <voltage> [AC=<amplitude>] [Rser=<value>] [Cpar=<value>]
     # Vxxx n+ n- PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod Ncycles)
     # Vxxx n+ n- SINE(Voffset Vamp Freq Td Theta Phi Ncycles)
@@ -161,23 +171,19 @@ REPLACE_REGEXS = {
     # Vxxx n+ n- PWL(t1 v1 t2 v2 t3 v3...)
     # Vxxx n+ n- wavefile=<filename> [chan=<nnn>]
     # ex: V1 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
-    'V': DESIGNATOR_NODES_RGX("V", 2) + r"\s+(?P<value>.*?)"
-         r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)*)$",  # Independent Voltage Source
+    'V': PREFIX_AND_NODES_RGX("V", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,]+)*)$",  # Independent Voltage Source
     # Wxxx n1 n2 Vnam <model> [on,off]
-    'W': DESIGNATOR_NODES_RGX("W", 3) + ANY_VALUE_RGX,  # Current Controlled Switch
+    'W': PREFIX_AND_NODES_RGX("W", 3) + ANY_VALUE_RGX,  # Current Controlled Switch
     # This is structured differently than the others as it will accept any number of nodes.
     # But it only supports 1 value without any spaces in it (unlike V for example).
     # ex: XU1 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
     #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
     #     XU1 in out1 -V +V out1 GND OPAx189_float    
-    'X': DESIGNATOR_NODES_RGX("X", 1, 99) + r"\s+" + MODEL_VALUE_RGX + r"(?:\s+(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?\\?\s*$",
-    # 'X': r"^(?P<designator>X§?\w+)(?P<nodes>(?:\s+\S*){1,99}\w+)\s+" + MODEL_VALUE_RGX + r"(?:\s+(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?\\?\s*$",
-    # 'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>[\w\.]+)"
-    #     r"(\s+params:)?" + PARAM_RGX + r"\\?$",  # Sub-circuit. The value is the last before any key-value parameters
+    'X': PREFIX_AND_NODES_RGX("X", 1, 99) + MODEL_OR_VALUE_RGX + r"(?:\s+(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?\\?\s*$",
     # Yxxx N1 0 N2 0 mname <LEN=LENGTH>
-    'Y': DESIGNATOR_NODES_RGX("Y", 4) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + r"\\?$",  # Single Lossy Transmission Line
+    'Y': PREFIX_AND_NODES_RGX("Y", 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Single Lossy Transmission Line
     # Zxxx D G S model [area] [m=<value>] [off] [IC=<Vds, Vgs>] [temp=<value>]
-    'Z': DESIGNATOR_NODES_RGX("Z", 3) + r"\s+" + MODEL_VALUE_RGX + PARAM_RGX + r"\\?$",
+    'Z': PREFIX_AND_NODES_RGX("Z", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,
 
     # MESFET and IBGT. TODO: Parameters substitution not supported
     '@': r"^(?P<designator>@§?\d+)(?P<nodes>(\s+\S+){2})\s?(?P<params>(.*)*)$",
