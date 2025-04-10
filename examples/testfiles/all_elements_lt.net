@@ -111,7 +111,8 @@ XU1 1 2 a
 X§U2 NC_58 NC_59 NC_60 NC_61 NC_62 AD549
 XU3 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
 XU4 in out1 V1 V2 out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
-XU5 in out1 V1 V2 out1 GND OPAx189_float  
+XU5 in out1 V1 V2 out1 GND OPAx189_float
+XM1 mos upper_gate_A A tj_m1 tcase_m1 {model_name}
 
 * (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
 * Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]

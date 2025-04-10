@@ -73,7 +73,7 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> 
 
 
 # Potential model name, probably needs expanding. Will require a leading space
-MODEL_OR_VALUE_RGX = r"\s+(?P<value>[\w\.\-]+)"
+MODEL_OR_VALUE_RGX = r"\s+(?P<value>[\w\.\-\{\}]+)"
 
 # the rest of the line. Cannot be used with PARAM. Will require a leading space, and finish the line
 ANY_VALUE_RGX = r"\s+(?P<value>.*)$"
