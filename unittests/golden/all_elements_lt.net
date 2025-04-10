@@ -112,6 +112,7 @@ XU2 NC_58 NC_59 NC_60 NC_61 NC_62 1e-9
 XU3 NC_01 NC_02 NC_03 NC_04 NC_05 1e-9 GBW=10Meg Slew=1e-09 Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg blabla=1 2 3 4 5 6 7
 XU4 in out1 V1 V2 out1 1e-9 bla_v2=1% bla_sp1=1e-09 blabla=1 2 3 4 5 6 7
 XU5 in out1 V1 V2 out1 GND 1e-9
+XM1 mos upper_gate_A A tj_m1 tcase_m1 1e-9
 
 * (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
 * Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]

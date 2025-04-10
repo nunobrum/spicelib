@@ -428,6 +428,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "XU3": ["level2", {"Avol": "1Meg", "GBW": "10Meg", "Slew": "10Meg", "Ilimit": "25m", "Rail": 0, "Vos": 0, "En": 0, "Enk": 0, "In": 0, "Ink": 0, "Rin": "500Meg"}],
             "XU4": ["OPAx189", {"bla_v2": "1%", "bla_sp1": 2, "bla_sp2": 3}],
             "XU5": ["OPAx189_float", {}],
+            "XM1": ["{model_name}", {}],
             #
             "Y1": ["ymod", {"LEN": 2}],
             "Y2": ["1e8", {"q": 10}],
