@@ -1,0 +1,35 @@
+@import '../agogo.css';  /* main theme */
+
+td.text-center {
+    text-align: center;
+}
+td.text-left {
+    text-align: left;
+}
+td.text-right {
+    text-align: right;
+}
+
+table.docutils {
+    border-collapse: collapse;
+}
+
+table.docutils th {
+    background-color: #eee;
+}
+table.docutils th, table.docutils td {
+    border: 1px solid #808080;
+    border-spacing: 0px;
+    padding: 0.2em;
+    border-collapse: collapse;
+    vertical-align: top;
+}
+table.docutils th {
+    background-color: #eee;
+}
+table.docutils tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+table.docutils tr:nth-child(even) {
+    background-color: #fff;
+}
