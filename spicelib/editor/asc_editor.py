@@ -17,6 +17,7 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os.path
+import sys
 from pathlib import Path
 from typing import Union, Optional, Tuple, List
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -271,6 +272,14 @@ class AscEditor(BaseSchematic):
 
     def _get_symbol(self, symbol: str) -> AsyReader:
         asy_filename = symbol + os.path.extsep + "asy"
+        
+        if sys.platform == "linux" or sys.platform == "darwin":
+            if '\\' in asy_filename:
+                # This is a Windows path, so we need to remove the backslashes for non-Windows use
+                asy_filename = asy_filename.replace('\\', '/')
+                # and sometimes you have more than one
+                asy_filename = asy_filename.replace('//', '/')
+         
         asy_path = self._asy_file_find(asy_filename)
         if asy_path is None:
             raise FileNotFoundError(f"File {asy_filename} not found")
