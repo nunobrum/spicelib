@@ -1007,6 +1007,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Next release
+    * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine
     * Fixed Issues #197 and #198 - Improved support for many elements, documented limitations
     * Fixed Issue #192 - add information about timeouts and other exceptions to runner
 * Version 1.4.3
