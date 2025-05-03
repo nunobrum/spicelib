@@ -182,6 +182,17 @@ def _is_unique_instruction(instruction):
     return cmd in UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 
 
+def _parse_params(params_str: str) -> dict:
+    """
+    Parses the parameters string and returns a dictionary with the parameters.
+    """
+    params = OrderedDict()
+    for param in params_str.split():
+        key, value = param.split('=')
+        params[key] = try_convert_value(value)
+    return params
+
+
 class UnrecognizedSyntaxError(Exception):
     """Line doesn't match expected Spice syntax"""
 
@@ -237,7 +248,7 @@ class SpiceComponent(Component):
             elif attr == 'nodes':
                 self.ports = info[attr].split()
             elif attr == 'params':
-                self.attributes['params'] = self._parse_params(info[attr])
+                self.attributes['params'] = _parse_params(info[attr])
             else:
                 self.attributes[attr] = info[attr]
         return match
@@ -536,7 +547,7 @@ class SpiceCircuit(BaseEditor):
                     raise ValueError("set_component_parameters() expects to receive a dictionary")
                 if match and match.groupdict().get('params'):
                     params_str = match.group('params')
-                    params = self._parse_params(params_str)
+                    params = _parse_params(params_str)
                 else:
                     params = {}
 
@@ -736,17 +747,6 @@ class SpiceCircuit(BaseEditor):
         component = self.get_component(reference)
         return component.attributes.get(attribute, None)
 
-    @staticmethod
-    def _parse_params(params_str: str) -> dict:
-        """
-        Parses the parameters string and returns a dictionary with the parameters.
-        """
-        params = OrderedDict()
-        for param in params_str.split():
-            key, value = param.split('=')
-            params[key] = try_convert_value(value)
-        return params
-
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
@@ -755,7 +755,7 @@ class SpiceCircuit(BaseEditor):
             groupdict = match.groupdict()
             if groupdict.get('params'):
                 params_str = match.group('params')
-                answer.update(self._parse_params(params_str))
+                answer.update(_parse_params(params_str))
             if groupdict.get('value'):
                 answer['Value'] = match.group('value')
         return answer
