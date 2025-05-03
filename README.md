@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.3_
+_current version: 1.4.4_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1006,11 +1006,12 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 
-* Next release
+* Version 1.4.4
     * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine
     * Fixed Issues #197 and #198 - Improved support for many elements, documented limitations
     * Fixed Issue #192 - add information about timeouts and other exceptions to runner
     * Fixed issue with log files generated with version 24.1.6 where spaces can exist after the .step statement
+    * Consistency between AscEditor and SpiceEditor on the get_component_parameters() method
     * Removed stalled code
 * Version 1.4.3
     * Fixed Issue #188 - remove_(X)instruction now returns a boolean
