@@ -74,7 +74,7 @@ REPLACE_REGEXS = {
     'I': r"^(?P<designator>I§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*?)"
          r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.]+)*)$",  # Independent Current Source
     # This implementation replaces everything after the 2 first nets
-    'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" + 
+    'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" +
          PARAM_RGX + ".*?$",  # JFET
     'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
     'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>({)?(?(5).*}|([0-9\.E+-]+(Meg|[kmuµnpgt])?H?))).*$",  # Inductance
@@ -182,17 +182,6 @@ def _is_unique_instruction(instruction):
     return cmd in UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 
 
-def _parse_params(params_str: str) -> dict:
-    """
-    Parses the parameters string and returns a dictionary with the parameters.
-    """
-    params = OrderedDict()
-    for param in params_str.split():
-        key, value = param.split('=')
-        params[key] = try_convert_value(value)
-    return params
-
-
 class UnrecognizedSyntaxError(Exception):
     """Line doesn't match expected Spice syntax"""
 
@@ -248,7 +237,7 @@ class SpiceComponent(Component):
             elif attr == 'nodes':
                 self.ports = info[attr].split()
             elif attr == 'params':
-                self.attributes['params'] = _parse_params(info[attr])
+                self.attributes['params'] = self._parse_params(info[attr])
             else:
                 self.attributes[attr] = info[attr]
         return match
@@ -761,11 +750,15 @@ class SpiceCircuit(BaseEditor):
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
-        if match and match.groupdict().get('params'):
-            params_str = match.group('params')
-            return self._parse_params(params_str)
-        else:
-            return {}
+        answer = {}
+        if match:
+            groupdict = match.groupdict()
+            if groupdict.get('params'):
+                params_str = match.group('params')
+                answer.update(self._parse_params(params_str))
+            if groupdict.get('value'):
+                answer['Value'] = match.group('value')
+        return answer
 
     def set_component_parameters(self, reference: str, **kwargs) -> None:
         # docstring inherited from BaseEditor
