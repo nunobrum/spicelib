@@ -312,7 +312,7 @@ class SpiceEditor_Test(unittest.TestCase):
         
         # Set component parameter 
         my_edt.get_subcircuit(sc).set_component_parameters("C1", Rser=1)  # set string value via indirect method
-        self.assertEqual(my_edt.get_subcircuit(sc).get_component_parameters("C1"), {"Rser": 1}, "Subcircuit parameters for X1:C1")
+        self.assertDictEqual(my_edt.get_subcircuit(sc).get_component_parameters("C1"), {"Rser": 1, 'Value': '22n'}, "Subcircuit parameters for X1:C1")
         
         my_edt.save_netlist(temp_dir + "top_circuit_edit.net")
         self.equalFiles(temp_dir + "top_circuit_edit.net", golden_dir + "top_circuit_edit.net")
