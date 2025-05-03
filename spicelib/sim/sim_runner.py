@@ -101,17 +101,18 @@ simulation is finished.
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2020, Fribourg Switzerland"
 
-__all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask', 'clock_function']
+__all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask']
 
 import shutil
 import inspect  # Library used to get the arguments of the callback function
+import time
 from pathlib import Path
 from time import sleep, thread_time as clock
 from typing import Callable, Union, Type, Protocol, Tuple
 import logging
 
 from .process_callback import ProcessCallback
-from ..sim.run_task import RunTask, clock_function
+from ..sim.run_task import RunTask
 from ..sim.simulator import Simulator
 from ..editor.base_editor import BaseEditor
 
@@ -157,13 +158,19 @@ class AnyRunner(Protocol):
 class SimRunner(AnyRunner):
     """
     The SimRunner class implements all the methods required for launching batches of Spice simulations.
-
-    :raises FileNotFoundError: When the file is not found  /!\\ This will be changed
+    
+    It is iterable, but with a catch: The iteration will only return the completed tasks (succeeded or not), 
+    in the order they were completed. If all completed tasks have been returned, and there are still running tasks, 
+    it will wait for the completion of the next task. If you used no callbacks, the result is a tuple with the raw and log file names. 
+    If you used callbacks, it will return the return code of the callback function, or None if there was an error. 
+    Also see `sim_info()` for more details on the completed tasks.
+    
+    :raises FileNotFoundError: When the file is not found.  !This will be changed.
 
     :param parallel_sims: Defines the number of parallel simulations that can be executed at the same time. Ideally this
                           number should be aligned to the number of CPUs (processor cores) available on the machine.
     :type parallel_sims: int, optional
-    :param timeout: Timeout parameter as specified on the os subprocess.run() function. Default is 600 seconds, i.e.
+    :param timeout: Timeout parameter as specified on the OS subprocess.run() function. Default is 600 seconds, i.e.
         10 minutes. For no timeout, set to None.
     :type timeout: float, optional
     :param verbose: If True, it enables a richer printout of the program execution.
@@ -225,6 +232,43 @@ class SimRunner(AnyRunner):
     @property
     def okSim(self) -> int:
         return self._okSim
+    
+    def sim_info(self) -> dict:
+        """
+        Returns a dictionary with detailed information of all completed tasks. It is best to be called after the completion of
+        all tasks.
+        
+        The dictionary keys are the run numbers. The values are:
+        
+            * netlist_file: Path to the netlist file
+            * raw_file: Path to the raw file
+            * log_file: Path to the log file
+            * retcode: Return code of the simulator. -2 means an exception was raised, -1 means the simulation is undefined.            
+            * exception_text: Exception information in case of an exception during simulation. None if no exception was raised.
+            * callback_return: Return value of the callback function. None if no callback was used.
+            * start_time: Start time of the simulation
+            * stop_time: Stop time of the simulation
+            
+        Example: ```{ 1: {'netlist_file': 'circuit1.net', 'raw_file': 'circuit1.raw', 'log_file': 'circuit1.log'```, etc....
+            
+        :return: Dictionary with detailed information of all completed tasks.
+        :rtype: dict
+        """
+        rv = {}
+        for task in self.completed_tasks:
+            task: RunTask
+            run_no = task.runno
+            v = {}
+            v['netlist_file'] = task.netlist_file
+            v['raw_file'] = task.raw_file
+            v['log_file'] = task.log_file
+            v['retcode'] = task.retcode
+            v['exception_text'] = task.exception_text
+            v['callback_return'] = task.callback_return
+            v['start_time'] = task.start_time
+            v['stop_time'] = task.stop_time
+            rv[run_no] = v
+        return rv
 
     def set_simulator(self, spice_tool: Type[Simulator]) -> None:
         """
@@ -246,13 +290,13 @@ class SimRunner(AnyRunner):
 
     def add_command_line_switch(self, switch, path=''):
         """
-        Used to add an extra command line argument such as -I<path> to add symbol search path or -FastAccess
+        Used to add an extra command line argument such as '-I<path>' to add symbol search path or '-FastAccess'
         to convert the raw file into Fast Access.
-        The argument is a string as is defined in the LTSpice command line documentation.
+        The argument is a string as is defined in the command line documentation of the used simulator. 
+        It is preferred that you use the Simulator's class `valid_switch()` method for validation of the switch.
 
-        :param switch: switch to be added.
-        :type switch: str:  A command line switch such as "-ascii" for generating a raw file in text format or
-            "-alt" for setting the solver to alternate. See Command Line Switches information on LTSpice help file.
+        :param switch: switch to be added. See Command Line Switches documentation of the used simulator.
+        :type switch: str
         :param path: path to the file related to the switch being given.
         :type path: str, optional
         :returns: Nothing
@@ -401,7 +445,8 @@ class SimRunner(AnyRunner):
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running
             simultaneous tasks.
         :type exe_log: bool, optional        
-        :returns: The task object of type RunTask
+        :returns: The task object of type RunTask. For internal use only.
+        :rtype: RunTask
         """
         callback_kwargs = self.validate_callback_args(callback, callback_args)
         if switches is None:
@@ -438,7 +483,7 @@ class SimRunner(AnyRunner):
                 timeout: float = None, exe_log: bool = False) -> Tuple[str, str]:
         """
         Executes a simulation run with the conditions set by the user.
-        Conditions are set by the set_parameter, set_component_value or add_instruction functions.
+        Conditions are set by the `set_parameter`, `set_component_value` or `add_instruction functions`.
 
         :param netlist:
             The name of the netlist can be optionally overridden if the user wants to have a better control of how the
@@ -488,17 +533,18 @@ class SimRunner(AnyRunner):
         return t.raw_file, t.log_file  # Returns the raw and log file
 
     def active_threads(self):
-        """Returns the number of active sim_tasks"""
+        """Returns the number of active simulation runs"""
         self.update_completed()
         return len(self.active_tasks)
 
     def update_completed(self):
         """
-        This function updates the active_tasks and completed_tasks lists. It moves the finished task from the
-        active_tasks list to the completed_tasks list.
+        This function updates the `active_tasks` and `completed_tasks` lists. It moves the finished task from the
+        `active_tasks` list to the `completed_tasks` list.
         It should be called periodically to update the status of the simulations.
 
         :returns: Nothing
+        :meta private:
         """
         i = 0
         while i < len(self.active_tasks):
@@ -567,7 +613,7 @@ class SimRunner(AnyRunner):
         """
         self.update_completed()
         if timeout is not None:
-            stop_time = clock_function() + timeout
+            stop_time = time.time() + timeout
         else:
             stop_time = None
         while len(self.active_tasks) > 0:
@@ -576,7 +622,7 @@ class SimRunner(AnyRunner):
             if timeout is None:
                 stop_time = self._maximum_stop_time()
             if stop_time is not None:  # This can happen if timeout was set as none everywhere
-                if clock_function() > stop_time:
+                if time.time() > stop_time:
                     if abort_all_on_timeout:
                         self.kill_all_spice()
                     return False
@@ -637,6 +683,10 @@ class SimRunner(AnyRunner):
         """
         self.cleanup_files()  # Alias for backward compatibility, this will be deleted in the future
 
+    # ############ Iterator methods
+    # def __len__(self):
+    #    return len(self.completed_tasks)
+
     def __iter__(self):
         self._iterator_counter = 0  # Reset the iterator counter. Note: nested iterators are not supported
         return self
@@ -647,6 +697,7 @@ class SimRunner(AnyRunner):
             # First go through the completed tasks
             if self._iterator_counter < len(self.completed_tasks):
                 ret = self.completed_tasks[self._iterator_counter]
+                ret: RunTask
                 self._iterator_counter += 1
                 if ret.retcode == 0:
                     return ret.get_results()
@@ -660,7 +711,7 @@ class SimRunner(AnyRunner):
             # Then go through the active tasks to get the maximum timeout
             stop_time = self._maximum_stop_time()
 
-            if stop_time is not None and clock_function() > stop_time:  # All tasks are on timeout condition
+            if stop_time is not None and time.time() > stop_time:  # All tasks are on timeout condition
                 raise SimRunnerTimeoutError(f"Exceeded {self.timeout} seconds waiting for tasks to finish")
 
             # Wait for the active tasks to finish with a timeout

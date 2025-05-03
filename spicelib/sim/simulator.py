@@ -31,20 +31,11 @@ import shlex
 
 _logger = logging.getLogger("spicelib.Simulator")
 
-if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-    def run_function(command, timeout=None, stdout=None, stderr=None):
-        """Normalizing OS subprocess function calls between different platforms. This function is used for python 3.6
-        and higher versions."""
-        _logger.debug(f"Running command: {command}, with timeout: {timeout}")
-        result = subprocess.run(command, timeout=timeout, stdout=stdout, stderr=stderr)
-        return result.returncode
-
-else:
-    def run_function(command, timeout=None, stdout=None, stderr=None):
-        """Normalizing OS subprocess function calls between different platforms. This is the old function that was used
-        for python version prior to 3.6"""
-        _logger.debug(f"Running command: {command}, with timeout: {timeout}")
-        return subprocess.call(command, timeout=timeout, stdout=stdout, stderr=stderr)
+def run_function(command, timeout=None, stdout=None, stderr=None):
+    """Normalizing OS subprocess function calls between different platforms."""
+    _logger.debug(f"Running command: {command}, with timeout: {timeout}")
+    result = subprocess.run(command, timeout=timeout, stdout=stdout, stderr=stderr)
+    return result.returncode
 
 
 class SpiceSimulatorError(Exception):

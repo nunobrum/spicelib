@@ -765,7 +765,7 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
-    def remove_instruction(self, instruction) -> None:
+    def remove_instruction(self, instruction: str) -> bool:
         """
         Removes a SPICE instruction from the netlist.
 
@@ -775,32 +775,36 @@ class BaseEditor(ABC):
                 
             editor.remove_instruction(".STEP run -1 1023 1")
 
-        This only works if the instruction exactly matches the line on the netlist. This means that space characters,
-        and upper case and lower case differences will not match the line.
+        This only works if the entire given instruction is contained in a line on the netlist.
+        It uses the 'in' comparison, and is case sensitive. 
+        It will remove 1 instruction at most, even if more than one could be found.
+        `remove_Xinstruction()` is a more flexible way to remove instructions from the netlist.
 
-        :param instruction: The list of instructions to remove. Each instruction is of the type 'str'
+        :param instruction: The instruction to remove.
         :type instruction: str
-        :returns: Nothing
+        :returns: True if the instruction was found and removed, False otherwise
+        :rtype: bool        
         """
         ...
 
     @abstractmethod
-    def remove_Xinstruction(self, search_pattern: str) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
         """
         Removes a SPICE instruction from the netlist based on a search pattern. This is a more flexible way to remove
         instructions from the netlist. The search pattern is a regular expression that will be used to match the
-        instructions to be removed. The search pattern will be applied to each line of the netlist and if the pattern
-        matches, the line will be removed.
+        instructions to be removed. The search pattern is case insensitive, and will be applied to each line of the netlist.
+        All matching lines will be removed.
 
         Example: The code below will remove all AC analysis instructions from the netlist.
 
         .. code-block:: python
 
-            editor.remove_Xinstruction("\\.AC.*")
+            editor.remove_Xinstruction(r"\\.AC.*")
 
-        :param search_pattern: The list of instructions to remove. Each instruction is of the type 'str'
+        :param search_pattern: Pattern for the instruction to remove. In general it is best to use a raw string (r).
         :type search_pattern: str
-        :returns: Nothing
+        :returns: True if the instruction was found and removed, False otherwise
+        :rtype: bool        
         """
         ...
 

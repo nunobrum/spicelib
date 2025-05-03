@@ -40,84 +40,197 @@ END_LINE_TERM = '\n'  #: This controls the end of line terminator used
 
 # A Spice netlist can only have one of the instructions below, otherwise an error will be raised
 
+# All the regular expressions here may or may not include leading or trailing spaces
+# This means that when you re-assemble parts, you need to be careful to preserve spaces when needed.
+# See _insert_section()
+
 # Regular expressions for the different components
-FLOAT_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
+# FLOAT_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
 
 # Regular expression for a number with decimal qualifier and unit
-NUMBER_RGX = r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?(Meg|[kmuµnpfgt])?[a-zA-Z]*"
-
-# Parameters expression of the type: PARAM=value
-PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.]+)?)*)?"
+# NUMBER_RGX = FLOAT_RGX + r"(Meg|[kmuµnpfgt])?[a-zA-Z]*"
 
 
-def VALUE_RGX(number_regex):
-    """Named Regex for a value or a formula."""
-    return r"(?P<value>(?P<formula>{)?(?(formula).*}|" + number_regex + "))"
+def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> str:
+    """Create regex for the designator and nodes. Will not consume a trailing space.
+
+    :param prefix: the prefix character of the element. 1 character.
+    :type prefix: str
+    :param nodes_min: number of nodes, or minimum number of nodes
+    :type nodes_min: int
+    :param nodes_max: maximum number of nodes. None means: fixed number of nodes = nodes_min. Defaults to None
+    :type nodes_max: int, optional
+    :return: regex for the designator and nodes
+    :rtype: str
+    """
+    nodes_str = str(nodes_min)
+    if nodes_max is not None:
+        nodes_str += "," + str(nodes_max)
+        # designator: word
+        # nodes: 1 or more words with signs and . allowed. DO NOT include '=' (like with \S) as it will mess up params
+        # The ¥ is for qspice
+    return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥]+){" + nodes_str + "})"
 
 
+# Potential model name, probably needs expanding. Will require a leading space
+MODEL_OR_VALUE_RGX = r"\s+(?P<value>[\w\.\-\{\}]+)"
+
+# the rest of the line. Cannot be used with PARAM. Will require a leading space, and finish the line
+ANY_VALUE_RGX = r"\s+(?P<value>.*)$"
+
+# maybe a value. Will require a leading space
+MAYBE_VALUE_RGX = r"\s+(?P<value>.*?)"
+
+# no value
+NO_VALUE_RGX = r"\s?(?P<value>)?"
+
+
+def VALUE_RGX(prefix: str, number_regex_suffix: str) -> str:
+    """Regex for a value, or a formula that is a single word, or is enclosed by "" or '' or {}.
+    Will require a leading space, but not a trailing space.
+
+    :param prefix: optional parameter style prefix letter for the value matching. Must be empty or 1 character.
+    :type prefix: str
+    :param number_regex_suffix: a regex that represents any decimal qualifiers or units
+    :type number_regex_suffix: str
+    :return: the regex for a regular value
+    :rtype: str
+    """
+    my_prefix = ""
+    if len(prefix) == 1:
+        my_prefix = "(" + prefix + "\\s?=\\s?)?"
+    return "\\s+" + my_prefix + "(?P<value>(?P<number>[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?" + \
+        number_regex_suffix + ")?(?P<formula1>\")?(?P<formula2>')?(?P<formula3>{)?" + \
+        "(?(number)|(?(formula1).*\"|(?(formula2).*'|(?(formula3).*}|\\S*)))))"
+
+    
+# Parameters expression of the type: key = value. 
+# key must be a full word without signs or dots
+# Value may be composite, and contain multiple spaces and quotes. Will expect to finish the line.
+PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)?)*)?\\?\s*$"
+
+    
 REPLACE_REGEXS = {
     'A': r"",  # LTspice Only : Special Functions, Parameter substitution not supported
-    'B': r"^(?P<designator>B§?[VI]?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Behavioral source
-    'C': r"^(?P<designator>C§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+" +
-         VALUE_RGX(FLOAT_RGX + r"[muµnpfgt]?F?") +
-         PARAM_RGX + r".*?$",  # Capacitor
-    'D': r"^(?P<designator>D§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>\w+)" +
-         PARAM_RGX + ".*?$",  # Diode
-    'E': r"^(?P<designator>E§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>.*)$",  # Voltage Dependent Voltage Source
-    # this only supports changing gain values
-    'F': r"^(?P<designator>F§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Current Dependent Current Source
-    # This implementation replaces everything after the 2 first nets
-    'G': r"^(?P<designator>G§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>.*)$",  # Voltage Dependent Current Source
-    # This only supports changing gain values
-    'H': r"^(?P<designator>H§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Voltage Dependent Current Source
-    # This implementation replaces everything after the 2 first nets
-    'I': r"^(?P<designator>I§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*?)"
-         r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.]+)*)$",  # Independent Current Source
-    # This implementation replaces everything after the 2 first nets
-    'J': r"^(?P<designator>J§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+)" +
-         PARAM_RGX + ".*?$",  # JFET
-    'K': r"^(?P<designator>K§?\w+)(?P<nodes>(\s+\S+){2,4})\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
-    'L': r"^(?P<designator>L§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>({)?(?(5).*}|([0-9\.E+-]+(Meg|[kmuµnpgt])?H?))).*$",  # Inductance
-    'M': r"^(?P<designator>M§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # MOSFET
-    'O': r"^(?P<designator>O§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # Lossy Transmission Line
-    'Q': r"^(?P<designator>Q§?\w+)(?P<nodes>(\s+\S+){3,4})\s+(?P<value>\w+)" + PARAM_RGX + ".*?$",  # Bipolar
-    'R': r"^(?P<designator>R§?\w+)(?P<nodes>(\s+\S+){2})(?P<model>\s+\w+)?\s+" +
-         "(R=)?" + VALUE_RGX(FLOAT_RGX + r"(Meg|[kRmuµnpfgt])?\d*") +
-         PARAM_RGX + ".*?$",  # Resistor
-    'S': r"^(?P<designator>S§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Voltage Controlled Switch
-    'T': r"^(?P<designator>T§?\w+)(?P<nodes>(\s+\S+){4})\s+(?P<value>.*)$",  # Lossless Transmission
-    'U': r"^(?P<designator>U§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>.*)$",  # Uniform RC-line
-    'V': r"^(?P<designator>V§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*?)"
-         r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.]+)*)$",  # Independent Voltage Source
+    # Bxxx n001 n002 [VIRP]=<expression> [ic=<value>] ...
+    'B': PREFIX_AND_NODES_RGX("B", 2) + r"\s+(?P<value>[VIBR]\s*=(\s*[\w\{\}\(\)\-\+\*\/%\.\<\>\?\:\"\']+)*)" + PARAM_RGX,  # Behavioral source
+    # Cxxx n1 n2 <capacitance> [ic=<value>] ...
+    # Cxxx n+ n- <value> <mname> <m=val> <scale=val> <temp=val> ...
+    # Cxxx n1 n2 C=<capacitance> [ic=<value>] ...
+    # Cxxx n1 n2 Q=<expression> [ic=<value>] [m=<value>] ...         
+    'C': PREFIX_AND_NODES_RGX("C", 2) + VALUE_RGX("C", r"[muµnpfgt]?F?\d*") + PARAM_RGX,  # Capacitor
+    # Dxxx anode cathode <model> [area] [off] [m=<val>] [n=<val>] [temp=<value>] ...
+    # Dxxx n+ n- mname <area=val> <m=val> <pj=val> <off> ...         
+    'D': PREFIX_AND_NODES_RGX("D", 2) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Diode
+    # Exxx n+ n- nc+ nc- <gain>
+    # Exxx n+ n- nc+ nc- table=(<value pair>, <value pair>, ...)
+    # Exxx n+ n- nc+ nc- Laplace=<func(s)>...
+    # Exxx n+ n- value={<expression>}
+    # Exxx n+ n- POLY(<N>) <(node1+,node1-) (node2+,node2-)+ ... (nodeN+,nodeN-)> <c0 c1 c2 c3 c4 ...>
+    'E': PREFIX_AND_NODES_RGX("E", 2) + ANY_VALUE_RGX,  # Voltage Dependent Voltage Source
+    # Fxxx n+ n- <Vnam> <gain>
+    # Fxxx n+ n- value={<expression>}
+    # Fxxx n+ n- POLY(<N>) <V1 V2 ... VN> <c0 c1 c2 c3 c4 ...>
+    'F': PREFIX_AND_NODES_RGX("F", 2) + ANY_VALUE_RGX,  # Current Dependent Current Source
+    # Gxxx n+ n- nc+ nc- <gain>
+    # Gxxx n+ n- nc+ nc- table=(<value pair>, <value pair>, ...)
+    # Gxxx n+ n- nc+ nc- Laplace=<func(s)> [window=<time>] [nfft=<number>] [mtol=<number>]
+    # Gxxx n+ n- nc+ nc- value={<expression>}
+    # Gxxx n+ n- POLY(<N>) <(node1+,node1-) (node2+,node2-) ... (nodeN+,nodeN-)> <c0 c1 c2 c3 c4 ...>
+    'G': PREFIX_AND_NODES_RGX("G", 2) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
+    # Hxxx n+ n- <Vnam> <transresistance>
+    # Hxxx n+ n- value={<expression>}
+    # Hxxx n+ n- POLY(<N>) <V1 V2 ... VN> <c0 c1 c2 c3 c4 ...>
+    'H': PREFIX_AND_NODES_RGX("H", 2) + ANY_VALUE_RGX,  # Voltage Dependent Current Source
+    # Ixxx n+ n- <current> [AC=<amplitude>] [load]
+    # Ixxx n+ n- PULSE(Ioff Ion Tdelay Trise Tfall Ton Tperiod Ncycles)
+    # Ixxx n+ n- SINE(Ioffset Iamp Freq Td Theta Phi Ncycles)
+    # Ixxx n+ n- EXP(I1 I2 Td1 Tau1 Td2 Tau2)
+    # Ixxx n+ n- SFFM(Ioff Iamp Fcar MDI Fsig)
+    # Ixxx n+ n- <value> step(<value1>, [<value2>], [<value3>, ...]) [load]
+    # Ixxx n+ n- R=<value>
+    # Ixxx n+ n- PWL(t1 i1 t2 i2 t3 i3...)
+    # Ixxx n+ n- wavefile=<filename> [chan=<nnn>]
+    'I': PREFIX_AND_NODES_RGX("I", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)*)$",  # Independent Current Source
+    # Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
+    'J': PREFIX_AND_NODES_RGX("J", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # JFET
+    # Kxxx Lyyy Lzzz ... value
+    'K': PREFIX_AND_NODES_RGX("K", 2, 99) + r"\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
+    # Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
+    # Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>
+    'L': PREFIX_AND_NODES_RGX("L", 2) + VALUE_RGX("L", r"(Meg|[kmuµnpgt])?H?\d*") + PARAM_RGX,  # Inductance
+    # Mxxx Nd Ng Ns Nb <model> [m=<value>] [L=<len>] ...
+    # Mxxx Nd Ng Ns <model> [L=<len>] [W=<width>]
+    'M': PREFIX_AND_NODES_RGX("M", 3, 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MOSFET
+    # Oxxx L+ L- R+ R- <model>
+    'O': PREFIX_AND_NODES_RGX("O", 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Lossy Transmission Line
+    # Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 mname <LEN=LENGTH>
+    'P': PREFIX_AND_NODES_RGX("P", 2, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Coupled Multiconductor Line (ngspice) or Port Device (xyce)
+    # Qxxx nc nb ne <ns> <tj> mname <area=val> <areac=val> ...
+    # Qxxx Collector Base Emitter [Substrate Node] model [area] [off] [IC=<Vbe, Vce>] [temp=<T>]
+    'Q': PREFIX_AND_NODES_RGX("Q", 3, 5) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Bipolar
+    # Rxxx n1 n2 <value> [tc=tc1, tc2, ...] [temp=<value>] ...
+    # Rxxx n+ n- <value> <mname> <l=length> <w=width> ...
+    # Rxxx n+ n- R = 'expression' <tc1=value> <tc2=value> <noisy=0> ...
+    'R': PREFIX_AND_NODES_RGX("R", 2) + VALUE_RGX("R", r"(Meg|[kmuµnpfgt])?R?\d*") + PARAM_RGX,  # Resistor
+    # Sxxx n1 n2 nc+ nc- <model> [on,off]
+    'S': PREFIX_AND_NODES_RGX("S", 4) + ANY_VALUE_RGX,  # Voltage Controlled Switch
+    # Txxx L+ L- R+ R- Zo=<value> Td=<value>
+    'T': PREFIX_AND_NODES_RGX("T", 4) + NO_VALUE_RGX + PARAM_RGX,  # Lossless Transmission
+    # (ltspice and ngspice) Uxxx N1 N2 Ncom <model> L=<len> [N=<lumps>]
+    # (xyce) U<name> <type> <digital power node> <digital ground node> [node]* <model name>
+    'U': PREFIX_AND_NODES_RGX("U", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Uniform RC-line (ltspice and ngspice)
+    # Vxxx n+ n- <voltage> [AC=<amplitude>] [Rser=<value>] [Cpar=<value>]
+    # Vxxx n+ n- PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod Ncycles)
+    # Vxxx n+ n- SINE(Voffset Vamp Freq Td Theta Phi Ncycles)
+    # Vxxx n+ n- EXP(V1 V2 Td1 Tau1 Td2 Tau2)
+    # Vxxx n+ n- SFFM(Voff Vamp Fcar MDI Fsig)
+    # Vxxx n+ n- PWL(t1 v1 t2 v2 t3 v3...)
+    # Vxxx n+ n- wavefile=<filename> [chan=<nnn>]
     # ex: V1 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
-    'W': r"^(?P<designator>W§?\w+)(?P<nodes>(\s+\S+){2})\s+(?P<value>.*)$",  # Current Controlled Switch
-    # This implementation replaces everything after the 2 first nets
-    'X': r"^(?P<designator>X§?\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>[\w\.]+)"
-         r"(\s+params:)?" + PARAM_RGX + r"\\?$",  # Sub-circuit. The value is the last before any key-value parameters
-    # This is structured differently than the others as it will accept any number of nodes.
-    # But it only supports 1 value without any spaces in it (unlike V for example).
+    'V': PREFIX_AND_NODES_RGX("V", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)*)$",  # Independent Voltage Source
+    # Wxxx n1 n2 Vnam <model> [on,off]
+    'W': PREFIX_AND_NODES_RGX("W", 3) + ANY_VALUE_RGX,  # Current Controlled Switch
+    # Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
     # ex: XU1 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
-    #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=1 bla_sp2 = 1
-    #     XU1 in out1 -V +V out1 GND OPAx189_float
-    'Z': r"^(?P<designator>Z§?\w+)(?P<nodes>(\s+\S+){3})\s+(?P<value>\w+).*$",
-
-    # MESFET and IBGT. TODO: Parameters substitution not supported
+    #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
+    #     XU1 in out1 -V +V out1 GND OPAx189_float    
+    'X': PREFIX_AND_NODES_RGX("X", 1, 99) + MODEL_OR_VALUE_RGX + r"(?:\s+(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?\\?\s*$",
+    # (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
+    # (qspice) Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]
+    'Y': PREFIX_AND_NODES_RGX("Y", 2, 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Single Lossy Transmission Line
+    # Zxxx D G S model [area] [m=<value>] [off] [IC=<Vds, Vgs>] [temp=<value>]
+    'Z': PREFIX_AND_NODES_RGX("Z", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MESFET, IBGT
+    
+    # TODO
     '@': r"^(?P<designator>@§?\d+)(?P<nodes>(\s+\S+){2})\s?(?P<params>(.*)*)$",
-    # Frequency Noise Analysis (FRA) wiggler
+    
+    # TODO: Frequency Noise Analysis (FRA) wiggler
     # pattern = r'^@(\d+)\s+(\w+)\s+(\w+)(?:\s+delay=(\d+\w+))?(?:\s+fstart=(\d+\w+))?(?:\s+fend=(\d+\w+))?(?:\s+oct=(\d+))?(?:\s+fcoarse=(\d+\w+))?(?:\s+nmax=(\d+\w+))?\s+(\d+)\s+(\d+\w+)\s+(\d+)(?:\s+pp0=(\d+\.\d+))?(?:\s+pp1=(\d+\.\d+))?(?:\s+f0=(\d+\w+))?(?:\s+f1=(\d+\w+))?(?:\s+tavgmin=(\d+\w+))?(?:\s+tsettle=(\d+\w+))?(?:\s+acmag=(\d+))?$'
-    'Ã': r"^(?P<designator>Ã\w+)(?P<nodes>(\s+\S+){16})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component Ã
-    '¥': r"^(?P<designator>¥\w+)(?P<nodes>(\s+\S+){16})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component ¥
-    '€': r"^(?P<designator>€\w+)(?P<nodes>(\s+\S+){32})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component €
-    '£': r"^(?P<designator>£\w+)(?P<nodes>(\s+\S+){64})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component £
-    'Ø': r"^(?P<designator>Ø\w+)(?P<nodes>(\s+\S+){1,99})\s+(?P<value>.*)" + PARAM_RGX + ".*?$",  # QSPICE Unique component Ø
-    '×': r"^(?P<designator>×\w+)(?P<nodes>(\s+\S+){4,16})\s+(?P<value>.*)(?P<params>(\w+\s+){1,8})\s*\\?$",  # QSPICE proprietaty component ×
-    'Ö': r"^(?P<designator>Ö\w+)(?P<nodes>(\s+\S+){5})\s+(?P<params>.*)\s*\\?$",  # LTspice proprietary component Ö
+    
+    # QSPICE Unique components:
+    # Ãnnn VDD VSS OUT IN- IN+ MULT+ MULT- IN-- IN++ EN ¥ ¥ ¥ ¥ ¥ ¥ <TYPE> [INSTANCE PARAMETERS]
+    # etc...
+    'Ã': PREFIX_AND_NODES_RGX("Ã", 16) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MultGmAmp and RRopAmp
+    '¥': PREFIX_AND_NODES_RGX("¥", 16) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Various
+    '€': PREFIX_AND_NODES_RGX("€", 32) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DAC
+    '£': PREFIX_AND_NODES_RGX("£", 64) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Dual Gate Driver
+    'Ø': PREFIX_AND_NODES_RGX("Ø", 1, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DLL
+    '×': PREFIX_AND_NODES_RGX("×", 4, 100) + NO_VALUE_RGX + PARAM_RGX,  # transformer
+    
+    # LTSPICE Unique components:
+    'Ö': PREFIX_AND_NODES_RGX("Ö", 5) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # specialised OTA
 }
 
 SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
 
 # Code Optimization objects, avoiding repeated compilation of regular expressions
-component_replace_regexs = {prefix: re.compile(pattern, re.IGNORECASE) for prefix, pattern in REPLACE_REGEXS.items()}
+component_replace_regexs = {}
+for prefix, pattern in REPLACE_REGEXS.items():
+    # print(f"Compiling regex for {prefix}: {pattern}")
+    component_replace_regexs[prefix] = re.compile(pattern, re.IGNORECASE)
+    
+# component_replace_regexs = {prefix: re.compile(pattern, re.IGNORECASE) for prefix, pattern in REPLACE_REGEXS.items()}
 subckt_regex = re.compile(r"^.SUBCKT\s+(?P<name>[\w\.]+)", re.IGNORECASE)
 lib_inc_regex = re.compile(r"^\.(LIB|INC)\s+(.*)$", re.IGNORECASE)
 
@@ -130,7 +243,7 @@ lib_inc_regex = re.compile(r"^\.(LIB|INC)\s+(.*)$", re.IGNORECASE)
 
 def get_line_command(line) -> str:
     """
-    Retrives the type of SPICE command in the line.
+    Retrieves the type of SPICE command in the line.
     Starts by removing the leading spaces and the evaluates if it is a comment, a directive or a component.
     """
     if isinstance(line, str):
@@ -182,15 +295,57 @@ def _is_unique_instruction(instruction):
     return cmd in UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 
 
+def _clean_line(line: str) -> str:
+    """remove extra spaces and clean up the line so that the regexes have an easier time matching
+
+    :param line: spice netlist string
+    :type line: str
+    :return: spice netlist string cleaned up
+    :rtype: str
+    """
+    if line is None:
+        return ""
+    # Remove any leading or trailing spaces
+    line = line.strip()
+    # condense all space sequences to a single space
+    line = re.sub(r'\s+', ' ', line).strip()
+    # Remove any spaces before or after the '=' sign
+    line = line.replace(" =", "=")
+    line = line.replace("= ", "=")
+    # Remove any spaces before or after the ',' sign (for constructions like "key=val1, val2")
+    line = line.replace(" ,", ",")
+    line = line.replace(", ", ",")
+    return line
+
+
 def _parse_params(params_str: str) -> dict:
     """
     Parses the parameters string and returns a dictionary with the parameters.
+    The parameters are in the form of key=value, separated by spaces.
+    The values may contain spaces or sequences with comma separation
+
+    :param params_str: input
+    :type params_str: str
+    :raises ValueError: invalid format
+    :return: dict with parameters
+    :rtype: dict
     """
     params = OrderedDict()
-    for param in params_str.split():
-        key, value = param.split('=')
-        params[key] = try_convert_value(value)
-    return params
+    # make sure all spaces are condensed and there are no spaces around the = sign
+    params_str = _clean_line(params_str)
+    if len(params_str) == 0:
+        return {}
+    
+    params = {}
+    # now split in pairs
+    pattern = r"(\w+)=(.*?)(?<!\\)(?=\s+\w+=|$)"
+    matches = re.findall(pattern, params_str)
+    if matches:
+        for key, value in matches:
+            params[key] = try_convert_value(value)
+        return params
+    else:
+        raise ValueError(f"Invalid parameter format: '{params_str}'")
 
 
 class UnrecognizedSyntaxError(Exception):
@@ -347,6 +502,7 @@ class SpiceCircuit(BaseEditor):
                     return False
             elif cmd == '+':
                 assert len(self.netlist) > 0, "ERROR: The first line cannot be starting with a +"
+                # TODO: maybe remove the '+' with line = line[1:]
                 self.netlist[-1] += line  # Appends to the last line
             elif len(cmd) == 1 and len(line) > 1 and line[1] == '§':
                 # strip any §, it is not always present and seems optional, so scrap it
@@ -504,6 +660,26 @@ class SpiceCircuit(BaseEditor):
             raise UnrecognizedSyntaxError(line, regex.pattern)
         return line_no, match
 
+    def _insert_section(self, line: str, start: int, end: int, section: str) -> str:
+        """
+        Inserts a section in the line at the given start and end positions.
+        Makes sure the section is surrounded by spaces and the line ends with a newline
+        """
+        if not line:
+            return ""
+        if not section:  # Nothing to insert
+            return line
+        
+        section = section.strip()
+        if start > 0 and line[start - 1] != ' ':
+            section = ' ' + section
+        if end < len(line) and line[end] != ' ' and len(section) > 1:
+            section = section + ' '
+        line = line[:start] + section + line[end:]
+        line = line.strip()
+        line += END_LINE_TERM
+        return line
+
     def _set_component_attribute(self, reference, attribute, value):
         """
         Internal method to set the model and value of a component.
@@ -540,8 +716,7 @@ class SpiceCircuit(BaseEditor):
                     value = format_eng(value)
                 start = match.start('value')
                 end = match.end('value')
-                line = self.netlist[line_no]
-                self.netlist[line_no] = line[:start] + value + line[end:]
+                self.netlist[line_no] = self._insert_section(self.netlist[line_no], start, end, value)
             elif attribute == 'params':
                 if not isinstance(value, dict):
                     raise ValueError("set_component_parameters() expects to receive a dictionary")
@@ -569,8 +744,7 @@ class SpiceCircuit(BaseEditor):
                 params_str = ' '.join([f'{key}={kvalue}' for key, kvalue in params.items()])
                 start = match.start('params')
                 end = match.end('params')
-                line = self.netlist[line_no]
-                self.netlist[line_no] = line[:start] + ' ' + params_str + line[end:]
+                self.netlist[line_no] = self._insert_section(self.netlist[line_no], start, end, params_str)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
@@ -635,7 +809,8 @@ class SpiceCircuit(BaseEditor):
                     # Replacing the name in the SUBCKT Clause
                     start = m.start('name')
                     end = m.end('name')
-                    self.netlist[line_no] = line[:start] + new_name + line[end:]
+                    # print(f"Replacing '{line[start:end]}' with '{new_name}'")
+                    self.netlist[line_no] = self._insert_section(line, start, end, new_name)
                     break
                 line_no += 1
             else:
@@ -814,8 +989,7 @@ class SpiceCircuit(BaseEditor):
             value_str = value
         if match:
             start, stop = match.span('value')
-            line: str = self.netlist[param_line]
-            self.netlist[param_line] = line[:start] + f"{value_str}" + line[stop:]
+            self.netlist[param_line] = self._insert_section(self.netlist[param_line], start, stop, f"{value_str}")            
         else:
             # Was not found
             # the last two lines are typically (.backano and .end)
@@ -1029,13 +1203,13 @@ class SpiceCircuit(BaseEditor):
         # docstring is in the parent class
         pass
 
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str) -> bool:
         # docstring is in the parent class
-        pass
+        return False
 
-    def remove_Xinstruction(self, search_pattern: str) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
         # docstring is in the parent class
-        pass
+        return False
 
     @property
     def circuit_file(self) -> Path:
@@ -1200,7 +1374,7 @@ class SpiceEditor(SpiceCircuit):
                 line = len(self.netlist) - 2  # This is where typically the .backanno instruction is
             self.netlist.insert(line, instruction)
 
-    def remove_instruction(self, instruction) -> None:
+    def remove_instruction(self, instruction) -> bool:
         # docstring is in the parent class
 
         # TODO: Make it more intelligent so it recognizes .models, .param and .subckt
@@ -1211,10 +1385,12 @@ class SpiceEditor(SpiceCircuit):
         if instruction in self.netlist:
             self.netlist.remove(instruction)
             _logger.info(f'Instruction "{instruction}" removed')
+            return True
         else:
             _logger.error(f'Instruction "{instruction}" not found.')
+            return False
 
-    def remove_Xinstruction(self, search_pattern: str) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
         # docstring is in the parent class
         regex = re.compile(search_pattern, re.IGNORECASE)
         i = 0
@@ -1227,8 +1403,11 @@ class SpiceEditor(SpiceCircuit):
                 _logger.info(f'Instruction "{line}" removed')
             else:
                 i += 1
-        if not instr_removed:
+        if instr_removed:
+            return True
+        else:
             _logger.error(f'No instruction matching pattern "{search_pattern}" was found')
+            return False
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
         # docstring is in the parent class

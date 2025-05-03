@@ -25,25 +25,18 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2023, Fribourg Switzerland"
 
 from pathlib import Path
-import sys
 import threading
 import time
 import traceback
 from time import sleep
 from typing import Callable, Union, Any, Tuple, Type
 import logging
-import subprocess
 _logger = logging.getLogger("spicelib.RunTask")
 
 from .process_callback import ProcessCallback
 from .simulator import Simulator
 
 END_LINE_TERM = '\n'
-
-if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-    clock_function = time.time
-else:
-    clock_function = time.clock
 
 
 def format_time_difference(time_diff):
@@ -87,6 +80,7 @@ class RunTask(threading.Thread):
         self.log_file = None
         self.callback_return = None
         self.exe_log = exe_log
+        self.exception_text = None
 
     def print_info(self, logger_fun, message):
         message = f"RunTask #{self.runno}:{message}"
@@ -97,12 +91,17 @@ class RunTask(threading.Thread):
     def run(self):
         # Running the Simulation
 
-        self.start_time = clock_function()
+        self.start_time = time.time()
         self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
         # start execution
-        self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, self.timeout,
-                                          exe_log=self.exe_log)
-        self.stop_time = clock_function()
+        try:
+            self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, 
+                                              self.timeout, exe_log=self.exe_log)
+        except Exception as e:
+            self.exception_text = f"{e.__class__.__name__}: {e}"
+            self.retcode = -2
+            self.print_info(_logger.error, f"Simulation Failed. {self.exception_text}")
+        self.stop_time = time.time()
         # print simulation time with format HH:MM:SS.mmmmmm
 
         # Calculate the time difference
@@ -142,16 +141,16 @@ class RunTask(threading.Thread):
                             self.callback_return = return_or_process
                     finally:
                         callback_start_time = self.stop_time
-                        self.stop_time = clock_function()
+                        self.stop_time = time.time()
                         self.print_info(_logger.info, "Callback Finished. Time elapsed: %s" % format_time_difference(
                             self.stop_time - callback_start_time))
                 else:
-                    self.print_info(_logger.info, 'Simulation Finished. No Callback function given')
+                    self.print_info(_logger.info, "Simulation Finished. No Callback function given")
             else:
                 self.print_info(_logger.error, "Simulation Raw file or Log file were not found")
         else:
             # simulation failed
-            self.print_info(_logger.error, ": Simulation Aborted. Time elapsed: %s" % sim_time)
+            self.print_info(_logger.error, "Simulation Aborted. Time elapsed: %s" % sim_time)
             if self.log_file.exists():
                 self.log_file = self.log_file.replace(self.log_file.with_suffix('.fail'))
 
@@ -159,8 +158,12 @@ class RunTask(threading.Thread):
         """
         Returns the simulation outputs if the simulation and callback function has already finished.
         If the simulation is not finished, it simply returns None. If no callback function is defined, then
-        it returns a tuple with (raw_file, log_file). If a callback function is defined, it returns whatever
-        the callback function is returning.
+        it returns a tuple with (raw_file, log_file). If a callback function is defined, and the simulation succeeded,
+        it returns whatever the callback function is returning. If the simulation failed and a callback function is defined,
+        it returns None.
+        
+        :returns: Tuple with the path to the raw file and the path to the log file
+        :rtype: tuple(str, str) or None
         """
         if self.is_alive():
             return None
@@ -179,7 +182,8 @@ class RunTask(threading.Thread):
     def wait_results(self) -> Union[Any, Tuple[str, str]]:
         """
         Waits for the completion of the task and returns a tuple with the raw and log files.
-        :returns: Tuple with the path to the raw file and the path to the log file
+        
+        :returns: Tuple with the path to the raw file and the path to the log file. See get_results() for more details.
         :rtype: tuple(str, str)
         """
         while self.is_alive() or self.retcode == -1:

@@ -1,0 +1,151 @@
+* spicelib\examples\testfiles\all_components.asc
+* Hand crafted to match the most important variants we encounter. 
+* This file is not meant to be used in a simulation.
+
+* Bxxx n001 n002 [VIRP]=<expression> [ic=<value>] ...
+B1 NC_01 NC_02 V=1e-9 tc1=2
+B2 NC_01 NC_02 V=1e-9 delay=1
+B3 NC_01 NC_02 V=1e-9 ic=1e-09 a=b blabla=1 2 3 4 5 6 7
+B4 NC_01 NC_02 V=1e-9
+B5 NC_01 NC_02 V=1e-9 VprXover=50mV
+
+* Cxxx n1 n2 <capacitance> [ic=<value>] ...
+* Cxxx n+ n- <value> <mname> <m=val> <scale=val> <temp=val> ...
+* Cxxx n1 n2 C=<capacitance> [ic=<value>] ...
+* Cxxx n1 n2 Q=<expression> [ic=<value>] [m=<value>] ...
+C1 NC_03 NC_04 1e-9 rser=10 c=1e-09 blabla=1 2 3 4 5 6 7
+C2 NC_03 NC_04 c = 1e-9 tc1 = 40
+C3 NC_03 NC_04 c = 1e-9 tc1=-1e-03 tc2=1.3e-05
+C4 NC_03 NC_04 1e-9
+
+* Dxxx anode cathode <model> [area] [off] [m=<val>] [n=<val>] [temp=<value>] ...
+* Dxxx n+ n- mname <area=val> <m=val> <pj=val> <off> ...
+D1 NC_05 NC_06 1e-9
+D2 NC_05 NC_06 1e-9 n=2 a=1e-09 blabla=1 2 3 4 5 6 7
+
+E1 NC_07 NC_08 1e-9
+E2 NC_07 NC_08 1e-9
+F1 NC_11 NC_12 1e-9
+G1 NC_13 NC_14 1e-9
+G2 NC_13 NC_14 1e-9
+H1 NC_17 NC_18 1e-9
+
+* Ixxx n+ n- <current> [AC=<amplitude>] [load]
+* Ixxx n+ n- PULSE(Ioff Ion Tdelay Trise Tfall Ton Tperiod Ncycles)
+* Ixxx n+ n- SINE(Ioffset Iamp Freq Td Theta Phi Ncycles)
+* Ixxx n+ n- EXP(I1 I2 Td1 Tau1 Td2 Tau2)
+* Ixxx n+ n- SFFM(Ioff Iamp Fcar MDI Fsig)
+* Ixxx n+ n- <value> step(<value1>, [<value2>], [<value3>, ...]) [load]
+* Ixxx n+ n- R=<value>
+* Ixxx n+ n- PWL(t1 i1 t2 i2 t3 i3...)
+* Ixxx n+ n- wavefile=<filename> [chan=<nnn>]
+I1 NC_19 NC_20 1e-9
+I2 NC_08 NC_09 1e-9 c4="bla bla" Rser=1e-09 blabla=1 2 3 4 5 6 7
+
+* Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
+J1 NC_21 NC_22 NC_23 1e-9
+J2 NC_21 NC_22 NC_23 1e-9 ic=1, 2 temp=6
+
+* Kxxx Lyyy Lzzz ... value
+K1 L2 L3 1e-9
+K2 L2 L3 L4 L5 L6 1e-9
+
+* Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
+* Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>
+L1 NC_28 NC_29 1e-9 temp=13
+L2 NC_28 NC_29 1e-9
+L3 NC_28 NC_29 1e-9 bb=aa temp=13
+
+* Mxxx Nd Ng Ns Nb <model> [m=<value>] [L=<len>] ...
+* Mxxx Nd Ng Ns <model> [L=<len>] [W=<width>]
+M1 NC_30 NC_31 NC_32 NC_33 1e-9
+M2 NC_30 NC_31 NC_32 NC_33 1e-9 temp=2
+M3 Nd Ng Ns 1e-9
+
+* Oxxx L+ L- R+ R- <model>
+O1 NC_34 NC_35 NC_36 NC_37 1e-9
+
+* (ngspice) Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 mname <LEN=LENGTH>
+P1 NI1 NI2 GND1 NO1 NO2 GND2 1e-9 LEN=2
+* (xyce) P<name> <+ node> <- node> [[DC] <value>] port=port number [Z0 = value]....
+P2 NI1 NI2 DC 1e-9 port=2 Z0=50
+
+* Qxxx nc nb ne <ns> <tj> mname <area=val> <areac=val> ...
+* Qxxx Collector Base Emitter [Substrate Node] model [area] [off] [IC=<Vbe, Vce>] [temp=<T>]
+Q1 NC_38 NC_39 NC_40 0 1e-9
+Q2 NC_38 NC_39 NC_40 1e-9 temp=60 ic=0.6, 5
+
+* Rxxx n1 n2 <value> [tc=tc1, tc2, ...] [temp=<value>] ...
+* Rxxx n+ n- <value> <mname> <l=length> <w=width> ...
+* Rxxx n+ n- R = 'expression' <tc1=value> <tc2=value> <noisy=0> ...
+R1 in out 1e-9
+R2 NC_41 NC_42 R= 1e-9
+R3 NC_41 NC_42 1e-9 temp=13
+R4 in out 1e-9 tol=1% pwr=0.1
+
+* Sxxx n1 n2 nc+ nc- <model> [on,off]
+S1 NC_43 NC_44 NC_45 NC_46 1e-9
+
+* Txxx L+ L- R+ R- Zo=<value> Td=<value>
+T1 NC_47 NC_48 NC_49 NC_50 Td=50n Z0=50
+
+* Uxxx N1 N2 Ncom <model> L=<len> [N=<lumps>]
+U1 NC_51 NC_52 NC_53 1e-9
+U2 NC_51 NC_52 NC_53 1e-9 len=2
+
+* Vxxx n+ n- <voltage> [AC=<amplitude>] [Rser=<value>] [Cpar=<value>]
+* Vxxx n+ n- PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod Ncycles)
+* Vxxx n+ n- SINE(Voffset Vamp Freq Td Theta Phi Ncycles)
+* Vxxx n+ n- EXP(V1 V2 Td1 Tau1 Td2 Tau2)
+* Vxxx n+ n- SFFM(Voff Vamp Fcar MDI Fsig)
+* Vxxx n+ n- PWL(t1 v1 t2 v2 t3 v3...)
+* Vxxx n+ n- wavefile=<filename> [chan=<nnn>]
+V1 NC_54 NC_55 1e-9
+V2 NC_08 NC_09 1e-9 Rser=3 Cpar=4
+
+* Wxxx n1 n2 Vnam <model> [on,off]
+W1 NC_56 NC_57 V1 1e-9
+
+* Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
+XU1 1 2 1e-9
+XU2 NC_58 NC_59 NC_60 NC_61 NC_62 1e-9
+XU3 NC_01 NC_02 NC_03 NC_04 NC_05 1e-9 GBW=10Meg Slew=1e-09 Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg blabla=1 2 3 4 5 6 7
+XU4 in out1 V1 V2 out1 1e-9 bla_v2=1% bla_sp1=1e-09 blabla=1 2 3 4 5 6 7
+XU5 in out1 V1 V2 out1 GND 1e-9
+XM1 mos upper_gate_A A tj_m1 tcase_m1 1e-9
+
+* (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
+* Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]
+Y1 1 0 2 0 1e-9 LEN=2
+Y2 1 0 1e-9 q=10
+
+* Zxxx D G S model [area] [m=<value>] [off] [IC=<Vds, Vgs>] [temp=<value>]
+Z1 NC_63 NC_64 NC_65 1e-9
+Z2 NC_63 NC_64 NC_65 1e-9 ic=1, 2 area=1.4
+
+* Ãnnn VDD VSS OUT IN- IN+ MULT+ MULT- IN-- IN++ EN ¥ ¥ ¥ ¥ ¥ ¥ <TYPE> [INSTANCE PARAMETERS]
+Ã1 VDD VSS OUT IN- IN+ MULT+ MULT- IN-- IN++ EN ¥ ¥ ¥ ¥ ¥ ¥ 1e-9 I=5
+
+* ¥nnn N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16 <TYPE> [INSTANCE PARAMETERS]
+¥1 N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16 1e-9 I=5
+
+* ×nnn «PRI+ PRI- SEC1+ SEC1- SEC2+ SEC2 [...]» <TURNS=N1 N2 N3 ...> [Additional
+Instance Parameters]
+×1 1 2 3 4 5 6 turns=1 .5 .5
+×2 1 2 3 4 5 6 7 8 turns=1 .5 .5 .5 L=2
+
+.model D D
+.lib standard.dio
+.model NPN NPN
+.model PNP PNP
+.lib standard.bjt
+.model NJF NJF
+.model PJF PJF
+.lib standard.jft
+.model NMOS NMOS
+.model PMOS PMOS
+.lib standard.mos
+* This is XU1
+.lib ADI1.lib
+.backanno
+.end

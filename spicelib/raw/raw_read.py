@@ -864,6 +864,8 @@ class RawRead(object):
                 if line.startswith(".step"):
                     step_dict = {}
                     for tok in line[6:-1].split(' '):
+                        if '=' not in tok:
+                            continue
                         key, value = tok.split('=')
                         step_dict[key] = try_convert_value(value)
                     if self.steps is None:

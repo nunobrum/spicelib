@@ -17,6 +17,7 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os.path
+import sys
 from pathlib import Path
 from typing import Union, Optional, Tuple, List
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -79,9 +80,20 @@ class AscEditor(BaseSchematic):
         return self.asc_file_path
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+        """
+        Saves the current state of the netlist to a .asc file. 
+        For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
+
+        :param run_netlist_file: File name of the netlist file.
+        :type run_netlist_file: Path or str
+        :returns: Nothing
+        """        
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
-        run_netlist_file = run_netlist_file.with_suffix(".asc")
+        if run_netlist_file.suffix in ('.net', '.cir'):
+            raise ValueError("Use the `LTspice.create_netlist()` method instead")
+        if run_netlist_file.suffix != '.asc':
+            run_netlist_file = run_netlist_file.with_suffix(".asc")
         with open(run_netlist_file, 'w', encoding=self.encoding) as asc:
             _logger.info(f"Writing ASC file {run_netlist_file}")
 
@@ -260,6 +272,14 @@ class AscEditor(BaseSchematic):
 
     def _get_symbol(self, symbol: str) -> AsyReader:
         asy_filename = symbol + os.path.extsep + "asy"
+        
+        if sys.platform == "linux" or sys.platform == "darwin":
+            if '\\' in asy_filename:
+                # This is a Windows path, so we need to remove the backslashes for non-Windows use
+                asy_filename = asy_filename.replace('\\', '/')
+                # and sometimes you have more than one
+                asy_filename = asy_filename.replace('//', '/')
+         
         asy_path = self._asy_file_find(asy_filename)
         if asy_path is None:
             raise FileNotFoundError(f"File {asy_filename} not found")
@@ -328,6 +348,8 @@ class AscEditor(BaseSchematic):
         param_name_uppercase = param_name.upper()
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for directive in self.directives:
+            if directive.type == TextTypeEnum.COMMENT:
+                continue  # this is a comment, skip it            
             if directive.text.upper().startswith(".PARAM"):
                 matches = search_expression.finditer(directive.text)
                 for match in matches:
@@ -340,6 +362,8 @@ class AscEditor(BaseSchematic):
         param_names = []
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for directive in self.directives:
+            if directive.type == TextTypeEnum.COMMENT:
+                continue  # this is a comment, skip it
             if directive.text.upper().startswith(".PARAM"):
                 matches = search_expression.finditer(directive.text)
                 for match in matches:            
@@ -633,7 +657,7 @@ class AscEditor(BaseSchematic):
                     continue  # this is a comment
                 directive_command = directive.text.split()[0].upper()
                 if directive_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
-                    directive.text = instruction
+                    self.directives[i].text = instruction
                     self.updated = True
                     return  # Job done, can exit this method
                 i += 1
@@ -646,26 +670,32 @@ class AscEditor(BaseSchematic):
         self.directives.append(directive)
         self.updated = True
 
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str) -> bool:
         i = 0
         while i < len(self.directives):
-            if instruction in self.directives[i].text:
+            if self.directives[i].type == TextTypeEnum.COMMENT:
+                i += 1
+                continue  # this is a comment   
+            if instruction in self.directives[i].text:                    
                 text = self.directives[i].text
                 del self.directives[i]
                 _logger.info(f"Instruction {text} removed")
                 self.updated = True
-                return  # Job done, can exit this method
+                return True  # Job done, can exit this method
             i += 1
 
         msg = f'Instruction "{instruction}" not found'
         _logger.error(msg)
-        raise RuntimeError(msg)
+        return False
 
-    def remove_Xinstruction(self, search_pattern: str) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
         regex = re.compile(search_pattern, re.IGNORECASE)
         instr_removed = False
         i = 0
         while i < len(self.directives):
+            if self.directives[i].type == TextTypeEnum.COMMENT:
+                i += 1
+                continue  # this is a comment            
             instruction = self.directives[i].text
             if regex.match(instruction) is not None:
                 instr_removed = True
@@ -675,6 +705,8 @@ class AscEditor(BaseSchematic):
                 i += 1
         if instr_removed:
             self.updated = True
+            return True
         else:
             msg = f'Instructions matching "{search_pattern}" not found'
             _logger.error(msg)
+            return False

@@ -533,6 +533,13 @@ class QschEditor(BaseSchematic):
         # Note: the .END or .ENDCKT must be inserted by the calling function
 
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+        """
+        Saves the current state of the netlist to a .qsh or to a .net or .cir file.
+
+        :param run_netlist_file: File name of the netlist file. Can be .qsch, .net or .cir
+        :type run_netlist_file: Path or str
+        :returns: Nothing
+        """
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
 
@@ -1045,32 +1052,40 @@ class QschEditor(BaseSchematic):
         tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{QSCH_TEXT_INSTR_QUALIFIER}{instruction}"»')
         self.schematic.items.append(tag)
 
-    def remove_instruction(self, instruction: str) -> None:
+    def remove_instruction(self, instruction: str) -> bool:
         # docstring inherited from BaseEditor
         for text_tag in self.schematic.get_items('text'):
+            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             if instruction in text:
                 self.schematic.items.remove(text_tag)
                 _logger.info(f'Instruction "{instruction}" removed')
-                return  # Job done, can exit this method
+                return True  # Job done, can exit this method
 
         msg = f'Instruction "{instruction}" not found'
         _logger.error(msg)
+        return False
 
-    def remove_Xinstruction(self, search_pattern: str) -> None:
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
         # docstring inherited from BaseEditor
         regex = re.compile(search_pattern, re.IGNORECASE)
         instr_removed = False
         for text_tag in self.schematic.get_items('text'):
+            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
+                continue
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if regex.match(text):
                 self.schematic.items.remove(text_tag)
                 _logger.info(f'Instruction "{text}" removed')
                 instr_removed = True
-        if not instr_removed:
+        if instr_removed:
+            return True
+        else:
             msg = f'Instruction matching "{search_pattern}" not found'
             _logger.error(msg)
+            return False
 
     def copy_from(self, editor: 'BaseSchematic') -> None:
         # docstring inherited from BaseSchematic

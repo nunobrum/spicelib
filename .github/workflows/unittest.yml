@@ -17,14 +17,15 @@
 
 name: Unittest
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   Unittest:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9' # Version range or exact version of a Python version to use, using semvers version range syntax.
           architecture: 'x64'   # optional x64 or x86. Defaults to x64 if not specified
@@ -33,23 +34,30 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy
       - name: Test sweep_iterators.py
+        if: always()
         run: |
           python ./unittests/sweep_iterators_unittest.py
       - name: Test spicelib
+        if: always()
         run: |
           python ./unittests/test_spicelib.py
       - name: Test QSpice Raw Reader
+        if: always()
         run: |
           python ./unittests/test_qspice_rawread.py
       - name: Test Spice Editor
+        if: always()
         run: |
           python ./unittests/test_spice_editor.py
       - name: Test Asc_Editor
+        if: always()
         run: |
           python ./unittests/test_asc_editor.py
       - name: Test Qsch Editor
+        if: always()
         run: |
           python ./unittests/test_qsch_editor.py
       - name: Test RawReaders
+        if: always()
         run: |
           python ./unittests/test_rawreaders.py          
