@@ -925,11 +925,15 @@ class SpiceCircuit(BaseEditor):
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
         line_no, match = self._get_component_line_and_regex(reference)
-        if match and match.groupdict().get('params'):
-            params_str = match.group('params')
-            return _parse_params(params_str)
-        else:
-            return {}
+        answer = {}
+        if match:
+            groupdict = match.groupdict()
+            if groupdict.get('params'):
+                params_str = match.group('params')
+                answer.update(_parse_params(params_str))
+            if groupdict.get('value'):
+                answer['Value'] = match.group('value')
+        return answer
 
     def set_component_parameters(self, reference: str, **kwargs) -> None:
         # docstring inherited from BaseEditor
