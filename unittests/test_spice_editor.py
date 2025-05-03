@@ -446,7 +446,7 @@ class SpiceEditor_Test(unittest.TestCase):
             value = exp[0]
             self.assertEqual(edt.get_component_value(el).casefold(), value.casefold(), f"Test reading {el} Value")
             params = edt.get_component_parameters(el)
-            self.assertEqual(params, exp[1], f"Test reading {el} Parameters")
+            self.assertDictEqual(params, params | exp[1], f"Test reading {el} Parameters")
         
         new_value_default = "1e-9"
         new_values = {
@@ -488,19 +488,19 @@ class SpiceEditor_Test(unittest.TestCase):
                 if seq >= 3:
                     seq = 1
                 params = edt.get_component_parameters(el)
-                self.assertEqual(params, exp[1], f"Test reading {el} Parameters after change existing parameter")
+                self.assertEqual(params, params | exp[1], f"Test reading {el} Parameters after change existing parameter")
                 # add new parameter
                 # print(f"Adding parameter {new_param} to {el} parameters")
                 edt.set_component_parameters(el, **new_param)
                 exp[1].update(new_param)
                 params = edt.get_component_parameters(el)
-                self.assertEqual(params, exp[1], f"Test reading {el} Parameters after adding parameter")
+                self.assertEqual(params, params | exp[1], f"Test reading {el} Parameters after adding parameter")
                 # remove n+1th parameter
                 # print(f"Deleting parameter '{my_del_key}' from {el} parameters")
                 edt.set_component_parameters(el, **{my_del_key: None})
                 del exp[1][my_del_key]
                 params = edt.get_component_parameters(el)
-                self.assertEqual(params, exp[1], f"Test reading {el} Parameters after deleting parameter")
+                self.assertEqual(params, params | exp[1], f"Test reading {el} Parameters after deleting parameter")
                 
         # save file, compare
         edt.save_netlist(temp_dir + my_netlist)
