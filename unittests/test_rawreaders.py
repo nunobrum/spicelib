@@ -24,7 +24,7 @@
 
 @license:       GPLv3
 @maintainer:    Nuno Brum
-@email:         me@nunobrum.com
+@email:         nuno.brum@gmail.com
 
 @file:          test_rawreaders.py
 @date:          2025-02-12

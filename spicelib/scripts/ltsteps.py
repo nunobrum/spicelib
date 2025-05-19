@@ -83,7 +83,7 @@ If `<path_to_filename>` argument is ommited, the script will automatically searc
 and use it.
 
 """
-__author__ = "Nuno Canto Brum <me@nunobrum.com>"
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2023, Fribourg Switzerland"
 import os
 import sys

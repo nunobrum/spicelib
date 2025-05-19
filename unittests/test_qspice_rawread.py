@@ -24,7 +24,7 @@
 
 @license:       GPLv3
 @maintainer:    Nuno Brum
-@email:         me@nunobrum.com
+@email:         nuno.brum@gmail.com
 
 @file:          test_spicelib.py
 @date:          2022-09-19
