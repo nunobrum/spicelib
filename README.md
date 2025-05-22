@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.4_
+_current version: 1.4.5 (candidate)_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1006,6 +1006,10 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 
+* Version 1.4.5
+    * Fixed Issue #211 - rename_format parameter in add_traces_from_raw() function is case sensitive
+    *  Implemented in SpiceEditor a dictionary containing all the updates. Used to implement the next point:
+    * TODO: Implemented a method in SimRunner that writes into a new RAW file a list of traces from all previous runs
 * Version 1.4.4
     * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine
     * Fixed Issues #197 and #198 - Improved support for many elements, documented limitations

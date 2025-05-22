@@ -802,6 +802,7 @@ class QschEditor(BaseSchematic):
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         # docstring inherited from BaseEditor
+        super().set_parameter(param, value)
         tag, match = self._get_param_named(param)
         if match:
             _logger.debug(f"Parameter {param} found in QSCH file, updating it")
@@ -844,6 +845,7 @@ class QschEditor(BaseSchematic):
         # docstring inherited from BaseEditor
         if self.is_read_only():
             raise ValueError("Editor is read-only")
+        super().set_component_value(reference, value)
         if isinstance(value, str):
             value_str = value
         else:
@@ -855,6 +857,7 @@ class QschEditor(BaseSchematic):
         sub_circuit, ref, symbol = self._get_component_symbol(device)
         texts = symbol.get_items('text')
         assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == ref
+        super().set_element_model(device, model)
         texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
         sub_circuit.components[ref].attributes['value'] = model
         _logger.info(f"Component {device} updated to {model}")

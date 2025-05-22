@@ -287,6 +287,7 @@ class BaseSchematic(BaseEditor):
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """Resets the netlist to the original state"""
+        super().reset_netlist()
         self.components.clear()
         self.wires.clear()
         self.labels.clear()

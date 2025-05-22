@@ -20,6 +20,8 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __version__ = "0.1.0"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
+import dataclasses
+import enum
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from math import floor, log
@@ -254,6 +256,21 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
+class UpdateType(enum.Enum):
+    """The UpdateType holds the information about what is being updated."""
+    Parameter = 1
+    ComponentValue = 2
+    ComponentParameter = 3
+
+
+@dataclasses.dataclass
+class Update:
+    """An object containing an update element."""
+    name: str
+    value: Union[str, int, float]
+    updates: UpdateType
+
+
 class Primitive(object):
     """Holds the information of a primitive element in the netlist. This is a base class for the Component and is
     used to hold the information of the netlist primitives, such as .PARAM, .OPTIONS, .IC, .NODESET, .GLOBAL, etc.
@@ -382,13 +399,16 @@ class BaseEditor(ABC):
     :meta hide-value:
     """
 
+    def __init__(self):
+        """Initializing the list that contains all the modifications done to a netlist."""
+        self.netlist_updates: List[Update] = []
+
     @property
     @abstractmethod
     def circuit_file(self) -> Path:
         """Returns the path of the circuit file."""
         ...
 
-    @abstractmethod
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
         Reverts all changes done to the netlist. If create_blank is set to True, then the netlist is blanked.
@@ -396,7 +416,7 @@ class BaseEditor(ABC):
         :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be
                              reset to the original state.
         """
-        ...
+        self.netlist_updates.clear()
 
     @abstractmethod
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
@@ -511,7 +531,8 @@ class BaseEditor(ABC):
 
         :return: Nothing
         """
-        ...
+        update = Update(param, value, UpdateType.Parameter)
+        self.netlist_updates.append(update)
 
     def set_parameters(self, **kwargs):
         """Adds one or more parameters to the netlist.
@@ -530,7 +551,6 @@ class BaseEditor(ABC):
         for param in kwargs:
             self.set_parameter(param, kwargs[param])
 
-    @abstractmethod
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
         sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
@@ -555,9 +575,9 @@ class BaseEditor(ABC):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        ...
+        update = Update(device, value, UpdateType.ComponentValue)
+        self.netlist_updates.append(update)
 
-    @abstractmethod
     def set_element_model(self, element: str, model: str) -> None:
         """Changes the value of a circuit element, such as a diode model or a voltage supply.
         Usage: ::
@@ -579,7 +599,8 @@ class BaseEditor(ABC):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        ...
+        update = Update(element, model, UpdateType.ComponentValue)
+        self.netlist_updates.append(update)
 
     @abstractmethod
     def set_component_parameters(self, element: str, **kwargs) -> None:
@@ -622,6 +643,8 @@ class BaseEditor(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - In case the component is not found
         """
+        update = Update(reference, value, UpdateType.ComponentParameter)
+        self.netlist_updates.append(update)
         self.get_component(reference).attributes[attribute] = value
 
     @abstractmethod

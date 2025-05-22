@@ -379,6 +379,7 @@ class AscEditor(BaseSchematic):
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+        super().set_parameter(param, value)
         match, directive = self._get_param_named(param)
         if isinstance(value, (int, float)):
             value_str = format_eng(value)
@@ -407,6 +408,7 @@ class AscEditor(BaseSchematic):
         :param device: The reference of the component
         :param value: The new value
         """
+        super().set_component_value(device, value)
         sub_circuit, ref = self._get_parent(device)
 
         if sub_circuit != self:  # The component is in a subcircuit
@@ -429,6 +431,7 @@ class AscEditor(BaseSchematic):
                 raise ComponentNotFoundError(f"Component {device} does not have a Value attribute")
 
     def set_element_model(self, element: str, model: str) -> None:
+        super().set_element_model(element, model)
         component = self.get_component(element)
         component.symbol = model
         _logger.info(f"Component {element} updated to {model}")

@@ -754,6 +754,7 @@ class SpiceCircuit(BaseEditor):
         :type create_blank: bool
         :returns: None
         """
+        super().reset_netlist()
         self.netlist.clear()
 
     def clone(self, **kwargs) -> 'SpiceCircuit':
@@ -981,8 +982,9 @@ class SpiceCircuit(BaseEditor):
         :return: Nothing
         """
         if self.is_read_only():
-            raise ValueError("Editor is read-only")  
+            raise ValueError("Editor is read-only")
         param_line, match = self._get_param_named(param)
+        super().set_parameter(param, value)
         if isinstance(value, (int, float)):
             value_str = format_eng(value)
         else:
@@ -1023,6 +1025,7 @@ class SpiceCircuit(BaseEditor):
         """
         if self.is_read_only():
             raise ValueError("Editor is read-only")
+        super().set_component_value(reference, value)
         self._set_component_attribute(reference, 'value', value)
 
     def set_element_model(self, reference: str, model: str) -> None:
@@ -1048,7 +1051,8 @@ class SpiceCircuit(BaseEditor):
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
         if self.is_read_only():
-            raise ValueError("Editor is read-only")        
+            raise ValueError("Editor is read-only")
+        super().set_element_model(reference, model)
         self._set_component_attribute(reference, 'model', model)
 
     def get_component_value(self, reference: str) -> str:
