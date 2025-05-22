@@ -60,4 +60,8 @@ jobs:
       - name: Test RawReaders
         if: always()
         run: |
-          python ./unittests/test_rawreaders.py          
+          python ./unittests/test_rawreaders.py
+      - name: Test RawWrite
+        if: always()
+        run: |
+          python ./uniitests/test_raw_write.py

@@ -25,7 +25,7 @@
 @maintainer:    Nuno Brum
 @email:         nuno.brum@gmail.com
 
-@file:          test_raw_writer.py
+@file:          test_raw_write.py
 @date:          2025-02-12
 
 @note           spicelib raw_read unit test, on all supported simulators
@@ -43,7 +43,7 @@ golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') els
 temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/temp/'
 
 
-class RawWriterTest(unittest.TestCase):
+class TestRawWrite(unittest.TestCase):
 
     def equal_raw_files(self, file1, file2):
         raw1 = RawRead(file1)
