@@ -64,4 +64,4 @@ jobs:
       - name: Test RawWrite
         if: always()
         run: |
-          python ./uniitests/test_raw_write.py
+          python ./unittests/test_raw_write.py
