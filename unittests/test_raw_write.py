@@ -31,8 +31,17 @@
 @note           spicelib raw_read unit test, on all supported simulators
                   run ./test/unittests/test_rawreaders
 """
-import unittest
-import os
+import os  # platform independent paths
+# ------------------------------------------------------------------------------
+# Python Libs
+import sys  # python path handling
+import unittest  # performs test
+import logging
+
+sys.path.append(
+    os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
+
+
 from spicelib import RawWrite, Trace
 from spicelib import RawRead
 import numpy as np
