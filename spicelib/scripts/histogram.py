@@ -59,7 +59,7 @@ The help can be obtained by calling the script without arguments
 
 
 """
-__author__ = "Nuno Canto Brum <me@nunobrum.com>"
+__author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
 from spicelib.log.logfile_data import try_convert_value

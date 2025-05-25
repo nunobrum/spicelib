@@ -4,9 +4,9 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "spicelib"
-version = "1.4.4"
+version = "1.4.5"
 description = "A set of tools to Automate Spice simulations"
-authors = ["Nuno Brum <me@nunobrum.com>"]
+authors = ["Nuno Brum <nuno.brum@gmail.com>"]
 readme = "README.md"
 license = "GPL-3.0"
 keywords = ["spice", "ltspice", "qspice", "ngspice", "electronic simulator", "montecarlo", "worst-case"]
