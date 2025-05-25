@@ -276,6 +276,7 @@ class BaseSchematic(BaseEditor):
     """
 
     def __init__(self):
+        super().__init__()
         self.components: OrderedDict[str, SchematicComponent] = OrderedDict()
         self.wires: List[Line] = []
         self.labels: List[Text] = []

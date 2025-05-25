@@ -903,6 +903,7 @@ class QschEditor(BaseSchematic):
         where the parameter was found. If the key is a string, it represents the parameter name. If the parameter name
         already exists, it will be replaced. If not found, it will be added as a new text line.
         """
+        super().set_component_parameters(element, **kwargs)
         sub_circuit, ref, symbol = self._get_component_symbol(element)
         texts = symbol.get_items('text')
 

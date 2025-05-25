@@ -258,9 +258,20 @@ class ParameterNotFoundError(Exception):
 
 class UpdateType(enum.Enum):
     """The UpdateType holds the information about what is being updated."""
-    Parameter = 1
-    ComponentValue = 2
-    ComponentParameter = 3
+    InvalidUpdate = 0
+    UpdateParameter = enum.auto()
+    UpdateComponentValue = enum.auto()
+    UpdateComponentParameter = enum.auto()
+    UpdateInstruction = enum.auto()
+    DeleteParameter = enum.auto()
+    DeleteComponent = enum.auto()
+    DeleteComponentParameter = enum.auto()
+    DeleteInstruction = enum.auto()
+    AddParameter = enum.auto()
+    AddComponent = enum.auto()
+    AddComponentParameter = enum.auto()
+    AddInstruction = enum.auto()
+    CloneSubcircuit = enum.auto()
 
 
 @dataclasses.dataclass
@@ -268,7 +279,7 @@ class Update:
     """An object containing an update element."""
     name: str
     value: Union[str, int, float]
-    updates: UpdateType
+    updates: UpdateType = UpdateType.InvalidUpdate
 
 
 class Primitive(object):
@@ -403,6 +414,18 @@ class BaseEditor(ABC):
         """Initializing the list that contains all the modifications done to a netlist."""
         self.netlist_updates: List[Update] = []
 
+    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+        for update in self.netlist_updates:
+            if update.name == name and (update.updates == update or updates == UpdateType.InvalidUpdate):
+                break
+        else:
+            update = Update(name, value, updates)
+            self.netlist_updates.append(update)
+        if updates != 0:
+            update.updates = updates
+        update.value = value
+        return update
+
     @property
     @abstractmethod
     def circuit_file(self) -> Path:
@@ -509,6 +532,7 @@ class BaseEditor(ABC):
         """
         ...        
 
+    @abstractmethod
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         """Adds a parameter to the SPICE netlist.
 
@@ -531,8 +555,7 @@ class BaseEditor(ABC):
 
         :return: Nothing
         """
-        update = Update(param, value, UpdateType.Parameter)
-        self.netlist_updates.append(update)
+        update = self.add_update(param, value, UpdateType.UpdateParameter)
 
     def set_parameters(self, **kwargs):
         """Adds one or more parameters to the netlist.
@@ -551,6 +574,7 @@ class BaseEditor(ABC):
         for param in kwargs:
             self.set_parameter(param, kwargs[param])
 
+    @abstractmethod
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
         sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
@@ -575,9 +599,9 @@ class BaseEditor(ABC):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        update = Update(device, value, UpdateType.ComponentValue)
-        self.netlist_updates.append(update)
+        self.add_update(device, value, UpdateType.UpdateComponentValue)
 
+    @abstractmethod
     def set_element_model(self, element: str, model: str) -> None:
         """Changes the value of a circuit element, such as a diode model or a voltage supply.
         Usage: ::
@@ -599,8 +623,7 @@ class BaseEditor(ABC):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        update = Update(element, model, UpdateType.ComponentValue)
-        self.netlist_updates.append(update)
+        self.add_update(element, model, UpdateType.UpdateComponentValue)
 
     @abstractmethod
     def set_component_parameters(self, element: str, **kwargs) -> None:
@@ -627,7 +650,9 @@ class BaseEditor(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
-        ...
+        for param, value in kwargs.items():
+            update_type = UpdateType.DeleteComponentParameter if value is None else UpdateType.UpdateComponentParameter
+            self.add_update(f"{element}:{param}", value, update_type)
 
     def set_component_attribute(self, reference: str, attribute: str, value: str) -> None:
         """Sets the value of the attribute of the component. Attributes are the values that are not related with
@@ -643,8 +668,7 @@ class BaseEditor(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - In case the component is not found
         """
-        update = Update(reference, value, UpdateType.ComponentParameter)
-        self.netlist_updates.append(update)
+        self.add_update(reference, value, UpdateType.UpdateComponentParameter)
         self.get_component(reference).attributes[attribute] = value
 
     @abstractmethod
@@ -764,7 +788,7 @@ class BaseEditor(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
-        ...
+        self.add_update(designator, "delete", UpdateType.DeleteComponent)
 
     @abstractmethod
     def add_instruction(self, instruction: str) -> None:
@@ -785,7 +809,7 @@ class BaseEditor(ABC):
         :type instruction: str
         :return: Nothing
         """
-        ...
+        self.add_update("INSTRUCTION", instruction, UpdateType.AddInstruction)
 
     @abstractmethod
     def remove_instruction(self, instruction: str) -> bool:
@@ -808,7 +832,7 @@ class BaseEditor(ABC):
         :returns: True if the instruction was found and removed, False otherwise
         :rtype: bool        
         """
-        ...
+        self.add_update("INSTRUCTION", instruction, UpdateType.DeleteInstruction)
 
     @abstractmethod
     def remove_Xinstruction(self, search_pattern: str) -> bool:

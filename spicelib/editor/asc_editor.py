@@ -511,6 +511,7 @@ class AscEditor(BaseSchematic):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
+        super().set_component_parameters(element, **kwargs)
         component = self.get_component(element)
         for key, value in kwargs.items():
             # format the value
@@ -649,7 +650,7 @@ class AscEditor(BaseSchematic):
         # docstring inherited from BaseEditor
         instruction = instruction.strip()  # Clean any end of line terminators
         set_command = instruction.split()[0].upper()
-
+        super().add_instruction(instruction)
         if set_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
             # Before adding new instruction, if it is a unique instruction, we just replace it
             i = 0
