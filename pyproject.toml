@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "spicelib"
-version = "1.4.4"
+version = "1.4.5"
 description = "A set of tools to Automate Spice simulations"
 authors = ["Nuno Brum <nuno.brum@gmail.com>"]
 readme = "README.md"

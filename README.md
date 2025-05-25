@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.4_
+_current version: 1.4.4_ (Candidate to 1.4.5)
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1006,6 +1006,9 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 
+* Version 1.4.5
+    * Fixing Issue #211 - Case sensitive on the rename_format argumetn on RawWrite.add_traces_from_raw()
+    * Replacing outdated mail
 * Version 1.4.4
     * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine
     * Fixed Issues #197 and #198 - Improved support for many elements, documented limitations
