@@ -162,6 +162,8 @@ REPLACE_REGEXS = {
     # Mxxx Nd Ng Ns Nb <model> [m=<value>] [L=<len>] ...
     # Mxxx Nd Ng Ns <model> [L=<len>] [W=<width>]
     'M': PREFIX_AND_NODES_RGX("M", 3, 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MOSFET
+    # Nxxx NI1 NI2...NIX mname [<parameter>=<value>] ...
+    'N': PREFIX_AND_NODES_RGX("N", 2, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Verilog-A Compact Device (ngspice/openvaf)
     # Oxxx L+ L- R+ R- <model>
     'O': PREFIX_AND_NODES_RGX("O", 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Lossy Transmission Line
     # Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 mname <LEN=LENGTH>

@@ -398,6 +398,8 @@ class SpiceEditor_Test(unittest.TestCase):
             "M2": ["BSP89", {"temp": 2}],
             "M3": ["Si4410DY", {}],
             #
+            "N1": ["BSIMBULK_osdi_P", {"as": "0.26235p", "ad": "0.26235p", "ps": "2.51u", "pd": "2.51u", "l": "0.1u", "w": "1u"}], 
+            #
             "O1": ["LTRA", {}],
             #
             "P1": ["mname", {"LEN": 2}],
@@ -457,7 +459,7 @@ class SpiceEditor_Test(unittest.TestCase):
         seq = 0  
         for el, exp in expected.items():
             value = exp[0]
-            params = exp[1]
+            params = dict(sorted(exp[1].items()))  # sort the parameters, so that we can always get the same ones
             new_value = new_value_default
             # modify value
             if len(value) > 0:
@@ -506,7 +508,6 @@ class SpiceEditor_Test(unittest.TestCase):
         edt.save_netlist(temp_dir + my_netlist)
         self.equalFiles(temp_dir + my_netlist, golden_dir + my_netlist)
             
-
 
 if __name__ == '__main__':
     unittest.main()
