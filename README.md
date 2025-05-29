@@ -494,6 +494,7 @@ Not all elements support value editing or parameter editing, and not all element
 | K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | yes | no |
 | L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | M | MOSFET | `Mxxx Nd Ng Ns [Nb] value [parmkey=parmvalue]...` | holds model | yes (2) |
+| N<br>(ngspice) | Verilog-A Compact Device | `Nxxx n1 n2...nX model [parmkey=parmvalue]...` | holds model | yes |
 | O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
 | P<br>(ngspice) | Coupled Multiconductor Line | `Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 value [parmkey=parmvalue]...` | holds model | yes |
 | P<br>(xyce) | Port Device | `Pxxx NI1 NI2 value [parmkey=parmvalue]...` | value (3) | yes |
@@ -1007,7 +1008,9 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.5
-    * Fixing Issue #211 - Case sensitive on the rename_format argumetn on RawWrite.add_traces_from_raw()
+    * Fixing Issue #214 - Netlist concatenations are badly interpreted
+    * Fixing Issue #213 - Add support for Verilog A elements
+    * Fixing Issue #211 - Case sensitive on the rename_format argument on RawWrite.add_traces_from_raw()
     * Replacing outdated mail
 * Version 1.4.4
     * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine

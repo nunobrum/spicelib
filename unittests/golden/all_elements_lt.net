@@ -5,7 +5,7 @@
 * Bxxx n001 n002 [VIRP]=<expression> [ic=<value>] ...
 B1 NC_01 NC_02 V=1e-9 tc1=2
 B2 NC_01 NC_02 V=1e-9 delay=1
-B3 NC_01 NC_02 V=1e-9 ic=1e-09 a=b blabla=1 2 3 4 5 6 7
+B3 NC_01 NC_02 V=1e-9 ic=1e-6,4 a=1e-09 blabla=1 2 3 4 5 6 7
 B4 NC_01 NC_02 V=1e-9
 B5 NC_01 NC_02 V=1e-9 VprXover=50mV
 
@@ -13,7 +13,7 @@ B5 NC_01 NC_02 V=1e-9 VprXover=50mV
 * Cxxx n+ n- <value> <mname> <m=val> <scale=val> <temp=val> ...
 * Cxxx n1 n2 C=<capacitance> [ic=<value>] ...
 * Cxxx n1 n2 Q=<expression> [ic=<value>] [m=<value>] ...
-C1 NC_03 NC_04 1e-9 rser=10 c=1e-09 blabla=1 2 3 4 5 6 7
+C1 NC_03 NC_04 1e-9 rser=1e-09 c=' with spaces ' blabla=1 2 3 4 5 6 7
 C2 NC_03 NC_04 c = 1e-9 tc1 = 40
 C3 NC_03 NC_04 c = 1e-9 tc1=-1e-03 tc2=1.3e-05
 C4 NC_03 NC_04 1e-9
@@ -21,7 +21,7 @@ C4 NC_03 NC_04 1e-9
 * Dxxx anode cathode <model> [area] [off] [m=<val>] [n=<val>] [temp=<value>] ...
 * Dxxx n+ n- mname <area=val> <m=val> <pj=val> <off> ...
 D1 NC_05 NC_06 1e-9
-D2 NC_05 NC_06 1e-9 n=2 a=1e-09 blabla=1 2 3 4 5 6 7
+D2 NC_05 NC_06 1e-9 m=1 n=1e-09 blabla=1 2 3 4 5 6 7
 
 E1 NC_07 NC_08 1e-9
 E2 NC_07 NC_08 1e-9
@@ -40,7 +40,7 @@ H1 NC_17 NC_18 1e-9
 * Ixxx n+ n- PWL(t1 i1 t2 i2 t3 i3...)
 * Ixxx n+ n- wavefile=<filename> [chan=<nnn>]
 I1 NC_19 NC_20 1e-9
-I2 NC_08 NC_09 1e-9 c4="bla bla" Rser=1e-09 blabla=1 2 3 4 5 6 7
+I2 NC_08 NC_09 1e-9 Rser=3 bb=1e-09 blabla=1 2 3 4 5 6 7
 
 * Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
 J1 NC_21 NC_22 NC_23 1e-9
@@ -61,6 +61,9 @@ L3 NC_28 NC_29 1e-9 bb=aa temp=13
 M1 NC_30 NC_31 NC_32 NC_33 1e-9
 M2 NC_30 NC_31 NC_32 NC_33 1e-9 temp=2
 M3 Nd Ng Ns 1e-9
+
+*  Nxxx NI1 NI2...NIX mname [<parameter>=<value>] ...
+N1 z a vdd vdd 1e-9 l=1e-09 w=1u as=0.26235p ps=2.51u pd=2.51u blabla=1 2 3 4 5 6 7
 
 * Oxxx L+ L- R+ R- <model>
 O1 NC_34 NC_35 NC_36 NC_37 1e-9
@@ -109,8 +112,8 @@ W1 NC_56 NC_57 V1 1e-9
 * Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
 XU1 1 2 1e-9
 XU2 NC_58 NC_59 NC_60 NC_61 NC_62 1e-9
-XU3 NC_01 NC_02 NC_03 NC_04 NC_05 1e-9 GBW=10Meg Slew=1e-09 Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg blabla=1 2 3 4 5 6 7
-XU4 in out1 V1 V2 out1 1e-9 bla_v2=1% bla_sp1=1e-09 blabla=1 2 3 4 5 6 7
+XU3 NC_01 NC_02 NC_03 NC_04 NC_05 1e-9 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=1e-09 In=0 Ink=0 Rin=500Meg blabla=1 2 3 4 5 6 7
+XU4 in out1 V1 V2 out1 1e-9 bla_v2=1e-09 bla_sp2=3 blabla=1 2 3 4 5 6 7
 XU5 in out1 V1 V2 out1 GND 1e-9
 XM1 mos upper_gate_A A tj_m1 tcase_m1 1e-9
 
