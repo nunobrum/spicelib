@@ -262,7 +262,6 @@ class UpdateType(enum.Enum):
     UpdateParameter = enum.auto()
     UpdateComponentValue = enum.auto()
     UpdateComponentParameter = enum.auto()
-    UpdateInstruction = enum.auto()
     DeleteParameter = enum.auto()
     DeleteComponent = enum.auto()
     DeleteComponentParameter = enum.auto()
@@ -416,7 +415,9 @@ class BaseEditor(ABC):
 
     def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
         for update in self.netlist_updates:
-            if update.name == name and (update.updates == update or updates == UpdateType.InvalidUpdate):
+            if (update.name == name and
+                    (name != "INSTRUCTION" or value == update.value) and  # if instruction then it should match
+                    (update.updates == updates or updates == UpdateType.InvalidUpdate)):
                 break
         else:
             update = Update(name, value, updates)

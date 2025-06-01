@@ -103,12 +103,13 @@ __copyright__ = "Copyright 2020, Fribourg Switzerland"
 
 __all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask']
 
+import pathlib
 import shutil
 import inspect  # Library used to get the arguments of the callback function
 import time
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Union, Type, Protocol, Tuple
+from typing import Callable, Union, Type, Protocol, Tuple, List, Iterator
 import logging
 
 from .process_callback import ProcessCallback
@@ -716,3 +717,79 @@ class SimRunner(AnyRunner):
 
             # Wait for the active tasks to finish with a timeout
             sleep(0.2)  # Go asleep for a while
+
+    def filter_completed_tasks(self, filter: dict) -> Iterator[RunTask]:
+        """
+        Returns an iterator which retrieves all completed tasks that comply with a given filter.
+
+        :param filter: Filter to be used in the iterator
+        :type filter: dict
+        Returns: Iterator
+        """
+
+        def match_filter(filter, obj):
+            if obj is None or filter is None:
+                return True
+
+            return False
+
+        class TaskIterator:
+
+            def __init__(self, runner: "SimRunner", filter: dict):
+                self.runner = runner
+                self.filter = filter
+                self.task_index = 0
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                while self.task_index < len(self.runner.completed_tasks):
+                    # Test if the task matches the filter criteria
+                    task = self.runner.completed_tasks[self.task_index]
+                    if all(match_filter(filter[key], getattr(task, key))  for key in filter):
+                        return self.runner.completed_tasks[self.task_index]
+                    self.task_index += 1
+                raise StopIteration
+
+        return TaskIterator(self, filter)
+
+    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: List[str], filter: dict):
+        """
+        Creates a new raw_file, with traces belonging to different runs. The type of the raw file is the same as
+        the first raw file that is matching the filter. See filter_completed_tasks() method.
+
+        :param raw_filename: The new RAW filename
+        :type raw_filename: str or pathlib.Path
+        :param save: A list with traces that are going to be saved in the new raw file
+        :type save: list
+        :param filter: A dictionary used to select which runs are going to be included in the new raw file.
+        :type filter: dict
+        """
+        from spicelib import RawWrite
+
+        # Obtain a first task
+        first_task: RunTask = next(self.filter_completed_tasks(filter))
+
+        # Initialize a raw file based on the contents of the first raw
+        from spicelib import RawRead
+        template = RawRead(first_task.raw_file)
+
+        # Determine numtype and force_axis_alignment settings
+        numtype = float  # TODO: MAke this more intelligent
+        force_axis_alignment = True
+
+        new_raw = RawWrite(
+            template.raw_params['Plot Name'],
+            fastacces=True,
+            numtype=numtype,
+            encoding='utf_16_le'
+        )
+
+        # Go through the tasks that match the fi
+        for run_task in self.filter_completed_tasks(filter):
+            # Open the raw file
+            source_raw = RawRead(run_task.raw_file, traces_to_read=save)
+            new_raw.add_traces_from_raw(source_raw, save, force_axis_alignment=force_axis_alignment)
+
+        new_raw.save(raw_filename)

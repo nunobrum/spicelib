@@ -571,6 +571,7 @@ class AscEditor(BaseSchematic):
         return [k for k in self.components.keys() if k[0] in prefixes]
 
     def remove_component(self, designator: str):
+        super().remove_component(designator)
         sub_circuit, ref = self._get_parent(designator)
         del sub_circuit.components[ref]
         sub_circuit.updated = True
@@ -650,7 +651,6 @@ class AscEditor(BaseSchematic):
         # docstring inherited from BaseEditor
         instruction = instruction.strip()  # Clean any end of line terminators
         set_command = instruction.split()[0].upper()
-        super().add_instruction(instruction)
         if set_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
             # Before adding new instruction, if it is a unique instruction, we just replace it
             i = 0
@@ -661,12 +661,16 @@ class AscEditor(BaseSchematic):
                     continue  # this is a comment
                 directive_command = directive.text.split()[0].upper()
                 if directive_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
+                    super().remove_instruction(self.directives[i].text)
                     self.directives[i].text = instruction
                     self.updated = True
+                    super().add_instruction(instruction)
                     return  # Job done, can exit this method
                 i += 1
         elif set_command.startswith('.PARAM'):
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
+        else:
+            super().add_instruction(instruction)
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()
         coord = Point(x, y)
@@ -685,6 +689,7 @@ class AscEditor(BaseSchematic):
                 del self.directives[i]
                 _logger.info(f"Instruction {text} removed")
                 self.updated = True
+                super().remove_instruction(instruction)
                 return True  # Job done, can exit this method
             i += 1
 
@@ -704,6 +709,7 @@ class AscEditor(BaseSchematic):
             if regex.match(instruction) is not None:
                 instr_removed = True
                 del self.directives[i]
+                super().remove_instruction(instruction)
                 _logger.info(f"Instruction {instruction} removed")
             else:
                 i += 1
