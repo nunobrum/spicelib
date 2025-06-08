@@ -158,9 +158,9 @@ class SpiceEditor_Test(unittest.TestCase):
         self.check_update(self.edt, 'TEMP', UpdateType.UpdateParameter, 0)
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameters(floatpparam=1.23, signed_param=-0.99, expparam=-1E-34)
-        self.check_update(self.edt, 'floatpparam', UpdateType.UpdateParameter, 1.23, 2)
-        self.check_update(self.edt, 'signed_param', UpdateType.UpdateParameter, -0.99, 3)
-        self.check_update(self.edt, 'expparam', UpdateType.UpdateParameter, -1E-34, 4)
+        self.check_update(self.edt, 'floatpparam', UpdateType.UpdateParameter, 1.23, 1)
+        self.check_update(self.edt, 'signed_param', UpdateType.UpdateParameter, -0.99, 2)
+        self.check_update(self.edt, 'expparam', UpdateType.UpdateParameter, -1E-34, 3)
         self.edt.save_netlist(temp_dir + 'test_parameter_output_1.net')
         self.equalFiles(temp_dir + 'test_parameter_output_1.net', golden_dir + 'test_parameter_output_1.net')
 
@@ -315,26 +315,25 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(my_edt.get_component_value(sc + ":L1"), "1µ", "Subcircuit Value for X1:L1, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "1µ", "Subcircuit Value for X1:L1, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 1e-6, msg="Subcircuit Value for X1:L1, float comparison")
-        self.check_update(my_edt, "XX1:L1", UpdateType.UpdateComponentParameter, 1e-6)
 
         my_edt.set_component_value(sc + ":L1", 2e-6)  # set float value, on compound component name
         self.assertEqual(my_edt[sc + ":L1"].value_str, "2u", "Subcircuit Value_str for X1:L1, after 1st change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "2u", "Subcircuit Value for X1:L1, after 1st change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 2e-6, msg="Subcircuit Value for X1:L1, after 1st change, float comparison")
-        self.check_update(my_edt, "XX1:L1", UpdateType.UpdateComponentParameter, 2e-6)
+        self.check_update(my_edt, "XX1:L1", UpdateType.UpdateComponentValue, 2e-6)
 
         my_edt[sc + ":L1"].value = "3µH"  # set string value via compound method
         self.assertEqual(my_edt[sc + ":L1"].value_str, "3µH", "Subcircuit Value_str for X1:L1, after 2nd change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "3µH", "Subcircuit Value for X1:L1, after 2nd change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 3e-6, msg="Subcircuit Value for X1:L1, after 2nd change, float comparison")
-        self.check_update(my_edt, "XX1:L1", UpdateType.UpdateComponentParameter, "3µH")
+        self.check_update(my_edt, "XX1:L1", UpdateType.UpdateComponentValue, "3µH")
 
         # now change the value to 4uH, because I don't want to deal with the µ character in equalFiles().
         my_edt.get_subcircuit(sc)["L1"].value = "4uH"  # set string value via indirect method
         self.assertEqual(my_edt[sc + ":L1"].value_str, "4uH", "Subcircuit Value_str for X1:L1, after 3rd change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "4uH", "Subcircuit Value for X1:L1, after 3rd change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 4e-6, msg="Subcircuit Value for X1:L1, after 3rd change, float comparison")
-        self.check_update(my_edt, "XX1:L1", UpdateType.UpdateComponentParameter, "4uH")
+        self.check_update(my_edt, "XX1:L1", UpdateType.UpdateComponentValue, "4uH")
 
         my_edt[sc + ":C1"].value = 22e-9
         self.assertEqual(my_edt[sc + ":C1"].value_str, "22n", "Subcircuit Value_str for X1:C1, after change")
