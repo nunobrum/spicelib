@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.5 (candidate)_
+_current version: 1.4.4_ (Candidate to 1.4.5)
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -494,6 +494,7 @@ Not all elements support value editing or parameter editing, and not all element
 | K | Mutual Inductance | `Kxxx L1 L2 [L3 ...] value` | yes | no |
 | L | Inductor | `Lxxx n1 n2 value [parmkey=parmvalue]...` | yes (1) | yes |
 | M | MOSFET | `Mxxx Nd Ng Ns [Nb] value [parmkey=parmvalue]...` | holds model | yes (2) |
+| N<br>(ngspice) | Verilog-A Compact Device | `Nxxx n1 n2...nX model [parmkey=parmvalue]...` | holds model | yes |
 | O | Lossy Transmission Line | `Oxxx L+ L- R+ R- value [parmkey=parmvalue]...` | holds model | yes |
 | P<br>(ngspice) | Coupled Multiconductor Line | `Pxxx NI1 NI2...NIX GND1 NO1 NO2...NOX GND2 value [parmkey=parmvalue]...` | holds model | yes |
 | P<br>(xyce) | Port Device | `Pxxx NI1 NI2 value [parmkey=parmvalue]...` | value (3) | yes |
@@ -1007,9 +1008,12 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.5
-    * Fixed Issue #211 - rename_format parameter in add_traces_from_raw() function is case sensitive
+    * Fixing Issue #214 - Netlist concatenations are badly interpreted
+    * Fixing Issue #213 - Add support for Verilog A elements
+    * Fixing Issue #211 - Case sensitive on the rename_format argument on RawWrite.add_traces_from_raw()
+    * Replacing outdated mail
     *  Implemented in SpiceEditor a dictionary containing all the updates. Used to implement the next point:
-    * TODO: Implemented a method in SimRunner that writes into a new RAW file a list of traces from all previous runs
+    * TODO: Implemented a method in SimRunner that writes into a new RAW file a list of traces from all previous run
 * Version 1.4.4
     * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine
     * Fixed Issues #197 and #198 - Improved support for many elements, documented limitations
@@ -1064,8 +1068,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * LTSteps: Supporting new LTspice data export format
     * Fix Issue #116: PosixPath as no lower attribute
     * Toolkit:
-        * Correction on the WCA min max formula and adding the run < 0 condition
-        * run_testbench can be called without having to call first save_netlist
+          * Correction on the WCA min max formula and adding the run < 0 condition
+          * run_testbench can be called without having to call first save_netlist
 * Version 1.3.1
     * Adding possibility of manipulating parameters on sub-circuits
     * Supporting subcircuit names with dots.
@@ -1085,9 +1089,9 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Bugfix: Parsing netlists with extensions other than .net didn't work properly
 * Version 1.2.1
     * Fix on the generation of netlists from QSPICE Schematic files.
-        * Floating pins are now correctly handled. (Issue #88)
-        * Support for all known QSpice components.
-        * Improving testbench for the QschEditor.
+          * Floating pins are now correctly handled. (Issue #88)
+          * Support for all known QSpice components.
+          * Improving testbench for the QschEditor.
 * Version 1.2.0
     * Implementing a new approach to the accessing component values and parameters. Instead of using the
       get_component_value() and get_component_parameters() methods, the component values and parameters are now accessed
@@ -1103,9 +1107,9 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Implementing a set_component_parameters() and get_component_parameters() method on the Editor classes.
       This method allows to set and get the parameters of a component.
     * Bug Fixes:
-        * AscEditor was hanging in comments. Issue #43
-        * Supporting other text orientations on the AscEditor. Issue #44
-        * Allow other encodings in AscEditor. Issues #45 and #48
+          * AscEditor was hanging in comments. Issue #43
+          * Supporting other text orientations on the AscEditor. Issue #44
+          * Allow other encodings in AscEditor. Issues #45 and #48
     * Supporting lines, rectangles, circles and arcs in AscEditor.
     * Improving the regex for the component values in the SpiceEditor.
 * Version 1.1.2

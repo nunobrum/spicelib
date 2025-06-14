@@ -24,7 +24,7 @@
 
 @license:       GPLv3
 @maintainer:    Nuno Brum
-@email:         me@nunobrum.com
+@email:         nuno.brum@gmail.com
 
 @file:          test_rawreaders.py
 @date:          2025-02-12
@@ -48,7 +48,6 @@ from spicelib.raw.raw_read import RawRead
 from numpy import pi, angle, exp
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
-golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
 temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/temp/'
 
 if not os.path.exists(temp_dir):
