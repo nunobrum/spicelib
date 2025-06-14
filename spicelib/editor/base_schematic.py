@@ -276,6 +276,7 @@ class BaseSchematic(BaseEditor):
     """
 
     def __init__(self):
+        super().__init__()
         self.components: OrderedDict[str, SchematicComponent] = OrderedDict()
         self.wires: List[Line] = []
         self.labels: List[Text] = []
@@ -287,6 +288,7 @@ class BaseSchematic(BaseEditor):
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """Resets the netlist to the original state"""
+        super().reset_netlist()
         self.components.clear()
         self.wires.clear()
         self.labels.clear()

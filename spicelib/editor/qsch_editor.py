@@ -802,6 +802,7 @@ class QschEditor(BaseSchematic):
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         # docstring inherited from BaseEditor
+        super().set_parameter(param, value)
         tag, match = self._get_param_named(param)
         if match:
             _logger.debug(f"Parameter {param} found in QSCH file, updating it")
@@ -844,6 +845,7 @@ class QschEditor(BaseSchematic):
         # docstring inherited from BaseEditor
         if self.is_read_only():
             raise ValueError("Editor is read-only")
+        super().set_component_value(reference, value)
         if isinstance(value, str):
             value_str = value
         else:
@@ -855,6 +857,7 @@ class QschEditor(BaseSchematic):
         sub_circuit, ref, symbol = self._get_component_symbol(device)
         texts = symbol.get_items('text')
         assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == ref
+        super().set_element_model(device, model)
         texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
         sub_circuit.components[ref].attributes['value'] = model
         _logger.info(f"Component {device} updated to {model}")
@@ -900,6 +903,7 @@ class QschEditor(BaseSchematic):
         where the parameter was found. If the key is a string, it represents the parameter name. If the parameter name
         already exists, it will be replaced. If not found, it will be added as a new text line.
         """
+        super().set_component_parameters(element, **kwargs)
         sub_circuit, ref, symbol = self._get_component_symbol(element)
         texts = symbol.get_items('text')
 
@@ -996,6 +1000,7 @@ class QschEditor(BaseSchematic):
         component = self.get_component(designator)
         comp_tag: QschTag = component.attributes['tag']
         self.schematic.items.remove(comp_tag)
+        super().remove_component(designator)
 
     def _get_text_space(self):
         """
@@ -1042,11 +1047,15 @@ class QschEditor(BaseSchematic):
                 text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
                 command = text.split()[0].upper()
                 if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
+                    super().remove_instruction(text)
                     text_tag.set_attr(QSCH_TEXT_STR_ATTR, QSCH_TEXT_INSTR_QUALIFIER + instruction)
+                    super().add_instruction(instruction)
                     return  # Job done, can exit this method
 
         elif command.startswith('.PARAM'):
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
+        else:
+            super().add_instruction(instruction)
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()
         tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{QSCH_TEXT_INSTR_QUALIFIER}{instruction}"»')
@@ -1060,6 +1069,7 @@ class QschEditor(BaseSchematic):
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             if instruction in text:
                 self.schematic.items.remove(text_tag)
+                super().remove_instruction(instruction)
                 _logger.info(f'Instruction "{instruction}" removed')
                 return True  # Job done, can exit this method
 
@@ -1078,6 +1088,7 @@ class QschEditor(BaseSchematic):
             text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if regex.match(text):
                 self.schematic.items.remove(text_tag)
+                super().remove_instruction(text)
                 _logger.info(f'Instruction "{text}" removed')
                 instr_removed = True
         if instr_removed:

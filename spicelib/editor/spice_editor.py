@@ -23,7 +23,7 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent, UpdateType
 
 from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -469,7 +469,24 @@ class SpiceCircuit(BaseEditor):
         self._readonly = False
         self.modified_subcircuits = {}
         self.parent = parent
-        
+
+    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+        if self.parent is not None:
+            # check if on modified subcircuits
+            for instance_name, subcircuit in self.parent.modified_subcircuits.items():
+                if subcircuit == self:
+                    return self.parent.add_update(instance_name + SUBCKT_DIVIDER + name, value, updates)
+
+            # if failed will search in subcircuits
+            # for subcircuit in self.netlist:
+            #     if subcircuit == self:
+            #         # Get the instance name
+            #         return self.parent.add_update(instance_name + SUBCKT_DIVIDER + name, value, updates)
+
+            return self.parent.add_update(name, value, updates)
+        else:
+            return super().add_update(name, value, updates)
+
     def get_line_starting_with(self, substr: str) -> int:
         """Internal function. Do not use.
         
@@ -699,9 +716,10 @@ class SpiceCircuit(BaseEditor):
             else:
                 sub_circuit_original = self.get_subcircuit(subckt_instance)  # If not will look for it.
                 if sub_circuit_original:
-                    new_name = sub_circuit_original.name() + '_' + subckt_instance  # Creates a new name with the path appended
+                    original_name = sub_circuit_original.name()
+                    new_name = original_name + '_' + subckt_instance  # Creates a new name with the path appended
                     sub_circuit = sub_circuit_original.clone(new_name=new_name)
-
+                    self.add_update(f"CLONE({original_name})", new_name, UpdateType.CloneSubcircuit)
                     # Memorize that the copy is relative to that particular instance
                     self.modified_subcircuits[subckt_instance] = sub_circuit
                     # Change the call to the sub-circuit
@@ -714,6 +732,7 @@ class SpiceCircuit(BaseEditor):
             line_no, match = self._get_component_line_and_regex(reference)
             if attribute in ('value', 'model'):
                 # They are actually the same thing just the model is not converted.
+                self.add_update(reference, value, UpdateType.UpdateComponentValue)
                 if isinstance(value, (int, float)):
                     value = format_eng(value)
                 start = match.start('value')
@@ -740,9 +759,13 @@ class SpiceCircuit(BaseEditor):
                         # remove those that must disappear
                         if key in params:
                             params.pop(key)
+                        update_type = UpdateType.DeleteComponentParameter
                     else:
                         # create or update
+                        update_type = UpdateType.UpdateComponentParameter if key in params else UpdateType.AddComponentParameter
                         params[key] = kvalue_str
+                    update_ref = reference + SUBCKT_DIVIDER + key
+                    self.add_update(update_ref, kvalue, update_type)
                 params_str = ' '.join([f'{key}={kvalue}' for key, kvalue in params.items()])
                 start = match.start('params')
                 end = match.end('params')
@@ -756,6 +779,7 @@ class SpiceCircuit(BaseEditor):
         :type create_blank: bool
         :returns: None
         """
+        super().reset_netlist()
         self.netlist.clear()
 
     def clone(self, **kwargs) -> 'SpiceCircuit':
@@ -767,7 +791,7 @@ class SpiceCircuit(BaseEditor):
         :return: The new replica of the SpiceCircuit object
         :rtype: SpiceCircuit
         """
-        clone = SpiceCircuit(self)
+        clone = SpiceCircuit(self.parent)
         clone.netlist = self.netlist.copy()
         clone.netlist.insert(0, "***** SpiceEditor Manipulated this sub-circuit ****" + END_LINE_TERM)
         clone.netlist.append("***** ENDS SpiceEditor ****" + END_LINE_TERM)
@@ -940,7 +964,7 @@ class SpiceCircuit(BaseEditor):
     def set_component_parameters(self, reference: str, **kwargs) -> None:
         # docstring inherited from BaseEditor
         if self.is_read_only():
-            raise ValueError("Editor is read-only")  
+            raise ValueError("Editor is read-only")
         self._set_component_attribute(reference, 'params', kwargs)
 
     def get_parameter(self, param: str) -> str:
@@ -983,8 +1007,9 @@ class SpiceCircuit(BaseEditor):
         :return: Nothing
         """
         if self.is_read_only():
-            raise ValueError("Editor is read-only")  
+            raise ValueError("Editor is read-only")
         param_line, match = self._get_param_named(param)
+        super().set_parameter(param, value)
         if isinstance(value, (int, float)):
             value_str = format_eng(value)
         else:
@@ -1050,7 +1075,8 @@ class SpiceCircuit(BaseEditor):
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
         if self.is_read_only():
-            raise ValueError("Editor is read-only")        
+            raise ValueError("Editor is read-only")
+        super().set_element_model(reference, model)
         self._set_component_attribute(reference, 'model', model)
 
     def get_component_value(self, reference: str) -> str:
@@ -1146,6 +1172,7 @@ class SpiceCircuit(BaseEditor):
         parameters = " ".join([f"{k}={v}" for k, v in component.attributes.items() if k != 'model'])
         component_line = f"{component.reference} {nodes} {model} {parameters}{END_LINE_TERM}"
         self.netlist.insert(line_no, component_line)
+        super().add_component(component.reference)
 
     def remove_component(self, designator: str) -> None:
         """
@@ -1159,9 +1186,10 @@ class SpiceCircuit(BaseEditor):
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
         if self.is_read_only():
-            raise ValueError("Editor is read-only")        
+            raise ValueError("Editor is read-only")
         line = self.get_line_starting_with(designator)
         self.netlist[line] = ''  # Blanks the line
+        super().remove_component(designator)
 
     @staticmethod
     def add_library_search_paths(*paths) -> None:
@@ -1203,7 +1231,7 @@ class SpiceCircuit(BaseEditor):
 
     def add_instruction(self, instruction: str) -> None:
         # docstring is in the parent class
-        pass
+        super().add_instruction(instruction)
 
     def remove_instruction(self, instruction: str) -> bool:
         # docstring is in the parent class
@@ -1267,8 +1295,8 @@ class SpiceCircuit(BaseEditor):
     def find_subckt_in_included_libs(self, subcircuit_name: str) -> Optional["SpiceCircuit"]:
         """Find the subcircuit in the list of libraries
 
-        :param subckt_name: sub-circuit to search for
-        :type subckt_name: str
+        :param subcircuit_name: sub-circuit to search for
+        :type subcircuit_name: str
         :return: Returns a SpiceCircuit instance with the sub-circuit found or None if not found
         :rtype: SpiceCircuit
         :meta private:
@@ -1350,6 +1378,7 @@ class SpiceEditor(SpiceCircuit):
         :type instruction: str
         :return: Nothing
         """
+        super().add_instruction(instruction)
         if not instruction.endswith(END_LINE_TERM):
             instruction += END_LINE_TERM
         if _is_unique_instruction(instruction):
@@ -1387,6 +1416,7 @@ class SpiceEditor(SpiceCircuit):
         if instruction in self.netlist:
             self.netlist.remove(instruction)
             _logger.info(f'Instruction "{instruction}" removed')
+            self.add_update('INSTRUCTION', instruction.strip(), UpdateType.DeleteInstruction)
             return True
         else:
             _logger.error(f'Instruction "{instruction}" not found.')
@@ -1399,9 +1429,10 @@ class SpiceEditor(SpiceCircuit):
         instr_removed = False
         while i < len(self.netlist):
             line = self.netlist[i]
-            if isinstance(line, str) and regex.match(line):
+            if isinstance(line, str) and (match := regex.match(line)):
                 del self.netlist[i]
                 instr_removed = True
+                self.add_update('INSTRUCTION', match.string.strip(), UpdateType.DeleteInstruction)
                 _logger.info(f'Instruction "{line}" removed')
             else:
                 i += 1

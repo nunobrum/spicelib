@@ -20,6 +20,8 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __version__ = "0.1.0"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
+import dataclasses
+import enum
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from math import floor, log
@@ -254,6 +256,31 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
+class UpdateType(enum.Enum):
+    """The UpdateType holds the information about what is being updated."""
+    InvalidUpdate = 0
+    UpdateParameter = enum.auto()
+    UpdateComponentValue = enum.auto()
+    UpdateComponentParameter = enum.auto()
+    DeleteParameter = enum.auto()
+    DeleteComponent = enum.auto()
+    DeleteComponentParameter = enum.auto()
+    DeleteInstruction = enum.auto()
+    AddParameter = enum.auto()
+    AddComponent = enum.auto()
+    AddComponentParameter = enum.auto()
+    AddInstruction = enum.auto()
+    CloneSubcircuit = enum.auto()
+
+
+@dataclasses.dataclass
+class Update:
+    """An object containing an update element."""
+    name: str
+    value: Union[str, int, float]
+    updates: UpdateType = UpdateType.InvalidUpdate
+
+
 class Primitive(object):
     """Holds the information of a primitive element in the netlist. This is a base class for the Component and is
     used to hold the information of the netlist primitives, such as .PARAM, .OPTIONS, .IC, .NODESET, .GLOBAL, etc.
@@ -382,13 +409,30 @@ class BaseEditor(ABC):
     :meta hide-value:
     """
 
+    def __init__(self):
+        """Initializing the list that contains all the modifications done to a netlist."""
+        self.netlist_updates: List[Update] = []
+
+    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+        for update in self.netlist_updates:
+            if (update.name == name and
+                    (name != "INSTRUCTION" or value == update.value) and  # if instruction then it should match
+                    (update.updates == updates or updates == UpdateType.InvalidUpdate)):
+                break
+        else:
+            update = Update(name, value, updates)
+            self.netlist_updates.append(update)
+        if updates != 0:
+            update.updates = updates
+        update.value = value
+        return update
+
     @property
     @abstractmethod
     def circuit_file(self) -> Path:
         """Returns the path of the circuit file."""
         ...
 
-    @abstractmethod
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
         Reverts all changes done to the netlist. If create_blank is set to True, then the netlist is blanked.
@@ -396,7 +440,7 @@ class BaseEditor(ABC):
         :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be
                              reset to the original state.
         """
-        ...
+        self.netlist_updates.clear()
 
     @abstractmethod
     def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
@@ -489,6 +533,7 @@ class BaseEditor(ABC):
         """
         ...        
 
+    @abstractmethod
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         """Adds a parameter to the SPICE netlist.
 
@@ -511,7 +556,7 @@ class BaseEditor(ABC):
 
         :return: Nothing
         """
-        ...
+        update = self.add_update(param, value, UpdateType.UpdateParameter)
 
     def set_parameters(self, **kwargs):
         """Adds one or more parameters to the netlist.
@@ -555,7 +600,7 @@ class BaseEditor(ABC):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        ...
+        self.add_update(device, value, UpdateType.UpdateComponentValue)
 
     @abstractmethod
     def set_element_model(self, element: str, model: str) -> None:
@@ -579,7 +624,7 @@ class BaseEditor(ABC):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        ...
+        self.add_update(element, model, UpdateType.UpdateComponentValue)
 
     @abstractmethod
     def set_component_parameters(self, element: str, **kwargs) -> None:
@@ -606,7 +651,9 @@ class BaseEditor(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
-        ...
+        for param, value in kwargs.items():
+            update_type = UpdateType.DeleteComponentParameter if value is None else UpdateType.UpdateComponentParameter
+            self.add_update(f"{element}:{param}", value, update_type)
 
     def set_component_attribute(self, reference: str, attribute: str, value: str) -> None:
         """Sets the value of the attribute of the component. Attributes are the values that are not related with
@@ -622,6 +669,7 @@ class BaseEditor(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - In case the component is not found
         """
+        self.add_update(reference, value, UpdateType.UpdateComponentParameter)
         self.get_component(reference).attributes[attribute] = value
 
     @abstractmethod
@@ -741,7 +789,7 @@ class BaseEditor(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
-        ...
+        self.add_update(designator, "delete", UpdateType.DeleteComponent)
 
     @abstractmethod
     def add_instruction(self, instruction: str) -> None:
@@ -762,7 +810,7 @@ class BaseEditor(ABC):
         :type instruction: str
         :return: Nothing
         """
-        ...
+        self.add_update("INSTRUCTION", instruction, UpdateType.AddInstruction)
 
     @abstractmethod
     def remove_instruction(self, instruction: str) -> bool:
@@ -785,7 +833,7 @@ class BaseEditor(ABC):
         :returns: True if the instruction was found and removed, False otherwise
         :rtype: bool        
         """
-        ...
+        self.add_update("INSTRUCTION", instruction, UpdateType.DeleteInstruction)
 
     @abstractmethod
     def remove_Xinstruction(self, search_pattern: str) -> bool:
