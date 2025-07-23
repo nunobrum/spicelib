@@ -155,7 +155,8 @@ class RawReader_Test(unittest.TestCase):
                 print(f"Testing {simulator} with file {file}")                    
                 raw = RawRead(f"{test_dir}{file}", dialect=dialect)
                 self.assertEqual(raw.dialect, simulator, "Difference in dialect")
-                
+                for p in ["Plotname", "Flags"]:
+                    print(f"{p}: {raw.get_raw_property(p)}")
                 print(f"tracenames: {raw.get_trace_names()}")
                 self.assertEqual(raw.get_trace_names(), testset[simulator]["ac"]["expected_tracenames"], "Difference in trace names")
                 tracelen = len(raw.get_trace("frequency").data)
@@ -202,7 +203,8 @@ class RawReader_Test(unittest.TestCase):
                 print(f"Testing {simulator} with file {file}")
                 raw = RawRead(f"{test_dir}{file}", dialect=dialect)
                 self.assertEqual(raw.dialect, simulator, "Difference in dialect")
-                
+                for p in ["Plotname", "Flags"]:
+                    print(f"{p}: {raw.get_raw_property(p)}")
                 print(f"tracenames: {raw.get_trace_names()}")
                 self.assertEqual(raw.get_trace_names(), testset[simulator]["tran"]["expected_tracenames"], "Difference in trace names")
                 tracelen = len(raw.get_trace("time").data)

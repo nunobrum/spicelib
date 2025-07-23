@@ -35,14 +35,14 @@ This section is written to help understand the why the structure of classes is d
 this section and get right down to business by seeing the examples section below.
 
 The RAW file starts with a text preamble that contains information about the names of the traces the order they
-appear on the binary part and some extra information.
+appear and some extra information.
 In the preamble, the lines are always started by one of the following identifiers:
 
    + Title:          => Contains the path of the source .asc file used to make the simulation preceded by *
 
    + Date:           => Date when the simulation started
 
-   + Plotname:       => Name of the simulation. The known Simulation Types are:
+   + Plotname:       => Name of the simulation. Some known Simulation Types are:
                        * Operation Point
                        * DC transfer characteristic
                        * AC Analysis
@@ -70,9 +70,15 @@ In the preamble, the lines are always started by one of the following identifier
 
    + Backannotation: => Backannotation alerts that occurred during simulation
 
-   + Variables:      => a list of variable, one per line as described below
+   + Variables:      => a list of variable, one per line. See section below for details.
 
-   + Binary:         => Start of the binary section. See section below for details.
+   + Binary|Values:  => Start of the trace section, resp. in binary form or ASCII form. See section below for details.
+   
+Multiple trace sets in one RAW file
+-----------------------------------
+
+When a simulation is run with multiple .STEP commands, it is possible to have multiple sets of traces in the same RAW file.
+In this case, the RAW file will contain separate sections for each set of traces, each with its own header and data, all tightly concatenated.
 
 Variables List
 --------------
@@ -107,10 +113,9 @@ Here is an example:
     19	Ix(u1:+)   subckt_current
     20	Ix(u1:-)   subckt_current
 
-Binary Section
+Trace Section
 --------------
-The binary section of .RAW file is where the data is usually written, unless the user had explicitly specified an ASCII
-representation. In this case this section is replaced with a "Values" section.
+The trace section of .RAW file is where the data is usually written. It is in binary format or in text format.
 Spice stores data directly onto the disk during simulation, writing per each time or frequency step the list of
 values, as exemplified below for a .TRAN simulation.
 
@@ -124,7 +129,7 @@ values, as exemplified below for a .TRAN simulation.
 
      <timestamp T><trace1 T><trace2 T><trace3 T>...<traceN T>
      
-Depending on the type of simulation the type of data changes.
+Depending on the type of simulation, and the configuration of the simulator, when using the binary format, the type of data changes.
 On TRAN simulations the timestamp is always stored as 8 bytes float (double) and trace values as 4 bytes (single).
 On AC simulations the data is stored in complex format, which includes a real part and an imaginary part, each with 8
 bytes.
@@ -134,7 +139,7 @@ the integer part.
 Fast Access
 -----------
 
-Once a simulation is done, the user can ask LTSpice to optimize the data structure in such that variables are stored
+Once a simulation is done, the user can ask the simulator to optimize the data structure in such that variables are stored
 contiguously as illustrated below.
 
      <timestamp 0><timestamp 1>...<timestamp T>
@@ -352,9 +357,13 @@ class RawRead(object):
     :param dialect: The simulator used. 
         Please use from ["ltspice","qspice","ngspice","xyce"]. If not specified, dialect will be auto detected. 
         This is likely only needed for older versions of ngspice and xyce. ltspice and qspice can reliably be auto detected.
-    :type dialect: str    
-    :key headeronly:
-        Used to only load the header information and skip the trace data entirely. Use `headeronly=True`.
+    :type dialect: str | None
+    :param headeronly:
+        Used to only load the header information and skip the trace data entirely. Defaults to False.
+    :type headeronly: bool
+    :param verbose:
+        If True, then the class will log debug information. Defaults to True.
+    :type verbose: bool
     """
     header_lines = (
         "Title",
@@ -370,23 +379,26 @@ class RawRead(object):
         "Backannotation"
     )
 
-    ACCEPTED_PLOTNAMES = (
-        'AC Analysis',
-        'DC transfer characteristic',
-        'Operating Point',
-        'Transient Analysis',
-        'Transfer Function',
-        'Noise Spectral Density',
-        'Frequency Response Analysis',
-    )
+    # ACCEPTED_PLOTNAMES = (
+    #     'AC Analysis',
+    #     'DC transfer characteristic',
+    #     'Operating Point',
+    #     'Transient Analysis',
+    #     'Transfer Function',
+    #     'Noise Spectral Density',
+    #     'Frequency Response Analysis',
+    #     'Noise Spectral Density Curves',
+    #     'Integrated Noise'
+    # )
 
-    def __init__(self, raw_filename: str, traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*', dialect: str = None, **kwargs):
-        self.dialect = None
+    def __init__(self, raw_filename: Union[str, Path], traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*', 
+                 dialect: str | None = None, headeronly: bool = False, verbose: bool = True):
         """The dialect of the spice file read. This is either set on init, or detected """
         
-        self.verbose = kwargs.get('verbose', True)
+        self.verbose = verbose
         
-        raw_filename = Path(raw_filename)
+        if isinstance(raw_filename, str):
+            raw_filename = Path(raw_filename)
         if traces_to_read is not None:
             assert isinstance(traces_to_read, (str, list, tuple)), "traces_to_read must be a string, a list or None"
 
@@ -406,8 +418,10 @@ class RawRead(object):
             raise RuntimeError("Unrecognized encoding")
         if self.verbose:
             _logger.debug(f"Reading the file with encoding: '{self.encoding}'")
+            
         # Storing the filename as part of the dictionary
-        self.raw_params = OrderedDict(Filename=raw_filename)  # Initializing the dict that contains all raw file info
+        self.raw_params = OrderedDict()
+        self.raw_params['Filename'] = raw_filename.as_posix()  # Initializing the dict that contains all raw file info
         self.backannotations = []  # Storing backannotations
         header = []
         binary_start = 6
@@ -418,7 +432,7 @@ class RawRead(object):
                 if self.encoding == 'utf_8':  # must remove the \r
                     line = line.rstrip('\r')
                 header.append(line)
-                if line in ('Binary:', 'Values:'):
+                if line.lower() in ('binary:', 'values:'):
                     self.raw_type = line
                     break
                 line = ""
@@ -441,20 +455,20 @@ class RawRead(object):
             else:
                 # This is the typical RAW style parameter format <param>: <value>
                 k, _, v = line.partition(':')
-                if k == 'Variables':
+                if k.lower() == 'variables':
                     break
-                self.raw_params[k] = v.strip()
+                self.raw_params[k.strip().title()] = v.strip()  # Store the parameter in the dictionary, in title case
         self.nPoints = int(self.raw_params['No. Points'], 10)
         self.nVariables = int(self.raw_params['No. Variables'], 10)
         if self.nPoints == 0 or self.nVariables == 0:
             raise RuntimeError(f"Invalid RAW file. No points or variables found: Points: {self.nPoints}, Variables: {self.nVariables}.")
 
-        has_axis = self.raw_params['Plotname'] not in ('Operating Point', 'Transfer Function',)
-        
+        has_axis = self.raw_params['Plotname'].lower() not in ('operating point', 'transfer function')
+
         # clean up given dialect
         if dialect is not None:
             if len(dialect) == 0:
-                dialect is None
+                dialect = None
             else:
                 dialect = dialect.lower()
                 # given info is correct?
@@ -516,12 +530,12 @@ class RawRead(object):
         self.steps = None
         self.axis = None  # Creating the axis
         self.flags = self.raw_params['Flags'].split()
-        if 'complex' in self.raw_params['Flags'] or self.raw_params['Plotname'] == 'AC Analysis':
+        if 'complex' in self.raw_params['Flags'].lower() or self.raw_params['Plotname'].lower() == 'ac analysis':
             numerical_type = 'complex'
         else:
             if always_double:  # qspice, ngspice and xyce use doubles for everything outside of AC
                 numerical_type = 'double'
-            elif "double" in self.raw_params['Flags']:  # LTspice: .options numdgt = 7 sets this flag for double precision
+            elif "double" in self.raw_params['Flags'].lower():  # LTspice: .options numdgt = 7 sets this flag for double precision
                 numerical_type = 'double'
             else:
                 numerical_type = 'real'
@@ -560,14 +574,16 @@ class RawRead(object):
             raw_file.close()
             return
 
-        if kwargs.get("headeronly", False):
+        if headeronly:
             raw_file.close()
             return
 
         if self.verbose:
             _logger.info(f"File contains {ivar} traces, reading {len([trace for trace in self._traces if not isinstance(trace, DummyTrace)])}.")
 
-        if self.raw_type == "Binary:":
+        # Now, we have the header read, and the traces created.
+        # We can now read the data section.
+        if self.raw_type.lower() == "binary:":
             # Will start the reading of binary values
             # But first check whether how data is stored.
             self.block_size = (raw_file_size - binary_start) // self.nPoints
@@ -608,21 +624,23 @@ class RawRead(object):
                     _logger.debug("Binary RAW file with Fast access")
                 # Fast access means that the traces are grouped together.
                 for i, var in enumerate(self._traces):
-                    if isinstance(var, DummyTrace):
-                        # TODO: replace this by a seek
-                        raw_file.read(self.nPoints * self.data_size)
+                    datasize = 8
+                    dtype = float64
+                    if var.numerical_type == 'double':
+                        datasize = 8
+                        dtype = float64
+                    elif var.numerical_type == 'complex':
+                        datasize = 16
+                        dtype = complex
+                    elif var.numerical_type == 'real':  # data size is only 4 bytes
+                        datasize = 4
+                        dtype = float32
                     else:
-                        if var.numerical_type == 'double':
-                            s = raw_file.read(self.nPoints * 8)
-                            var.data = frombuffer(s, dtype=float64)
-                        elif var.numerical_type == 'complex':
-                            s = raw_file.read(self.nPoints * 16)
-                            var.data = frombuffer(s, dtype=complex)
-                        elif var.numerical_type == 'real':
-                            s = raw_file.read(self.nPoints * 4)
-                            var.data = frombuffer(s, dtype=float32)
-                        else:
-                            raise RuntimeError(f"Invalid data type {var.numerical_type} for trace {var.name}")
+                        raise RuntimeError(f"Invalid data type {var.numerical_type} for trace {var.name}")
+                    
+                    s = raw_file.read(self.nPoints * datasize)
+                    if not isinstance(var, DummyTrace):
+                        var.data = frombuffer(s, dtype=dtype)
 
             else:
                 if self.verbose:
@@ -634,7 +652,7 @@ class RawRead(object):
                         if value is not None and not isinstance(var, DummyTrace):
                             var.data[point] = value
 
-        elif self.raw_type == "Values:":
+        elif self.raw_type.lower() == "values:":
             if self.verbose:
                 _logger.debug("ASCII RAW File")
             # Will start the reading of ASCII Values
@@ -684,7 +702,7 @@ class RawRead(object):
                 i += 1
 
         # Finally, Check for Step Information
-        if "stepped" in self.raw_params["Flags"]:
+        if "stepped" in self.raw_params["Flags"].lower():
             try:
                 self._load_step_information(raw_filename)
             except SpiceReadException as err:
@@ -714,10 +732,11 @@ class RawRead(object):
         :rtype: str
         :raises: ValueError if the property doesn't exist
         """
+        # the property name is case-insensitive, but the keys are stored in title case.
         if property_name is None:
             return self.raw_params
-        elif property_name in self.raw_params.keys():
-            return self.raw_params[property_name]
+        elif property_name.title() in self.raw_params.keys():
+            return self.raw_params[property_name.title()]
         else:
             raise ValueError("Invalid property. Use %s" % str(self.raw_params.keys()))
 
