@@ -222,7 +222,7 @@ class XyceSimulator(Simulator):
     @classmethod
     def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, 
             stdout=None, stderr=None,
-            exe_log: bool = False) -> int:
+            cwd=None, exe_log: bool = False) -> int:
         """Executes a Xyce simulation run.
         
         A raw file and a log file will be generated, with the same name as the netlist file, 
@@ -270,7 +270,7 @@ class XyceSimulator(Simulator):
         if exe_log:
             log_exe_file = netlist_file.with_suffix('.exe.log')
             with open(log_exe_file, "w") as outfile:
-                error = run_function(cmd_run, timeout=timeout, stdout=outfile, stderr=subprocess.STDOUT)
+                error = run_function(cmd_run, timeout=timeout, stdout=outfile, stderr=subprocess.STDOUT, cwd=cwd)
         else:        
-            error = run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
+            error = run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr, cwd=cwd)
         return error

@@ -31,10 +31,11 @@ import shlex
 
 _logger = logging.getLogger("spicelib.Simulator")
 
-def run_function(command, timeout=None, stdout=None, stderr=None):
+
+def run_function(command, timeout=None, stdout=None, stderr=None, cwd=None):
     """Normalizing OS subprocess function calls between different platforms."""
     _logger.debug(f"Running command: {command}, with timeout: {timeout}")
-    result = subprocess.run(command, timeout=timeout, stdout=stdout, stderr=stderr)
+    result = subprocess.run(command, timeout=timeout, stdout=stdout, stderr=stderr, cwd=cwd)
     return result.returncode
 
 
@@ -74,10 +75,10 @@ class Simulator(ABC):
     .. code-block:: python
         
         @classmethod
-        def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None):
+        def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None, cwd=None, exe_log: bool = False) -> int:
             '''This method implements the call for the simulation of the netlist file. '''
             cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + [netlist_file] + cmd_line_switches
-            return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
+            return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr, cwd=cwd)
 
 
     The ``run_function()`` can be imported from the simulator.py with
@@ -133,8 +134,8 @@ class Simulator(ABC):
                 if len(exe_parts) > 0:
                     plib_path_to_exe = Path(exe_parts[0])
                     exe_parts[0] = plib_path_to_exe.as_posix()
-                
-        if plib_path_to_exe.exists() or shutil.which(plib_path_to_exe):
+          
+        if plib_path_to_exe is not None and (plib_path_to_exe.exists() or shutil.which(plib_path_to_exe)):
             if process_name is None:
                 cls.process_name = cls.guess_process_name(exe_parts[0])
             else:
@@ -164,7 +165,7 @@ class Simulator(ABC):
     @classmethod
     @abstractmethod
     def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None,
-            stdout=None, stderr=None, exe_log: bool = False) -> int:
+            stdout=None, stderr=None, cwd=None, exe_log: bool = False) -> int:
         """This method implements the call for the simulation of the netlist file. This should be overriden by its
         subclass."""
         raise SpiceSimulatorError("This class should be subclassed and this function should be overridden.")
