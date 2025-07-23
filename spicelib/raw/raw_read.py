@@ -392,7 +392,7 @@ class RawRead(object):
     # )
 
     def __init__(self, raw_filename: Union[str, Path], traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*', 
-                 dialect: str | None = None, headeronly: bool = False, verbose: bool = True):
+                 dialect: Union[str, None] = None, headeronly: bool = False, verbose: bool = True):
         """The dialect of the spice file read. This is either set on init, or detected """
         
         self.verbose = verbose
