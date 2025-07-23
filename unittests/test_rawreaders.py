@@ -59,7 +59,16 @@ spicelib.set_log_level(logging.INFO)
 
 # commands used to generate the raw files:
 #
-# (TODO: add ltspice commands)
+# LTspice.exe -Run -b ac_rawtest.net
+# cp ac_rawtest.raw ac_ltspice.bin.raw
+# LTspice.exe -ascii -Run -b ac_rawtest.net
+# cp ac_rawtest.raw ac_ltspice.ascii.raw
+# LTspice.exe -Run -b tran_rawtest.net
+# cp tran_rawtest.raw tran_ltspice.bin.raw
+# LTspice.exe -ascii -Run -b tran_rawtest.net
+# cp tran_rawtest.raw tran_ltspice.ascii.raw
+# cp tran_ltspice.bin.raw tran_ltspice.fast.bin.raw
+# LTspice.exe -fastaccess tran_ltspice.fast.bin.raw
 #
 # ngspice -D ngbehavior=kiltspa -b -o ac_ngspice.log -r ac_ngspice.bin.raw ac_rawtest.net
 # ngspice -D ngbehavior=kiltspa -D filetype=ascii -b -o ac_ngspice.log -r ac_ngspice.ascii.raw ac_rawtest.net
@@ -76,6 +85,9 @@ spicelib.set_log_level(logging.INFO)
 # c:\"Program Files"\QSPICE\QSPICE64.exe -binary -r tran_qspice.bin.qraw -o tran_rawtest.log tran_rawtest.net
 # c:\"Program Files"\QSPICE\QSPICE64.exe -ascii -r tran_qspice.ascii.qraw -o tran_rawtest.log tran_rawtest.net
 
+# Stepped files are tested in test_spicelib and test_qspice_rawread.py
+
+
 expected_ac_range = (1, 100000)
 expected_time_range = (0, 5e-3)
 R1 = 1000
@@ -89,9 +101,9 @@ testset = {
             "expected_tracelen": 51
         },
         "tran": {
-            "files": ["tran_ltspice.bin.raw", "tran_ltspice.ascii.raw"],
+            "files": ["tran_ltspice.bin.raw", "tran_ltspice.ascii.raw", "tran_ltspice.fast.bin.raw"],
             "expected_tracenames": ["time", "V(out)", "V(in)", "I(Vin)", "I(C1)", "I(R1)"],
-            "expected_tracelen": [23, 1049]
+            "expected_tracelen": [21, 1049, 21] 
         },        
     },
     "ngspice": {
