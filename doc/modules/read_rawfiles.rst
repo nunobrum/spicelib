@@ -36,6 +36,9 @@ Now that you have lists with the times and corresponding values, you can plot th
 
 Note that all the data will be returned as numpy arrays.
 
+It is possible to read multiple plots from a single .RAW file (one at a time). This is useful when the file 
+contains different simulation results, such as integrated noise. See the `plot_nr` parameter.
+
 See the class documentation for more details :
 
 - :py:class:`spicelib.RawRead`

@@ -1008,11 +1008,12 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.5
+    * Fixing Issue #218 - Allow reading of multiple plots from 1 raw file
     * Fixing Issue #214 - Netlist concatenations are badly interpreted
     * Fixing Issue #213 - Add support for Verilog A elements
     * Fixing Issue #211 - Case sensitive on the rename_format argument on RawWrite.add_traces_from_raw()
     * Replacing outdated mail
-    *  Implemented in SpiceEditor a dictionary containing all the updates. Used to implement the next point:
+    * Implemented in SpiceEditor a dictionary containing all the updates. Used to implement the next point:
     * TODO: Implemented a method in SimRunner that writes into a new RAW file a list of traces from all previous run
 * Version 1.4.4
     * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine
