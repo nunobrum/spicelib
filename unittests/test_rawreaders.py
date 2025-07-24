@@ -53,9 +53,11 @@ temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else '.
 if not os.path.exists(temp_dir):
     os.mkdir(temp_dir)
 
-
 # set the logger to print to console and at info level
-spicelib.set_log_level(logging.INFO)
+loglevel = logging.DEBUG
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=loglevel)
+spicelib.set_log_level(loglevel)
 
 # commands used to generate the raw files:
 #
@@ -172,7 +174,7 @@ class RawReader_Test(unittest.TestCase):
                 print(f"tracenames: {raw.get_trace_names()}")
                 self.assertEqual(raw.get_trace_names(), testset[simulator]["ac"]["expected_tracenames"], "Difference in trace names")
                 tracelen = len(raw.get_trace("frequency").data)
-                print(f"tracelen: {tracelen}")
+                print(f"tracelen, for frequency: {tracelen}")
                 self.assertEqual(tracelen, testset[simulator]["ac"]["expected_tracelen"], "Not the expected number of points")
                 self.assertEqual(tracelen, len(raw.axis), "Not the expected number of points on the axis")
                 freqrange = (int(abs(raw.get_trace("frequency").data[0])), int(abs(raw.get_trace("frequency").data[tracelen - 1])))                
@@ -202,9 +204,9 @@ class RawReader_Test(unittest.TestCase):
                 test_name = "i(r1)"
                 if test_name in (name.lower() for name in raw.get_trace_names()):
                     tracelen = len(raw.get_trace(test_name).data)
-                    print(f"tracelen, alt: {tracelen}")
-                    self.assertEqual(tracelen, testset[simulator]["ac"]["expected_tracelen"], "Not the expected number of points for alternative trace")
-                    
+                    print(f"tracelen, for {test_name}: {tracelen}")
+                    self.assertEqual(tracelen, testset[simulator]["ac"]["expected_tracelen"], f"Not the expected number of points for trace {test_name}")
+
     def test_rawreaders_tran(self):
         for simulator in testset:
             dialect = None
@@ -220,7 +222,7 @@ class RawReader_Test(unittest.TestCase):
                 print(f"tracenames: {raw.get_trace_names()}")
                 self.assertEqual(raw.get_trace_names(), testset[simulator]["tran"]["expected_tracenames"], "Difference in trace names")
                 tracelen = len(raw.get_trace("time").data)
-                print(f"tracelen: {tracelen}")
+                print(f"tracelen, for time: {tracelen}")
                 expected_tracelen = testset[simulator]["tran"]["expected_tracelen"]
                 if isinstance(expected_tracelen, int):
                     self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
@@ -266,12 +268,12 @@ class RawReader_Test(unittest.TestCase):
                 test_name = "i(r1)"
                 if test_name in (name.lower() for name in raw.get_trace_names()):
                     tracelen = len(raw.get_trace(test_name).data)
-                    print(f"tracelen, alt: {tracelen}")
+                    print(f"tracelen, for {test_name}: {tracelen}")
                     expected_tracelen = testset[simulator]["tran"]["expected_tracelen"]
                     if isinstance(expected_tracelen, int):
-                        self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points for alternative trace")
+                        self.assertEqual(tracelen, expected_tracelen, f"Not the expected number of points for trace {test_name}")
                     else:
-                        self.assertEqual(tracelen, expected_tracelen[fileno], "Not the expected number of points for alternative trace")
+                        self.assertEqual(tracelen, expected_tracelen[fileno], f"Not the expected number of points for trace {test_name}")
 
                 fileno += 1
                 
