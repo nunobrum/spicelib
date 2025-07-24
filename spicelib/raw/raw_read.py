@@ -231,6 +231,11 @@ import logging
 import re
 _logger = logging.getLogger("spicelib.RawRead")
 
+# Constants
+MIN_BYTES_IN_FILE = 20
+
+# helper functions
+
 
 def read_float64(f):
     """
@@ -405,6 +410,39 @@ class RawRead(object):
                  verbose: bool = True):
         """Initializes the RawRead object and reads the RAW file."""
         
+        # Initialize and type the instance variables, for the documentation
+        self.encoding: str = ""
+        """The encoding of the RAW file, either 'utf_8' or 'utf_16_le'
+        """
+        
+        self.nVariables: int = 0
+        """Number of variables in the RAW file
+        """
+        
+        self.nPoints: int = 0
+        """Number of points in the RAW file
+        """
+        
+        self.dialect: Union[str, None] = None
+        """The dialect of the RAW file, either 'ltspice', 'qspice', 'ngspice' or 'xyce'
+        """
+        
+        self.plot_nr: int = 0
+        """The plot number that is read.
+        """        
+        
+        self.raw_type: str = ""
+        """The type of the RAW file, either 'binary' or 'ascii'
+        """
+        
+        self.aliases: Dict[str, str] = {}
+        """QSpice defines aliases for some of the traces that can be computed from other traces.
+        """
+        
+        self.backannotations: List[str] = []
+        """List to store the backannotations found in the RAW file header
+        """
+            
         # Validate input parameters
         if isinstance(raw_filename, str):
             raw_filename = Path(raw_filename)
@@ -436,6 +474,13 @@ class RawRead(object):
                 self._read_raw_file(raw_file, raw_filename, traces_to_read, dialect, headeronly, verbose, skip_data)
         finally:
             raw_file.close()
+
+    def _get_remaining_bytes(self, raw_file) -> int:
+        current_pos = raw_file.tell()
+        raw_file.seek(0, os.SEEK_END)
+        bytes_remaining = raw_file.tell() - current_pos
+        raw_file.seek(current_pos)
+        return bytes_remaining
 
     def _read_raw_file(self, raw_file, 
                        raw_filename: Path, 
@@ -479,28 +524,49 @@ class RawRead(object):
         self.steps = None
         self.axis = None  # Creating the axis
         self.flags = []
-        
+
+        plotinfo = f"Plot nr {self.plot_nr}"
+        if skip_data:
+            plotinfo += " (skipping)"
+        else:
+            plotinfo += " (reading)"
+        plotinfo += ":"
+
+        # Check how many bytes are still available in the file
+        bytes_remaining = self._get_remaining_bytes(raw_file)
+        if self.verbose:
+            _logger.debug(f"{plotinfo} {bytes_remaining} bytes remaining in file.")
+        if bytes_remaining < MIN_BYTES_IN_FILE:
+            _logger.warning(f"{plotinfo} Not enough bytes remaining in file. The plot does not exist.")
+            raise SpiceReadException(f"Invalid RAW file. {plotinfo} Not enough bytes remaining in file. The plot does not exist.")
+    
         # Detect the encoding of the file
-        ch = raw_file.read(6)
-        if ch.decode(encoding='utf_8') == 'Title:':
+        raw_line = raw_file.read(6)
+        line = raw_line.decode(encoding='utf_8')
+        self.encoding = ""
+        sz_enc = 1
+        if line == 'Title:' or line == '\nTitle':
             self.encoding = 'utf_8'
             sz_enc = 1
-            line = 'Title:'
-        elif ch.decode(encoding='utf_16_le') == 'Tit':
-            self.encoding = 'utf_16_le'
-            sz_enc = 2
-            line = 'Tit'
+            line = line.strip()
         else:
-            raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}: Unrecognized encoding")
+            line = raw_line.decode(encoding='utf_16_le')
+            if line == 'Tit' or line == '\nTi':
+                self.encoding = 'utf_16_le'
+                sz_enc = 2
+                line = line.strip()
+        if len(self.encoding) == 0:
+            raise SpiceReadException(f"Invalid RAW file. {plotinfo} Unrecognized encoding. Read '{raw_line}'")
         if self.verbose:
-            _logger.debug(f"Plot nr {self.plot_nr}: Reading the file with encoding: '{self.encoding}'")
+            _logger.debug(f"{plotinfo} Reading the file with encoding: '{self.encoding}'")
             
         header = []
         while True:
             ch = raw_file.read(sz_enc).decode(encoding=self.encoding, errors='replace')
             if ch == '\n':
-                if self.encoding == 'utf_8':  # must remove the \r
-                    line = line.rstrip('\r')
+                # read one line. must remove the \r
+                # if self.encoding == 'utf_8':  # no idea why utf_16_le would not need that, but this 'if' was here
+                line = line.rstrip('\r')
                 header.append(line)
                 if line.lower() in ('binary:', 'values:'):
                     self.raw_type = line
@@ -530,7 +596,7 @@ class RawRead(object):
         self.nPoints = int(self.raw_params['No. Points'], 10)
         self.nVariables = int(self.raw_params['No. Variables'], 10)
         if self.nPoints == 0 or self.nVariables == 0:
-            raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}: No points or variables found: Points: {self.nPoints}, Variables: {self.nVariables}.")
+            raise SpiceReadException(f"Invalid RAW file. {plotinfo} No points or variables found: Points: {self.nPoints}, Variables: {self.nVariables}.")
 
         has_axis = self.raw_params['Plotname'].lower() not in ('operating point', 'transfer function')
                         
@@ -546,14 +612,14 @@ class RawRead(object):
                 # binary types: always double for time, complex for AC
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"Plot nr {self.plot_nr}: Dialect is ambiguous: '{self.raw_params['Command']}'. Using qspice.")
+                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self.raw_params['Command']}'. Using qspice.")
                 autodetected_dialect = 'qspice'
             if 'ngspice' in self.raw_params['Command'].lower():
                 # Can only be auto detected from ngspice 44 on, as before there was no "Command:" 
                 # binary types: always double for time, complex for AC
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"Plot nr {self.plot_nr}: Dialect is ambiguous: '{self.raw_params['Command']}'. Using ngspice.")
+                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self.raw_params['Command']}'. Using ngspice.")
                 autodetected_dialect = 'ngspice'
             if 'xyce' in self.raw_params['Command'].lower():
                 # Cannot be auto detected yet (at least not on 7.9, where there is no "Command:")
@@ -562,20 +628,20 @@ class RawRead(object):
                 #  and potentially a text (csv) section that follows, that can be ignored.
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"Plot nr {self.plot_nr}: Dialect is ambiguous: '{self.raw_params['Command']}'. Using xyce.")
+                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self.raw_params['Command']}'. Using xyce.")
                 autodetected_dialect = 'xyce'
         
         if dialect:
             if autodetected_dialect is not None:
                 if dialect != autodetected_dialect:
-                    _logger.warning(f"Plot nr {self.plot_nr}: Dialect specified as {dialect}, but the file seems to be from {autodetected_dialect}. Trying to read it anyway.")
+                    _logger.warning(f"{plotinfo} Dialect specified as {dialect}, but the file seems to be from {autodetected_dialect}. Trying to read it anyway.")
         else:
             # no dialect given. Take the autodetected version
             dialect = autodetected_dialect
 
         # Do I have something?
         if not dialect:
-            raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}: file dialect is not specified and could not be auto detected.")
+            raise SpiceReadException(f"Invalid RAW file. {plotinfo} file dialect is not specified and could not be auto detected.")
 
         # and tell the outside world
         self.dialect = dialect
@@ -602,7 +668,7 @@ class RawRead(object):
         for line in header[i + 1:-1]:  # Parse the variable names
             line_elmts = line.lstrip().split('\t')
             if len(line_elmts) < 3:
-                raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}: Invalid line in the Variables section: {line}")
+                raise SpiceReadException(f"Invalid RAW file. {plotinfo} Invalid line in the Variables section: {line}")
             name = line_elmts[1]
             var_type = line_elmts[2]
             if ivar == 0:  # If it has an axis, it should be always read
@@ -631,13 +697,16 @@ class RawRead(object):
         if not skip_data:
             if traces_to_read is None or len(self._traces) == 0:
                 # The read is stopped here if there is nothing to read.
+                # I don't care about any remaining bytes, so I don't report them
                 return
 
             if headeronly:
+                # I don't care about any remaining bytes, so I don't report them
                 return
 
         if self.verbose:
-            _logger.info(f"Plot nr {self.plot_nr}: File contains {ivar} traces, reading {len([trace for trace in self._traces if not isinstance(trace, DummyTrace)])}.")
+            nr_traces_to_read = len([trace for trace in self._traces if not isinstance(trace, DummyTrace)])
+            _logger.info(f"{plotinfo} Plot is of type '{self.get_plot_name()}' and contains {ivar} traces, reading {nr_traces_to_read}.")
 
         # Now, we have the header read, and the traces created.
         # We can now read the data section.
@@ -646,7 +715,7 @@ class RawRead(object):
             
             if "fastaccess" in self.raw_params["Flags"]:
                 if self.verbose:
-                    _logger.debug(f"Plot nr {self.plot_nr}: Binary RAW file with Fast access")
+                    _logger.debug(f"{plotinfo} Binary RAW file with Fast access")
                 # Fast access means that the traces are grouped together.
                 for i, var in enumerate(self._traces):
                     datasize = 8
@@ -661,7 +730,7 @@ class RawRead(object):
                         datasize = 4
                         dtype = float32
                     else:
-                        raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}: Invalid data type {var.numerical_type} for trace {var.name}")
+                        raise SpiceReadException(f"Invalid RAW file. {plotinfo} Invalid data type {var.numerical_type} for trace {var.name}")
                     
                     s = raw_file.read(self.nPoints * datasize)
                     if not isinstance(var, DummyTrace):
@@ -669,7 +738,7 @@ class RawRead(object):
 
             else:
                 if self.verbose:
-                    _logger.debug(f"Plot nr {self.plot_nr}: Binary RAW file with Normal access")
+                    _logger.debug(f"{plotinfo} Binary RAW file with Normal access")
                 scan_functions = []
                 for trace in self._traces:
                     if trace.numerical_type == 'double':
@@ -689,7 +758,7 @@ class RawRead(object):
                             fun = read_float32
                     else:
                         raise SpiceReadException(
-                            f"Invalid RAW file. Plot nr {self.plot_nr}: Invalid data type {trace.numerical_type} for trace {trace.name}")
+                            f"Invalid RAW file. {plotinfo} Invalid data type {trace.numerical_type} for trace {trace.name}")
                     scan_functions.append(fun)
                     
                 # This is the default save after a simulation where the traces are scattered
@@ -701,21 +770,21 @@ class RawRead(object):
 
         elif self.raw_type.lower() == "values:":
             if self.verbose:
-                _logger.debug(f"Plot nr {self.plot_nr}: ASCII RAW File")
+                _logger.debug(f"{plotinfo} ASCII RAW File")
             # Will start the reading of ASCII Values
             for point in range(self.nPoints):
                 line_nr = 0
                 while line_nr < len(self._traces):
                     line = raw_file.readline().decode(encoding=self.encoding, errors='ignore')
                     if len(line) == 0:
-                        raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}: Invalid data: end of file encountered too early")
+                        raise SpiceReadException(f"Invalid RAW file. {plotinfo} Invalid data: end of file encountered too early")
                     if len(line.strip()) == 0:
                         continue  # skip empty lines
                     if line_nr == 0:
                         s_point = line.split("\t", 1)[0]
 
                         if point != int(s_point):
-                            raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}:Invalid data: point is not in sequence ({point} != {int(s_point)})")
+                            raise SpiceReadException(f"Invalid RAW file. {plotinfo}Invalid data: point is not in sequence ({point} != {int(s_point)})")
                         value = line[len(s_point):-1]
                     else:
                         value = line[:-1]
@@ -725,13 +794,13 @@ class RawRead(object):
                         if var.numerical_type == 'complex':
                             v = value.split(',')
                             if len(v) != 2:
-                                raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}:Invalid data for trace {var.name}: {value} is not a complex value")
+                                raise SpiceReadException(f"Invalid RAW file. {plotinfo}Invalid data for trace {var.name}: {value} is not a complex value")
                             var.data[point] = complex(float(v[0]), float(v[1]))
                         else:
                             var.data[point] = float(value)
                     line_nr += 1
         else:
-            raise SpiceReadException(f"Invalid RAW file. Plot nr {self.plot_nr}: Unsupported RAW type \"{self.raw_type}\"")
+            raise SpiceReadException(f"Invalid RAW file. {plotinfo} Unsupported RAW type \"{self.raw_type}\"")
 
         # Setting the properties in the proper format
         self.raw_params["Variables"] = [var.name for var in self._traces]
@@ -745,13 +814,14 @@ class RawRead(object):
 
         # Finally, Check for Step Information
         if skip_data:
+            # this also doesn't print remaining bytes, as I will be coming back to this file later
             return
         
         if "stepped" in self.raw_params["Flags"].lower():
             try:
-                self._load_step_information(raw_filename)
+                self._load_step_information(raw_filename, plotinfo)
             except SpiceReadException as err:
-                _logger.warning(f"Plot nr {self.plot_nr}: {str(err)}\nError in auto-detecting steps in '{raw_filename}'")
+                _logger.warning(f"{plotinfo} {str(err)}\nError in auto-detecting steps in '{raw_filename}'")
                 if has_axis:
                     number_of_steps = 0
                     for v in self.axis.data:
@@ -766,6 +836,11 @@ class RawRead(object):
                     # Individual access to the Trace Classes, this information is stored in the Axis
                     # which is always in position 0
                     self._traces[0]._set_steps(self.steps)
+        
+        # and report remaining bytes
+        if self.verbose:
+            bytes_remaining = self._get_remaining_bytes(raw_file)
+            _logger.debug(f"{plotinfo} {bytes_remaining} bytes remain in file after this plot.")
 
     def get_raw_property(self, property_name=None) -> Union[str, Dict[str, str]]:
         """
@@ -785,9 +860,18 @@ class RawRead(object):
         else:
             raise ValueError("Invalid property. Use %s" % str(self.raw_params.keys()))
 
-    def plotName(self) -> Union[str, None]:
+    def get_plot_name(self) -> Union[str, None]:
         """
-        Returns the plot name of the RAW file.
+        Returns the type of the plot read from the RAW file. Some examples:
+        * 'AC Analysis',
+        * 'DC transfer characteristic',
+        * 'Operating Point',
+        * 'Transient Analysis',
+        * 'Transfer Function',
+        * 'Noise Spectral Density',
+        * 'Frequency Response Analysis',
+        * 'Noise Spectral Density Curves',
+        * 'Integrated Noise'
 
         :return: plot name
         :rtype: str | None
@@ -798,7 +882,7 @@ class RawRead(object):
         else:
             return None
 
-    def get_trace_names(self):
+    def get_trace_names(self) -> List[str]:
         """
         Returns a list of exiting trace names of the RAW file.
 
@@ -915,7 +999,7 @@ class RawRead(object):
         """
         return self.axis.get_len(step)
 
-    def _load_step_information(self, filename: Path):
+    def _load_step_information(self, filename: Path, plotinfo: str):
         if 'Command' not in self.raw_params:
             # probably ngspice before v44 or xyce. And anyway, ngspice does not support the '.step' directive
             # FYI: ngspice can do something like .step via a control section with while loop.
@@ -972,7 +1056,7 @@ class RawRead(object):
                     step_dict = {}
                     step = int(match.group(1))
                     stepset = match.group(2)
-                    _logger.debug(f"Plot nr {self.plot_nr}: Found step {step} with stepset {stepset}.")
+                    _logger.debug(f"{plotinfo} Found step {step} with stepset {stepset}.")
 
                     tokens = stepset.strip('\r\n').split(' ')
                     for tok in tokens:
