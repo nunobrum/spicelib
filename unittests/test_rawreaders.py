@@ -237,7 +237,7 @@ class RawReader_Test(unittest.TestCase):
                         print(f"Expected plot: {expected_plotname}, tracenames: {expected_tracenames}, tracelen: {expected_tracelen}")
                         plotnr += 1
                         
-                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_nr=plotnr)
+                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_to_read=plotnr)
                         self.assertEqual(raw.dialect, simulator, "Difference in dialect")
                         self.assertEqual(raw.get_plot_name(), expected_plotname, "Difference in plot name")
                         for p in ["Flags"]:
@@ -318,7 +318,7 @@ class RawReader_Test(unittest.TestCase):
                         print(f"Expected plot: {expected_plotname}, tracenames: {expected_tracenames}, tracelen: {expected_tracelen}")
                         plotnr += 1
                         
-                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_nr=plotnr)
+                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_to_read=plotnr)
                         self.assertEqual(raw.dialect, simulator, "Difference in dialect")
                         self.assertEqual(raw.get_plot_name(), expected_plotname, "Difference in plot name")
                         for p in ["Flags"]:
@@ -409,7 +409,7 @@ class RawReader_Test(unittest.TestCase):
                         print(f"Expected plot: {expected_plotname}, tracenames: {expected_tracenames}, tracelen: {expected_tracelen}")
                         plotnr += 1
                         
-                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_nr=plotnr)
+                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_to_read=plotnr)
                         self.assertEqual(raw.dialect, simulator, "Difference in dialect")
                         self.assertEqual(raw.get_plot_name(), expected_plotname, "Difference in plot name")
                         for p in ["Flags"]:

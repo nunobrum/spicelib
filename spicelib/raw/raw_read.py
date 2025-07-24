@@ -359,10 +359,10 @@ class RawRead(object):
         A string or a list containing the list of traces to be read. If None is provided, only the header is read and
         all trace data is discarded. If a '*' wildcard is given or no parameter at all then all traces are read.
     :type traces_to_read: str, list or tuple
-    :param plot_nr:
+    :param plot_to_read:
         The plot number to read. If the RAW file contains multiple plots, this parameter can be used to select
         which plot to read. Defaults to 1.
-    :type plot_nr: int
+    :type plot_to_read: int
     :param dialect: The simulator used. 
         Please use from ["ltspice","qspice","ngspice","xyce"]. If not specified, dialect will be auto detected. 
         This is likely only needed for older versions of ngspice and xyce. ltspice and qspice can reliably be auto detected.
@@ -404,7 +404,7 @@ class RawRead(object):
     def __init__(self, 
                  raw_filename: Union[str, Path], 
                  traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*', 
-                 plot_nr: int = 1,
+                 plot_to_read: int = 1,
                  dialect: Union[str, None] = None, 
                  headeronly: bool = False, 
                  verbose: bool = True):
@@ -466,17 +466,17 @@ class RawRead(object):
                     raise ValueError(f"Invalid RAW file dialect: '{dialect}', must be one of 'ltspice', 'qspice', 'ngspice', 'xyce'.")
             
         raw_file = open(raw_filename, "rb")
-        if plot_nr < 1:
-            plot_nr = 1
+        if plot_to_read < 1:
+            plot_to_read = 1
             
         self._has_more_plots = False
         
         # read the contents of the file
         self.plot_nr = 0
         try:
-            while (self.plot_nr < plot_nr):
+            while (self.plot_nr < plot_to_read):
                 self.plot_nr += 1
-                skip_data = self.plot_nr < plot_nr
+                skip_data = self.plot_nr < plot_to_read
                 
                 self._read_raw_file(raw_file, raw_filename, traces_to_read, dialect, headeronly, verbose, skip_data)
         finally:
