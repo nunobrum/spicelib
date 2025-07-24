@@ -442,6 +442,11 @@ class RawRead(object):
         self.backannotations: List[str] = []
         """List to store the backannotations found in the RAW file header
         """
+        
+        self.has_axis: bool = True
+        """Indicates if the RAW file has an axis.
+        
+        This is True for all RAW file plots except for 'Operating Point', 'Transfer Function', and 'Integrated Noise'."""
             
         # Validate input parameters
         if isinstance(raw_filename, str):
@@ -462,7 +467,9 @@ class RawRead(object):
             
         raw_file = open(raw_filename, "rb")
         if plot_nr < 1:
-            plot_nr = 1        
+            plot_nr = 1
+            
+        self._has_more_plots = False
         
         # read the contents of the file
         self.plot_nr = 0
@@ -524,12 +531,11 @@ class RawRead(object):
         self.steps = None
         self.axis = None  # Creating the axis
         self.flags = []
+        self.has_axis = True  # Indicates if the RAW file has an axis.
 
         plotinfo = f"Plot nr {self.plot_nr}"
         if skip_data:
             plotinfo += " (skipping)"
-        else:
-            plotinfo += " (reading)"
         plotinfo += ":"
 
         # Check how many bytes are still available in the file
@@ -598,7 +604,7 @@ class RawRead(object):
         if self.nPoints == 0 or self.nVariables == 0:
             raise SpiceReadException(f"Invalid RAW file. {plotinfo} No points or variables found: Points: {self.nPoints}, Variables: {self.nVariables}.")
 
-        has_axis = self.raw_params['Plotname'].lower() not in ('operating point', 'transfer function')
+        self.has_axis = self.raw_params['Plotname'].lower() not in ('operating point', 'transfer function', 'integrated noise')
                         
         # autodetect the dialect. This is not always possible
         autodetected_dialect = None
@@ -682,7 +688,7 @@ class RawRead(object):
                 self.axis = Axis(name, var_type, self.nPoints, axis_numerical_type)
                 trace = self.axis
             elif not skip_data and ((traces_to_read == "*") or (name in traces_to_read)):
-                if has_axis:  # Reads data
+                if self.has_axis:  # Reads data
                     trace = TraceRead(name, var_type, self.nPoints, self.axis, numerical_type)
                 else:
                     # If an Operation Point or Transfer Function, only one point per step
@@ -698,15 +704,17 @@ class RawRead(object):
             if traces_to_read is None or len(self._traces) == 0:
                 # The read is stopped here if there is nothing to read.
                 # I don't care about any remaining bytes, so I don't report them
+                self._has_more_plots = False  # as I don't know if there is more.
                 return
 
             if headeronly:
                 # I don't care about any remaining bytes, so I don't report them
+                self._has_more_plots = False  # as I don't know if there is more.
                 return
 
         if self.verbose:
             nr_traces_to_read = len([trace for trace in self._traces if not isinstance(trace, DummyTrace)])
-            _logger.info(f"{plotinfo} Plot is of type '{self.get_plot_name()}' and contains {ivar} traces, reading {nr_traces_to_read}.")
+            _logger.info(f"{plotinfo} Plot is of type '{self.get_plot_name()}', contains {ivar} traces with {self.nPoints} points, reading {nr_traces_to_read} traces.")
 
         # Now, we have the header read, and the traces created.
         # We can now read the data section.
@@ -814,7 +822,7 @@ class RawRead(object):
 
         # Finally, Check for Step Information
         if skip_data:
-            # this also doesn't print remaining bytes, as I will be coming back to this file later
+            # this also doesn't print remaining bytes, as I will be coming back to this file immediately after
             return
         
         if "stepped" in self.raw_params["Flags"].lower():
@@ -822,7 +830,7 @@ class RawRead(object):
                 self._load_step_information(raw_filename, plotinfo)
             except SpiceReadException as err:
                 _logger.warning(f"{plotinfo} {str(err)}\nError in auto-detecting steps in '{raw_filename}'")
-                if has_axis:
+                if self.has_axis:
                     number_of_steps = 0
                     for v in self.axis.data:
                         if v == self.axis.data[0]:
@@ -832,15 +840,30 @@ class RawRead(object):
                 self.steps = [{'run': i + 1} for i in range(number_of_steps)]
 
             if self.steps is not None:
-                if has_axis:
+                if self.has_axis:
                     # Individual access to the Trace Classes, this information is stored in the Axis
                     # which is always in position 0
                     self._traces[0]._set_steps(self.steps)
         
         # and report remaining bytes
+        bytes_remaining = self._get_remaining_bytes(raw_file)
         if self.verbose:
-            bytes_remaining = self._get_remaining_bytes(raw_file)
-            _logger.debug(f"{plotinfo} {bytes_remaining} bytes remain in file after this plot.")
+            _logger.debug(f"{plotinfo} {bytes_remaining} bytes remaining in file.")
+        if bytes_remaining > MIN_BYTES_IN_FILE:
+            self._has_more_plots = True
+        else: 
+            self._has_more_plots = False
+            
+    def has_more_plots(self) -> bool:
+        """Check if there are more plots to read.
+        
+        Note: will return False if you use the headeronly parameter in the constructor, 
+        as it will not have read all data in that case.
+
+        :return: True if there are more plots, False otherwise.
+        :rtype: bool
+        """
+        return self._has_more_plots
 
     def get_raw_property(self, property_name=None) -> Union[str, Dict[str, str]]:
         """
