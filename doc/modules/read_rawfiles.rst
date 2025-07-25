@@ -36,6 +36,20 @@ Now that you have lists with the times and corresponding values, you can plot th
 
 Note that all the data will be returned as numpy arrays.
 
+Multiple Plots
+--------------
+
+Most RAW files only have 1 plot in them, but some simulators support multiple plots of results per RAW file, like `Noise Spectral Density Curves` plus `Integrated Noise`. 
+
+RawRead makes it possible to read multiple plots from a single .RAW file, but only one at a time.
+
+See the ``plot_to_read`` parameter in the :py:class:`spicelib.RawRead` constructor.
+
+Use the ``has_more_plots()`` method to check if there could be more plots to read.
+
+Class documentation
+-------------------
+
 See the class documentation for more details :
 
 - :py:class:`spicelib.RawRead`
@@ -55,7 +69,7 @@ library to plot the results of two traces in a separate subplots.
     from spicelib import RawRead
     import matplotlib.pyplot as plt         # use matplotlib for plotting the results
 
-    raw = RawRead("some_random_file.raw")   # Read the RAW file contents from disk
+    raw = RawRead("some_random_file.raw")   # Read the RAW file contents from disk (1st plot will be read)
 
     print(raw.get_trace_names())            # Get and print a list of all the traces
     print(raw.get_raw_property())           # Print all the properties found in the Header section

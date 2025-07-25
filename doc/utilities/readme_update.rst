@@ -47,3 +47,5 @@ environment variable. If not, the full path to the executable must be provided.
     .. code-block:: bash
 
         readme_update <path_to_md_file>
+        # or
+        python3 spicelib/scripts/readme_update.py README.md
