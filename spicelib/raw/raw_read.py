@@ -364,7 +364,7 @@ class RawRead(object):
         which plot to read. Defaults to 1.
     :type plot_to_read: int
     :param dialect: The simulator used. 
-        Please use from ["ltspice","qspice","ngspice","xyce"]. If not specified, dialect will be auto detected. 
+        Please select from ["ltspice","qspice","ngspice","xyce"]. If not specified, dialect will be auto detected. 
         This is likely only needed for older versions of ngspice and xyce. ltspice and qspice can reliably be auto detected.
     :type dialect: str | None
     :param headeronly:
@@ -373,7 +373,7 @@ class RawRead(object):
     :param verbose:
         If True, then the class will log debug information. Defaults to True.
     :type verbose: bool
-    :raises SpiceReadException: in case of a syntax error in the RAW file or if the encoding is not recognized    
+    :raises SpiceReadException: in case of a syntax error in the RAW file, or if the encoding is not recognized. 
     """
     # header_lines = (
     #     "Title",
