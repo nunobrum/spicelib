@@ -855,10 +855,12 @@ class RawRead(object):
             self._has_more_plots = False
             
     def has_more_plots(self) -> bool:
-        """Check if there are more plots to read.
+        """Tell if there are potentially more plots to read.
         
-        Note: will return False if you use the headeronly parameter in the constructor, 
-        as it will not have read all data in that case.
+        Notes: 
+        
+        * will always return False if you use the `headeronly` parameter in the constructor, as in that case, it will not have read the file far enough.
+        * True does not mean the next data is a valid plot. It just means that there is more data in the file that could be a plot. Xyce for example, can add extra data that is not a plot.
 
         :return: True if there are more plots, False otherwise.
         :rtype: bool
