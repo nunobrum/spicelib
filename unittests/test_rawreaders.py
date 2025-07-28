@@ -150,7 +150,7 @@ testset = {
                     "tracelen": 401,
                 },
                 {
-                    "name":"Integrated Noise",
+                    "name": "Integrated Noise",
                     "tracenames": ["v(onoise_total)", "i(inoise_total)"],
                     "tracelen": 1,
                     "has_axis": False,  # No axis for this plot, True by default
@@ -164,16 +164,19 @@ testset = {
                     "name": "Operating Point",
                     "tracenames": ["v(vdd)", "i(@r1[i])", "i(v6)"],
                     "tracelen": 1,
+                    "values": [[1], [1e-3], [-1e-3]]
                 },
                 {
                     "name": "Operating Point",
                     "tracenames": ["v(vdd)", "i(@r1[i])", "i(v6)"],
                     "tracelen": 1,
+                    "values": [[2], [2e-3], [-2e-3]]
                 },
                 {
                     "name": "Operating Point",
                     "tracenames": ["v(vdd)", "i(@r1[i])", "i(v6)"],
                     "tracelen": 1,
+                    "values": [[3], [3e-3], [-3e-3]]
                 },
             ],
         },
@@ -258,6 +261,10 @@ class RawReader_Test(unittest.TestCase):
                         expected_plotname = v['name']
                         expected_tracenames = v['tracenames']
                         expected_tracelen = v['tracelen']
+                        if "values" in v:
+                            expected_values = v['values']
+                        else:
+                            expected_values = None                        
                         if "has_axis" in v:
                             has_axis = v["has_axis"]
                         else:
@@ -283,6 +290,18 @@ class RawReader_Test(unittest.TestCase):
                         print(f"tracelen, for {main_axis}: {tracelen}")
                         self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
                         self.assertEqual(tracelen, len(raw.axis), "Not the expected number of points on the axis")                         
+
+                        if expected_values is not None:
+                            # Check the values of the traces, if we have them
+                            for trace_name, expected_value in zip(expected_tracenames, expected_values):
+                                trace = raw.get_trace(trace_name)
+                                if isinstance(expected_value, list):
+                                    # If we have a list, it is a multi-value trace
+                                    for i, value in enumerate(expected_value):
+                                        self.assertAlmostEqual(trace.data[i], value, msg=f"Data for {trace_name} at index {i} does not match expected value", delta=1e-6)
+                                else:
+                                    # Otherwise it is a single value
+                                    self.assertAlmostEqual(trace.data[0], expected_value, msg=f"Data for {trace_name} does not match expected value", delta=1e-6)
                         # END standard section
                         
                         # Check the range of the main axis, if we have it, and method depending on the type
@@ -339,6 +358,10 @@ class RawReader_Test(unittest.TestCase):
                         expected_plotname = v['name']
                         expected_tracenames = v['tracenames']
                         expected_tracelen = v['tracelen']
+                        if "values" in v:
+                            expected_values = v['values']
+                        else:
+                            expected_values = None                        
                         if "has_axis" in v:
                             has_axis = v["has_axis"]
                         else:
@@ -364,6 +387,18 @@ class RawReader_Test(unittest.TestCase):
                         print(f"tracelen, for {main_axis}: {tracelen}")
                         self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
                         self.assertEqual(tracelen, len(raw.axis), "Not the expected number of points on the axis")                         
+
+                        if expected_values is not None:
+                            # Check the values of the traces, if we have them
+                            for trace_name, expected_value in zip(expected_tracenames, expected_values):
+                                trace = raw.get_trace(trace_name)
+                                if isinstance(expected_value, list):
+                                    # If we have a list, it is a multi-value trace
+                                    for i, value in enumerate(expected_value):
+                                        self.assertAlmostEqual(trace.data[i], value, msg=f"Data for {trace_name} at index {i} does not match expected value", delta=1e-6)
+                                else:
+                                    # Otherwise it is a single value
+                                    self.assertAlmostEqual(trace.data[0], expected_value, msg=f"Data for {trace_name} does not match expected value", delta=1e-6)
                         # END standard section
                         
                         # Check the range of the main axis, if we have it, and method depending on the type
@@ -430,6 +465,10 @@ class RawReader_Test(unittest.TestCase):
                         expected_plotname = v['name']
                         expected_tracenames = v['tracenames']
                         expected_tracelen = v['tracelen']
+                        if "values" in v:
+                            expected_values = v['values']
+                        else:
+                            expected_values = None                        
                         if "has_axis" in v:
                             has_axis = v["has_axis"]
                         else:
@@ -455,6 +494,18 @@ class RawReader_Test(unittest.TestCase):
                         print(f"tracelen, for {main_axis}: {tracelen}")
                         self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
                         self.assertEqual(tracelen, len(raw.axis), "Not the expected number of points on the axis")                         
+
+                        if expected_values is not None:
+                            # Check the values of the traces, if we have them
+                            for trace_name, expected_value in zip(expected_tracenames, expected_values):
+                                trace = raw.get_trace(trace_name)
+                                if isinstance(expected_value, list):
+                                    # If we have a list, it is a multi-value trace
+                                    for i, value in enumerate(expected_value):
+                                        self.assertAlmostEqual(trace.data[i], value, msg=f"Data for {trace_name} at index {i} does not match expected value", delta=1e-6)
+                                else:
+                                    # Otherwise it is a single value
+                                    self.assertAlmostEqual(trace.data[0], expected_value, msg=f"Data for {trace_name} does not match expected value", delta=1e-6)
                         # END standard section
                         
                         # Check the range of the main axis, if we have it, and method depending on the type
@@ -483,6 +534,10 @@ class RawReader_Test(unittest.TestCase):
                         expected_plotname = v['name']
                         expected_tracenames = v['tracenames']
                         expected_tracelen = v['tracelen']
+                        if "values" in v:
+                            expected_values = v['values']
+                        else:
+                            expected_values = None                        
                         if "has_axis" in v:
                             has_axis = v["has_axis"]
                         else:
@@ -508,6 +563,18 @@ class RawReader_Test(unittest.TestCase):
                         print(f"tracelen, for {main_axis}: {tracelen}")
                         self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
                         self.assertEqual(tracelen, len(raw.axis), "Not the expected number of points on the axis")                         
+
+                        if expected_values is not None:
+                            # Check the values of the traces, if we have them
+                            for trace_name, expected_value in zip(expected_tracenames, expected_values):
+                                trace = raw.get_trace(trace_name)
+                                if isinstance(expected_value, list):
+                                    # If we have a list, it is a multi-value trace
+                                    for i, value in enumerate(expected_value):
+                                        self.assertAlmostEqual(trace.data[i], value, msg=f"Data for {trace_name} at index {i} does not match expected value", delta=1e-6)
+                                else:
+                                    # Otherwise it is a single value
+                                    self.assertAlmostEqual(trace.data[0], expected_value, msg=f"Data for {trace_name} does not match expected value", delta=1e-6)
                         # END standard section
                         
 
