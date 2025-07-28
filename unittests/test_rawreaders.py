@@ -76,7 +76,7 @@ spicelib.set_log_level(loglevel)
 # ngspice -D ngbehavior=kiltspa -D filetype=ascii -b -o ac_ngspice.log -r ac_ngspice.ascii.raw ac_rawtest.net
 # ngspice -D ngbehavior=kiltspa -b -o tran_ngspice.log -r tran_ngspice.bin.raw tran_rawtest.net
 # ngspice -D ngbehavior=kiltspa -D filetype=ascii -b -o tran_ngspice.log -r tran_ngspice.ascii.raw tran_rawtest.net
-# ngspice -D ngbehavior=kiltspa -b multi_rawtest.net
+# ngspice -D ngbehavior=kiltspa -b op_multi_rawtest.net
 
 # xyce -r ac_xyce.bin.raw ac_rawtest.net
 # xyce -r ac_xyce.ascii.raw -a ac_rawtest.net
