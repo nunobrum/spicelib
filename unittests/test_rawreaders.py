@@ -76,6 +76,7 @@ spicelib.set_log_level(loglevel)
 # ngspice -D ngbehavior=kiltspa -D filetype=ascii -b -o ac_ngspice.log -r ac_ngspice.ascii.raw ac_rawtest.net
 # ngspice -D ngbehavior=kiltspa -b -o tran_ngspice.log -r tran_ngspice.bin.raw tran_rawtest.net
 # ngspice -D ngbehavior=kiltspa -D filetype=ascii -b -o tran_ngspice.log -r tran_ngspice.ascii.raw tran_rawtest.net
+# ngspice -D ngbehavior=kiltspa -b multi_rawtest.net
 
 # xyce -r ac_xyce.bin.raw ac_rawtest.net
 # xyce -r ac_xyce.ascii.raw -a ac_rawtest.net
@@ -100,83 +101,112 @@ testset = {
     "ltspice": {
         "ac": {
             "files": ["ac_ltspice.bin.raw", "ac_ltspice.ascii.raw"],
-            "expected_plots": {
-                "AC Analysis": {
+            "expected_plots": [
+                {
+                    "name": "AC Analysis",
                     "tracenames": ["frequency", "V(out)", "V(in)", "I(Vin)", "I(C1)", "I(R1)"],
                     "tracelen": 51,
                 }
-            },
+            ],
         },
         "tran": {
             "files": ["tran_ltspice.bin.raw", "tran_ltspice.ascii.raw", "tran_ltspice.fast.bin.raw"],
-            "expected_plots": {
-                "Transient Analysis": {
+            "expected_plots": [
+                {
+                    "name": "Transient Analysis",
                     "tracenames": ["time", "V(out)", "V(in)", "I(Vin)", "I(C1)", "I(R1)"],
                     "tracelen": [21, 1049, 21],
                 }
-            },
+            ],
         },
     },
     "ngspice": {
         "ac": {
             "files": ["ac_ngspice.bin.raw", "ac_ngspice.ascii.raw"],
-            "expected_plots": {
-                "AC Analysis": {
+            "expected_plots": [
+                {
+                    "name": "AC Analysis",
                     "tracenames": ["frequency", "v(in)", "v(out)", "i(vin)"],
                     "tracelen": 51,
                 },
-            },
+            ],
         },
         "tran": {
             "files": ["tran_ngspice.bin.raw", "tran_ngspice.ascii.raw"],
-            "expected_plots": {
-                "Transient Analysis": {
+            "expected_plots": [
+                {
+                    "name": "Transient Analysis",
                     "tracenames": ["time", "v(in)", "v(out)", "i(vin)"],
                     "tracelen": 500013,
                 },
-            },
+            ],
         },
         "noise": {
             "files": ["noise_multi.bin.raw", "noise_multi.ascii.raw"],
-            "expected_plots": {
-                "Noise Spectral Density Curves": {
+            "expected_plots": [
+                {
+                    "name": "Noise Spectral Density Curves",
                     "tracenames": ["frequency", "inoise_spectrum", "onoise_spectrum"],
                     "tracelen": 401,
                 },
-                "Integrated Noise": {
+                {
+                    "name":"Integrated Noise",
                     "tracenames": ["v(onoise_total)", "i(inoise_total)"],
                     "tracelen": 1,
                     "has_axis": False,  # No axis for this plot, True by default
-                }
-            }
+                },
+            ],
+        },
+        "op": {
+            "files": ["op_multi_ngspice.bin.raw", "op_multi_ngspice.ascii.raw"],
+            "expected_plots": [
+                {
+                    "name": "Operating Point",
+                    "tracenames": ["v(vdd)", "i(@r1[i])", "i(v6)"],
+                    "tracelen": 1,
+                },
+                {
+                    "name": "Operating Point",
+                    "tracenames": ["v(vdd)", "i(@r1[i])", "i(v6)"],
+                    "tracelen": 1,
+                },
+                {
+                    "name": "Operating Point",
+                    "tracenames": ["v(vdd)", "i(@r1[i])", "i(v6)"],
+                    "tracelen": 1,
+                },
+            ],
         },
     },
     "xyce": {
         "ac": {
             "files": ["ac_xyce.bin.raw", "ac_xyce.ascii.raw"],
-            "expected_plots": {
-                "AC Analysis": {
+            "expected_plots": [
+                {
+                    "name": "AC Analysis",
                     "tracenames": ["frequency", "IN", "OUT", "VIN#branch"],
                     "tracelen": 51,
                 },
-            },
+            ],
         },
         "tran": {
             "files": ["tran_xyce.bin.raw", "tran_xyce.ascii.raw"],
-            "expected_plots": {
-                "Transient Analysis": {
+            "expected_plots": [
+                {
+                    "name": "Transient Analysis",
                     "tracenames": ["time", "IN", "OUT", "VIN#branch"],
                     "tracelen": 63,
                 },
-            },
+            ],
         },
         "force_dialect": True,
     },
     "qspice": {
         "ac": {
             "files": ["ac_qspice.bin.qraw", "ac_qspice.ascii.qraw"],
-            "expected_plots": {
-                "AC Analysis": {
+            "expected_plots": [
+                {
+                    "name": "AC Analysis",
                     "tracenames": [
                         "Frequency",
                         "V(in)",
@@ -189,16 +219,17 @@ testset = {
                     ],
                     "tracelen": 50,
                 },
-            },
+            ],
         },
         "tran": {
             "files": ["tran_qspice.bin.qraw", "tran_qspice.ascii.qraw"],
-            "expected_plots": {
-                "Transient Analysis": {
+            "expected_plots": [
+                {
+                    "name": "Transient Analysis",
                     "tracenames": ["Time", "V(in)", "V(out)", "I(VIN)", "I(C1)", "I(R1)"],
                     "tracelen": 1034,
                 },
-            },
+            ],
         },
     },
 }
@@ -223,8 +254,8 @@ class RawReader_Test(unittest.TestCase):
                     plotnr = 0
                     fileno += 1
                     nrplots = len(testset[simulator][type]["expected_plots"])
-                    for k, v in testset[simulator][type]["expected_plots"].items():
-                        expected_plotname = k
+                    for v in testset[simulator][type]["expected_plots"]:
+                        expected_plotname = v['name']
                         expected_tracenames = v['tracenames']
                         expected_tracelen = v['tracelen']
                         if "has_axis" in v:
@@ -304,8 +335,8 @@ class RawReader_Test(unittest.TestCase):
                     plotnr = 0
                     fileno += 1
                     nrplots = len(testset[simulator][type]["expected_plots"])
-                    for k, v in testset[simulator][type]["expected_plots"].items():
-                        expected_plotname = k
+                    for v in testset[simulator][type]["expected_plots"]:
+                        expected_plotname = v['name']
                         expected_tracenames = v['tracenames']
                         expected_tracelen = v['tracelen']
                         if "has_axis" in v:
@@ -395,8 +426,8 @@ class RawReader_Test(unittest.TestCase):
                     plotnr = 0
                     fileno += 1
                     nrplots = len(testset[simulator][type]["expected_plots"])
-                    for k, v in testset[simulator][type]["expected_plots"].items():
-                        expected_plotname = k
+                    for v in testset[simulator][type]["expected_plots"]:
+                        expected_plotname = v['name']
                         expected_tracenames = v['tracenames']
                         expected_tracelen = v['tracelen']
                         if "has_axis" in v:
@@ -431,7 +462,55 @@ class RawReader_Test(unittest.TestCase):
                             # Round the first and last values to the nearest integer
                             gotten_range = (round(abs(raw.get_trace(main_axis).data[0])), round(abs(raw.get_trace(main_axis).data[tracelen - 1])))                
                             self.assertEqual(gotten_range, expected_range, f"{main_axis} range is not as expected")
-                    
+
+    def test_rawreaders_op(self):
+        type = "op"
+        
+        # BEGIN standard section
+        for simulator in testset:
+            dialect = None
+            if "force_dialect" in testset[simulator] and testset[simulator]["force_dialect"]:
+                dialect = simulator 
+
+            if type in testset[simulator]:
+                fileno = 0
+                for file in testset[simulator][type]["files"]:
+                    print(f"Testing {simulator} with file {file}")
+                    plotnr = 0
+                    fileno += 1
+                    nrplots = len(testset[simulator][type]["expected_plots"])
+                    for v in testset[simulator][type]["expected_plots"]:
+                        expected_plotname = v['name']
+                        expected_tracenames = v['tracenames']
+                        expected_tracelen = v['tracelen']
+                        if "has_axis" in v:
+                            has_axis = v["has_axis"]
+                        else:
+                            has_axis = True
+                            
+                        if not isinstance(expected_tracelen, int):
+                            expected_tracelen = expected_tracelen[fileno - 1]
+                        print(f"Expected plot: {expected_plotname}, tracenames: {expected_tracenames}, tracelen: {expected_tracelen}")
+                        plotnr += 1
+                        
+                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_to_read=plotnr)
+                        self.assertEqual(raw.dialect, simulator, "Difference in dialect")
+                        self.assertEqual(raw.get_plot_name(), expected_plotname, "Difference in plot name")
+                        for p in ["Flags"]:
+                            print(f"{p}: {raw.get_raw_property(p)}")
+                        if plotnr == nrplots:
+                            self.assertEqual(raw.has_more_plots(), False, "There should be no more plots")
+
+                        print(f"tracenames: {raw.get_trace_names()}")
+                        self.assertEqual(raw.get_trace_names(), expected_tracenames, "Difference in trace names")
+                        main_axis = expected_tracenames[0].lower()
+                        tracelen = len(raw.get_trace(main_axis).data)
+                        print(f"tracelen, for {main_axis}: {tracelen}")
+                        self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
+                        self.assertEqual(tracelen, len(raw.axis), "Not the expected number of points on the axis")                         
+                        # END standard section
+                        
+
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
     print("Starting tests on rawreaders")
