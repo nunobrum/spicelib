@@ -71,12 +71,18 @@ spicelib.set_log_level(loglevel)
 # cp tran_rawtest.raw tran_ltspice.ascii.raw
 # cp tran_ltspice.bin.raw tran_ltspice.fast.bin.raw
 # LTspice.exe -fastaccess tran_ltspice.fast.bin.raw
+# LTspice.exe -Run -b dc_rawtest.net
+# cp dc_rawtest.raw dc_ltspice.bin.raw
+# LTspice.exe -ascii -Run -b dc_rawtest.net
+# cp dc_rawtest.raw dc_ltspice.ascii.raw
 #
 # ngspice -D ngbehavior=kiltspa -b -o ac_ngspice.log -r ac_ngspice.bin.raw ac_rawtest.net
 # ngspice -D ngbehavior=kiltspa -D filetype=ascii -b -o ac_ngspice.log -r ac_ngspice.ascii.raw ac_rawtest.net
 # ngspice -D ngbehavior=kiltspa -b -o tran_ngspice.log -r tran_ngspice.bin.raw tran_rawtest.net
 # ngspice -D ngbehavior=kiltspa -D filetype=ascii -b -o tran_ngspice.log -r tran_ngspice.ascii.raw tran_rawtest.net
-# ngspice -D ngbehavior=kiltspa -b op_multi_rawtest.net
+# I do not have the netlist for the noise files
+# ngspice -D ngbehavior=kiltspa -b op_multi_ngspice_rawtest.net
+# ngspice -D ngbehavior=kiltspa -b dc_ngspice_rawtest.net
 
 # xyce -r ac_xyce.bin.raw ac_rawtest.net
 # xyce -r ac_xyce.ascii.raw -a ac_rawtest.net
@@ -90,13 +96,11 @@ spicelib.set_log_level(loglevel)
 
 # Stepped files are tested in test_spicelib and test_qspice_rawread.py
 
-
-expected_ac_range = (1, 100000)
-expected_tran_range = (0, 5e-3)
-expected_noise_range = (1000, 10000000)
+# generic values for the RC circuit used in AC and TRAN
 R1 = 1000
 C1 = 1E-6
 VIN = 1
+
 testset = {
     "ltspice": {
         "ac": {
@@ -119,6 +123,16 @@ testset = {
                 }
             ],
         },
+        "dc": {
+            "files": ["dc_ltspice.bin.raw", "dc_ltspice.ascii.raw"],
+            "expected_plots": [
+                {
+                    "name": "DC transfer characteristic",
+                    "tracenames": ["V1", "V(r)", "I(V1)", "I(R1)"],
+                    "tracelen": 6
+                },
+            ],
+        },        
     },
     "ngspice": {
         "ac": {
@@ -177,6 +191,16 @@ testset = {
                     "tracenames": ["v(vdd)", "i(@r1[i])", "i(v6)"],
                     "tracelen": 1,
                     "values": [[3], [3e-3], [-3e-3]]
+                },
+            ],
+        },
+        "dc": {
+            "files": ["dc_ngspice.bin.raw", "dc_ngspice.ascii.raw"],
+            "expected_plots": [
+                {
+                    "name": "DC transfer characteristic",
+                    "tracenames": ["v(v-sweep)", "i(@r1[i])", "v(r)", "i(v1)"],
+                    "tracelen": 6
                 },
             ],
         },
@@ -241,8 +265,10 @@ testset = {
 class RawReader_Test(unittest.TestCase):
     
     def test_rawreaders_ac(self):
+        # All AC tests use the same circuit as source, and the same simulation configuration
+        # As a result, we can reuse the same expected values for all AC tests
         type = "ac"
-        expected_range = expected_ac_range
+        expected_range = (1, 100000)
         
         # BEGIN standard section
         for simulator in testset:
@@ -338,8 +364,10 @@ class RawReader_Test(unittest.TestCase):
                             self.assertEqual(tracelen, expected_tracelen, f"Not the expected number of points for trace {test_name}")
 
     def test_rawreaders_tran(self):
+        # All TRAN tests use the same circuit as source, and the same simulation configuration
+        # As a result, we can reuse the same expected values for all TRAN tests
         type = "tran"
-        expected_range = expected_tran_range
+        expected_range = (0, 5e-3)
 
         # BEGIN standard section
         for simulator in testset:
@@ -446,7 +474,7 @@ class RawReader_Test(unittest.TestCase):
 
     def test_rawreaders_noise(self):
         type = "noise"
-        expected_range = expected_noise_range
+        expected_range = (1000, 10000000)
         
         # BEGIN standard section
         for simulator in testset:
@@ -577,7 +605,93 @@ class RawReader_Test(unittest.TestCase):
                                     self.assertAlmostEqual(trace.data[0], expected_value, msg=f"Data for {trace_name} does not match expected value", delta=1e-6)
                         # END standard section
                         
+    def test_rawreaders_dc(self):
+        # All DC tests use the same circuit as source, and the same simulation configuration
+        # As a result, we can reuse the same expected values for all DC tests
+        # ngspice generation is different, but the results are comparable
+        type = "dc"
+        expected_range = (0, 5)
+        
+        # BEGIN standard section
+        for simulator in testset:
+            dialect = None
+            if "force_dialect" in testset[simulator] and testset[simulator]["force_dialect"]:
+                dialect = simulator 
 
+            if type in testset[simulator]:
+                fileno = 0
+                for file in testset[simulator][type]["files"]:
+                    print(f"Testing {simulator} with file {file}")
+                    plotnr = 0
+                    fileno += 1
+                    nrplots = len(testset[simulator][type]["expected_plots"])
+                    for v in testset[simulator][type]["expected_plots"]:
+                        expected_plotname = v['name']
+                        expected_tracenames = v['tracenames']
+                        expected_tracelen = v['tracelen']
+                        if "values" in v:
+                            expected_values = v['values']
+                        else:
+                            expected_values = None                        
+                        if "has_axis" in v:
+                            has_axis = v["has_axis"]
+                        else:
+                            has_axis = True
+                            
+                        if not isinstance(expected_tracelen, int):
+                            expected_tracelen = expected_tracelen[fileno - 1]
+                        print(f"Expected plot: {expected_plotname}, tracenames: {expected_tracenames}, tracelen: {expected_tracelen}")
+                        plotnr += 1
+                        
+                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_to_read=plotnr)
+                        self.assertEqual(raw.dialect, simulator, "Difference in dialect")
+                        self.assertEqual(raw.get_plot_name(), expected_plotname, "Difference in plot name")
+                        for p in ["Flags"]:
+                            print(f"{p}: {raw.get_raw_property(p)}")
+                        if plotnr == nrplots:
+                            self.assertEqual(raw.has_more_plots(), False, "There should be no more plots")
+
+                        print(f"tracenames: {raw.get_trace_names()}")
+                        self.assertEqual(raw.get_trace_names(), expected_tracenames, "Difference in trace names")
+                        main_axis = expected_tracenames[0].lower()
+                        tracelen = len(raw.get_trace(main_axis).data)
+                        print(f"tracelen, for {main_axis}: {tracelen}")
+                        self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
+                        self.assertEqual(tracelen, len(raw.axis), "Not the expected number of points on the axis")                         
+
+                        if expected_values is not None:
+                            # Check the values of the traces, if we have them
+                            for trace_name, expected_value in zip(expected_tracenames, expected_values):
+                                trace = raw.get_trace(trace_name)
+                                if isinstance(expected_value, list):
+                                    # If we have a list, it is a multi-value trace
+                                    for i, value in enumerate(expected_value):
+                                        self.assertAlmostEqual(trace.data[i], value, msg=f"Data for {trace_name} at index {i} does not match expected value", delta=1e-6)
+                                else:
+                                    # Otherwise it is a single value
+                                    self.assertAlmostEqual(trace.data[0], expected_value, msg=f"Data for {trace_name} does not match expected value", delta=1e-6)
+                        # END standard section
+                        
+                        if has_axis:
+                            # Round the first and last values to the nearest integer
+                            gotten_range = (round(abs(raw.get_trace(main_axis).data[0])), round(abs(raw.get_trace(main_axis).data[tracelen - 1])))                
+                            self.assertEqual(gotten_range, expected_range, f"{main_axis} range is not as expected")
+                        
+                        # Now DC specific tests                        
+                        v_name = "v(r)"
+                        i_name = "i(v1)"
+                        v_trace = raw.get_trace(v_name)
+                        i_trace = raw.get_trace(i_name)
+                        nr = -1
+                        for point, v_in in enumerate(raw.get_axis()):  # not .axis, since ltspice sometimes gives negative times
+                            nr += 1
+                            vt = v_trace.get_point_at(v_in)
+                            v = v_trace.get_point(point)
+                            i = i_trace.get_point(point)
+                            # print(f"Testing point {point} for v_in {v_in}: vt={vt}, v={v}, i={i}")
+                            self.assertEqual(vt, v, "Trace lookup problem")
+                            self.assertAlmostEqual(v, i * -1000, 3, f"Difference between theoretical value and simulation at point {point}")
+                        
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
     print("Starting tests on rawreaders")

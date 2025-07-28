@@ -1,0 +1,25 @@
+* DC directive
+V1 R 0 10
+R1 R 0 1000
+
+.option savecurrents
+.control
+ save all
+ set wr_vecnames
+
+* Compute DC 0-5V, 1V steps
+ dc V1 0 5 1
+
+ remzerovec
+ * Write the binary file.
+ set filetype = binary
+ write dc_ngspice.bin.raw
+ * Set the file type to ascii
+ set filetype = ascii   
+ * Write the ascii file.
+ write dc_ngspice.ascii.raw
+ * Enable appendwrite. All subsequent writes will be appended at the end of the file instead of overwriting the existing files.
+ set appendwrite 
+.endc
+
+.end
