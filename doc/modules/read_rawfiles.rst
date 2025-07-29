@@ -40,7 +40,7 @@ Multiple result sets/plots in one RAW file
 ------------------------------------------
 
 Most RAW files only have 1 result set (also called 'plot') in them, but some simulators (like ngspice) 
-support multiple sets of results in one RAW file. 
+support multiple sets of results/plots in one RAW file. 
 One can for example create a RAW file with both `Noise Spectral Density Curves` and `Integrated Noise` data, or 
 create a series of plots via a loop through a series of values or simulation steps.
 

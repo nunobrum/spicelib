@@ -307,7 +307,7 @@ class RawReader_Test(unittest.TestCase):
                     self.assertEqual(raw.dialect, simulator, "Difference in dialect")
                     
                     nrplots = len(testset[simulator][type]["expected_plots"])
-                    self.assertEqual(nrplots, len(raw.get_plot_names()), "Number of plots does not match expected number")
+                    self.assertEqual(nrplots, raw.get_nr_plots(), "Number of plots does not match expected number")
                     for v in testset[simulator][type]["expected_plots"]:
                         expected_plotname = v['name']
                         expected_tracenames = v['tracenames']

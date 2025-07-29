@@ -1743,6 +1743,15 @@ class RawRead(PlotInterface, ABC):
         """
         return [plot.get_plot_name() for plot in self._plots]
 
+    def get_nr_plots(self) -> int:
+        """
+        Returns the number of plots in the RAW file.
+
+        :return: Number of plots
+        :rtype: int
+        """
+        return len(self._plots)
+
     def get_trace_names(self) -> List[str]:
         """
         Returns a list of exiting trace names of the RAW file.

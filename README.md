@@ -124,10 +124,10 @@ subc['R1'].value = 1000  # Same as the above
     * Different models can be simulated in a single batch
 
 * __RawRead__
-  A class that serves to read raw files into a python class.
+  A class that serves to read raw files into a python class. Multiple result sets (also called plots) in one raw file are supported.
 
 * __RawWrite__
-  A class to write RAW files that can be read by the LTspice Wave Application.
+  A class to write RAW files that can be read by the LTspice Wave Application or other comparable tools.
 
 ## How to Install
 
