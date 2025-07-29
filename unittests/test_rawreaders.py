@@ -279,8 +279,8 @@ testset = {
             "files": ["dc_qspice.bin.qraw", "dc_qspice.ascii.qraw"],
             "expected_plots": [
                 {
-                    "name": "DC transfer characteristic",
-                    "tracenames": ["V1", "V(R)", "I(V1)", "P(R1)", "P(V1)"],
+                    "name": "DC Transfer Characteristic",
+                    "tracenames": ["V1", "V(r)", "I(V1)", "P(R1)", "P(V1)", "I(R1)"],
                     "tracelen": 6
                 },
             ],
@@ -330,6 +330,7 @@ class RawReader_Test(unittest.TestCase):
                         print(f"Gotten plot:   '{gotten_plotname}', tracenames: {gotten_tracenames}")
 
                         self.assertTrue(gotten_plotname is not None, "Plot name should not be None")
+                        # the endswith stuff below is because of xyce: https://github.com/Xyce/Xyce/issues/157
                         self.assertTrue(gotten_plotname.lower().endswith(expected_plotname.lower()), "Difference in plot name")
                         for p in ["Flags"]:
                             print(f"{p}: {raw.get_raw_property(p)}")
@@ -516,6 +517,6 @@ class RawReader_Test(unittest.TestCase):
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
     print("Starting tests on rawreaders")
-    unittest.main()
+    unittest.main(failfast=True)
     print("Tests completed on rawreaders")
 # ------------------------------------------------------------------------------
