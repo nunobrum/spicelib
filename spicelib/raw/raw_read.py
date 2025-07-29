@@ -43,12 +43,15 @@ In the preamble, the lines are always started by one of the following identifier
    + Date:           => Date when the simulation started
 
    + Plotname:       => Name of the simulation. Some known Simulation Types are:
-                       * Operation Point
-                       * DC transfer characteristic
                        * AC Analysis
+                       * DC transfer characteristic
+                       * Operating Point
                        * Transient Analysis
-                       * Noise Spectral Density - (V/Hz½ or A/Hz½)
                        * Transfer Function
+                       * Noise Spectral Density
+                       * Frequency Response Analysis
+                       * Noise Spectral Density Curves
+                       * Integrated Noise
 
    + Flags:          => Flags that are used in this plot. The simulation can have any combination of these flags.
                       * "real" -> The traces in the raw file contain real values. As for example on a TRAN simulation.
@@ -57,6 +60,7 @@ In the preamble, the lines are always started by one of the following identifier
                         characteristic, AC Analysis, Transient Analysis or Noise Spectral Density have the forward flag.
                         Operating Point and Transfer Function don't have this flag activated.
                       * "log" -> The preferred plot view of this data is logarithmic.
+                      * "linear" -> The preferred plot view of this data is linear.
                       * "stepped" -> The simulation had .STEP primitives.
                       * "FastAccess" -> Order of the data is changed to speed up access. See Binary section for details.
 
@@ -411,43 +415,27 @@ class RawRead(object):
         """Initializes the RawRead object and reads the RAW file."""
         
         # Initialize and type the instance variables, for the documentation
-        self.encoding: str = ""
-        """The encoding of the RAW file, either 'utf_8' or 'utf_16_le'
-        """
-        
-        self.nVariables: int = 0
-        """Number of variables in the RAW file
-        """
-        
-        self.nPoints: int = 0
-        """Number of points in the RAW file
-        """
-        
-        self.dialect: Union[str, None] = None
-        """The dialect of the RAW file, either 'ltspice', 'qspice', 'ngspice' or 'xyce'
-        """
+        self._encoding: str = ""
+        self._nVariables: int = 0
+        self._nPoints: int = 0
+        self._raw_type: str = ""        
+        self._dialect: Union[str, None] = None
         
         self.plot_nr: int = 0
         """The plot number that is read.
-        """        
-        
-        self.raw_type: str = ""
-        """The type of the RAW file, either 'binary' or 'ascii'
+        # TODO: remove this
         """
         
-        self.aliases: Dict[str, str] = {}
-        """QSpice defines aliases for some of the traces that can be computed from other traces.
-        """
+        self._aliases: Dict[str, str] = {}
+        self._backannotations: List[str] = []
+        self._has_axis: bool = True
+        self._axis: Union[Axis, None] = None
+        self._raw_params = OrderedDict()
+        self._flags: List[str] = []
+        self._steps: Union[List[int], None] = None
         
-        self.backannotations: List[str] = []
-        """List to store the backannotations found in the RAW file header
-        """
+        # ########## The code starts here
         
-        self.has_axis: bool = True
-        """Indicates if the RAW file has an axis.
-        
-        This is True for all RAW file plots except for 'Operating Point', 'Transfer Function', and 'Integrated Noise'."""
-            
         # Validate input parameters
         if isinstance(raw_filename, str):
             raw_filename = Path(raw_filename)
@@ -481,6 +469,87 @@ class RawRead(object):
                 self._read_raw_file(raw_file, raw_filename, traces_to_read, dialect, headeronly, verbose, skip_data)
         finally:
             raw_file.close()
+
+    @property
+    def dialect(self) -> Union[str, None]:
+        """The dialect of the RAW file, either 'ltspice', 'qspice', 'ngspice' or 'xyce'
+        """
+        return self._dialect
+
+    @property
+    def encoding(self) -> str:
+        """The encoding of the RAW file, either 'utf_8' or 'utf_16_le'
+        """
+        return self._encoding
+
+    @property
+    def nVariables(self) -> int:
+        """Number of variables in the RAW file
+        """
+        return self._nVariables
+
+    @property
+    def nPoints(self) -> int:
+        """Number of points in the RAW file
+        """
+        return self._nPoints
+
+    @property
+    def raw_type(self) -> str:
+        """The type of the RAW file, either 'binary:' or 'values:'"""
+        return self._raw_type 
+    
+    @property
+    def aliases(self) -> Dict[str, str]:
+        """QSpice defines aliases for some of the traces that can be computed from other traces.
+        """
+        return self._aliases
+
+    @property
+    def backannotations(self) -> List[str]:
+        """List to store the backannotations found in the RAW file header
+        """
+        return self._backannotations
+
+    @property
+    def has_axis(self) -> bool:
+        """Indicates if the RAW file has an axis.
+        This is True for all RAW file plots except for 'Operating Point', 'Transfer Function', and 'Integrated Noise'.
+        """
+        return self._has_axis        
+    
+    @property
+    def axis(self) -> Union[Axis, None]:
+        """
+        .. deprecated:: 1.4.5 Use `get_axis()` method instead.
+        
+        The axis of the RAW file, if it exists.
+        """
+        return self._axis
+
+    @property
+    def raw_params(self) -> OrderedDict:
+        """
+        .. deprecated:: 1.4.5 Use `get_raw_properties()` or `get_raw_property()` method instead.
+        
+        Dictionary to store the parameters found in the RAW file header.
+        The keys are the parameter names, and the values are the parameter values.
+        """
+        return self._raw_params
+    
+    @property
+    def flags(self) -> List[str]:
+        """List of Flags that are used in this plot. See :doc:`../varia/raw_file` for details.
+        """
+        return self._flags
+    
+    @property
+    def steps(self) -> Union[List[int], None]:
+        """List of steps in the RAW file, if it exists.
+        If the RAW file does not contain stepped data, this will be None.
+        If the RAW file contains stepped data, this will be a list of step numbers.
+        """
+        return self._steps
 
     def _get_remaining_bytes(self, raw_file) -> int:
         current_pos = raw_file.tell()
@@ -517,21 +586,22 @@ class RawRead(object):
         # init all vars that should be initialized, even in case of an exception
         # bla
         self.verbose = verbose
-        self.raw_params = OrderedDict()  # Dictionary to store the parameters found in the RAW file header
-        self.raw_params['Filename'] = raw_filename.as_posix()  # Storing the filename as part of the dictionary
-        self.backannotations = []  # Storing backannotations
-        self.encoding = ""  # Encoding of the RAW file, either 'utf_8' or 'utf_16_le'
-        self.raw_type = ""  # Type of the RAW file, either 'Binary:' or 'Values:'
-        self.aliases = {}  # QSpice defines aliases for some of the traces that can be computed from other traces.
-        self.spice_params = {}  # QSpice stores param values in the .raw file. They may have some usage later for
-        self.nPoints = 0  # Number of points in the RAW file
-        self.nVariables = 0  # Number of variables in the RAW file
-        self.dialect = None  # The dialect of the RAW file, either 'ltspice', 'qspice', 'ngspice' or 'xyce'
+        self._raw_params = OrderedDict()  # Dictionary to store the parameters found in the RAW file header
+        self._raw_params['Filename'] = raw_filename.as_posix()  # Storing the filename as part of the dictionary
+        # TODO: use backannotations to store the backannotations
+        self._backannotations = []  # Storing backannotations 
+        self._encoding = ""  # Encoding of the RAW file, either 'utf_8' or 'utf_16_le'
+        self._raw_type = ""  # Type of the RAW file, either 'Binary:' or 'Values:'
+        self._aliases = {}  # QSpice defines aliases for some of the traces that can be computed from other traces.
+        self._spice_params = {}  # QSpice stores param values in the .raw file. They may have some usage later for
+        self._nPoints = 0  # Number of points in the RAW file
+        self._nVariables = 0  # Number of variables in the RAW file
+        self._dialect = None  # The dialect of the RAW file, either 'ltspice', 'qspice', 'ngspice' or 'xyce'
         self._traces = []
-        self.steps = None
-        self.axis = None  # Creating the axis
-        self.flags = []
-        self.has_axis = True  # Indicates if the RAW file has an axis.
+        self._steps = None
+        self._axis = None  # Creating the axis
+        self._flags = []
+        self._has_axis = True  # Indicates if the RAW file has an axis.
 
         plotinfo = f"Plot nr {self.plot_nr}"
         if skip_data:
@@ -549,33 +619,33 @@ class RawRead(object):
         # Detect the encoding of the file
         raw_line = raw_file.read(6)
         line = raw_line.decode(encoding='utf_8')
-        self.encoding = ""
+        self._encoding = ""
         sz_enc = 1
         if line == 'Title:' or line == '\nTitle':
-            self.encoding = 'utf_8'
+            self._encoding = 'utf_8'
             sz_enc = 1
             line = line.strip()
         else:
             line = raw_line.decode(encoding='utf_16_le')
             if line == 'Tit' or line == '\nTi':
-                self.encoding = 'utf_16_le'
+                self._encoding = 'utf_16_le'
                 sz_enc = 2
                 line = line.strip()
-        if len(self.encoding) == 0:
+        if len(self._encoding) == 0:
             raise SpiceReadException(f"Invalid RAW file. {plotinfo} Unrecognized encoding. Read '{raw_line}'")
         if self.verbose:
-            _logger.debug(f"{plotinfo} Reading the file with encoding: '{self.encoding}'")
+            _logger.debug(f"{plotinfo} Reading the file with encoding: '{self._encoding}'")
             
         header = []
         while True:
-            ch = raw_file.read(sz_enc).decode(encoding=self.encoding, errors='replace')
+            ch = raw_file.read(sz_enc).decode(encoding=self._encoding, errors='replace')
             if ch == '\n':
                 # read one line. must remove the \r
-                # if self.encoding == 'utf_8':  # no idea why utf_16_le would not need that, but this 'if' was here
+                # if self._encoding == 'utf_8':  # no idea why utf_16_le would not need that, but this 'if' was here
                 line = line.rstrip('\r')
                 header.append(line)
                 if line.lower() in ('binary:', 'values:'):
-                    self.raw_type = line
+                    self._raw_type = line
                     break
                 line = ""
             else:
@@ -588,53 +658,53 @@ class RawRead(object):
                     # This is a .param line which format as the following pattern ".param temp=27"
                     _, _, line = line.partition('.param')
                     k, _, v = line.partition('=')
-                    self.spice_params[k.strip()] = v.strip()
+                    self._spice_params[k.strip()] = v.strip()
                 elif line.startswith('.alias'):
                     # This is a .param line which format as the following pattern ".alias I(R2) (0.0001mho*V(n01,out))"
                     _, alias, formula = line.split(' ', 3)
-                    self.aliases[alias.strip()] = formula.strip()
+                    self._aliases[alias.strip()] = formula.strip()
             else:
                 # This is the typical RAW style parameter format <param>: <value>
                 k, _, v = line.partition(':')
                 if k.lower() == 'variables':
                     break
-                self.raw_params[k.strip().title()] = v.strip()  # Store the parameter in the dictionary, in title case
-        self.nPoints = int(self.raw_params['No. Points'], 10)
-        self.nVariables = int(self.raw_params['No. Variables'], 10)
-        if self.nPoints == 0 or self.nVariables == 0:
-            raise SpiceReadException(f"Invalid RAW file. {plotinfo} No points or variables found: Points: {self.nPoints}, Variables: {self.nVariables}.")
+                self._raw_params[k.strip().title()] = v.strip()  # Store the parameter in the dictionary, in title case
+        self._nPoints = int(self._raw_params['No. Points'], 10)
+        self._nVariables = int(self._raw_params['No. Variables'], 10)
+        if self._nPoints == 0 or self._nVariables == 0:
+            raise SpiceReadException(f"Invalid RAW file. {plotinfo} No points or variables found: Points: {self._nPoints}, Variables: {self._nVariables}.")
 
-        self.has_axis = self.raw_params['Plotname'].lower() not in ('operating point', 'transfer function', 'integrated noise')
+        self._has_axis = self._raw_params['Plotname'].lower() not in ('operating point', 'transfer function', 'integrated noise')
                         
         # autodetect the dialect. This is not always possible
         autodetected_dialect = None
-        if 'Command' in self.raw_params:
-            if 'ltspice' in self.raw_params['Command'].lower():
+        if 'Command' in self._raw_params:
+            if 'ltspice' in self._raw_params['Command'].lower():
                 # Can be auto detected
                 # binary types: depends on flag, see below
                 autodetected_dialect = 'ltspice'
-            if 'qspice' in self.raw_params['Command'].lower():
+            if 'qspice' in self._raw_params['Command'].lower():
                 # Can be auto detected
                 # binary types: always double for time, complex for AC
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self.raw_params['Command']}'. Using qspice.")
+                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self._raw_params['Command']}'. Using qspice.")
                 autodetected_dialect = 'qspice'
-            if 'ngspice' in self.raw_params['Command'].lower():
+            if 'ngspice' in self._raw_params['Command'].lower():
                 # Can only be auto detected from ngspice 44 on, as before there was no "Command:" 
                 # binary types: always double for time, complex for AC
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self.raw_params['Command']}'. Using ngspice.")
+                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self._raw_params['Command']}'. Using ngspice.")
                 autodetected_dialect = 'ngspice'
-            if 'xyce' in self.raw_params['Command'].lower():
+            if 'xyce' in self._raw_params['Command'].lower():
                 # Cannot be auto detected yet (at least not on 7.9, where there is no "Command:")
                 #  Flags: real (for time) and complex (for frequency)
                 #  Binary types: always double for time, complex for AC
                 #  and potentially a text (csv) section that follows, that can be ignored.
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self.raw_params['Command']}'. Using xyce.")
+                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self._raw_params['Command']}'. Using xyce.")
                 autodetected_dialect = 'xyce'
         
         if dialect:
@@ -650,22 +720,22 @@ class RawRead(object):
             raise SpiceReadException(f"Invalid RAW file. {plotinfo} file dialect is not specified and could not be auto detected.")
 
         # and tell the outside world
-        self.dialect = dialect
+        self._dialect = dialect
         
         # set the specifics per dialect
         always_double = dialect != 'ltspice'  # qspice, ngspice and xyce use doubles for everything outside of AC files
         frequency_double = dialect == 'qspice'  # qspice uses double also for frequency for AC files
         
         self._traces = []
-        self.steps = None
-        self.axis = None  # Creating the axis
-        self.flags = self.raw_params['Flags'].split()
-        if 'complex' in self.raw_params['Flags'].lower() or self.raw_params['Plotname'].lower() == 'ac analysis':
+        self._steps = None
+        self._axis = None  # Creating the axis
+        self._flags = self._raw_params['Flags'].split()
+        if 'complex' in self._raw_params['Flags'].lower() or self._raw_params['Plotname'].lower() == 'ac analysis':
             numerical_type = 'complex'
         else:
             if always_double:  # qspice, ngspice and xyce use doubles for everything outside of AC
                 numerical_type = 'double'
-            elif "double" in self.raw_params['Flags'].lower():  # LTspice: .options numdgt = 7 sets this flag for double precision
+            elif "double" in self._raw_params['Flags'].lower():  # LTspice: .options numdgt = 7 sets this flag for double precision
                 numerical_type = 'double'
             else:
                 numerical_type = 'real'
@@ -685,16 +755,16 @@ class RawRead(object):
                     axis_numerical_type = 'double'  # QSPICE uses double for frequency for .AC files
                 else:
                     axis_numerical_type = numerical_type
-                self.axis = Axis(name, var_type, self.nPoints, axis_numerical_type)
-                trace = self.axis
+                self._axis = Axis(name, var_type, self._nPoints, axis_numerical_type)
+                trace = self._axis
             elif not skip_data and ((traces_to_read == "*") or (name in traces_to_read)):
-                if self.has_axis:  # Reads data
-                    trace = TraceRead(name, var_type, self.nPoints, self.axis, numerical_type)
+                if self._has_axis:  # Reads data
+                    trace = TraceRead(name, var_type, self._nPoints, self._axis, numerical_type)
                 else:
                     # If an Operation Point or Transfer Function, only one point per step
-                    trace = TraceRead(name, var_type, self.nPoints, None, numerical_type)
+                    trace = TraceRead(name, var_type, self._nPoints, None, numerical_type)
             else:
-                trace = DummyTrace(name, var_type, self.nPoints, numerical_type)
+                trace = DummyTrace(name, var_type, self._nPoints, numerical_type)
 
             self._traces.append(trace)
             ivar += 1
@@ -714,14 +784,14 @@ class RawRead(object):
 
         if self.verbose:
             nr_traces_to_read = len([trace for trace in self._traces if not isinstance(trace, DummyTrace)])
-            _logger.info(f"{plotinfo} Plot is of type '{self.get_plot_name()}', contains {ivar} traces with {self.nPoints} points, reading {nr_traces_to_read} traces.")
+            _logger.info(f"{plotinfo} Plot is of type '{self.get_plot_name()}', contains {ivar} traces with {self._nPoints} points, reading {nr_traces_to_read} traces.")
 
         # Now, we have the header read, and the traces created.
         # We can now read the data section.
-        if self.raw_type.lower() == "binary:":
+        if self._raw_type.lower() == "binary:":
             # Will start the reading of binary values
             
-            if "fastaccess" in self.raw_params["Flags"]:
+            if "fastaccess" in self._raw_params["Flags"]:
                 if self.verbose:
                     _logger.debug(f"{plotinfo} Binary RAW file with Fast access")
                 # Fast access means that the traces are grouped together.
@@ -740,7 +810,7 @@ class RawRead(object):
                     else:
                         raise SpiceReadException(f"Invalid RAW file. {plotinfo} Invalid data type {var.numerical_type} for trace {var.name}")
                     
-                    s = raw_file.read(self.nPoints * datasize)
+                    s = raw_file.read(self._nPoints * datasize)
                     if not isinstance(var, DummyTrace):
                         var.data = frombuffer(s, dtype=dtype)
 
@@ -770,20 +840,20 @@ class RawRead(object):
                     scan_functions.append(fun)
                     
                 # This is the default save after a simulation where the traces are scattered
-                for point in range(self.nPoints):
+                for point in range(self._nPoints):
                     for i, var in enumerate(self._traces):
                         value = scan_functions[i](raw_file)
                         if value is not None and not isinstance(var, DummyTrace):
                             var.data[point] = value
 
-        elif self.raw_type.lower() == "values:":
+        elif self._raw_type.lower() == "values:":
             if self.verbose:
                 _logger.debug(f"{plotinfo} ASCII RAW File")
             # Will start the reading of ASCII Values
-            for point in range(self.nPoints):
+            for point in range(self._nPoints):
                 line_nr = 0
                 while line_nr < len(self._traces):
-                    line = raw_file.readline().decode(encoding=self.encoding, errors='ignore')
+                    line = raw_file.readline().decode(encoding=self._encoding, errors='ignore')
                     if len(line) == 0:
                         raise SpiceReadException(f"Invalid RAW file. {plotinfo} Invalid data: end of file encountered too early")
                     if len(line.strip()) == 0:
@@ -808,10 +878,10 @@ class RawRead(object):
                             var.data[point] = float(value)
                     line_nr += 1
         else:
-            raise SpiceReadException(f"Invalid RAW file. {plotinfo} Unsupported RAW type \"{self.raw_type}\"")
+            raise SpiceReadException(f"Invalid RAW file. {plotinfo} Unsupported RAW type \"{self._raw_type}\"")
 
         # Setting the properties in the proper format
-        self.raw_params["Variables"] = [var.name for var in self._traces]
+        self._raw_params["Variables"] = [var.name for var in self._traces]
         # Now Purging Dummy Traces
         i = 0
         while i < len(self._traces):
@@ -825,25 +895,25 @@ class RawRead(object):
             # this also doesn't print remaining bytes, as I will be coming back to this file immediately after
             return
         
-        if "stepped" in self.raw_params["Flags"].lower():
+        if "stepped" in self._raw_params["Flags"].lower():
             try:
                 self._load_step_information(raw_filename, plotinfo)
             except SpiceReadException as err:
                 _logger.warning(f"{plotinfo} {str(err)}\nError in auto-detecting steps in '{raw_filename}'")
-                if self.has_axis:
+                if self._has_axis:
                     number_of_steps = 0
-                    for v in self.axis.data:
-                        if v == self.axis.data[0]:
+                    for v in self._axis.data:
+                        if v == self._axis.data[0]:
                             number_of_steps += 1
                 else:
-                    number_of_steps = self.nPoints
-                self.steps = [{'run': i + 1} for i in range(number_of_steps)]
+                    number_of_steps = self._nPoints
+                self._steps = [{'run': i + 1} for i in range(number_of_steps)]
 
-            if self.steps is not None:
-                if self.has_axis:
+            if self._steps is not None:
+                if self._has_axis:
                     # Individual access to the Trace Classes, this information is stored in the Axis
                     # which is always in position 0
-                    self._traces[0]._set_steps(self.steps)
+                    self._traces[0]._set_steps(self._steps)
         
         # and report remaining bytes
         bytes_remaining = self._get_remaining_bytes(raw_file)
@@ -871,7 +941,7 @@ class RawRead(object):
         """
         Get a property. By default, it returns all properties defined in the RAW file.
 
-        :param property_name: name of the property to retrieve.
+        :param property_name: name of the property to retrieve. If None, all properties are returned.
         :type property_name: str
         :returns: Property object
         :rtype: str
@@ -879,11 +949,20 @@ class RawRead(object):
         """
         # the property name is case-insensitive, but the keys are stored in title case.
         if property_name is None:
-            return self.raw_params
-        elif property_name.title() in self.raw_params.keys():
-            return self.raw_params[property_name.title()]
+            return self.get_raw_properties()
+        elif property_name.title() in self._raw_params.keys():
+            return self._raw_params[property_name.title()]
         else:
-            raise ValueError("Invalid property. Use %s" % str(self.raw_params.keys()))
+            raise ValueError("Invalid property. Use %s" % str(self._raw_params.keys()))
+
+    def get_raw_properties(self) -> Dict[str, str]:
+        """
+        Get all raw properties.
+
+        :return: Dictionary of all raw properties
+        :rtype: Dict[str, str]
+        """
+        return self._raw_params
 
     def get_plot_name(self) -> Union[str, None]:
         """
@@ -902,8 +981,8 @@ class RawRead(object):
         :rtype: str | None
         """
         property_name = "Plotname"
-        if property_name in self.raw_params.keys():
-            return self.raw_params[property_name]
+        if property_name in self._raw_params.keys():
+            return self._raw_params[property_name]
         else:
             return None
 
@@ -915,14 +994,14 @@ class RawRead(object):
         :rtype: list[str]
         """
         # parsing the aliases needs to be done before implementing this.
-        return [trace.name for trace in self._traces] + list(self.aliases.keys())
+        return [trace.name for trace in self._traces] + list(self._aliases.keys())
 
     def _compute_alias(self, alias: str):
         """
         Constants like mho need to be replaced and V(ref1,ref2) need to be replaced by (V(ref1)-V(ref2)) and after
         that the aliases can be computed, using the eval() function.
         """
-        formula = self.aliases[alias]
+        formula = self._aliases[alias]
         # converting V(ref1, ref2) to (V(ref1)-V(ref2))
         formula = re.sub(r'V\((\w+),0\)', r'V(\1)', formula)
         formula = re.sub(r'V\(0,(\w+)\)', r'(-V(\1))', formula)
@@ -938,9 +1017,9 @@ class RawRead(object):
             whattype = 'voltage'
         else:
             raise NotImplementedError(f'Unrecognized alias type for alias : "{alias}"')
-        trace = TraceRead(alias, whattype, self.nPoints, self.axis, 'double')
+        trace = TraceRead(alias, whattype, self._nPoints, self._axis, 'double')
         local_vars = {'pi': 3.1415926536, 'e': 2.7182818285}  # This is the dictionary that will be used to compute the alias
-        local_vars.update({name: scan_eng(value) for name, value in self.spice_params.items()})
+        local_vars.update({name: scan_eng(value) for name, value in self._spice_params.items()})
         local_vars.update({namify(trace.name): trace.data for trace in self._traces})
         try:
             trace.data = eval(formula, local_vars)
@@ -963,7 +1042,7 @@ class RawRead(object):
                 if trace_ref.casefold() == trace.name.casefold():  # The trace names are case-insensitive
                     # assert isinstance(trace, DataSet)
                     return trace
-            for alias in self.aliases:
+            for alias in self._aliases:
                 if trace_ref.casefold() == alias.casefold():
                     return self._compute_alias(alias)
             raise IndexError(f"{self} doesn't contain trace \"{trace_ref}\"\n"
@@ -1006,7 +1085,7 @@ class RawRead(object):
         :return: Array with the X axis
         :rtype: Union[np.array, List[float]]
         """
-        if self.axis:
+        if self._axis:
             axis = self.get_trace(0)
             assert isinstance(axis, Axis), "This RAW file does not have an axis."
             return axis.get_wave(step)
@@ -1022,15 +1101,21 @@ class RawRead(object):
         :return: The number of data points
         :rtype: int
         """
-        return self.axis.get_len(step)
+        if self._axis is None:
+            # If there is no axis, the length is the number of points
+            return self._nPoints
+        else:
+            # If there is an axis, the length is the length of the axis at the given step
+            assert isinstance(self._axis, Axis), "This RAW file does not have an axis."
+            return self._axis.get_len(step)
 
     def _load_step_information(self, filename: Path, plotinfo: str):
-        if 'Command' not in self.raw_params:
+        if 'Command' not in self._raw_params:
             # probably ngspice before v44 or xyce. And anyway, ngspice does not support the '.step' directive
             # FYI: ngspice can do something like .step via a control section with while loop.
             raise SpiceReadException("Unsupported simulator. Only LTspice and QSPICE are supported.")
         
-        if 'ltspice' in self.raw_params['Command'].lower():
+        if 'ltspice' in self._raw_params['Command'].lower():
             # look in the .log file for information about the steps
             if filename.suffix != '.raw':
                 raise SpiceReadException("Invalid Filename. The file should end with '.raw'")
@@ -1054,13 +1139,13 @@ class RawRead(object):
                             continue
                         key, value = tok.split('=')
                         step_dict[key] = try_convert_value(value)
-                    if self.steps is None:
-                        self.steps = [step_dict]
+                    if self._steps is None:
+                        self._steps = [step_dict]
                     else:
-                        self.steps.append(step_dict)
+                        self._steps.append(step_dict)
             log.close()
 
-        elif 'qspice' in self.raw_params['Command'].lower():
+        elif 'qspice' in self._raw_params['Command'].lower():
             # look in the .log file for information about the steps
             if filename.suffix != '.qraw':
                 raise SpiceReadException("Invalid Filename. The file should end with '.qraw'")
@@ -1088,10 +1173,10 @@ class RawRead(object):
                         key, value = tok.split("=")
                         # Try to convert to int or float
                         step_dict[key] = try_convert_value(value)
-                    if self.steps is None:
-                        self.steps = [step_dict]
+                    if self._steps is None:
+                        self._steps = [step_dict]
                     else:
-                        self.steps.append(step_dict)
+                        self._steps.append(step_dict)
             log.close()
 
         else:
@@ -1118,13 +1203,13 @@ class RawRead(object):
         :return: The steps that match the query
         :rtype: list[int]
         """
-        if self.steps is None:
+        if self._steps is None:
             return [0]  # returns a single step
         else:
             if len(kwargs) > 0:
                 ret_steps = []  # Initializing an empty array
                 i = 0
-                for step_dict in self.steps:
+                for step_dict in self._steps:
                     for key in kwargs:
                         ll = step_dict.get(key, None)
                         if ll is None:
@@ -1136,7 +1221,7 @@ class RawRead(object):
                     i += 1
                 return ret_steps
             else:
-                return range(len(self.steps))  # Returns all the steps
+                return range(len(self._steps))  # Returns all the steps
 
     def export(self, columns: list = None, step: Union[int, List[int]] = -1, **kwargs) -> Dict[str, list]:
         """
@@ -1157,8 +1242,8 @@ class RawRead(object):
         if columns is None:
             columns = self.get_trace_names()  # if no columns are given, use all traces
         else:
-            if self.axis and self.axis.name not in columns:  # If axis is not in the list, add it
-                columns.insert(0, self.axis.name)
+            if self._axis and self._axis.name not in columns:  # If axis is not in the list, add it
+                columns.insert(0, self._axis.name)
 
         if isinstance(step, list):
             steps_to_read = step  # If a list of steps is given, use it
@@ -1169,7 +1254,7 @@ class RawRead(object):
 
         step_columns = []
         if len(step_columns) > 1:
-            for step_dict in self.steps[0]:
+            for step_dict in self._steps[0]:
                 for key in step_dict:
                     step_columns.append(key)
         data = OrderedDict()
@@ -1183,7 +1268,7 @@ class RawRead(object):
             for col in columns:
                 data[col] += list(self.get_wave(col, step))
             for col in step_columns:
-                data[col] += [self.steps[step][col]] * len(data[columns[0]])
+                data[col] += [self._steps[step][col]] * len(data[columns[0]])
         return data
 
     def to_dataframe(self, columns: list = None, step: Union[int, List[int]] = -1, **kwargs):

@@ -346,7 +346,7 @@ class RawReader_Test(unittest.TestCase):
                         tracelen = len(raw.get_trace(main_axis).data)
                         print(f"tracelen, for {main_axis}: {tracelen}")
                         self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
-                        self.assertEqual(tracelen, len(raw.axis), "Not the expected number of points on the axis")                         
+                        self.assertEqual(tracelen, raw.get_len(), "Not the expected number of points on the axis")                         
 
                         if expected_values is not None:
                             # Check the values of the traces, if we have them
@@ -386,7 +386,7 @@ class RawReader_Test(unittest.TestCase):
                 vin_name = "in"
             vout_trace = raw.get_trace(vout_name)
             vin_trace = raw.get_trace(vin_name)
-            for point, freq in enumerate(raw.axis):
+            for point, freq in enumerate(raw.get_axis()):  # not .axis, since ltspice sometimes gives negative frequencies
                 # print(f"testing pt {point} for freq {abs(freq)}")
                 vout1 = vout_trace.get_point_at(freq)
                 vout2 = vout_trace.get_point(point)

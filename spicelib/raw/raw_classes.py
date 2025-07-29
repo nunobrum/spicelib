@@ -109,7 +109,7 @@ class Axis(DataSet):
             raise SpiceReadException("The file a different number of steps than expected.\n" +
                                      "Expecting %d got %d" % (len(self.step_offsets), k))
 
-    def step_offset(self, step: int):
+    def step_offset(self, step: int) -> int:
         """
         In Stepped RAW files, several simulations runs are stored in the same RAW file. This function returns the
         offset within the binary stream where each step starts.

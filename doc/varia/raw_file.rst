@@ -12,13 +12,16 @@ In the preamble, the lines are always started by one of the following identifier
 
    + Date:           => Date when the simulation started
 
-   + Plotname:       => Name of the simulation. The known Simulation Types are:
-                       * Operation Point
-                       * DC transfer characteristic
+   + Plotname:       => Name of the simulation. Some known Simulation Types are:
                        * AC Analysis
+                       * DC transfer characteristic
+                       * Operating Point
                        * Transient Analysis
-                       * Noise Spectral Density - (V/Hz½ or A/Hz½)
                        * Transfer Function
+                       * Noise Spectral Density
+                       * Frequency Response Analysis
+                       * Noise Spectral Density Curves
+                       * Integrated Noise
 
    + Flags:          => Flags that are used in this plot. The simulation can have any combination of these flags.
                       * "real" -> The traces in the raw file contain real values. As for exmple on a TRAN simulation.
@@ -27,6 +30,7 @@ In the preamble, the lines are always started by one of the following identifier
                         characteristic, AC Analysis, Transient Analysis or Noise Spectral Density have the forward flag.
                         Operating Point and Transfer Function don't have this flag activated.
                       * "log" -> The preferred plot view of this data is logarithmic.
+                      * "linear" -> The preferred plot view of this data is linear.
                       * "stepped" -> The simulation had .STEP primitives.
                       * "FastAccess" -> Order of the data is changed to speed up access. See Binary section for details.
 
