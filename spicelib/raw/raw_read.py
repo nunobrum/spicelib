@@ -638,6 +638,10 @@ class PlotData(PlotInterface, ABC):
         self._axis = None  # Creating the axis
         self._flags = []
         self._has_axis = True  # Indicates if the RAW file has an axis.
+        
+        # TODO: take care of headeronly
+        if headeronly:
+            _logger.warning("headeronly mode is not yet supported, performance might be slower than wanted.")
 
         plotinfo = f"Plot nr {plot_nr}:"
 
@@ -1526,7 +1530,8 @@ class RawRead(PlotInterface, ABC):
                 # given info is correct?
                 if dialect not in ('ltspice', 'qspice', 'ngspice', 'xyce'):
                     raise ValueError(f"Invalid RAW file dialect: '{dialect}', must be one of 'ltspice', 'qspice', 'ngspice', 'xyce'.")
-            
+        self._dialect = dialect
+        
         # detect encoding
         self._encoding = self._detect_encoding(raw_filename)
         if verbose:

@@ -303,7 +303,11 @@ class RawReader_Test(unittest.TestCase):
                     print(f"Testing {simulator} with file {file}")
                     plotnr = 0
                     fileno += 1
+                    raw = RawRead(f"{test_dir}{file}", dialect=dialect)                        
+                    self.assertEqual(raw.dialect, simulator, "Difference in dialect")
+                    
                     nrplots = len(testset[simulator][type]["expected_plots"])
+                    self.assertEqual(nrplots, len(raw.get_plot_names()), "Number of plots does not match expected number")
                     for v in testset[simulator][type]["expected_plots"]:
                         expected_plotname = v['name']
                         expected_tracenames = v['tracenames']
@@ -323,19 +327,22 @@ class RawReader_Test(unittest.TestCase):
 
                         print(f"Expected plot: '{expected_plotname}', tracenames: {expected_tracenames}, tracelen: {expected_tracelen}")
                         
-                        raw = RawRead(f"{test_dir}{file}", dialect=dialect, plot_to_read=plotnr)                        
-                        self.assertEqual(raw.dialect, simulator, "Difference in dialect")
-                        gotten_plotname = raw.get_plot_name()
-                        gotten_tracenames = raw.get_trace_names()
+                        if nrplots == 1:
+                            gotten_plotname = raw.get_plot_name()
+                            gotten_tracenames = raw.get_trace_names()
+                            gotten_flags = raw.get_raw_property("Flags")
+                            my_raw = raw
+                        else:
+                            gotten_plotname = raw.plots[plotnr - 1].get_plot_name()
+                            gotten_tracenames = raw.plots[plotnr - 1].get_trace_names()
+                            gotten_flags = raw.plots[plotnr - 1].get_raw_property("Flags")
+                            my_raw = raw.plots[plotnr - 1]
                         print(f"Gotten plot:   '{gotten_plotname}', tracenames: {gotten_tracenames}")
 
                         self.assertTrue(gotten_plotname is not None, "Plot name should not be None")
                         # the endswith stuff below is because of xyce: https://github.com/Xyce/Xyce/issues/157
                         self.assertTrue(gotten_plotname.lower().endswith(expected_plotname.lower()), "Difference in plot name")
-                        for p in ["Flags"]:
-                            print(f"{p}: {raw.get_raw_property(p)}")
-                        if plotnr == nrplots:
-                            self.assertEqual(raw.has_more_plots(), False, "There should be no more plots")
+                        print(f"Flags: {gotten_flags}")
 
                         # Check if the expected tracenames are in the gotten tracenames, case insensitive
                         for expected_tracename in expected_tracenames:
@@ -343,15 +350,15 @@ class RawReader_Test(unittest.TestCase):
                                           f"Expected trace name {expected_tracename} not found in {gotten_tracenames}")
 
                         main_axis = expected_tracenames[0].lower()
-                        tracelen = len(raw.get_trace(main_axis).data)
+                        tracelen = len(my_raw.get_trace(main_axis).data)
                         print(f"tracelen, for {main_axis}: {tracelen}")
                         self.assertEqual(tracelen, expected_tracelen, "Not the expected number of points")
-                        self.assertEqual(tracelen, raw.get_len(), "Not the expected number of points on the axis")                         
+                        self.assertEqual(tracelen, my_raw.get_len(), "Not the expected number of points on the axis")
 
                         if expected_values is not None:
                             # Check the values of the traces, if we have them
                             for trace_name, expected_value in zip(expected_tracenames, expected_values):
-                                trace = raw.get_trace(trace_name)
+                                trace = my_raw.get_trace(trace_name)
                                 if isinstance(expected_value, list):
                                     # If we have a list, it is a multi-value trace
                                     for i, value in enumerate(expected_value):
@@ -362,7 +369,7 @@ class RawReader_Test(unittest.TestCase):
                         
                         if func is not None:
                             # Call the function passed as argument, to perform additional tests
-                            func(raw, expected_tracelen, tracelen, main_axis if has_axis else None)
+                            func(my_raw, expected_tracelen, tracelen, main_axis if has_axis else None)
 
     def test_rawreaders_ac(self):
         # All AC tests use the same circuit as source, and the same simulation configuration
