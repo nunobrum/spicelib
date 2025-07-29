@@ -65,7 +65,7 @@ class DataSet(object):
     def __getitem__(self, item):
         return self.data[item]
 
-    def get_wave(self) -> np.array:
+    def get_wave(self) -> np.ndarray:
         """
         :return: Internal data array
         :rtype: numpy.array
@@ -130,7 +130,7 @@ class Axis(DataSet):
             else:
                 return self.step_offsets[step]
 
-    def get_wave(self, step: int = 0) -> np.array:
+    def get_wave(self, step: int = 0) -> np.ndarray:
         """
         Returns a vector containing the wave values. If numpy is installed, data is returned as a numpy array.
         If not, the wave is returned as a list of floats.
@@ -152,7 +152,7 @@ class Axis(DataSet):
         else:
             return wave
 
-    def get_time_axis(self, step: int = 0):
+    def get_time_axis(self, step: int = 0) -> np.ndarray:
         """
         .. deprecated:: 1.0 Use `get_wave()` instead.
 
@@ -274,7 +274,7 @@ class TraceRead(DataSet):
             "Indexing should not be used with stepped data. Use get_point() method"
         return self.data.__getitem__(item)
 
-    def get_wave(self, step: int = 0) -> np.array:
+    def get_wave(self, step: int = 0) -> np.ndarray:
         """
         Returns the data contained in this object. For stepped simulations an argument must be passed specifying the
         step number. If no steps exist, the argument must be left blank.

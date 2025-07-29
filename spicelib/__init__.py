@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Convenience direct imports
-from .raw.raw_read import RawRead, SpiceReadException
+from .raw.raw_read import RawRead, PlotData, SpiceReadException
 from .raw.raw_write import RawWrite, Trace
 from .editor.spice_editor import SpiceEditor, SpiceCircuit, SpiceComponent
 from .editor.asc_editor import AscEditor
@@ -29,6 +29,7 @@ def all_loggers():
         "spicelib.qspice_log_reader",
         "spicelib.QSpiceSimulator",
         "spicelib.RawRead",
+        "spicelib.PlotData",
         "spicelib.RunTask",
         "spicelib.ServerSimRunner",
         "spicelib.SimAnalysis",
