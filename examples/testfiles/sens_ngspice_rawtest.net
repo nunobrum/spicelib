@@ -1,0 +1,9 @@
+spice
+.options ksparse
+V1 1 0 PWL 0 0 1 1
+R1 1 2 1
+R2 2 0 1
+M1 2 1 0 0 PMOS
+.model PMOS PMOS (W=1.5u L=1u)
+.sens V(2) AC DEC 10 100 100k
+.end

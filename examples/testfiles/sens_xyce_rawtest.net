@@ -1,0 +1,15 @@
+spice
+.options ksparse
+V1 1 0 PWL 0 0 1 1
+R1 1 2 1
+R2 2 0 1
+M1 2 1 0 0 PMOS
+.model PMOS PMOS (W=1.5u L=1u)
+.TRAN 0 1
+.OPTIONS OUTPUT initial_interval=0.1
+.sens objfunc={V(2)} param=R2:R
+.print TRANADJOINT FORMAT=CSV V(1) R1:R R2:R
+.options SENSITIVITY STDOUTPUT=1 adjoint=1 direct=0
++ adjointTimePoints=0.25,0.5,0.75
+.PRINT TRAN R1:R R2:R V(1) V(2)
+.end

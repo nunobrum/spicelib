@@ -276,6 +276,8 @@ def read_float64(f):
     :rtype: float
     """
     s = f.read(8)
+    if len(s) < 8:
+        raise SpiceReadException("Invalid RAW file. Not enough data to read a double value.")
     return unpack("d", s)[0]
 
 
@@ -291,6 +293,8 @@ def read_complex(f):
     :rtype: complex
     """
     s = f.read(16)
+    if len(s) < 16:
+        raise SpiceReadException("Invalid RAW file. Not enough data to read a complex value.")
     (re, im) = unpack('dd', s)
     return complex(re, im)
 
@@ -325,6 +329,8 @@ def read_float32(f):
     :rtype: float
     """
     s = f.read(4)
+    if len(s) < 4:
+        raise SpiceReadException("Invalid RAW file. Not enough data to read a float value.")
     return unpack("f", s)[0]
 
 
@@ -669,6 +675,12 @@ class PlotData(PlotInterface, ABC):
         line = ""
         while True:
             ch = raw_file.read(sz_enc).decode(encoding=self._encoding, errors='replace')
+            if len(ch) == 0:
+                # End of file reached
+                if self._verbose:
+                    _logger.warning(f"{plotinfo} End of file reached while reading the header.")
+                # will raise exception later
+                break
             if ch == '\n':
                 # read one line. must remove the \r
                 # if self._encoding == 'utf_8':  # no idea why utf_16_le would not need that, but this 'if' was here
@@ -676,12 +688,14 @@ class PlotData(PlotInterface, ABC):
                 header.append(line)
                 if line.lower() in ('binary:', 'values:'):
                     self._raw_type = line
+                    self._has_data = True  # If we got here, we have a valid RAW file with data.
                     break
                 line = ""
             else:
                 line += ch
 
-        self._has_data = True  # If we got here, we have a valid RAW file with data.
+        if not self._has_data:
+            raise SpiceReadException(f"Invalid RAW file. {plotinfo} Header is incomplete.")
         
         # computing the aliases.
         for line in header:
@@ -830,6 +844,12 @@ class PlotData(PlotInterface, ABC):
                         raise SpiceReadException(f"Invalid RAW file. {plotinfo} Invalid data type {var.numerical_type} for trace {var.name}")
                     
                     s = raw_file.read(self._nPoints * datasize)
+                    if len(s) == 0:
+                        # End of file reached
+                        if self._verbose:
+                            _logger.warning(f"{plotinfo} End of file reached while reading the data for trace {var.name}.")
+                        raise SpiceReadException(f"Invalid RAW file. {plotinfo} End of file reached while reading the data for trace {var.name}.")
+                        
                     if not isinstance(var, DummyTrace):
                         var.data = frombuffer(s, dtype=dtype)
 
@@ -1471,6 +1491,11 @@ class RawRead(PlotInterface, ABC):
     :param verbose:
         If True, then the class will log debug information. Defaults to True.
     :type verbose: bool
+    :param force_reading_all:
+        If True, then the entire file content will be checked for validity. 
+        If False, then only the first plot needs to be valid, and others will be read until an error happens.
+        Defaults to False, as some simulators (xyce) tend to write additional data to the raw file.
+    :type force_reading_all: bool
     :raises SpiceReadException: in case of a syntax error in the RAW file, or if the encoding is not recognized. 
     """
     # header_lines = (
@@ -1504,7 +1529,8 @@ class RawRead(PlotInterface, ABC):
                  traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*',
                  dialect: Union[str, None] = None, 
                  headeronly: bool = False, 
-                 verbose: bool = True):
+                 verbose: bool = True,
+                 force_reading_all: bool = False):
         """Initializes the RawRead object and reads the RAW file."""
         
         # Initialize and type the instance variables, for the documentation
@@ -1545,7 +1571,15 @@ class RawRead(PlotInterface, ABC):
         # read the contents of the file, one plot at a time
         try:
             while have_more_data:
-                plot = PlotData(raw_file, raw_filename, traces_to_read, plot_nr, self._encoding, self._dialect, headeronly, verbose)
+                if plot_nr == 1 or force_reading_all:
+                    plot = PlotData(raw_file, raw_filename, traces_to_read, plot_nr, self._encoding, self._dialect, headeronly, verbose)
+                else:
+                    try:
+                        plot = PlotData(raw_file, raw_filename, traces_to_read, plot_nr, self._encoding, self._dialect, headeronly, verbose)
+                    except Exception as e:
+                        if verbose:
+                            _logger.warning(f"Cannmot read plot {plot_nr} from {raw_filename}: {e}, stopping reading further plots.")
+                        break
                 if self._dialect is None:
                     self._dialect = plot.dialect
                 if plot.has_data:
@@ -1570,6 +1604,8 @@ class RawRead(PlotInterface, ABC):
         # TODO: you might need to take care of the BOM (Byte Order Mark) in the file.
         with open(raw_filename, "rb") as raw_file:
             raw_line = raw_file.read(6)
+            if len(raw_line) < 6:
+                raise SpiceReadException("Invalid RAW file. File is too short to determine encoding.")
             line = raw_line.decode(encoding='utf_8')
             if line == 'Title:' or line == '\nTitle':
                 return 'utf_8'
