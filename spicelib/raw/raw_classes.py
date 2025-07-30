@@ -341,7 +341,7 @@ class TraceRead(DataSet):
         return len(self.data)
 
 
-class DummyTrace(object):
+class DummyTrace(DataSet):
     """Dummy Trace for bypassing traces while reading"""
 
     def __init__(self, name, whattype, datalen, numerical_type='real'):
@@ -354,6 +354,10 @@ class DummyTrace(object):
 
     def __str__(self):
         return f"name:'{self.name}'\ntype:'{self.whattype}'\nlen:{self.datalen}"
+    
+    # dummy, to silence IDE errors
+    def get_wave(self, step: int = 0) -> np.ndarray:
+        return np.zeros(self.datalen)
 
 
 class SpiceReadException(Exception):

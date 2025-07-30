@@ -42,7 +42,9 @@ Multiple result sets/plots in one RAW file
 Most RAW files only have 1 result set (also called 'plot') in them, but some simulators (like ngspice) 
 support multiple sets of results/plots in one RAW file. 
 One can for example create a RAW file with both `Noise Spectral Density Curves` and `Integrated Noise` data, or 
-create a series of plots via a loop through a series of values or simulation steps.
+create a series of plots via a loop through a series of values or simulation steps. 
+
+If a RAW file contains multiple plots, they are simply individual plots concatenated in the same file.
 
 RawRead will read all result sets/plots that are in the file, and expose them under the `plots` attribute, that is an array of `PlotData`.
 
@@ -50,8 +52,8 @@ Through that array you can for example access the first plot using ``raw.plots[0
 
 Since most RAW files only have 1 plot in them, and in order to facilitate access to the plot data, 
 all properties and methods of the first plot are also available directly on the `RawRead` object. 
-This means that you do not have to specify ``.plots[0]`` to access the first plot's properties or methods: 
-you can for example access the the first plot's axis via both ``raw.get_axis()`` and ``raw.plots[0].get_axis()``.
+This means that you do not have to specify ``.plots[0]`` to access the first plot's properties or methods. For example,
+``raw.get_axis()`` and ``raw.plots[0].get_axis()`` give the same result.
 
 Examples:
 
