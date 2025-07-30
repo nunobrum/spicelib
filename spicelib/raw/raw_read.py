@@ -619,7 +619,6 @@ class PlotData(PlotInterface, ABC):
         self._raw_filename = raw_filename
         self._plot_nr = plot_nr
         self._dialect = dialect
-        self._headeronly = headeronly
         self._verbose = verbose
         self._has_data = False  # Indicates if the plot is recognizable
         
@@ -644,12 +643,13 @@ class PlotData(PlotInterface, ABC):
         self._axis = None  # Creating the axis
         self._flags = []
         self._has_axis = True  # Indicates if the RAW file has an axis.
-        
-        # TODO: take care of headeronly
-        if headeronly:
-            _logger.warning("headeronly mode is not yet supported, performance might be slower than wanted.")
+        self._fpos_header = 0  # File position of the header section, used to skip the data when reading the header.
+        self._fpos_data = 0  # File position of the data section, used to skip the header when reading the data.
 
         plotinfo = f"Plot nr {plot_nr}:"
+        
+        # mark the file position of the header section
+        self._fpos_header = raw_file.tell()
 
         # Check how many bytes are still available in the file
         bytes_remaining = self._get_remaining_bytes(raw_file)
@@ -821,10 +821,14 @@ class PlotData(PlotInterface, ABC):
 
         # Now, we have the header read, and the traces created.
         # We can now read the data section.
+
+        # mark the file position of the start of the data section
+        self._fpos_data = raw_file.tell()
+        
         if self._raw_type.lower() == "binary:":
             # Will start the reading of binary values
             
-            if "fastaccess" in self._raw_params["Flags"]:
+            if "fastaccess" in self._raw_params["Flags"].lower():
                 if self._verbose:
                     _logger.debug(f"{plotinfo} Binary RAW file with Fast access")
                 # Fast access means that the traces are grouped together.
@@ -843,32 +847,47 @@ class PlotData(PlotInterface, ABC):
                     else:
                         raise SpiceReadException(f"Invalid RAW file. {plotinfo} Invalid data type {var.numerical_type} for trace {var.name}")
                     
-                    s = raw_file.read(self._nPoints * datasize)
-                    if len(s) == 0:
-                        # End of file reached
+                    if headeronly:
+                        # If headeronly is set, we do not read the data section.
                         if self._verbose:
-                            _logger.warning(f"{plotinfo} End of file reached while reading the data for trace {var.name}.")
-                        raise SpiceReadException(f"Invalid RAW file. {plotinfo} End of file reached while reading the data for trace {var.name}.")
-                        
-                    if not isinstance(var, DummyTrace):
-                        var.data = frombuffer(s, dtype=dtype)
+                            _logger.debug(f"{plotinfo} Skipping data section as headeronly is set.")
+                        target_pos = raw_file.tell() + (datasize * self._nPoints)
+                        newpos = raw_file.seek(target_pos, os.SEEK_SET)
+                        if newpos != target_pos:
+                            raise SpiceReadException(f"Invalid RAW file. {plotinfo} Could not seek to the end of the data section. File is incomplete.")
+                    else:
+                        s = raw_file.read(self._nPoints * datasize)
+                        if len(s) == 0:
+                            # End of file reached
+                            if self._verbose:
+                                _logger.warning(f"{plotinfo} End of file reached while reading the data for trace {var.name}.")
+                            raise SpiceReadException(f"Invalid RAW file. {plotinfo} End of file reached while reading the data for trace {var.name}.")
+                            
+                        if not isinstance(var, DummyTrace):
+                            var.data = frombuffer(s, dtype=dtype)
 
             else:
+                # This is the default save after a simulation where the traces are scattered
                 if self._verbose:
                     _logger.debug(f"{plotinfo} Binary RAW file with Normal access")
+                    
                 scan_functions = []
+                calc_block_size = 0
                 for trace in self._traces:
                     if trace.numerical_type == 'double':
+                        calc_block_size += 8
                         if isinstance(trace, DummyTrace):
                             fun = consume8bytes
                         else:
                             fun = read_float64
                     elif trace.numerical_type == 'complex':
+                        calc_block_size += 16
                         if isinstance(trace, DummyTrace):
                             fun = consume16bytes
                         else:
                             fun = read_complex
                     elif trace.numerical_type == 'real':  # data size is only 4 bytes
+                        calc_block_size += 4
                         if isinstance(trace, DummyTrace):
                             fun = consume4bytes
                         else:
@@ -878,12 +897,22 @@ class PlotData(PlotInterface, ABC):
                             f"Invalid RAW file. {plotinfo} Invalid data type {trace.numerical_type} for trace {trace.name}")
                     scan_functions.append(fun)
                     
-                # This is the default save after a simulation where the traces are scattered
-                for point in range(self._nPoints):
-                    for i, var in enumerate(self._traces):
-                        value = scan_functions[i](raw_file)
-                        if value is not None and not isinstance(var, DummyTrace):
-                            var.data[point] = value
+                # read the data
+                if headeronly:
+                    # If headeronly is set, we do not read the data section.
+                    if self._verbose:
+                        _logger.debug(f"{plotinfo} Skipping data section as headeronly is set.")
+
+                    target_pos = raw_file.tell() + calc_block_size * self._nPoints
+                    newpos = raw_file.seek(target_pos, os.SEEK_SET)
+                    if newpos != target_pos:
+                        raise SpiceReadException(f"Invalid RAW file. {plotinfo} Could not seek to the end of the data section. File is incomplete.")
+                else:
+                    for point in range(self._nPoints):
+                        for i, var in enumerate(self._traces):
+                            value = scan_functions[i](raw_file)
+                            if value is not None and not isinstance(var, DummyTrace):
+                                var.data[point] = value
 
         elif self._raw_type.lower() == "values:":
             if self._verbose:
@@ -930,8 +959,13 @@ class PlotData(PlotInterface, ABC):
                 i += 1
 
         # Finally, Check for Step Information
-
         if "stepped" in self._raw_params["Flags"].lower():
+            if self._verbose:
+                _logger.debug(f"{plotinfo} RAW file has stepped data.")
+            if headeronly:
+                if self._verbose:
+                    _logger.debug(f"{plotinfo} Skipping step information as headeronly is set.")
+                return
             try:
                 self._load_step_information(raw_filename, plotinfo)
             except SpiceReadException as err:
@@ -1486,7 +1520,9 @@ class RawRead(PlotInterface, ABC):
         This is likely only needed for older versions of ngspice and xyce. ltspice and qspice can reliably be auto detected.
     :type dialect: str | None
     :param headeronly:
-        Used to only load the header information and skip the trace data entirely. Defaults to False.
+        Used to only load the header information and skip the trace data entirely.
+        This will only provide a speed advantage for binary RAW files.
+        Defaults to False. 
     :type headeronly: bool
     :param verbose:
         If True, then the class will log debug information. Defaults to True.
@@ -1578,7 +1614,7 @@ class RawRead(PlotInterface, ABC):
                         plot = PlotData(raw_file, raw_filename, traces_to_read, plot_nr, self._encoding, self._dialect, headeronly, verbose)
                     except Exception as e:
                         if verbose:
-                            _logger.warning(f"Cannmot read plot {plot_nr} from {raw_filename}: {e}, stopping reading further plots.")
+                            _logger.warning(f"Cannot read plot {plot_nr} from {raw_filename}: {e}, stopping reading further plots.")
                         break
                 if self._dialect is None:
                     self._dialect = plot.dialect
