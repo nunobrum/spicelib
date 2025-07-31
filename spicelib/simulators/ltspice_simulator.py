@@ -330,6 +330,14 @@ class LTspice(Simulator):
         :return: path to the netlist produced
         :rtype: Path
         """
+        if not cls.is_available():
+            _logger.error("================== ALERT! ====================")
+            _logger.error("Unable to find a LTspice executable.")
+            _logger.error("A specific location of the LTSPICE can be set")
+            _logger.error("using the create_from(<location>) class method")
+            _logger.error("==============================================")
+            raise SpiceSimulatorError("Simulator executable not found.")
+        
         # prepare instructions, two stages used to enable edits on the netlist w/o open GUI
         # see: https://www.mikrocontroller.net/topic/480647?goto=5965300#5965300
         if cmd_line_switches is None:

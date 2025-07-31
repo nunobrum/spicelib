@@ -1,0 +1,43 @@
+** sch_path: /home/simon/code/LowNoiseCsa/IHP/Schematics/plots_ex.sch
+**.subckt plots_ex
+V6 VDD GND volt
+R1 VDD GND 1k m=1
+**** begin user architecture code
+
+
+
+
+.option savecurrents
+.param volt=3
+.control
+ save all
+ set wr_vecnames
+
+* Loop over the following code setting the variable volt to different values
+ foreach volt 1 2 3
+ 
+   * Changes the parameter volt to the value of the variable volt To add confunsion two different things have the same name here.
+   alterparam volt = $volt
+   * New parameters are only applied after a reset.
+   reset
+   * Compute the operating point
+   op
+   remzerovec
+   * Write the binary file.
+   set filetype = binary
+   write op_multi_ngspice.bin.raw
+   * Set the file type to ascii
+   set filetype = ascii   
+   * Write the ascii file.
+   write op_multi_ngspice.ascii.raw
+   * Enable appendwrite. All subsequent writes will be appended at the end of the file instead of overwriting the existing files.
+   set appendwrite
+ end
+.endc
+
+
+**** end user architecture code
+**.ends
+.GLOBAL GND
+.GLOBAL VDD
+.end
