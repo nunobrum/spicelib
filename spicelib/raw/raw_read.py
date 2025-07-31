@@ -1505,7 +1505,7 @@ class PlotData(PlotInterface):
         df.to_excel(filename, **kwargs)
     
 
-class RawRead(PlotInterface, ABC):
+class RawRead(PlotInterface):
     """Class for reading Spice wave Files. It can read all types of Files, and can handle multiple plots in 1 file.
     If stepped data is detected, it will also try to read the corresponding LOG file so to retrieve the stepped data.
 
