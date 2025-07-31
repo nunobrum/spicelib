@@ -28,7 +28,7 @@ sys.path.append(
 import spicelib
 from spicelib.editor.base_editor import to_float
 from spicelib.editor.spice_editor import component_replace_regexs, SpiceCircuit
-from spicelib.editor.base_editor import UpdateType
+from spicelib.editor.updates import UpdateType
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'

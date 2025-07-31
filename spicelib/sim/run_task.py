@@ -24,6 +24,7 @@ Internal classes not to be used directly by the user
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2023, Fribourg Switzerland"
 
+from copy import copy
 from pathlib import Path
 import threading
 import time
@@ -31,6 +32,9 @@ import traceback
 from time import sleep
 from typing import Callable, Union, Any, Tuple, Type
 import logging
+
+from ..editor.updates import Updates
+
 _logger = logging.getLogger("spicelib.RunTask")
 
 from .process_callback import ProcessCallback
@@ -81,6 +85,19 @@ class RunTask(threading.Thread):
         self.callback_return = None
         self.exe_log = exe_log
         self.exception_text = None
+        self._edits = None
+
+    @property
+    def edits(self) -> Updates:
+        return self._edits
+
+    @edits.setter
+    def edits(self, netlist_updates: Updates):
+        self._edits = copy(netlist_updates)
+
+    def value(self, reference):
+        return self._edits.value(reference)
+
 
     def print_info(self, logger_fun, message):
         message = f"RunTask #{self.runno}:{message}"

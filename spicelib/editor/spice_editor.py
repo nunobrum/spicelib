@@ -23,7 +23,8 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent, UpdateType
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
+from .updates import UpdateType
 
 from typing import Union, List, Callable, Any, Tuple, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -1273,7 +1274,7 @@ class SpiceCircuit(BaseEditor):
         reg_subckt = re.compile(SUBCKT_CLAUSE_FIND + subckt_name, re.IGNORECASE)
         # 1. Find Encoding
         try:
-            encoding = detect_encoding(library)
+            encoding = detect_encoding(library, r"[\* a-zA-Z]")
         except EncodingDetectError:
             return None
         #  2. scan the file

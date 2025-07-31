@@ -248,7 +248,7 @@ from spicelib import SpiceEditor
 from spicelib.simulators.ltspice_simulator import LTspice
 
 # select spice model
-runner = SimRunner(simulator=LTspice, output_folder='./temp')
+runner = SimRunner(simulator=LTspice, output_folder='./temp_runner')
 netlist = SpiceEditor('./testfiles/Batch_Test.net')
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6)
@@ -269,7 +269,7 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 alt_solver = True
-for opamp in ('AD712', 'AD820_ALT_XU1'):  # When updating an instance, the instance name gets appended to the subcircuit
+for opamp in ('AD712', 'AD820_ALT'):  # When updating an instance, the instance name gets appended to the subcircuit
     netlist['XU1'].model = opamp
     # or netlist.set_element_model('XU1', opamp)
     for supply_voltage in (5, 10, 15):
@@ -1038,7 +1038,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Fixing Issue #211 - Case sensitive on the rename_format argument on RawWrite.add_traces_from_raw()
     * Replacing outdated mail
     * Implemented in SpiceEditor a dictionary containing all the updates. Used to implement the next point:
-    * TODO: Implemented a method in SimRunner that writes into a new RAW file a list of traces from all previous run
+    * Implemented a method in SimRunner that writes into a new RAW file a list of traces from all previous runs
 * Version 1.4.4
     * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine
     * Fixed Issues #197 and #198 - Improved support for many elements, documented limitations
