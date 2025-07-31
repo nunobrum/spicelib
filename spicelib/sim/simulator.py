@@ -85,7 +85,7 @@ class Simulator(ABC):
     ``from spicelib.sim.simulator import run_function`` instruction.
     """
     cwd: Union[str, Path, None] = None
-    """Directory in which the simulator is to be executed. Can be overriden temporarily by the run() method.
+    """Directory in which the simulator is to be executed. Can be overriden temporarily by the `run()` method.
     This may not work as wanted when using the simulator under wine."""
     
     spice_exe: List[str] = []
