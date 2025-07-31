@@ -27,7 +27,8 @@ sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
 
 import spicelib
-from spicelib.editor.base_editor import UpdateType
+from spicelib.editor.updates import UpdateType
+
 # import logging
 
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'

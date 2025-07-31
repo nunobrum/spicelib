@@ -20,8 +20,6 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __version__ = "0.1.0"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
-import dataclasses
-import enum
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from math import floor, log
@@ -29,6 +27,8 @@ from pathlib import Path
 from typing import Union, List
 import logging
 import os
+
+from .updates import UpdateType, Update, Updates
 from ..sim.simulator import Simulator
 
 
@@ -256,31 +256,6 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
-class UpdateType(enum.Enum):
-    """The UpdateType holds the information about what is being updated."""
-    InvalidUpdate = 0
-    UpdateParameter = enum.auto()
-    UpdateComponentValue = enum.auto()
-    UpdateComponentParameter = enum.auto()
-    DeleteParameter = enum.auto()
-    DeleteComponent = enum.auto()
-    DeleteComponentParameter = enum.auto()
-    DeleteInstruction = enum.auto()
-    AddParameter = enum.auto()
-    AddComponent = enum.auto()
-    AddComponentParameter = enum.auto()
-    AddInstruction = enum.auto()
-    CloneSubcircuit = enum.auto()
-
-
-@dataclasses.dataclass
-class Update:
-    """An object containing an update element."""
-    name: str
-    value: Union[str, int, float]
-    updates: UpdateType = UpdateType.InvalidUpdate
-
-
 class Primitive(object):
     """Holds the information of a primitive element in the netlist. This is a base class for the Component and is
     used to hold the information of the netlist primitives, such as .PARAM, .OPTIONS, .IC, .NODESET, .GLOBAL, etc.
@@ -411,21 +386,10 @@ class BaseEditor(ABC):
 
     def __init__(self):
         """Initializing the list that contains all the modifications done to a netlist."""
-        self.netlist_updates: List[Update] = []
+        self.netlist_updates = Updates()
 
     def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
-        for update in self.netlist_updates:
-            if (update.name == name and
-                    (name != "INSTRUCTION" or value == update.value) and  # if instruction then it should match
-                    (update.updates == updates or updates == UpdateType.InvalidUpdate)):
-                break
-        else:
-            update = Update(name, value, updates)
-            self.netlist_updates.append(update)
-        if updates != 0:
-            update.updates = updates
-        update.value = value
-        return update
+        self.netlist_updates.add_update(name, value, updates)
 
     @property
     @abstractmethod

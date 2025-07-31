@@ -52,6 +52,22 @@ golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') els
 temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/temp/'
 
 
+def has_ltspice_detect():
+    from spicelib.simulators.ltspice_simulator import LTspice
+    global ltspice_simulator
+    ltspice_simulator = LTspice
+    # return False
+    return ltspice_simulator.is_available()
+
+
+# ------------------------------------------------------------------------------
+has_ltspice = has_ltspice_detect()
+skip_ltspice_tests = not has_ltspice
+print("skip_ltspice_tests", skip_ltspice_tests)
+hide_exe_print_statements = True  # set to False if you want Spice to log to console
+# ------------------------------------------------------------------------------
+
+
 class TestRawWrite(unittest.TestCase):
 
     def equal_raw_files(self, file1, file2):
@@ -157,4 +173,55 @@ class TestRawWrite(unittest.TestCase):
         LW.flag_fastaccess = False
         LW.save(temp_dir + "Batch_Test_Combine.raw")
         self.equal_raw_files(golden_dir + "Batch_Test_Combine.raw", temp_dir + "Batch_Test_Combine.raw")
+
+    @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
+    def test_create_raw_from_sims(self):
+
+        """
+        @note   inits class
+        """
+        print("Starting test_batch_test")
+        from spicelib.simulators.ltspice_simulator import LTspice
+        from spicelib import SpiceEditor, SimRunner
+        # prepare
+        self.sim_files = []
+        self.measures = {}
+
+        def processing_data(raw_file, log_file):
+            print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
+            self.sim_files.append((raw_file, log_file))
+
+        # select spice model
+
+        editor = SpiceEditor(testfiles_dir + "Batch_Test.net")
+        runner = SimRunner(parallel_sims=4, output_folder="./output", simulator=LTspice)
+        editor.set_parameters(res=0, cap=100e-6)
+        for r2_value in ('1k', '2k', '4k'):
+            editor.set_component_value('R2', r2_value)  # Modifying the value of a resistor
+            runner.run(editor)
+
+        for task in runner.tasks():
+            self.assertTrue(hasattr(task, 'edits'), "edits dictionary exist on the task")
+            self.assertEqual(3, len(task.edits), "All three edits were done")
+            self.assertEqual('res', task.edits[0].name, "Updated res")
+            self.assertEqual(0, task.edits[0].value, "Updated res")
+            self.assertEqual('cap', task.edits[1].name, "Updated cap")
+            self.assertEqual(100e-6, task.edits[1].value, "Updated cap")
+            self.assertEqual('R2', task.edits[2].name, "Updated R2")
+
+        count = 0
+        for task in runner.tasks({'R2': '1k'}):
+            self.assertEqual(3, len(task.edits), "All three edits were done")
+            self.assertEqual('R2', task.edits[2].name, "Updated R2")
+            self.assertEqual('1k', task.edits[2].value, "Updated R2")
+            count += 1
+        self.assertEqual(1, count, "One task was retrieved")
+
+        filter_func = lambda x: x.edits[2].value == '4k'
+        count = 0
+        for task in runner.tasks(filter_func):
+            self.assertEqual('R2', task.edits[2].name, "Updated R2")
+            self.assertEqual('4k', task.edits[2].value, "Updated R2")
+            count += 1
+        self.assertEqual(1, count, "One task was retrieved")
 
