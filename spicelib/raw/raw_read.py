@@ -368,34 +368,34 @@ class PlotInterface(ABC):
     def nVariables(self) -> int:
         """Number of variables in the RAW file
         """
-        pass
+        ...
 
     @property
     @abstractmethod
     def nPoints(self) -> int:
         """Number of points in the RAW file
         """
-        pass
+        ...
     
     @property
     @abstractmethod
     def raw_type(self) -> str:
         """The type of the RAW file, either 'binary:' or 'values:'"""
-        pass
+        ...
     
     @property
     @abstractmethod
     def aliases(self) -> Dict[str, str]:
         """QSpice defines aliases for some of the traces that can be computed from other traces.
         """
-        pass
+        ...
 
     @property
     @abstractmethod
     def backannotations(self) -> List[str]:
         """List to store the backannotations found in the RAW file header
         """
-        pass
+        ...
 
     @property
     @abstractmethod
@@ -403,14 +403,14 @@ class PlotInterface(ABC):
         """Indicates if the RAW file has an axis.
         This is True for all RAW file plots except for 'Operating Point', 'Transfer Function', and 'Integrated Noise'.
         """
-        pass
+        ...
     
     @property
     @abstractmethod
     def flags(self) -> List[str]:
         """List of Flags that are used in this plot. See :doc:`../varia/raw_file` for details.
         """
-        pass
+        ...
 
     @property
     @abstractmethod
@@ -419,7 +419,7 @@ class PlotInterface(ABC):
         If the RAW file does not contain stepped data, this will be None.
         If the RAW file contains stepped data, this will be a list of step numbers.
         """
-        pass
+        ...
     
     @abstractmethod
     def get_raw_property(self, property_name=None) -> Union[str, Dict[str, str]]:    
@@ -432,7 +432,7 @@ class PlotInterface(ABC):
         :rtype: str
         :raises: ValueError if the property doesn't exist
         """
-        pass
+        ...
 
     @abstractmethod
     def get_raw_properties(self) -> Dict[str, str]:
@@ -442,17 +442,17 @@ class PlotInterface(ABC):
         :return: Dictionary of all raw properties
         :rtype: Dict[str, str]
         """
-        pass
+        ...
     
     @abstractmethod
     def get_plot_name(self) -> str:
         """Returns the type of the plot read from the RAW file. See :doc:`../varia/raw_file` for details."""
-        pass
+        ...
 
     @abstractmethod
     def get_trace_names(self) -> List[str]:
         """Returns a list of trace names in the plot."""
-        pass
+        ...
     
     @abstractmethod
     def get_trace(self, trace_ref: Union[str, int]) -> Union[Axis, TraceRead, DummyTrace]:
@@ -465,7 +465,7 @@ class PlotInterface(ABC):
         :rtype: DataSet subclass
         :raises IndexError: When a trace is not found
         """
-        pass
+        ...
 
     @abstractmethod
     def get_wave(self, trace_ref: Union[str, int], step: int = 0) -> np.ndarray:
@@ -480,7 +480,7 @@ class PlotInterface(ABC):
         :rtype: numpy.array
         :raises IndexError: When a trace is not found
         """
-        pass
+        ...
 
     @abstractmethod
     def get_axis(self, step: int = 0) -> Union[np.ndarray, List[float]]:
@@ -495,7 +495,7 @@ class PlotInterface(ABC):
         :return: Array with the X axis
         :rtype: Union[np.ndarray, List[float]]
         """
-        pass
+        ...
     
     @abstractmethod
     def get_len(self, step: int = 0) -> int:
@@ -507,7 +507,7 @@ class PlotInterface(ABC):
         :return: The number of data points
         :rtype: int
         """
-        pass
+        ...
 
     @abstractmethod
     def get_steps(self, **kwargs) -> Union[List[int], range]:
@@ -527,7 +527,7 @@ class PlotInterface(ABC):
         :return: The steps that match the query
         :rtype: list[int]
         """
-        pass
+        ...
 
     @abstractmethod
     def export(self, columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs) -> Dict[str, list]:
@@ -546,7 +546,7 @@ class PlotInterface(ABC):
         :return: A pandas DataFrame
         :rtype: pandas.DataFrame
         """
-        pass
+        ...
 
     @abstractmethod
     def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs):
@@ -563,7 +563,7 @@ class PlotInterface(ABC):
         :rtype: pandas.DataFrame
         """
         # cannot type the return values, as pandas is an optional dependency
-        pass
+        ...
 
     @abstractmethod
     def to_csv(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, List[int]] = -1,
@@ -582,7 +582,7 @@ class PlotInterface(ABC):
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_csv function
         :type kwargs: ``**dict``
         """
-        pass
+        ...
 
     @abstractmethod
     def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs):
@@ -599,10 +599,10 @@ class PlotInterface(ABC):
         :type kwargs: ``**dict``        
         :raises ImportError: when the 'pandas' module is not installed
         """
-        pass
+        ...
 
 
-class PlotData(PlotInterface, ABC):
+class PlotData(PlotInterface):
     """Class for holding plot data.
     This class is used to hold the data of a plot, including the axis and traces.
     
