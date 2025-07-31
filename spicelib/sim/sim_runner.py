@@ -724,7 +724,7 @@ class SimRunner(AnyRunner):
 
         :param filter: Filter to be used in the iterator
         :type filter: dict
-        Returns: Iterator
+        :return: Iterator
         """
 
         def match_filter(filter, obj):
