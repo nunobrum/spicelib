@@ -68,6 +68,27 @@ Examples:
     print(raw.plots[1].get_trace_names())  # names of all the traces of the second plot in the file
 
 
+Steps versus Multiple plots in the file versus SimStepper versus ltsteps.py
+---------------------------------------------------------------------------
+
+This can get confusing, so here is a summary of the differences:
+
+- **Steps**: This is based on the ``.step`` command, that allows multiple 
+  runs with for example different component values. Not all simulators support it.
+  It produces a single plot with multiple steps, and the data is stored in both a RAW file and a LOG file.
+  The steps all share the same trace names, but the values for each step can be different.
+  ``RawRead`` will automatically read any steps, if they exist, and can present the data for example
+  via the ``.get_wave('name', step)`` and ``.get_axis(step)`` methods.
+- **Multiple plots in the file**: This is a feature of some simulators (like ngspice) that allows multiple
+  result sets/plots in one RAW file. Each plot *can* have its own set of traces. 
+  What traces and what data is written is controlled by the simulator, via ``.control`` .. ``.endc`` command. 
+  See for example the `ngspice manual <https://ngspice.sourceforge.io/ngspice-control-language-tutorial.html#step>`_. 
+  It is also possible to produce multiple extractions from one simulation, and then write them to the same raw file, 
+  like in ``examples/testfiles/noise_multi.ascii.raw``.
+  ``RawRead`` will automatically read all plots in the file, and expose them via the ``.plots`` attribute.
+- **SimStepper**: This is a class that allows to multiple simulations with different parameters, and collect the results. It can be used with any simulator.
+- **ltsteps.py**: This is a utility that can be used to extract data from various types of LTSpice files, be it related to ``.step``, ``.meas`` or ``.txt`` exports, and format it for import in a spreadsheet.
+
 Class documentation
 -------------------
 
