@@ -146,10 +146,11 @@ class TaskIterator:
         If given, this filter can take two forms:
 
             * the form of a function that receives a RunTask and returns True or False whether the
-            task is included or not.
+            task is included or not. Example condition=lambda x: x.edits[
 
             * the form of a dictionary where keys are the names of components updated and keys are their
-            values
+            values. The values can either be a single value, a list, a set or a tuple of values. This means,
+            all these possibilities are valid: {'R1': '1k', 'R2':('1k','2k'), 'R3':{'1k', '2k'}, R4:['1k', '2k']}
 
     :type conditions: None or dict or function(task: RunTask) -> bool
     :param wait: If True, the iterator will wait for the tasks to complete, if False, the iterator only considers
@@ -170,7 +171,8 @@ class TaskIterator:
         elif isinstance(self.conditions, dict):
             for name, value in self.conditions.items():
                 for update in runtask.edits:
-                    if name == update.name and value == update.value:
+                    if name == update.name and (value == update.value or
+                                                (isinstance(value, (list, tuple, set)) and update.value in value)):
                         break
                 else:
                     return False  # No match found
@@ -352,7 +354,7 @@ class SimRunner(AnyRunner):
             v['start_time'] = task.start_time
             v['stop_time'] = task.stop_time
             if task.edits:
-                v['edits'] = task.edits
+                v['edits'] = task.edits.netlist_updates
             rv[run_no] = v
         return rv
 
@@ -792,7 +794,8 @@ class SimRunner(AnyRunner):
         """
         return TaskIterator(self, lambda x: x, True, conditions)
 
-    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: List[str], conditions: dict):
+    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: List[str],
+                             conditions: IteratorFilterType):
         """
         Creates a new raw_file, with traces belonging to different runs. The type of the raw file is the same as
         the first raw file that is matching the conditions. See filter_completed_tasks() method.
@@ -800,30 +803,37 @@ class SimRunner(AnyRunner):
         :param raw_filename: The new RAW filename
         :type raw_filename: str or pathlib.Path
         :param save: A list with traces that are going to be saved in the new raw file
-        :type save: list
-        :param conditions: A dictionary used to select which runs are going to be included in the new raw file.
+        :type save: list[str]
+        :param conditions: A filter as specified on the TaskIterator class
         :type conditions: dict
         """
         from spicelib import RawWrite
 
         # Obtain a first task
-        first_task: RunTask = next(self.filter_completed_tasks(conditions))
+        first_task: RunTask = next(self.tasks(conditions))
 
         # Initialize a raw file based on the contents of the first raw
         from spicelib import RawRead
         template = RawRead(first_task.raw_file)
 
         new_raw = RawWrite(
-            template.raw_params['Plot Name'],
+            template.raw_params['Title'],
             fastacces=True,
             numtype='auto',
             encoding='utf_16_le'
         )
 
         # Go through the tasks that match the conditions given
-        for run_task in self.filter_completed_tasks(conditions):
+        for run_task in self.tasks(conditions):
             # Open the raw file
             source_raw = RawRead(run_task.raw_file, traces_to_read=save)
-            new_raw.add_traces_from_raw(source_raw, save, force_axis_alignment=True)
+            new_raw.add_traces_from_raw(source_raw, save, force_axis_alignment=True, add_tag=run_task.runno)
 
         new_raw.save(raw_filename)
+
+    def export_sim_log(self, logfile: Union[Path, str]):
+        import pprint
+        logfile = self._on_output_folder(logfile)
+        with open(logfile, 'w') as log_file:
+            pprint.pprint(self.sim_info(), log_file)
+

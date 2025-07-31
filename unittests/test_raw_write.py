@@ -175,8 +175,7 @@ class TestRawWrite(unittest.TestCase):
         self.equal_raw_files(golden_dir + "Batch_Test_Combine.raw", temp_dir + "Batch_Test_Combine.raw")
 
     @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
-    def test_create_raw_from_sims(self):
-
+    def test_task_iterators(self):
         """
         @note   inits class
         """
@@ -184,15 +183,6 @@ class TestRawWrite(unittest.TestCase):
         from spicelib.simulators.ltspice_simulator import LTspice
         from spicelib import SpiceEditor, SimRunner
         # prepare
-        self.sim_files = []
-        self.measures = {}
-
-        def processing_data(raw_file, log_file):
-            print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
-            self.sim_files.append((raw_file, log_file))
-
-        # select spice model
-
         editor = SpiceEditor(testfiles_dir + "Batch_Test.net")
         runner = SimRunner(parallel_sims=4, output_folder="./output", simulator=LTspice)
         editor.set_parameters(res=0, cap=100e-6)
@@ -208,14 +198,17 @@ class TestRawWrite(unittest.TestCase):
             self.assertEqual('cap', task.edits[1].name, "Updated cap")
             self.assertEqual(100e-6, task.edits[1].value, "Updated cap")
             self.assertEqual('R2', task.edits[2].name, "Updated R2")
+            self.assertEqual(0, task.edits['res'].value, "Access by name is working")
+            self.assertEqual(0.0001, task.edits['cap'].value, "Access by name is working")
+            self.assertIn(task.edits['R2'].value, ('1k', '2k', '4k'), "Access by name is working")
 
         count = 0
-        for task in runner.tasks({'R2': '1k'}):
+        for task in runner.tasks({'R2': ['1k', '4k']}):
             self.assertEqual(3, len(task.edits), "All three edits were done")
             self.assertEqual('R2', task.edits[2].name, "Updated R2")
-            self.assertEqual('1k', task.edits[2].value, "Updated R2")
+            self.assertIn(task.edits['R2'].value, {'1k', '4k'}, "Access by name is working")
             count += 1
-        self.assertEqual(1, count, "One task was retrieved")
+        self.assertEqual(2, count, "One task was retrieved")
 
         filter_func = lambda x: x.edits[2].value == '4k'
         count = 0
@@ -224,4 +217,25 @@ class TestRawWrite(unittest.TestCase):
             self.assertEqual('4k', task.edits[2].value, "Updated R2")
             count += 1
         self.assertEqual(1, count, "One task was retrieved")
+
+    @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
+    def test_create_raw_file_with_filter(self):
+        """
+        @note   inits class
+        """
+        print("Starting test_batch_test")
+        from spicelib.simulators.ltspice_simulator import LTspice
+        from spicelib import SpiceEditor, SimRunner
+        # prepare
+        editor = SpiceEditor(testfiles_dir + "Batch_Test.net")
+        runner = SimRunner(parallel_sims=4, output_folder="./output", simulator=LTspice)
+        editor.set_parameters(res=0, cap=100e-6)
+        for r2_value in ('1k', '5k', '10k'):
+            editor.set_component_value('R2', r2_value)  # Modifying the value of a resistor
+            runner.run(editor)
+
+        runner.create_raw_file_with(temp_dir + "raw_created_from_runner.raw", ("V(out)", "I(R1)"),
+                                    {'R2': ('5k', '10k')})
+        self.equal_raw_files(golden_dir + "raw_created_from_runner.raw", temp_dir + "raw_created_from_runner.raw")
+
 

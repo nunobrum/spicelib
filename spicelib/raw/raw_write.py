@@ -210,8 +210,7 @@ class RawWrite(object):
         return False
 
     def add_traces_from_raw(self, other: RawRead, trace_filter: Union[list, tuple, str], **kwargs):
-        """ *(Not fully implemented)*
-
+        """
         Merge two RawWrite classes together resulting in a new instance
         
         :param other: an instance of the RawRead class where the traces are going to be copied from.

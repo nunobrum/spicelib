@@ -30,6 +30,35 @@ class Update:
     value: UpdateValueType
     updates: UpdateType = UpdateType.InvalidUpdate
 
+    def __repr__(self):
+        match self.updates:
+            case UpdateType.UpdateParameter:
+                return f"Parameter {self.name} was updated to {self.value}"
+            case UpdateType.UpdateComponentValue:
+                return f"Component {self.name} value was updated to {self.value}"
+            case UpdateType.UpdateComponentParameter:
+                return f"Parameter {self.name} was updated to {self.value}"
+            case UpdateType.DeleteParameter:
+                return f"Parameter {self.name} was deleted"
+            case UpdateType.DeleteComponent:
+                return f"Component {self.name} was deleted"
+            case UpdateType.DeleteComponentParameter:
+                return f"Component Parameter {self.name} was deleted"
+            case UpdateType.DeleteInstruction:
+                return f"Instruction {self.value} was deleted"
+            case UpdateType.AddParameter:
+                return f"Parameter {self.name} was added with {self.value}"
+            case UpdateType.AddComponent:
+                return f"Component {self.name} was added"
+            case UpdateType.AddComponentParameter:
+                return f"Component Parameter {self.name} was added with value {self.value}"
+            case UpdateType.AddInstruction:
+                return f"Instruction {self.value} was added."
+            case UpdateType.CloneSubcircuit:
+                return f"Sub-circuit {self.name} was added"
+            case _:
+                return "Invalid Update"
+
 
 class Updates:
     """A list of updates done to a Netlist"""
@@ -45,7 +74,16 @@ class Updates:
         return len(self.netlist_updates)
 
     def __getitem__(self, item):
-        return self.netlist_updates[item]
+        if isinstance(item, (int, slice)):
+            return self.netlist_updates[item]
+        elif isinstance(item, str):
+            # Try to get it by name
+            for update in self.netlist_updates:
+                if update.name == item:
+                    return update
+            raise IndexError(f"The item {item} doesn't exit.")
+        else:
+            raise TypeError("getitem only supports int, slice and str")
 
     def clear(self):
         """Clear the list of updates."""
