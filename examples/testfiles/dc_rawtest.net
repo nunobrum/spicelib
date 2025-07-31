@@ -1,0 +1,5 @@
+* DC directive
+V1 R 0 10
+R1 R 0 1000
+.dc V1 0 5 1
+.end

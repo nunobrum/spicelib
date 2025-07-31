@@ -1,0 +1,35 @@
+Title: * DC directive
+Date: Tue Jul 29 08:15:10 2025
+Plotname: DC Sweep: Step 2 of 6 params:  name = V1 value = 0  DC transfer characteristic
+Flags: real
+No. Variables: 3
+No. Points: 6                 
+Variables:
+	0	sweep	voltage
+	1	R	voltage
+	2	V1#branch	current
+Values:
+0	0.00000000e+00
+	0.00000000e+00
+	0.00000000e+00
+
+1	1.00000000e+00
+	1.00000000e+00
+	-1.00000000e-03
+
+2	2.00000000e+00
+	2.00000000e+00
+	-2.00000000e-03
+
+3	3.00000000e+00
+	3.00000000e+00
+	-3.00000000e-03
+
+4	4.00000000e+00
+	4.00000000e+00
+	-4.00000000e-03
+
+5	5.00000000e+00
+	5.00000000e+00
+	-5.00000000e-03
+

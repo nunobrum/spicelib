@@ -124,10 +124,10 @@ subc['R1'].value = 1000  # Same as the above
     * Different models can be simulated in a single batch
 
 * __RawRead__
-  A class that serves to read raw files into a python class.
+  A class that serves to read raw files into a python class. Multiple result sets (also called plots) in one raw file are supported.
 
 * __RawWrite__
-  A class to write RAW files that can be read by the LTspice Wave Application.
+  A class to write RAW files that can be read by the LTspice Wave Application or other comparable tools.
 
 ## How to Install
 
@@ -169,6 +169,8 @@ from spicelib import RawRead
 
 from matplotlib import pyplot as plt
 
+# read a raw file that has only 1 data set/plot in it, but has multiple steps
+
 rawfile = RawRead("./testfiles/TRAN - STEP.raw")
 
 print(rawfile.get_trace_names())
@@ -183,6 +185,28 @@ for step in range(len(steps)):
 
 plt.legend()  # order a legend
 plt.show()
+
+# read a raw file that has multiple data sets/plots in it
+
+raw = RawRead("./testfiles/noise_multi.bin.raw")
+print(raw.get_plot_names())            # names of all the plots in the file
+print(raw.get_trace_names())           # names of all the traces of the first plot in the file
+print(raw.plots[0].get_trace_names())  # same as above
+print(raw.plots[1].get_trace_names())  # names of all the traces of the second plot in the file
+
+x = raw.get_trace('frequency')  # could have used raw.get_axis() as well here
+y = raw.get_trace('onoise_spectrum')
+plt.plot(x.get_wave(), y.get_wave(), label='noise spectrum')
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Noise (V/√Hz)')
+plt.yscale('log')
+plt.xscale('log')
+plt.legend()
+plt.show()
+
+# and get the integrated noise from the second part in the file
+total = raw.plots[1].get_trace('v(onoise_total)')
+print(f"Total Integral noise: {total.get_wave()[0]} V") 
  ```
 
 -- in examples/raw_read_example.py
@@ -1008,11 +1032,12 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.5
+    * Fixing Issue #218 - Allow reading of multiple plots from 1 raw file
     * Fixing Issue #214 - Netlist concatenations are badly interpreted
     * Fixing Issue #213 - Add support for Verilog A elements
     * Fixing Issue #211 - Case sensitive on the rename_format argument on RawWrite.add_traces_from_raw()
     * Replacing outdated mail
-    *  Implemented in SpiceEditor a dictionary containing all the updates. Used to implement the next point:
+    * Implemented in SpiceEditor a dictionary containing all the updates. Used to implement the next point:
     * TODO: Implemented a method in SimRunner that writes into a new RAW file a list of traces from all previous run
 * Version 1.4.4
     * Fixed Issue #207 - Resolving symbol file paths for LTspice in wine
