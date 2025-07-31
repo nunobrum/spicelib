@@ -31,33 +31,32 @@ class Update:
     updates: UpdateType = UpdateType.InvalidUpdate
 
     def __repr__(self):
-        match self.updates:
-            case UpdateType.UpdateParameter:
-                return f"Parameter {self.name} was updated to {self.value}"
-            case UpdateType.UpdateComponentValue:
-                return f"Component {self.name} value was updated to {self.value}"
-            case UpdateType.UpdateComponentParameter:
-                return f"Parameter {self.name} was updated to {self.value}"
-            case UpdateType.DeleteParameter:
-                return f"Parameter {self.name} was deleted"
-            case UpdateType.DeleteComponent:
-                return f"Component {self.name} was deleted"
-            case UpdateType.DeleteComponentParameter:
-                return f"Component Parameter {self.name} was deleted"
-            case UpdateType.DeleteInstruction:
-                return f"Instruction {self.value} was deleted"
-            case UpdateType.AddParameter:
-                return f"Parameter {self.name} was added with {self.value}"
-            case UpdateType.AddComponent:
-                return f"Component {self.name} was added"
-            case UpdateType.AddComponentParameter:
-                return f"Component Parameter {self.name} was added with value {self.value}"
-            case UpdateType.AddInstruction:
-                return f"Instruction {self.value} was added."
-            case UpdateType.CloneSubcircuit:
-                return f"Sub-circuit {self.name} was added"
-            case _:
-                return "Invalid Update"
+        if self.updates == UpdateType.UpdateParameter:
+            return f"Parameter {self.name} was updated to {self.value}"
+        elif self.updates == UpdateType.UpdateComponentValue:
+            return f"Component {self.name} value was updated to {self.value}"
+        elif self.updates == UpdateType.UpdateComponentParameter:
+            return f"Parameter {self.name} was updated to {self.value}"
+        elif self.updates == UpdateType.DeleteParameter:
+            return f"Parameter {self.name} was deleted"
+        elif self.updates == UpdateType.DeleteComponent:
+            return f"Component {self.name} was deleted"
+        elif self.updates == UpdateType.DeleteComponentParameter:
+            return f"Component Parameter {self.name} was deleted"
+        elif self.updates == UpdateType.DeleteInstruction:
+            return f"Instruction {self.value} was deleted"
+        elif self.updates == UpdateType.AddParameter:
+            return f"Parameter {self.name} was added with {self.value}"
+        elif self.updates == UpdateType.AddComponent:
+            return f"Component {self.name} was added"
+        elif self.updates == UpdateType.AddComponentParameter:
+            return f"Component Parameter {self.name} was added with value {self.value}"
+        elif self.updates == UpdateType.AddInstruction:
+            return f"Instruction {self.value} was added."
+        elif self.updates == UpdateType.CloneSubcircuit:
+            return f"Sub-circuit {self.name} was added"
+        else:
+            return "Invalid Update"
 
 
 class Updates:
