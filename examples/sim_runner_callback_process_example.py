@@ -35,7 +35,7 @@ if __name__ == "__main__":
     )
     netlist.set_parameter('run', 0)
 
-    for opamp in ('AD712', 'AD820_XU1'):  # don't use AD820, it is defined in the file and will mess up newer LTspice versions
+    for opamp in ('AD712', 'AD820'):
         netlist['XU1'].model = opamp
         for supply_voltage in (5, 10, 15):
             netlist['V1'].value = supply_voltage
@@ -48,11 +48,12 @@ if __name__ == "__main__":
         print(result)  # Prints the result of the callback function
 
     netlist.reset_netlist()
+    netlist.remove_Xinstruction(r"\.meas TRAN.*")
     netlist.add_instructions(   # Adding additional instructions
         "; Simulation settings",
         ".ac dec 30 10 1Meg",
-        ".meas AC Gain MAX mag(V(out)) ; find the peak response and call it ""Gain""",
-        ".meas AC Fcut TRIG mag(V(out))=Gain/sqrt(2) FALL=last"
+        ".meas AC GainAC MAX mag(V(out)) ; find the peak response and call it ""Gain""",
+        ".meas AC Fcut TRIG mag(V(out))=GainAC/sqrt(2) FALL=last"
     )
 
     raw, log = runner.run_now(netlist, run_filename="no_callback.net")

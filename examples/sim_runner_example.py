@@ -4,7 +4,7 @@ from spicelib import SpiceEditor
 from spicelib.simulators.ltspice_simulator import LTspice
 
 # select spice model
-runner = SimRunner(simulator=LTspice, output_folder='./temp')
+runner = SimRunner(simulator=LTspice, output_folder='./temp_runner')
 netlist = SpiceEditor('./testfiles/Batch_Test.net')
 # set default arguments
 netlist.set_parameters(res=0, cap=100e-6)
@@ -25,7 +25,7 @@ netlist.add_instructions(
 )
 netlist.set_parameter('run', 0)
 alt_solver = True
-for opamp in ('AD712', 'AD820_ALT_XU1'):  # When updating an instance, the instance name gets appended to the subcircuit
+for opamp in ('AD712', 'AD820_ALT'):  # When updating an instance, the instance name gets appended to the subcircuit
     netlist['XU1'].model = opamp
     # or netlist.set_element_model('XU1', opamp)
     for supply_voltage in (5, 10, 15):
