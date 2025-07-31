@@ -1,0 +1,48 @@
+Title: ** sch_path: /home/simon/code/lownoisecsa/ihp/schematics/plots_ex.sch
+Date: Mon Jul 28 13:52:56  2025
+Command: ngspice-44.2, Build 
+Plotname: Operating Point
+Flags: real
+No. Variables: 3
+No. Points: 1
+Variables:
+	0	v(vdd)	voltage
+	1	i(@r1[i])	current
+	2	i(v6)	current
+Values:
+ 0	1.000000000000000e+00
+	1.000000000000000e-03
+	-1.000000000000000e-03
+
+Title: ** sch_path: /home/simon/code/lownoisecsa/ihp/schematics/plots_ex.sch
+Date: Mon Jul 28 13:52:56  2025
+Command: ngspice-44.2, Build 
+Plotname: Operating Point
+Flags: real
+No. Variables: 3
+No. Points: 1
+Variables:
+	0	v(vdd)	voltage
+	1	i(@r1[i])	current
+	2	i(v6)	current
+Values:
+ 0	2.000000000000000e+00
+	2.000000000000000e-03
+	-2.000000000000000e-03
+
+Title: ** sch_path: /home/simon/code/lownoisecsa/ihp/schematics/plots_ex.sch
+Date: Mon Jul 28 13:52:56  2025
+Command: ngspice-44.2, Build 
+Plotname: Operating Point
+Flags: real
+No. Variables: 3
+No. Points: 1
+Variables:
+	0	v(vdd)	voltage
+	1	i(@r1[i])	current
+	2	i(v6)	current
+Values:
+ 0	3.000000000000000e+00
+	3.000000000000000e-03
+	-3.000000000000000e-03
+

@@ -12,9 +12,69 @@ X§U1 IN N001 +V -V OUT AD820
 .param freq=10k
 .meas Vout1m FIND V(OUT) AT 1m
 .meas TRAN period FIND time WHEN V(out)=0 RISE=1
-.param test_param3 = test_param2 + 1
-.param test_param1 = 12  test_param2=10
+.param test_param3={test_param2 + 1}
+.param test_param1=12 test_param2=10
 * .step dec param freq 10k 1Meg 10
+.subckt AD820_ALT 1 2 3 4 5
+C1 N006 X {Cf}
+A1 N005 0 M M M M X M OTA g={Ga} Iout={Islew} en=13n enk=20 Vhigh=1e308 Vlow=-1e308
+D21 X 3 ESD
+D22 4 X ESD
+D5 N006 3 X1
+D6 4 N006 X2
+C2 3 N006 1p
+C3 N006 4 1p
+G2 0 M 3 0 500µ
+R4 M 0 1K noiseless
+G3 0 M 4 0 500µ
+S1 X M 4 3 SD
+A2 2 1 0 0 0 0 0 0 OTA g=0 in=.8f ink=1 incm=.08f incmk=1
+I1 1 4 2p load
+I2 2 4 2p load
+C11 3 1 .7p Rpar=40T noiseless
+C5 1 4 .7p Rpar=40T noiseless
+C10 2 4 .7p Rpar=40T noiseless
+C12 3 2 .7p Rpar=40T noiseless
+B3 0 N004 I=2m*dnlim(uplim(V(1),V(3)-1,.1), V(4)+-.2, .1)+100n*V(1)
+B4 N004 0 I=2m*dnlim(uplim(V(2),V(3)-1,.1), V(4)+-.2, .1)+100n*V(2)
+C4 N004 0 35p Rpar=1K noiseless
+D1 3 4 IQ
+L1 N004 N005 35µ
+C6 N005 0 35p Rpar=1K noiseless
+C7 3 5 1p
+C8 5 4 1p
+R5 2 1 13.35T noiseless
+B1 3 N006 I=if(V(m,x)>=0, V(m,x)*(Gb+Gbx*V(m,x)),0)
+B2 N006 4 I=if(V(x,m)>0, V(x,m)*(Gb+Gbx*V(x,m)),0)
+D2 N006 N007 20Ohm
+D3 5 N007 45mA
+C9 3 N007 1p
+C13 N007 4 1p
+.param Cf = 1p
+.param Ro = 1Meg
+.param Avol  =  60K
+.param RL =  2K
+.param AVmid =  200
+.param FmidA = 10K
+.param Zomid = .3
+.param FmidZ  = 10K
+.param Iout = 25m
+.param Vslew  = 4Meg
+.param Vmin = 2.5
+.param Roe = 1/(1/RL+1/Ro)
+.param Gb = ((FmidZ/FmidA)*(Roe/(AVmid*Zomid))-1)/Roe
+.param Ga = 2*pi*FmidZ*Cf/(Zomid*gb)
+.param RH = Avol/(Ga*Gb*Roe)
+.param Islew = Vslew*Cf*(1+1/(Roe*Gb))
+.param Gbx = 50*Gb
+.model ESD D(Ron=10 Roff=1T Vfwd=0 epsilon=1 noiseless)
+.model X1 D(Ron=1m Roff={2*Ro} Vfwd=-3m epsilon=10m noiseless)
+.model X2 D(Ron=1m Roff={2*Ro} Vfwd=-6m epsilon=10m noiseless)
+.model SD SW(Ron=10m Roff={RH} Vt={-Vmin-100m} Vh=-100m noiseless)
+.model 20Ohm D(Ron=10 Roff=30 epsilon=10m noiseless)
+.model 45mA D(Ron=10 Vrev=0 Ilimit=45m revIlimit=45m)
+.model IQ D(Ron=2K Vfwd=2 epsilon=1 Ilimit=.7m noiseless)
+.ends AD820_ALT
 .lib ADI1.lib
 .backanno
 .end

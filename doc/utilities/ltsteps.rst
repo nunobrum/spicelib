@@ -63,3 +63,5 @@ as one of the columns.
 
 If `<path_to_filename>` argument is ommited, the script will automatically search for the newest .log/.txt/.mout file
 and use it.
+
+Also see :doc:`../modules/read_rawfiles` for the use of steps, and other methods of stepping.

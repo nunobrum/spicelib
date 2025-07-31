@@ -109,7 +109,7 @@ import inspect  # Library used to get the arguments of the callback function
 import time
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Union, Type, Protocol, Tuple, List, Iterator
+from typing import Callable, Union, Type, Protocol, Tuple, List, Iterator, Any, Optional
 import logging
 
 from .process_callback import ProcessCallback
@@ -126,6 +126,92 @@ class SimRunnerTimeoutError(TimeoutError):
     ...
 
 
+IteratorFilterType = Union[Callable[[RunTask], bool], dict, None]
+"""This is the type used for filtering RunTasks. See the TaskIterator.conditions parameter documentation."""
+
+
+class TaskIterator:
+    """SimRunner Helper class to iterate tasks. It returns all completed tasks, and if the wait parameter is True,
+    it will wait for all the tasks to complete. The conditions parameter can be used to filter tasks that respect a
+    given condition. The conditions are specified by the user by a function that receives the task object and
+    returns a True equivalent for the task to be returned or a False equivalent when the task is to be rejected.
+    In most cases, the user can use the functions task.value(ref) and task.param(name) to compose the conditions
+    The return_function parameter specifies what the iterator is returning.
+
+    :param runner: SimRunner class to process
+    :type runner: SimRunner
+    :param return_function: a callable that receives a RunTask and should return something to the user
+    :type return_function: function(task: RunTask) -> Any
+    :param conditions: Filter to be used in the iterator. If not given it returns all finished tasks.
+        If given, this filter can take two forms:
+
+            * the form of a function that receives a RunTask and returns True or False whether the
+            task is included or not. Example condition=lambda x: x.edits[
+
+            * the form of a dictionary where keys are the names of components updated and keys are their
+            values. The values can either be a single value, a list, a set or a tuple of values. This means,
+            all these possibilities are valid: {'R1': '1k', 'R2':('1k','2k'), 'R3':{'1k', '2k'}, R4:['1k', '2k']}
+
+    :type conditions: None or dict or function(task: RunTask) -> bool
+    :param wait: If True, the iterator will wait for the tasks to complete, if False, the iterator only considers
+        already completed tasks.
+    """
+
+    def __init__(self, runner: "SimRunner", return_function: Callable[[RunTask], Any], wait: bool,
+                 conditions: IteratorFilterType = None):
+        self.runner = runner
+        self.return_function = return_function if return_function is not None else lambda _: True
+        self.conditions = conditions
+        self.wait = wait
+        self._iterator_counter = 0
+
+    def match_conditions(self, runtask: RunTask):
+        if self.conditions is None:
+            return True  # No filter was set
+        elif isinstance(self.conditions, dict):
+            for name, value in self.conditions.items():
+                for update in runtask.edits:
+                    if name == update.name and (value == update.value or
+                                                (isinstance(value, (list, tuple, set)) and update.value in value)):
+                        break
+                else:
+                    return False  # No match found
+            return True  # This means that all items on the dictionary were found
+        else:
+            # This is a function that will return True or False
+            return self.conditions(runtask)
+
+    def __iter__(self):
+        self._iterator_counter = 0
+        return self
+
+    def __next__(self):
+        while True:
+            self.runner.update_completed()  # Updates the active_tasks and completed_tasks lists
+            # First go through the completed tasks
+            if self._iterator_counter < len(self.runner.completed_tasks):
+                task: RunTask = self.runner.completed_tasks[self._iterator_counter]
+                self._iterator_counter += 1
+                if self.match_conditions(task):
+                    if task.retcode == 0:
+                        return self.return_function(task)
+                    else:
+                        _logger.error(f"Skipping {task.runno} because simulation failed.")
+            else:
+                # Then check if there are any active tasks
+                if len(self.runner.active_tasks) == 0 or self.wait is False:
+                    raise StopIteration
+
+                # Then go through the active tasks to get the maximum timeout
+                stop_time = self.runner._maximum_stop_time()
+
+                if stop_time is not None and time.time() > stop_time:  # All tasks are on timeout condition
+                    raise SimRunnerTimeoutError(f"Exceeded {self.runner.timeout} seconds waiting for tasks to finish")
+
+                # Wait for the active tasks to finish with a timeout
+                sleep(0.2)  # Go asleep for a while
+
+
 class AnyRunner(Protocol):
     def run(self, netlist: Union[str, Path, BaseEditor], *,
             wait_resource: bool = True,
@@ -139,17 +225,17 @@ class AnyRunner(Protocol):
 
     def wait_completion(self, timeout=None, abort_all_on_timeout=False) -> bool:
         ...
-    
+
     @property
     def runno(self) -> int:
         """number of total runs"""
         ...
-    
+
     @property
     def failSim(self) -> int:
         """number of failed simulations"""
         ...
-    
+
     @property
     def okSim(self) -> int:
         """number of successful completed simulations"""
@@ -200,7 +286,6 @@ class SimRunner(AnyRunner):
         self.parallel_sims = parallel_sims
         self.active_tasks = []
         self.completed_tasks = []
-        self._iterator_counter = 0  # Note: Nested iterators are not supported
 
         self._runno = 0  # number of total runs
         self._failSim = 0  # number of failed simulations
@@ -233,7 +318,7 @@ class SimRunner(AnyRunner):
     @property
     def okSim(self) -> int:
         return self._okSim
-    
+
     def sim_info(self) -> dict:
         """
         Returns a dictionary with detailed information of all completed tasks. It is best to be called after the completion of
@@ -268,6 +353,8 @@ class SimRunner(AnyRunner):
             v['callback_return'] = task.callback_return
             v['start_time'] = task.start_time
             v['stop_time'] = task.stop_time
+            if task.edits:
+                v['edits'] = task.edits.netlist_updates
             rv[run_no] = v
         return rv
 
@@ -397,7 +484,8 @@ class SimRunner(AnyRunner):
             else:
                 return callback_args
 
-    def run(self, netlist: Union[str, Path, BaseEditor], *, wait_resource: bool = True,
+    def run(self, netlist: Union[str, Path, BaseEditor], *,
+            wait_resource: bool = True,
             callback: Union[Type[ProcessCallback], Callable] = None,
             callback_args: Union[tuple, dict] = None,
             switches=None,
@@ -468,7 +556,9 @@ class SimRunner(AnyRunner):
                     callback=callback, callback_args=callback_kwargs,
                     switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
                     exe_log=exe_log
-                )                
+                )
+                if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
+                    t.edits = netlist.netlist_updates  # Copy is made in this assignment
                 self.active_tasks.append(t)
                 t.start()
                 sleep(0.01)  # Give slack for the thread to start
@@ -522,6 +612,8 @@ class SimRunner(AnyRunner):
             switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
             exe_log=exe_log
         )
+        if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
+            t.edits = netlist.netlist_updates  # Copy is made in this assignment
         t.start()
         sleep(0.01)  # Give slack for the thread to start
         t.join(timeout + 1)  # Give one second slack in relation to the task timeout
@@ -568,7 +660,7 @@ class SimRunner(AnyRunner):
         
         Function to terminate LTSpice"""
         self.kill_all_spice()
-        
+
     def kill_all_spice(self):
         """Function to terminate xxSpice processes"""
         simulator = Simulator
@@ -689,107 +781,59 @@ class SimRunner(AnyRunner):
     #    return len(self.completed_tasks)
 
     def __iter__(self):
-        self._iterator_counter = 0  # Reset the iterator counter. Note: nested iterators are not supported
-        return self
+        """Legacy Iterator, returns the get_results() from the task"""
+        return TaskIterator(self, lambda x: x.get_results(), True, None)
 
-    def __next__(self):
-        while True:
-            self.update_completed()  # Updates the active_tasks and completed_tasks lists
-            # First go through the completed tasks
-            if self._iterator_counter < len(self.completed_tasks):
-                ret = self.completed_tasks[self._iterator_counter]
-                ret: RunTask
-                self._iterator_counter += 1
-                if ret.retcode == 0:
-                    return ret.get_results()
-                else:
-                    _logger.error(f"Skipping {ret.runno} because simulation failed.")
-
-            # Then check if there are any active tasks
-            if len(self.active_tasks) == 0:
-                raise StopIteration
-
-            # Then go through the active tasks to get the maximum timeout
-            stop_time = self._maximum_stop_time()
-
-            if stop_time is not None and time.time() > stop_time:  # All tasks are on timeout condition
-                raise SimRunnerTimeoutError(f"Exceeded {self.timeout} seconds waiting for tasks to finish")
-
-            # Wait for the active tasks to finish with a timeout
-            sleep(0.2)  # Go asleep for a while
-
-    def filter_completed_tasks(self, filter: dict) -> Iterator[RunTask]:
+    def tasks(self, conditions: IteratorFilterType = None) -> Iterator[RunTask]:
         """
-        Returns an iterator which retrieves all completed tasks that comply with a given filter.
+        Returns an iterator which iterates all completed tasks
 
-        :param filter: Filter to be used in the iterator
-        :type filter: dict
+        :param conditions: Filter to be used in the iterator. See TaskIterator conditions parameter documentation.
+        :type conditions: Optional or dict or func(RunTask) -> bool
         Returns: Iterator
         """
+        return TaskIterator(self, lambda x: x, True, conditions)
 
-        def match_filter(filter, obj):
-            if obj is None or filter is None:
-                return True
-
-            return False
-
-        class TaskIterator:
-
-            def __init__(self, runner: "SimRunner", filter: dict):
-                self.runner = runner
-                self.filter = filter
-                self.task_index = 0
-
-            def __iter__(self):
-                return self
-
-            def __next__(self):
-                while self.task_index < len(self.runner.completed_tasks):
-                    # Test if the task matches the filter criteria
-                    task = self.runner.completed_tasks[self.task_index]
-                    if all(match_filter(filter[key], getattr(task, key))  for key in filter):
-                        return self.runner.completed_tasks[self.task_index]
-                    self.task_index += 1
-                raise StopIteration
-
-        return TaskIterator(self, filter)
-
-    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: List[str], filter: dict):
+    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: List[str],
+                             conditions: IteratorFilterType):
         """
         Creates a new raw_file, with traces belonging to different runs. The type of the raw file is the same as
-        the first raw file that is matching the filter. See filter_completed_tasks() method.
+        the first raw file that is matching the conditions. See filter_completed_tasks() method.
 
         :param raw_filename: The new RAW filename
         :type raw_filename: str or pathlib.Path
         :param save: A list with traces that are going to be saved in the new raw file
-        :type save: list
-        :param filter: A dictionary used to select which runs are going to be included in the new raw file.
-        :type filter: dict
+        :type save: list[str]
+        :param conditions: A filter as specified on the TaskIterator class
+        :type conditions: dict
         """
         from spicelib import RawWrite
 
         # Obtain a first task
-        first_task: RunTask = next(self.filter_completed_tasks(filter))
+        first_task: RunTask = next(self.tasks(conditions))
 
         # Initialize a raw file based on the contents of the first raw
         from spicelib import RawRead
         template = RawRead(first_task.raw_file)
 
-        # Determine numtype and force_axis_alignment settings
-        numtype = float  # TODO: MAke this more intelligent
-        force_axis_alignment = True
-
         new_raw = RawWrite(
-            template.raw_params['Plot Name'],
+            template.raw_params['Title'],
             fastacces=True,
-            numtype=numtype,
+            numtype='auto',
             encoding='utf_16_le'
         )
 
-        # Go through the tasks that match the fi
-        for run_task in self.filter_completed_tasks(filter):
+        # Go through the tasks that match the conditions given
+        for run_task in self.tasks(conditions):
             # Open the raw file
             source_raw = RawRead(run_task.raw_file, traces_to_read=save)
-            new_raw.add_traces_from_raw(source_raw, save, force_axis_alignment=force_axis_alignment)
+            new_raw.add_traces_from_raw(source_raw, save, force_axis_alignment=True, add_tag=run_task.runno)
 
         new_raw.save(raw_filename)
+
+    def export_sim_log(self, logfile: Union[Path, str]):
+        import pprint
+        logfile = self._on_output_folder(logfile)
+        with open(logfile, 'w') as log_file:
+            pprint.pprint(self.sim_info(), log_file)
+
