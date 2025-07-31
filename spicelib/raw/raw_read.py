@@ -222,7 +222,8 @@ from collections import OrderedDict
 from struct import unpack
 from typing import Union, List, Tuple, Dict
 from pathlib import Path
-from abc import ABC, abstractmethod
+from typing import Protocol
+from abc import abstractmethod
 
 from spicelib.log.logfile_data import try_convert_value
 
@@ -361,7 +362,7 @@ def namify(spice_ref: str):
 
 
 # base class that has the minimum for a plot. Inherited by the PlotData and RawRead classes
-class PlotInterface(ABC):
+class PlotInterface(Protocol):
     
     @property
     @abstractmethod
