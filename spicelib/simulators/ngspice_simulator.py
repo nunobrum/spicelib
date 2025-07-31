@@ -189,7 +189,7 @@ class NGspiceSimulator(Simulator):
         :type stdout: _FILE, optional
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
-        :param cwd: The current working directory to run the command in. If None, the current working directory will be used.
+        :param cwd: The current working directory to run the command in. If None, class variable `cwd` is used. If that is also None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
         :type cwd: Union[str, Path, None], optional        
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
@@ -206,7 +206,12 @@ class NGspiceSimulator(Simulator):
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
             raise SpiceSimulatorError("Simulator executable not found.")
-        
+
+        # The cwd passed to the run function takes precedence over the class variable cwd.
+        if cwd is None:
+            if cls.cwd is not None:
+                cwd = cls.cwd
+                        
         # note: if you want ascii raw files, use "-D filetype=ascii"
         
         if cmd_line_switches is None:

@@ -84,6 +84,9 @@ class Simulator(ABC):
     The ``run_function()`` can be imported from the simulator.py with
     ``from spicelib.sim.simulator import run_function`` instruction.
     """
+    cwd: Union[str, Path, None] = None
+    """Directory in which the simulator is to be executed. Can be overriden temporarily by the run() method.
+    This may not work as wanted when using the simulator under wine."""
     
     spice_exe: List[str] = []
     """ The executable. If using a loader (like wine), make sure that the last in the array is the real simulator.
@@ -100,6 +103,10 @@ class Simulator(ABC):
     
     # the default lib paths, as used by get_default_library_paths
     _default_lib_paths = []
+
+    @classmethod
+    def set_cwd(cls, cwd):
+        cls.cwd = cwd
 
     @classmethod
     def create_from(cls, path_to_exe, process_name=None):
