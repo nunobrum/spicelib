@@ -73,7 +73,7 @@ Steps versus Multiple plots in the file versus SimStepper versus ltsteps.py
 
 This can get confusing, so here is a summary of the differences:
 
-- **Steps**: This is based on the ``.step`` command, that allows multiple 
+- **steps** in ``RawRead``: This is based on the ``.step`` command, that allows multiple 
   runs with for example different component values. Not all simulators support it.
   It produces a single plot with multiple steps, and the data is stored in both a RAW file and a LOG file.
   The steps all share the same trace names, but the values for each step can be different.
