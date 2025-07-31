@@ -85,7 +85,7 @@ class Simulator(ABC):
     ``from spicelib.sim.simulator import run_function`` instruction.
     """
     cwd: Union[str, Path, None] = None
-    """Directory in which the simulator is to be executed. Can be overriden temporarily by the `run()` method.
+    """The current working directory for the simulator. Can be overriden temporarily by the ``run()`` method.
     This may not work as wanted when using the simulator under wine."""
     
     spice_exe: List[str] = []
@@ -106,6 +106,13 @@ class Simulator(ABC):
 
     @classmethod
     def set_cwd(cls, cwd):
+        """Set the current working directory for the simulator. 
+        Can be overriden temporarily by the ``run()`` method.
+        This may not work as wanted when using the simulator under wine.
+
+        :param cwd: The current working directory to run the command in.
+        :type cwd: str or Path
+        """
         cls.cwd = cwd
 
     @classmethod
