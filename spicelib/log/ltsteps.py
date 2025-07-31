@@ -111,7 +111,7 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
         Step Information: Ton=400m  (Run: 2/2)
 
     What would be desirable would be that the step number (Run number) and the STEP variable would be placed within the
-    columns.  This allows, for example, using Excel functionality known as Pivot Tables to conditions out data, or some other
+    columns.  This allows, for example, using Excel functionality known as Pivot Tables to filter out data, or some other
     database selection function.
     The tab is chosen as separator because it is normally compatible with pasting data into Excel.
 
