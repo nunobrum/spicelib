@@ -48,11 +48,11 @@ In the preamble, the lines are always started by one of the following identifier
 
    + Binary|Values:  => Start of the trace section, resp. in binary form or ASCII form. See section below for details.
    
-Multiple trace sets in one RAW file
------------------------------------
+Multiple data sets/plots in one RAW file
+-----------------------------------------
 
-When a simulation is run with multiple .STEP commands, it is possible to have multiple sets of traces in the same RAW file.
-In this case, the RAW file will contain separate sections for each set of traces, each with its own header and data, all tightly concatenated.
+Some simulators can create multiple result sets/plots in the same raw file. 
+See :doc:`../modules/read_rawfiles` for more information on this.
 
 Variables List
 --------------
