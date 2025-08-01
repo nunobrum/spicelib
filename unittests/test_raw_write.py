@@ -73,9 +73,9 @@ class TestRawWrite(unittest.TestCase):
     def equal_raw_files(self, file1, file2):
         raw1 = RawRead(file1)
         raw2 = RawRead(file2)
-        # Test that it has the same information on header except for date.
-        for param in raw1.header_lines:
-            if param == "Date":
+        # Test that it has the same information on header except for date and filename
+        for param in raw1.get_raw_properties():
+            if param == "Date" or param == "Filename":
                 continue
             if (param not in raw1.raw_params) and (param not in raw2.raw_params):
                 continue
