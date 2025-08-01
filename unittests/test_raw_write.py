@@ -239,3 +239,9 @@ class TestRawWrite(unittest.TestCase):
         self.equal_raw_files(golden_dir + "raw_created_from_runner.raw", temp_dir + "raw_created_from_runner.raw")
 
 
+# ------------------------------------------------------------------------------
+if __name__ == "__main__":
+    print("Starting tests on raw_write")
+    unittest.main(failfast=True)
+    print("Tests completed on raw_write")
+# ------------------------------------------------------------------------------
