@@ -108,16 +108,20 @@ def main():
 
 
     if options.clipboard:
-        try:
-            import clipboard
-        except ImportError:
-            print("Failed to load clipboard package. Use PiP to install it.")
-            exit(1)
+
+        from spicelib.utils.clipboard import Clipboard
+
+        cb = Clipboard()
+        
         if len(args) > 0:
             TRACE = args[-1]
         else:
             TRACE = "var"
-        text = clipboard.paste()
+
+        text = cb.paste()
+
+        del(cb)
+
         for line in text.split('\n'):
             try:
                 values.append(try_convert_value(line))

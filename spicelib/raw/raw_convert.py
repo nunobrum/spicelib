@@ -117,9 +117,11 @@ def main():
         for i in range(data_size):
             text += options.separator.join([str(data[col][i]) for col in data.keys()]) + '\n'
         if options.clipboard:
+            from spicelib.utils.clipboard import Clipboard
+            cb = Clipboard()
             print(f"Copying to clipboard text with {len(text)} bytes")
-            clipboard.copy(text)
-
+            cb.copy(text)
+            del(cb)
         else:
             print(text)
     else:
