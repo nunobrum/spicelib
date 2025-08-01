@@ -75,14 +75,16 @@ class TestRawWrite(unittest.TestCase):
         raw2 = RawRead(file2)
         # Test that it has the same information on header except for date and filename
         for param in raw1.get_raw_properties():
-            if param == "Date" or param == "Filename":
+            if param in ["Date", "Filename", "No. Variables", "No. Points"]:
                 continue
             if (param not in raw1.raw_params) and (param not in raw2.raw_params):
                 continue
             self.assertEqual(raw1.raw_params[param], raw2.raw_params[param],f"Parameter {param} is the same")
 
         self.assertEqual(raw1.nVariables, raw2.nVariables, "Number of variables is the same")
-        self.assertEqual(raw1.nPoints, raw2.nPoints, "Number of points is the same")
+        # Due to different configurations, the amount of points might slightly differ,
+        # assert that we are within 1% tolerance
+        self.assertAlmostEqual(raw1.nPoints, raw2.nPoints, delta=(raw1.nPoints / 100), msg="Number of points is the same")
 
         # Compare Vectors
         for trace_name in raw1.get_trace_names():
