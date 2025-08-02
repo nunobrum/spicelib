@@ -220,7 +220,7 @@ import os
 
 from collections import OrderedDict
 from struct import unpack
-from typing import Union, Tuple, Dict
+from typing import Union, Tuple
 from pathlib import Path
 from typing import Protocol
 from abc import abstractmethod
@@ -386,7 +386,7 @@ class PlotInterface(Protocol):
     
     @property
     @abstractmethod
-    def aliases(self) -> Dict[str, str]:
+    def aliases(self) -> dict[str, str]:
         """QSpice defines aliases for some of the traces that can be computed from other traces.
         """
         ...
@@ -423,7 +423,7 @@ class PlotInterface(Protocol):
         ...
     
     @abstractmethod
-    def get_raw_property(self, property_name=None) -> Union[str, Dict[str, str]]:    
+    def get_raw_property(self, property_name=None) -> Union[str, dict[str, str]]:    
         """
         Get a property. By default, it returns all properties defined in the RAW file.
 
@@ -436,12 +436,12 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def get_raw_properties(self) -> Dict[str, str]:
+    def get_raw_properties(self) -> dict[str, str]:
         """
         Get all raw properties.
 
         :return: Dictionary of all raw properties
-        :rtype: Dict[str, str]
+        :rtype: dict[str, str]
         """
         ...
     
@@ -531,7 +531,7 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> Dict[str, list]:
+    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> dict[str, list]:
         """
         Returns a native python class structure with the requested trace data and steps.
         It consists of an ordered dictionary where the columns are the keys and the values are lists with the data.
@@ -1023,7 +1023,7 @@ class PlotData(PlotInterface):
         return self._raw_type 
     
     @property
-    def aliases(self) -> Dict[str, str]:
+    def aliases(self) -> dict[str, str]:
         """QSpice defines aliases for some of the traces that can be computed from other traces.
         """
         return self._aliases
@@ -1074,7 +1074,7 @@ class PlotData(PlotInterface):
         """
         return self._steps
 
-    def get_raw_property(self, property_name=None) -> Union[str, Dict[str, str]]:
+    def get_raw_property(self, property_name=None) -> Union[str, dict[str, str]]:
         """
         Get a property. By default, it returns all properties defined in the RAW file.
 
@@ -1092,12 +1092,12 @@ class PlotData(PlotInterface):
         else:
             raise ValueError("Invalid property. Use %s" % str(self._raw_params.keys()))
 
-    def get_raw_properties(self) -> Dict[str, str]:
+    def get_raw_properties(self) -> dict[str, str]:
         """
         Get all raw properties.
 
         :return: Dictionary of all raw properties
-        :rtype: Dict[str, str]
+        :rtype: dict[str, str]
         """
         return self._raw_params
 
@@ -1376,7 +1376,7 @@ class PlotData(PlotInterface):
             else:
                 return range(len(self._steps))  # Returns all the steps
 
-    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> Dict[str, list]:
+    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> dict[str, list]:
         """
         Returns a native python class structure with the requested trace data and steps.
         It consists of an ordered dictionary where the columns are the keys and the values are lists with the data.
@@ -1696,7 +1696,7 @@ class RawRead(PlotInterface):
         return self._plots[0].raw_type 
     
     @property
-    def aliases(self) -> Dict[str, str]:
+    def aliases(self) -> dict[str, str]:
         """QSpice defines aliases for some of the traces that can be computed from other traces.
         """
         if len(self._plots) == 0:
@@ -1761,7 +1761,7 @@ class RawRead(PlotInterface):
             return None
         return self._plots[0].steps
             
-    def get_raw_property(self, property_name=None) -> Union[str, Dict[str, str]]:
+    def get_raw_property(self, property_name=None) -> Union[str, dict[str, str]]:
         """
         Get a property. By default, it returns all properties defined in the RAW file.
 
@@ -1775,12 +1775,12 @@ class RawRead(PlotInterface):
             return ""
         return self._plots[0].get_raw_property(property_name)
 
-    def get_raw_properties(self) -> Dict[str, str]:
+    def get_raw_properties(self) -> dict[str, str]:
         """
         Get all raw properties.
 
         :return: Dictionary of all raw properties
-        :rtype: Dict[str, str]
+        :rtype: dict[str, str]
         """
         if len(self._plots) == 0:
             return {}
@@ -1927,7 +1927,7 @@ class RawRead(PlotInterface):
             return [0]
         return self._plots[0].get_steps(**kwargs)
 
-    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> Dict[str, list]:
+    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> dict[str, list]:
         """
         Returns a native python class structure with the requested trace data and steps.
         It consists of an ordered dictionary where the columns are the keys and the values are lists with the data.

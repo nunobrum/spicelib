@@ -20,7 +20,7 @@
 # -------------------------------------------------------------------------------
 import threading
 import time
-from typing import Union, Dict, Any
+from typing import Union, Any
 from pathlib import Path
 import zipfile
 import logging
@@ -54,7 +54,7 @@ class ServerSimRunner(threading.Thread):
         super().__init__(name="SimManager")
         self.runner = SimRunner(simulator=simulator, parallel_sims=parallel_sims, timeout=timeout,
                                 verbose=verbose, output_folder=output_folder)
-        self.completed_tasks: list[Dict[str, Any]] = []  # This is a list of dictionaries with the information of the completed tasks
+        self.completed_tasks: list[dict[str, Any]] = []  # This is a list of dictionaries with the information of the completed tasks
         self._stop = False
 
     def run(self) -> None:
