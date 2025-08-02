@@ -22,7 +22,7 @@ import sys
 import os
 
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 import logging
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
 import subprocess
@@ -236,9 +236,8 @@ class LTspice(Simulator):
             raise ValueError(f"Invalid Switch '{switch}'")
 
     @classmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, 
-            stdout=None, stderr=None,
-            cwd=None, exe_log: bool = False) -> int:
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None,
+            stdout=None, stderr=None, cwd: Union[str, Path, None] = None, exe_log: bool = False) -> int:
         """Executes a LTspice simulation run.
         
         A raw file and a log file will be generated, with the same name as the netlist file, 
@@ -256,7 +255,7 @@ class LTspice(Simulator):
         :type stdout: _FILE, optional
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
-        :param cwd: The current working directory to run the command in. If None, class variable `cwd` is used. If that is also None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
+        :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
         :type cwd: Union[str, Path, None], optional
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
@@ -273,11 +272,6 @@ class LTspice(Simulator):
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
             raise SpiceSimulatorError("Simulator executable not found.")
-
-        # The cwd passed to the run function takes precedence over the class variable cwd.
-        if cwd is None:
-            if cls.cwd is not None:
-                cwd = cls.cwd
 
         if cmd_line_switches is None:
             cmd_line_switches = []
@@ -312,9 +306,9 @@ class LTspice(Simulator):
         return error
 
     @classmethod
-    def create_netlist(cls, circuit_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, 
+    def create_netlist(cls, circuit_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None, 
                        stdout=None, stderr=None, 
-                       cwd=None, exe_log: bool = False) -> Path:
+                       cwd: Union[str, Path, None] = None, exe_log: bool = False) -> Path:
         """Create a netlist out of the circuit file
 
         :param circuit_file: path to the circuit file
@@ -329,7 +323,7 @@ class LTspice(Simulator):
         :type stdout: _FILE, optional
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
-        :param cwd: The current working directory to run the command in. If None, class variable `cwd` is used. If that is also None, no change will be done of the working directory.
+        :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
         :type cwd: Union[str, Path, None], optional
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
@@ -346,11 +340,6 @@ class LTspice(Simulator):
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
             raise SpiceSimulatorError("Simulator executable not found.")
-        
-        # The cwd passed to the run function takes precedence over the class variable cwd.
-        if cwd is None:
-            if cls.cwd is not None:
-                cwd = cls.cwd
                         
         # prepare instructions, two stages used to enable edits on the netlist w/o open GUI
         # see: https://www.mikrocontroller.net/topic/480647?goto=5965300#5965300

@@ -75,7 +75,8 @@ class Simulator(ABC):
     .. code-block:: python
         
         @classmethod
-        def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, stdout=None, stderr=None, cwd=None, exe_log: bool = False) -> int:
+        def run(cls, netlist_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None,
+            stdout=None, stderr=None, cwd: Union[str, Path, None] = None, exe_log: bool = False) -> int:
             '''This method implements the call for the simulation of the netlist file. '''
             cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + [netlist_file] + cmd_line_switches
             return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr, cwd=cwd)
@@ -84,9 +85,6 @@ class Simulator(ABC):
     The ``run_function()`` can be imported from the simulator.py with
     ``from spicelib.sim.simulator import run_function`` instruction.
     """
-    cwd: Union[str, Path, None] = None
-    """The current working directory for the simulator. Can be overriden temporarily by the ``run()`` method.
-    This may not work as wanted when using the simulator under wine."""
     
     spice_exe: List[str] = []
     """ The executable. If using a loader (like wine), make sure that the last in the array is the real simulator.
@@ -103,17 +101,6 @@ class Simulator(ABC):
     
     # the default lib paths, as used by get_default_library_paths
     _default_lib_paths = []
-
-    @classmethod
-    def set_cwd(cls, cwd):
-        """Set the current working directory for the simulator. 
-        Can be overriden temporarily by the ``run()`` method.
-        This may not work as wanted when using the simulator under wine.
-
-        :param cwd: The current working directory to run the command in.
-        :type cwd: str or Path
-        """
-        cls.cwd = cwd
 
     @classmethod
     def create_from(cls, path_to_exe, process_name=None):
@@ -178,8 +165,8 @@ class Simulator(ABC):
 
     @classmethod
     @abstractmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None,
-            stdout=None, stderr=None, cwd=None, exe_log: bool = False) -> int:
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None,
+            stdout=None, stderr=None, cwd: Union[str, Path, None] = None, exe_log: bool = False) -> int:
         """This method implements the call for the simulation of the netlist file. This should be overriden by its
         subclass."""
         raise SpiceSimulatorError("This class should be subclassed and this function should be overridden.")
