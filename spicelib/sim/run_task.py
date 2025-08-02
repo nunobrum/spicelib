@@ -64,8 +64,9 @@ class RunTask(threading.Thread):
 
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
                  callback: Union[Type[ProcessCallback], Callable[[Path, Path], Any]],
-                 callback_args: dict = None,
-                 switches: Any = None, timeout: float = None, verbose: bool = False,
+                 callback_args: Union[dict, None] = None,
+                 switches: Any = None, timeout: Union[float, None] = None, verbose: bool = False,
+                 cwd: Union[str, Path, None] = None,
                  exe_log: bool = False):
 
         super().__init__(name=f"RunTask#{runno}")
@@ -79,6 +80,7 @@ class RunTask(threading.Thread):
         self.netlist_file = netlist_file
         self.callback = callback
         self.callback_args = callback_args
+        self.cwd = cwd
         self.retcode = -1  # Signals an error by default
         self.raw_file = None
         self.log_file = None
@@ -112,8 +114,8 @@ class RunTask(threading.Thread):
         self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
         # start execution
         try:
-            self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, 
-                                              self.timeout, exe_log=self.exe_log)
+            self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches,
+                                              self.timeout, cwd=self.cwd, exe_log=self.exe_log)
         except Exception as e:
             self.exception_text = f"{e.__class__.__name__}: {e}"
             self.retcode = -2
