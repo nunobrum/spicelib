@@ -109,7 +109,7 @@ import inspect  # Library used to get the arguments of the callback function
 import time
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Union, Type, Protocol, Tuple, List, Iterator, Any, Optional
+from typing import Callable, Union, Type, Protocol, Tuple, Iterator, Any, Optional
 import logging
 
 from .process_callback import ProcessCallback
@@ -794,7 +794,7 @@ class SimRunner(AnyRunner):
         """
         return TaskIterator(self, lambda x: x, True, conditions)
 
-    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: List[str],
+    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: list[str],
                              conditions: IteratorFilterType):
         """
         Creates a new raw_file, with traces belonging to different runs. The type of the raw file is the same as

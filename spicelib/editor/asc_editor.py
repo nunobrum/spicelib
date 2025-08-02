@@ -19,7 +19,7 @@
 import os.path
 import sys
 from pathlib import Path
-from typing import Union, Optional, Tuple, List
+from typing import Union, Optional, Tuple
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
@@ -49,7 +49,7 @@ class AscEditor(BaseSchematic):
     symbol_cache = {}  # This is a class variable, so it can be shared between all instances.
     """:meta private:"""
     
-    simulator_lib_paths: List[str] = LTspice.get_default_library_paths()
+    simulator_lib_paths: list[str] = LTspice.get_default_library_paths()
     """ This is initialised with typical locations found for LTspice.
     You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
     This is a class variable, so it will be shared between all instances.
@@ -357,7 +357,7 @@ class AscEditor(BaseSchematic):
                         return match, directive
         return None, None
     
-    def get_all_parameter_names(self) -> List[str]:
+    def get_all_parameter_names(self) -> list[str]:
         # docstring inherited from BaseEditor
         param_names = []
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)

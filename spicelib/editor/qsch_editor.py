@@ -20,7 +20,7 @@ import os
 import sys
 from collections import OrderedDict
 from pathlib import Path
-from typing import Union, List, Optional, TextIO, Tuple
+from typing import Union, Optional, TextIO, Tuple
 import re
 import logging
 from .base_editor import (
@@ -260,7 +260,7 @@ class QschTag:
         """Returns the tag id of the object. The tag id is the first token in the tag."""
         return self.tokens[0]
     
-    def get_items(self, item) -> List['QschTag']:
+    def get_items(self, item) -> list['QschTag']:
         """Returns a list of children tags that match the given tag id."""
         answer = [tag for tag in self.items if tag.tag == item]
         return answer
@@ -362,7 +362,7 @@ class QschEditor(BaseSchematic):
     :keyword create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
     """
 
-    simulator_lib_paths: List[str] = Qspice.get_default_library_paths()    
+    simulator_lib_paths: list[str] = Qspice.get_default_library_paths()    
     """ This is initialised with typical locations found for QSPICE.
     You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
     This is a class variable, so it will be shared between all instances.
@@ -760,7 +760,7 @@ class QschEditor(BaseSchematic):
         else:
             return None, None
         
-    def get_all_parameter_names(self) -> List[str]:
+    def get_all_parameter_names(self) -> list[str]:
         # docstring inherited from BaseEditor
         param_names = []
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)

@@ -220,7 +220,7 @@ import os
 
 from collections import OrderedDict
 from struct import unpack
-from typing import Union, List, Tuple, Dict
+from typing import Union, Tuple, Dict
 from pathlib import Path
 from typing import Protocol
 from abc import abstractmethod
@@ -393,7 +393,7 @@ class PlotInterface(Protocol):
 
     @property
     @abstractmethod
-    def backannotations(self) -> List[str]:
+    def backannotations(self) -> list[str]:
         """List to store the backannotations found in the RAW file header
         """
         ...
@@ -408,14 +408,14 @@ class PlotInterface(Protocol):
     
     @property
     @abstractmethod
-    def flags(self) -> List[str]:
+    def flags(self) -> list[str]:
         """List of Flags that are used in this plot. See :doc:`../varia/raw_file` for details.
         """
         ...
 
     @property
     @abstractmethod
-    def steps(self) -> Union[List[dict[str, int]], None]:        
+    def steps(self) -> Union[list[dict[str, int]], None]:        
         """List of steps in the RAW file, if it exists.
         If the RAW file does not contain stepped data, this will be None.
         If the RAW file contains stepped data, this will be a list of step numbers.
@@ -451,7 +451,7 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def get_trace_names(self) -> List[str]:
+    def get_trace_names(self) -> list[str]:
         """Returns a list of trace names in the plot."""
         ...
     
@@ -484,7 +484,7 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def get_axis(self, step: int = 0) -> Union[np.ndarray, List[float]]:
+    def get_axis(self, step: int = 0) -> Union[np.ndarray, list[float]]:
         """
         This function is equivalent to get_trace(0).get_wave(step) instruction.
         It also implements a workaround on a LTSpice issue when using 2nd Order compression, where some values on
@@ -494,7 +494,7 @@ class PlotInterface(Protocol):
         :type step: int, optional
         :raises RuntimeError: if the RAW file does not have an axis.
         :return: Array with the X axis
-        :rtype: Union[np.ndarray, List[float]]
+        :rtype: Union[np.ndarray, list[float]]
         """
         ...
     
@@ -511,7 +511,7 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def get_steps(self, **kwargs) -> Union[List[int], range]:
+    def get_steps(self, **kwargs) -> Union[list[int], range]:
         """Returns the steps that correspond to the query set in the `**kwargs` parameters.
         Example: ::
 
@@ -531,7 +531,7 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def export(self, columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs) -> Dict[str, list]:
+    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> Dict[str, list]:
         """
         Returns a native python class structure with the requested trace data and steps.
         It consists of an ordered dictionary where the columns are the keys and the values are lists with the data.
@@ -550,7 +550,7 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs):
+    def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
         """
         Returns a pandas DataFrame with the requested data.
 
@@ -567,7 +567,7 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def to_csv(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, List[int]] = -1,
+    def to_csv(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1,
                separator=',', **kwargs):
         """
         Saves the data to a CSV file.
@@ -586,7 +586,7 @@ class PlotInterface(Protocol):
         ...
 
     @abstractmethod
-    def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs):
+    def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
         """
         Saves the data to an Excel file.
         
@@ -595,7 +595,7 @@ class PlotInterface(Protocol):
         :param columns: List of traces to use as columns. Default is None, meaning all traces
         :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1
-        :type step: Union[int, List[int]], optional
+        :type step: Union[int, list[int]], optional
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
         :type kwargs: ``**dict``        
         :raises ImportError: when the 'pandas' module is not installed
@@ -609,7 +609,7 @@ class PlotData(PlotInterface):
     
     Do not instantiate this class directly, use the ``RawRead`` class instead."""
     
-    def __init__(self, raw_file, raw_filename: Path, traces_to_read: Union[str, List[str], Tuple[str, ...]], 
+    def __init__(self, raw_file, raw_filename: Path, traces_to_read: Union[str, list[str], Tuple[str, ...]], 
                  plot_nr: int, encoding: str, dialect: Union[str, None], headeronly: bool, verbose: bool):
         """Initializes the PlotData object and reads the RAW file.
         
@@ -639,7 +639,7 @@ class PlotData(PlotInterface):
         self._nPoints = 0  # Number of points in the RAW file
         self._nVariables = 0  # Number of variables in the RAW file
         self._dialect = None  # The dialect of the RAW file, either 'ltspice', 'qspice', 'ngspice' or 'xyce'
-        self._traces: List[Union[Axis, TraceRead, DummyTrace]] = []
+        self._traces: list[Union[Axis, TraceRead, DummyTrace]] = []
         self._steps = None
         self._axis = None  # Creating the axis
         self._flags = []
@@ -1029,7 +1029,7 @@ class PlotData(PlotInterface):
         return self._aliases
 
     @property
-    def backannotations(self) -> List[str]:
+    def backannotations(self) -> list[str]:
         """List to store the backannotations found in the RAW file header
         """
         return self._backannotations
@@ -1061,13 +1061,13 @@ class PlotData(PlotInterface):
         return self._raw_params
     
     @property
-    def flags(self) -> List[str]:
+    def flags(self) -> list[str]:
         """List of Flags that are used in this plot. See :doc:`../varia/raw_file` for details.
         """
         return self._flags
     
     @property
-    def steps(self) -> Union[List[dict[str, int]], None]:
+    def steps(self) -> Union[list[dict[str, int]], None]:
         """List of steps in the RAW file, if it exists.
         If the RAW file does not contain stepped data, this will be None.
         If the RAW file contains stepped data, this will be a list of step numbers.
@@ -1124,7 +1124,7 @@ class PlotData(PlotInterface):
         else:
             return ""
 
-    def get_trace_names(self) -> List[str]:
+    def get_trace_names(self) -> list[str]:
         """
         Returns a list of exiting trace names of the RAW file.
 
@@ -1224,7 +1224,7 @@ class PlotData(PlotInterface):
             raise IndexError(f"{self} doesn't contain trace \"{trace_ref}\"\n"
                              f"Valid traces are {[trc.name for trc in self._traces]}")
 
-    def get_axis(self, step: int = 0) -> Union[np.ndarray, List[float]]:
+    def get_axis(self, step: int = 0) -> Union[np.ndarray, list[float]]:
         """
         This function is equivalent to get_trace(0).get_wave(step) instruction.
         It also implements a workaround on a LTSpice issue when using 2nd Order compression, where some values on
@@ -1234,7 +1234,7 @@ class PlotData(PlotInterface):
         :type step: int, optional
         :raises RuntimeError: if the RAW file does not have an axis.
         :return: Array with the X axis
-        :rtype: Union[np.ndarray, List[float]]
+        :rtype: Union[np.ndarray, list[float]]
         """
         if self._axis:
             axis = self.get_trace(0)
@@ -1339,7 +1339,7 @@ class PlotData(PlotInterface):
         """Helper function to access traces by using the [ ] operator."""
         return self.get_trace(item)
 
-    def get_steps(self, **kwargs) -> Union[List[int], range]:
+    def get_steps(self, **kwargs) -> Union[list[int], range]:
         """Returns the steps that correspond to the query set in the `**kwargs` parameters.
         Example: ::
 
@@ -1376,7 +1376,7 @@ class PlotData(PlotInterface):
             else:
                 return range(len(self._steps))  # Returns all the steps
 
-    def export(self, columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs) -> Dict[str, list]:
+    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> Dict[str, list]:
         """
         Returns a native python class structure with the requested trace data and steps.
         It consists of an ordered dictionary where the columns are the keys and the values are lists with the data.
@@ -1426,7 +1426,7 @@ class PlotData(PlotInterface):
                     data[col] += [self._steps[step][col]] * len(data[columns[0]])
         return data
 
-    def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs):
+    def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
         """
         Returns a pandas DataFrame with the requested data.
 
@@ -1448,7 +1448,7 @@ class PlotData(PlotInterface):
         data = self.export(columns=columns, step=step, **kwargs)
         return pd.DataFrame(data, **kwargs)
 
-    def to_csv(self, filename: Union[str, Path], columns: Union[list[str], None] = None, step: Union[int, List[int]] = -1,
+    def to_csv(self, filename: Union[str, Path], columns: Union[list[str], None] = None, step: Union[int, list[int]] = -1,
                separator=',', **kwargs):
         """
         Saves the data to a CSV file.
@@ -1483,7 +1483,7 @@ class PlotData(PlotInterface):
                 for i in range(len(data[firstcolumn])):
                     f.write(separator.join([str(data[col][i]) for col in data.keys()]) + '\n')
 
-    def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs):
+    def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
         """
         Saves the data to an Excel file.
         
@@ -1492,7 +1492,7 @@ class PlotData(PlotInterface):
         :param columns: List of traces to use as columns. Default is None, meaning all traces
         :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1
-        :type step: Union[int, List[int]], optional
+        :type step: Union[int, list[int]], optional
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
         :type kwargs: ``**dict``        
         :raises ImportError: when the 'pandas' module is not installed
@@ -1563,7 +1563,7 @@ class RawRead(PlotInterface):
 
     def __init__(self, 
                  raw_filename: Union[str, Path], 
-                 traces_to_read: Union[str, List[str], Tuple[str, ...]] = '*',
+                 traces_to_read: Union[str, list[str], Tuple[str, ...]] = '*',
                  dialect: Union[str, None] = None, 
                  headeronly: bool = False, 
                  verbose: bool = True,
@@ -1573,7 +1573,7 @@ class RawRead(PlotInterface):
         # Initialize and type the instance variables, for the documentation
         self._encoding: str = ""
         self._dialect: Union[str, None] = None
-        self._plots: List[PlotData] = []
+        self._plots: list[PlotData] = []
                 
         # ########## The code starts here
         
@@ -1666,7 +1666,7 @@ class RawRead(PlotInterface):
         return self._encoding
     
     @property
-    def plots(self) -> List[PlotData]:
+    def plots(self) -> list[PlotData]:
         """List of plots in the RAW file. Each plot is an instance of a class that inherits from PlotData.
         Note that all properties and methods of plots[0] are also available directly in the RawRead class.
         """
@@ -1704,7 +1704,7 @@ class RawRead(PlotInterface):
         return self._plots[0].aliases
 
     @property
-    def backannotations(self) -> List[str]:
+    def backannotations(self) -> list[str]:
         """List to store the backannotations found in the RAW file header
         """
         if len(self._plots) == 0:
@@ -1744,7 +1744,7 @@ class RawRead(PlotInterface):
         return self._plots[0].raw_params
     
     @property
-    def flags(self) -> List[str]:
+    def flags(self) -> list[str]:
         """List of Flags that are used in this plot. See :doc:`../varia/raw_file` for details.
         """
         if len(self._plots) == 0:
@@ -1752,7 +1752,7 @@ class RawRead(PlotInterface):
         return self._plots[0].flags
     
     @property
-    def steps(self) -> Union[List[dict[str, int]], None]:
+    def steps(self) -> Union[list[dict[str, int]], None]:
         """List of steps in the RAW file, if it exists.
         If the RAW file does not contain stepped data, this will be None.
         If the RAW file contains stepped data, this will be a list of step numbers.
@@ -1807,7 +1807,7 @@ class RawRead(PlotInterface):
             return ""
         return self._plots[0].get_plot_name()
         
-    def get_plot_names(self) -> List[str]:
+    def get_plot_names(self) -> list[str]:
         """
         Returns a list of plot names in the RAW file.
 
@@ -1825,7 +1825,7 @@ class RawRead(PlotInterface):
         """
         return len(self._plots)
 
-    def get_trace_names(self) -> List[str]:
+    def get_trace_names(self) -> list[str]:
         """
         Returns a list of exiting trace names of the RAW file.
 
@@ -1877,7 +1877,7 @@ class RawRead(PlotInterface):
             return np.ndarray([])
         return self._plots[0].get_time_axis(step)
 
-    def get_axis(self, step: int = 0) -> Union[np.ndarray, List[float]]:
+    def get_axis(self, step: int = 0) -> Union[np.ndarray, list[float]]:
         """
         This function is equivalent to get_trace(0).get_wave(step) instruction.
         It also implements a workaround on a LTSpice issue when using 2nd Order compression, where some values on
@@ -1887,7 +1887,7 @@ class RawRead(PlotInterface):
         :type step: int, optional
         :raises RuntimeError: if the RAW file does not have an axis.
         :return: Array with the X axis
-        :rtype: Union[np.ndarray, List[float]]
+        :rtype: Union[np.ndarray, list[float]]
         """
         if len(self._plots) == 0:
             return np.ndarray([])
@@ -1906,7 +1906,7 @@ class RawRead(PlotInterface):
             return 0
         return self._plots[0].get_len(step)
 
-    def get_steps(self, **kwargs) -> Union[List[int], range]:
+    def get_steps(self, **kwargs) -> Union[list[int], range]:
         """Returns the steps that correspond to the query set in the `**kwargs` parameters.
         Example: ::
 
@@ -1927,7 +1927,7 @@ class RawRead(PlotInterface):
             return [0]
         return self._plots[0].get_steps(**kwargs)
 
-    def export(self, columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs) -> Dict[str, list]:
+    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> Dict[str, list]:
         """
         Returns a native python class structure with the requested trace data and steps.
         It consists of an ordered dictionary where the columns are the keys and the values are lists with the data.
@@ -1947,7 +1947,7 @@ class RawRead(PlotInterface):
             return OrderedDict()  # Return an empty OrderedDict if no plots are found
         return self._plots[0].export(columns=columns, step=step, **kwargs)
 
-    def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs):
+    def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
         """
         Returns a pandas DataFrame with the requested data.
 
@@ -1965,7 +1965,7 @@ class RawRead(PlotInterface):
             return None
         return self._plots[0].to_dataframe(columns=columns, step=step, **kwargs)
 
-    def to_csv(self, filename: Union[str, Path], columns: Union[list[str], None] = None, step: Union[int, List[int]] = -1,
+    def to_csv(self, filename: Union[str, Path], columns: Union[list[str], None] = None, step: Union[int, list[int]] = -1,
                separator=',', **kwargs):
         """
         Saves the data to a CSV file.
@@ -1985,7 +1985,7 @@ class RawRead(PlotInterface):
             return
         return self._plots[0].to_csv(filename=filename, columns=columns, step=step, separator=separator, **kwargs)
 
-    def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, List[int]] = -1, **kwargs):
+    def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
         """
         Saves the data to an Excel file.
         
@@ -1994,7 +1994,7 @@ class RawRead(PlotInterface):
         :param columns: List of traces to use as columns. Default is None, meaning all traces
         :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1
-        :type step: Union[int, List[int]], optional
+        :type step: Union[int, list[int]], optional
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
         :type kwargs: ``**dict``        
         :raises ImportError: when the 'pandas' module is not installed

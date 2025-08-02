@@ -19,7 +19,7 @@
 
 import dataclasses
 import enum
-from typing import List, Callable, Union, Tuple
+from typing import Callable, Union, Tuple
 from collections import OrderedDict
 import logging
 from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
@@ -202,7 +202,7 @@ class Shape:
     """Polygon object. The shape is defined by a list of points. It can define a closed or open shape.
     The closed shape is defined by the first and last points being the same. In this case, it can have a fill.
     It is used to define polygons, arcs, circles or more complex shapes like the ones found in QSPICE"""
-    def __init__(self, name: str, points: List[Point], line_style: LineStyle = None, fill: str = ""):
+    def __init__(self, name: str, points: list[Point], line_style: LineStyle = None, fill: str = ""):
         self.name = name
         self.points = points
         if line_style is None:
@@ -278,12 +278,12 @@ class BaseSchematic(BaseEditor):
     def __init__(self):
         super().__init__()
         self.components: OrderedDict[str, SchematicComponent] = OrderedDict()
-        self.wires: List[Line] = []
-        self.labels: List[Text] = []
-        self.directives: List[Text] = []
-        self.ports: List[Port] = []
-        self.lines: List[Line] = []
-        self.shapes: List[Shape] = []
+        self.wires: list[Line] = []
+        self.labels: list[Text] = []
+        self.directives: list[Text] = []
+        self.ports: list[Port] = []
+        self.lines: list[Line] = []
+        self.shapes: list[Shape] = []
         self.updated = False  # indicates if an edit was done and the file has to be written back to disk
 
     def reset_netlist(self, create_blank: bool = False) -> None:
