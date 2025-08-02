@@ -588,7 +588,7 @@ class SimRunner(AnyRunner):
             return None
 
     def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: Union[str, None] = None,
-                timeout: Union[float, None] = None, exe_log: bool = False) -> Tuple[Union[Path, None], Union[Path, None]]:
+                timeout: Union[float, None] = None, exe_log: bool = False) -> tuple[Union[Path, None], Union[Path, None]]:
         """
         Executes a simulation run with the conditions set by the user.
         Conditions are set by the `set_parameter`, `set_component_value` or `add_instruction functions`.
