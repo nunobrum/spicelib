@@ -20,7 +20,7 @@
 # -------------------------------------------------------------------------------
 
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 import logging
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
 import os
@@ -220,9 +220,8 @@ class XyceSimulator(Simulator):
         return ret
 
     @classmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: list = None, timeout: float = None, 
-            stdout=None, stderr=None,
-            exe_log: bool = False) -> int:
+    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None,
+            stdout=None, stderr=None, cwd: Union[str, Path, None] = None, exe_log: bool = False) -> int:
         """Executes a Xyce simulation run.
         
         A raw file and a log file will be generated, with the same name as the netlist file, 
@@ -240,6 +239,8 @@ class XyceSimulator(Simulator):
         :type stdout: _FILE, optional
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
+        :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
+        :type cwd: Union[str, Path, None], optional        
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
         :type exe_log: bool, optional            
@@ -255,7 +256,7 @@ class XyceSimulator(Simulator):
             _logger.error("using the create_from(<location>) class method")
             _logger.error("==============================================")
             raise SpiceSimulatorError("Simulator executable not found.")
-        
+                        
         if cmd_line_switches is None:
             cmd_line_switches = []
         elif isinstance(cmd_line_switches, str):
@@ -270,7 +271,7 @@ class XyceSimulator(Simulator):
         if exe_log:
             log_exe_file = netlist_file.with_suffix('.exe.log')
             with open(log_exe_file, "w") as outfile:
-                error = run_function(cmd_run, timeout=timeout, stdout=outfile, stderr=subprocess.STDOUT)
+                error = run_function(cmd_run, timeout=timeout, stdout=outfile, stderr=subprocess.STDOUT, cwd=cwd)
         else:        
-            error = run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr)
+            error = run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr, cwd=cwd)
         return error
