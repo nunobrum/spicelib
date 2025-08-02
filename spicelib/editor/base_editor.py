@@ -488,7 +488,7 @@ class BaseEditor(ABC):
         ...
         
     @abstractmethod
-    def get_all_parameter_names(self, param: str) -> str:
+    def get_all_parameter_names(self, param: str) -> list[str]:
         """
         Returns all parameter names from the netlist.
 
