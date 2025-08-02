@@ -220,7 +220,7 @@ import os
 
 from collections import OrderedDict
 from struct import unpack
-from typing import Union, Tuple
+from typing import Union
 from pathlib import Path
 from typing import Protocol
 from abc import abstractmethod
@@ -609,7 +609,7 @@ class PlotData(PlotInterface):
     
     Do not instantiate this class directly, use the ``RawRead`` class instead."""
     
-    def __init__(self, raw_file, raw_filename: Path, traces_to_read: Union[str, list[str], Tuple[str, ...]], 
+    def __init__(self, raw_file, raw_filename: Path, traces_to_read: Union[str, list[str], tuple[str, ...]], 
                  plot_nr: int, encoding: str, dialect: Union[str, None], headeronly: bool, verbose: bool):
         """Initializes the PlotData object and reads the RAW file.
         
@@ -1563,7 +1563,7 @@ class RawRead(PlotInterface):
 
     def __init__(self, 
                  raw_filename: Union[str, Path], 
-                 traces_to_read: Union[str, list[str], Tuple[str, ...]] = '*',
+                 traces_to_read: Union[str, list[str], tuple[str, ...]] = '*',
                  dialect: Union[str, None] = None, 
                  headeronly: bool = False, 
                  verbose: bool = True,

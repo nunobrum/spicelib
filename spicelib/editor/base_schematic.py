@@ -19,7 +19,7 @@
 
 import dataclasses
 import enum
-from typing import Callable, Union, Tuple
+from typing import Callable, Union
 from collections import OrderedDict
 import logging
 from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
@@ -308,7 +308,7 @@ class BaseSchematic(BaseEditor):
         self.shapes = deepcopy(editor.shapes)
         self.updated = True
 
-    def _get_parent(self, reference) -> Tuple["BaseSchematic", str]:
+    def _get_parent(self, reference) -> tuple["BaseSchematic", str]:
         if SUBCKT_DIVIDER in reference:
             sub_ref, sub_comp = reference.split(SUBCKT_DIVIDER, 1)
 
@@ -341,7 +341,7 @@ class BaseSchematic(BaseEditor):
                 raise ComponentNotFoundError(f"Component {reference} not found in Schematic file")
             return sub_circuit.components[ref]
 
-    def get_component_position(self, reference: str) -> Tuple[Point, ERotation]:
+    def get_component_position(self, reference: str) -> tuple[Point, ERotation]:
         """Returns the position and rotation of the component"""
         comp = self.get_component(reference)
         return comp.position, comp.rotation

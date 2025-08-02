@@ -18,7 +18,6 @@
 # Created:     23-02-2023
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
-from typing import Tuple
 from xmlrpc.client import Binary
 from xmlrpc.server import SimpleXMLRPCServer
 import logging
@@ -128,7 +127,7 @@ class SimServer(object):
         _logger.debug(f"Server: Returning status {ret}")
         return ret
 
-    def get_files(self, session_id, runno) -> Tuple[str, Binary]:
+    def get_files(self, session_id, runno) -> tuple[str, Binary]:
         if runno in self.sessions[session_id]:
 
             for task_info in self.simulation_manager.completed_tasks:

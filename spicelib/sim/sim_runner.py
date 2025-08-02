@@ -109,7 +109,7 @@ import inspect  # Library used to get the arguments of the callback function
 import time
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Union, Type, Protocol, Tuple, Iterator, Any, Optional
+from typing import Callable, Union, Type, Protocol, Iterator, Any, Optional
 import logging
 
 from .process_callback import ProcessCallback
@@ -571,7 +571,7 @@ class SimRunner(AnyRunner):
             return None
 
     def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: str = None,
-                timeout: float = None, exe_log: bool = False) -> Tuple[str, str]:
+                timeout: float = None, exe_log: bool = False) -> tuple[str, str]:
         """
         Executes a simulation run with the conditions set by the user.
         Conditions are set by the `set_parameter`, `set_component_value` or `add_instruction functions`.

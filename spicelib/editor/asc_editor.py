@@ -19,7 +19,7 @@
 import os.path
 import sys
 from pathlib import Path
-from typing import Union, Optional, Tuple
+from typing import Union, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
@@ -335,7 +335,7 @@ class AscEditor(BaseSchematic):
         info["InstName"] = reference  # For legacy purposes
         return info
 
-    def get_component_position(self, reference: str) -> Tuple[Point, ERotation]:
+    def get_component_position(self, reference: str) -> tuple[Point, ERotation]:
         component = self.get_component(reference)
         return component.position, component.rotation
 

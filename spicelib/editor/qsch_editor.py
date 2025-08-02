@@ -20,7 +20,7 @@ import os
 import sys
 from collections import OrderedDict
 from pathlib import Path
-from typing import Union, Optional, TextIO, Tuple
+from typing import Union, Optional, TextIO
 import re
 import logging
 from .base_editor import (
@@ -193,7 +193,7 @@ class QschTag:
                 self.tokens.append(str(token))
 
     @classmethod
-    def parse(cls, stream: str, start: int = 0) -> Tuple['QschTag', int]:
+    def parse(cls, stream: str, start: int = 0) -> tuple['QschTag', int]:
         """
         Parses a tag from the stream starting at the given position. The stream should be a string.
 
@@ -303,7 +303,7 @@ class QschTag:
         :param index: The index of the attribute to be set
         :type index: int
         :param value: The value to be set
-        :type value: Union[str, int, Tuple[Any, Any]]
+        :type value: Union[str, int, tuple[Any, Any]]
         :return: Nothing
         """
         if isinstance(value, int):
@@ -555,7 +555,7 @@ class QschEditor(BaseSchematic):
                 self.write_spice_to_file(netlist_file)
                 netlist_file.write('.end\n')
 
-    def _find_pin_position(self, comp_pos, orientation: int, pin: QschTag) -> Tuple[int, int]:
+    def _find_pin_position(self, comp_pos, orientation: int, pin: QschTag) -> tuple[int, int]:
         """Returns the net name at the pin position"""
         pin_pos = pin.get_attr(1)
         hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
@@ -830,7 +830,7 @@ class QschEditor(BaseSchematic):
             _logger.debug(f"Text added to {tag.get_attr(QSCH_TEXT_POS)} Added: {tag.get_attr(QSCH_TEXT_STR_ATTR)}")
         self.updated = True
 
-    def _get_component_symbol(self, reference: str) -> Tuple["BaseSchematic", str, QschTag]:
+    def _get_component_symbol(self, reference: str) -> tuple["BaseSchematic", str, QschTag]:
         sub_circuit, ref = self._get_parent(reference)
         if ref not in sub_circuit.components:
             _logger.error(f"Component {ref} not found")
@@ -956,7 +956,7 @@ class QschEditor(BaseSchematic):
                         symbol.items.append(new_tag)
                     sub_circuit.updated = True
 
-    def get_component_position(self, reference: str) -> Tuple[Point, ERotation]:
+    def get_component_position(self, reference: str) -> tuple[Point, ERotation]:
         # docstring inherited from BaseSchematic
         component = self.get_component(reference)
         return component.position, component.rotation

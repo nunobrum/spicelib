@@ -26,7 +26,7 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
 from .updates import UpdateType
 
-from typing import Union, Callable, Any, Tuple, Optional
+from typing import Union, Callable, Any, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 from ..utils.file_search import search_file_in_containers
 from ..log.logfile_data import try_convert_value
@@ -548,7 +548,7 @@ class SpiceCircuit(BaseEditor):
                         sub._write_lines(f)
                 f.write(command)
 
-    def _get_param_named(self, param_name) -> Tuple[int, Union[re.Match, None]]:
+    def _get_param_named(self, param_name) -> tuple[int, Union[re.Match, None]]:
         """
         Internal function. Do not use. Returns a line starting with command and matching the search with the regular
         expression
@@ -664,7 +664,7 @@ class SpiceCircuit(BaseEditor):
             # The search was not successful
             raise ComponentNotFoundError(f'Sub-circuit "{subcircuit_name}" not found')
 
-    def _get_component_line_and_regex(self, reference: str) -> Tuple[int, re.Match]:
+    def _get_component_line_and_regex(self, reference: str) -> tuple[int, re.Match]:
         """Internal function. Do not use."""
         prefix = reference[0]
         regex = component_replace_regexs.get(prefix, None)

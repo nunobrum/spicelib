@@ -19,7 +19,7 @@
 # -------------------------------------------------------------------------------
 
 import logging
-from typing import Union, Callable, Type, Tuple
+from typing import Union, Callable, Type
 
 from .tolerance_deviations import ToleranceDeviations, DeviationType
 from ..process_callback import ProcessCallback
@@ -215,8 +215,8 @@ class WorstCaseAnalysis(ToleranceDeviations):
         else:
             return min(meas_data), max(meas_data)
 
-    def make_sensitivity_analysis(self, measure: str, ref: str = '*') -> Union[dict[str, Tuple[float, float]],
-                                                                               Tuple[float, float], None]:
+    def make_sensitivity_analysis(self, measure: str, ref: str = '*') -> Union[dict[str, tuple[float, float]],
+                                                                               tuple[float, float], None]:
         """
         Makes a sensitivity analysis for a given measurement and reference component. The sensitivity is a percentage of
         the component error contribution over the total error. As supplement a second value is given that is the
