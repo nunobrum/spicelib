@@ -53,7 +53,7 @@ def search_file_in_containers(filename, *containers) -> Optional[str]:
     :param filename: file name to search (posix string)
     :type filename: str
     :param containers: list of paths to search in (posix strings)
-    :type containers: List[str]
+    :type containers: list[str]
     :return: path to the file if found, or None if not found.
     :rtype: Optional[str]
     """

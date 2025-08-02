@@ -24,7 +24,7 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
 import pathlib
-from typing import Callable, Union, Type, Iterable, Dict, List
+from typing import Callable, Union, Type, Iterable
 from functools import wraps
 import logging
 
@@ -91,7 +91,7 @@ class SimStepper(AnyRunner):
     def __init__(self, circuit: BaseEditor, runner: AnyRunner):
         self.runner = runner
         self.netlist = circuit
-        self.iter_list: List[StepInfo] = []
+        self.iter_list: list[StepInfo] = []
         self.current_values = {}
         self.sim_info = {}
 
@@ -169,7 +169,7 @@ class SimStepper(AnyRunner):
                 switches=None,
                 timeout: float = None,
                 wait_completion: bool = True,
-                filenamer: Callable[[Dict[str, str]], str] = None,
+                filenamer: Callable[[dict[str, str]], str] = None,
                 exe_log: bool = False,
                 ) -> None:
         """

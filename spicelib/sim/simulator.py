@@ -22,7 +22,7 @@
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path, PureWindowsPath
-from typing import Union, Optional, List
+from typing import Union, Optional
 import subprocess
 import os
 import logging
@@ -86,7 +86,7 @@ class Simulator(ABC):
     ``from spicelib.sim.simulator import run_function`` instruction.
     """
     
-    spice_exe: List[str] = []
+    spice_exe: list[str] = []
     """ The executable. If using a loader (like wine), make sure that the last in the array is the real simulator.
     
     :meta hide-value:"""
@@ -191,7 +191,7 @@ class Simulator(ABC):
         return False
     
     @classmethod
-    def get_default_library_paths(cls) -> List[str]:
+    def get_default_library_paths(cls) -> list[str]:
         """
         Return the directories that contain the standard simulator's libraries, 
         as derived from the simulator's executable path and platform.
@@ -200,7 +200,7 @@ class Simulator(ABC):
         This is companion with `set_custom_library_paths()`
 
         :return: the list of paths where the libraries should be located.
-        :rtype: List[str]
+        :rtype: list[str]
         """
         paths = []
         myexe = None

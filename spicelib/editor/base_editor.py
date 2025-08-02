@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from math import floor, log
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 import logging
 import os
 
@@ -371,12 +371,12 @@ class BaseEditor(ABC):
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
     """
-    custom_lib_paths: List[str] = []
+    custom_lib_paths: list[str] = []
     """The custom library paths. Not to be modified, only set via `set_custom_library_paths()`.
     This is a class variable, so it will be shared between all instances
     
     :meta hide-value:"""    
-    simulator_lib_paths: List[str] = []
+    simulator_lib_paths: list[str] = []
     """ This is initialised with typical locations found for your simulator.
     You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
     This is a class variable, so it will be shared between all instances.
@@ -488,12 +488,12 @@ class BaseEditor(ABC):
         ...
         
     @abstractmethod
-    def get_all_parameter_names(self, param: str) -> str:
+    def get_all_parameter_names(self, param: str) -> list[str]:
         """
         Returns all parameter names from the netlist.
 
         :return: A list of parameter names found in the netlist
-        :rtype: List[str]
+        :rtype: list[str]
         """
         ...        
 

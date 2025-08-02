@@ -27,7 +27,7 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 import logging
-from typing import Union, List, Iterable
+from typing import Union, Iterable
 
 _logger = logging.getLogger("spicelib.SimClient")
 
@@ -139,7 +139,7 @@ class SimClient(object):
         zip_data = zip_buffer.read()
         self.server.add_sources(self.session_id, zip_data)
 
-    def run(self, circuit, dependencies: List[Union[str, pathlib.Path]] = None) -> int:
+    def run(self, circuit, dependencies: list[Union[str, pathlib.Path]] = None) -> int:
         """
         Sends the netlist identified with the argument "circuit" to the server, and it receives a run identifier
         (runno). Since the server can receive requests from different machines, this identifier is not guaranteed to be

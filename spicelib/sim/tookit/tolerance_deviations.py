@@ -19,7 +19,7 @@
 # -------------------------------------------------------------------------------
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Union, Optional, Dict, Callable, Type
+from typing import Union, Optional, Callable, Type
 
 from ..run_task import RunTask
 from ...editor.base_editor import BaseEditor, scan_eng
@@ -64,8 +64,8 @@ class ToleranceDeviations(SimAnalysis, ABC):
     def __init__(self, circuit_file: Union[str, BaseEditor], runner: Optional[AnyRunner] = None):
         super().__init__(circuit_file, runner)
         self.default_tolerance = {prefix: ComponentDeviation.none() for prefix in self.devices_with_deviation_allowed}
-        self.device_deviations: Dict[str, ComponentDeviation] = {}
-        self.parameter_deviations: Dict[str, ComponentDeviation] = {}
+        self.device_deviations: dict[str, ComponentDeviation] = {}
+        self.parameter_deviations: dict[str, ComponentDeviation] = {}
         self.testbench_prepared = False
         self.testbench_executed = False
         self.analysis_executed = False

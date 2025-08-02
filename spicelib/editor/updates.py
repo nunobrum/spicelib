@@ -1,7 +1,7 @@
 import dataclasses
 import enum
 from copy import deepcopy
-from typing import Union, List, Optional
+from typing import Union, Optional
 
 UpdateValueType = Union[str, int, float]
 
@@ -62,7 +62,7 @@ class Update:
 class Updates:
     """A list of updates done to a Netlist"""
     def __init__(self):
-        self.netlist_updates: List[Update] = []
+        self.netlist_updates: list[Update] = []
 
     def __copy__(self):
         newone = type(self)()

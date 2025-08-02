@@ -23,7 +23,7 @@ Defines base classes for the RAW file data structures.
 """
 import numpy as np
 from numpy import zeros, complex128, float32, float64
-from typing import Union, List
+from typing import Union
 
 
 class DataSet(object):
@@ -90,7 +90,7 @@ class Axis(DataSet):
         super().__init__(name, whattype, datalen, numerical_type)
         self.step_info = None
 
-    def _set_steps(self, step_info: List[dict]):
+    def _set_steps(self, step_info: list[dict]):
         self.step_info = step_info
 
         self.step_offsets = [None for _ in range(len(step_info))]
