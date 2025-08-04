@@ -1,5 +1,5 @@
 Title: * step test file for ngspice with some constructions that may be helpful
-Date: Mon Aug  4 09:41:50  2025
+Date: Mon Aug  4 12:49:30  2025
 Command: ngspice-44.2, Build 
 Plotname: Transient Analysis
 Flags: real
@@ -25132,7 +25132,7 @@ Values:
 	0.000000000000000e+00
 
 Title: * step test file for ngspice with some constructions that may be helpful
-Date: Mon Aug  4 09:41:51  2025
+Date: Mon Aug  4 12:49:30  2025
 Command: ngspice-44.2, Build 
 Plotname: Transient Analysis
 Flags: real
@@ -50255,7 +50255,7 @@ Values:
 	0.000000000000000e+00
 
 Title: * step test file for ngspice with some constructions that may be helpful
-Date: Mon Aug  4 09:41:51  2025
+Date: Mon Aug  4 12:49:30  2025
 Command: ngspice-44.2, Build 
 Plotname: Transient Analysis
 Flags: real

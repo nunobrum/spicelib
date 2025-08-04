@@ -21,12 +21,16 @@ L1 IN OUT 1m
    
    * New parameters are only applied after a reset, so reset.
    reset
-   * the real somutaion that is to be performed:
+   * the real simulation that is to be performed:
    tran 1u 5m
    * tidy up the result a bit
    remzerovec
-   * Set the file type to ascii or binary
-   set filetype = ascii   
+   * Set the file type to ascii or binary, get that from the command line definition -D filetype=xxxx
+   if $?filetype
+    set filetype = $filetype
+   else
+    set filetype = binary   
+   end
    * get the wanted raw file name from the '-r' command line option, as that is in $rawfile
    * $rval is at the end, to let the raw file readers know what iteration this is. Yes, this is a cludge.
    write $rawfile v(in) v(out) $rval

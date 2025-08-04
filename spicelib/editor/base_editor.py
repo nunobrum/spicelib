@@ -63,6 +63,8 @@ SPICE_DOT_INSTRUCTIONS = (
     '.SAVEBIAS',
     '.STEP',
     '.SUBCKT',
+    '.CONTROL',  # Start of Control Section
+    ".ENDC",  # End of Control Section
     '.TEXT',
     '.WAVE',  # Write Selected Nodes to a .Wav File
 
@@ -488,7 +490,7 @@ class BaseEditor(ABC):
         ...
         
     @abstractmethod
-    def get_all_parameter_names(self, param: str) -> str:
+    def get_all_parameter_names(self, param: str) -> list[str]:
         """
         Returns all parameter names from the netlist.
 
@@ -774,7 +776,8 @@ class BaseEditor(ABC):
         :type instruction: str
         :return: Nothing
         """
-        self.add_update("INSTRUCTION", instruction, UpdateType.AddInstruction)
+        logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
+        self.add_update("INSTRUCTION", logtxt, UpdateType.AddInstruction)
 
     @abstractmethod
     def remove_instruction(self, instruction: str) -> bool:
@@ -797,7 +800,8 @@ class BaseEditor(ABC):
         :returns: True if the instruction was found and removed, False otherwise
         :rtype: bool        
         """
-        self.add_update("INSTRUCTION", instruction, UpdateType.DeleteInstruction)
+        logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
+        self.add_update("INSTRUCTION", logtxt, UpdateType.DeleteInstruction)
 
     @abstractmethod
     def remove_Xinstruction(self, search_pattern: str) -> bool:
