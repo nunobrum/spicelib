@@ -528,7 +528,7 @@ class SpiceCircuit(BaseEditor):
             elif cmd == ".CONTROL":
                 sub_circuit = ControlEditor(self)
                 sub_circuit.content = line
-                # Advance to the next non nested .ENDC
+                # Advance to the next .ENDC. There is no risk of nesting, as control sections cannot be nested.
                 finished = sub_circuit._add_lines(line_iter)
                 if finished:
                     self.netlist.append(sub_circuit)
@@ -1363,7 +1363,7 @@ class ControlEditor:
         
     def _add_lines(self, line_iter):
         """Internal function. Do not use.
-        Add a list of lines to the command section. No parsing, just loop until a .ENDC is found."""
+        Add a list of lines to the section. No parsing, just loop until a .ENDC is found."""
         self._content = self._content.rstrip() + END_LINE_TERM
         for line in line_iter:
             self._content += line.rstrip() + END_LINE_TERM
@@ -1569,7 +1569,7 @@ class SpiceEditor(SpiceCircuit):
     
     def add_control_section(self, instruction: str) -> None:
         """
-        Adds a control section to the netlist. The instruction should be a string that starts with '.CONTROL' and ends with '.ENDC'.
+        Adds a control section to the netlist. The instruction should be a multi-line string that starts with '.CONTROL' and ends with '.ENDC'.
         It will be added as a ControlEditor object to the netlist.
         
         You can also use the `add_instruction()` method, but that method has less checking of the format.
