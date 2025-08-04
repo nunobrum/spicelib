@@ -84,7 +84,7 @@ This can get confusing, so here is a summary of the differences:
   What traces and what data is written is controlled by the simulator, via ``.control`` .. ``.endc`` command (the language inside is known as the 'nutmeg' language). 
   See for example the `ngspice manual <https://ngspice.sourceforge.io/ngspice-control-language-tutorial.html#step>`_. 
   It is also possible to produce multiple extractions from one simulation, and then write them to the same raw file. 
-  See ``examples/testfiles/ngsteps.net`` and ``examples/ngsteps.py`` for an example of how to do steps with ngspice.
+  See ``examples/testfiles/ngsteps.net`` and ``examples/ngsteps.py`` for an example of how to do steps with ngspice and how to read the results.
   ``RawRead`` will automatically read all plots in the file, and expose them via the ``.plots`` attribute.
 - **SimStepper**: This is a class that allows to multiple simulations with different parameters, and collect the results. It can be used with any simulator.
 - **ltsteps.py**: This is a utility that can be used to extract data from various types of LTSpice files, be it related to ``.step``, ``.meas`` or ``.txt`` exports, and format it for import in a spreadsheet.
@@ -99,6 +99,7 @@ See the class documentation for more details :
 - :py:class:`spicelib.raw.raw_classes.Axis`
 - :py:class:`spicelib.Trace`
 - :py:class:`spicelib.raw.raw_classes.TraceRead`
+- :py:class:`spicelib.sim.sim_stepping.SimStepper`
 
 
 Example
@@ -147,3 +148,26 @@ It only handles the data of the first result set/plot in the file, as that is th
         ax2.plot(xdata, ydata)              # Do X/Y plot on second subplot
 
     plt.show()                              # Show matplotlib's interactive window with the plots
+
+    # And now an example of reading a raw file that has multiple data sets/plots in it
+
+    raw = RawRead("./testfiles/noise_multi.bin.raw")
+    print(raw.get_plot_names())            # names of all the plots in the file
+    print(raw.get_trace_names())           # names of all the traces of the first plot in the file
+    print(raw.plots[0].get_trace_names())  # same as above
+    print(raw.plots[1].get_trace_names())  # names of all the traces of the second plot in the file
+
+    x = raw.get_trace('frequency')  # could have used raw.get_axis() as well here
+    y = raw.get_trace('onoise_spectrum')
+    plt.plot(x.get_wave(), y.get_wave(), label='noise spectrum')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Noise (V/√Hz)')
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.legend()
+    plt.show()
+
+    # and get the integrated noise from the second part in the file
+    total = raw.plots[1].get_trace('v(onoise_total)')
+    print(f"Total Integral noise: {total.get_wave()[0]} V") 
+

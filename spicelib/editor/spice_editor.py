@@ -1651,9 +1651,9 @@ class SpiceEditor(SpiceCircuit):
         """
         Returns a list representing the control sections in the netlist.
         Control sections are all anonymous, so they do not have a name, just an index.
-        They are also not parsed, they are just a list of lines.
+        They are also not parsed, they are just a list of strings (with embedded newlines).
 
-        :return: list of control section strings
+        :return: list of control section strings. These strings have each multiple lines, start with ``.CONTROL`` and end with ``.ENDC``.
         :rtype: list[str]
         """
         control_sections = []
@@ -1667,9 +1667,11 @@ class SpiceEditor(SpiceCircuit):
         Adds a control section to the netlist. The instruction should be a string that starts with '.CONTROL' and ends with '.ENDC'.
         It will be added as a ControlEditor object to the netlist.
         
+        You can also use the `add_instruction()` method, but that method has less checking of the format.
+        
         :param instruction: control section instruction
         :type instruction: str
-        :raises ValueError: if the instruction does not start with '.CONTROL' or does not end with '.ENDC'
+        :raises ValueError: if the instruction does not start with ``.CONTROL`` or does not end with ``.ENDC``
         """
         instruction = instruction.strip()
         if not instruction.upper().startswith('.CONTROL') or not instruction.upper().endswith('.ENDC'):
@@ -1678,11 +1680,13 @@ class SpiceEditor(SpiceCircuit):
                 
     def remove_control_section(self, index: int = 0) -> bool:
         """
-        Removes a control section from the netlist. 
-        You could also use `remove_instruction()` but the text should match the entire control section.
+        Removes a control section from the netlist, based on the index in `get_control_sections()`.
+        You can also use `remove_instruction()`, but there, the given text must match the entire control section.
         
         :param index: index of the control section to remove, according to `get_control_sections()`
         :type index: int
+        :returns: True if the control section was found and removed, False otherwise
+        :rtype: bool
         """
         if index < 0:
             raise IndexError("Control section index out of range")

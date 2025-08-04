@@ -7,3 +7,4 @@ Running Simulation Classes
    sim_runner
    sim_client
    sim_server
+   sim_stepper

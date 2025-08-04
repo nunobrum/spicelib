@@ -392,13 +392,13 @@ the schema editor and subsequently save the Ngspice netlist to use it with this 
 
 Please note that the Ngspice does not support the `.step` command, so you would need to use SimStepper, or a `.control` section.
 
-Ngspice `.control` sections can now be manipulated with the `SpiceEditor` class, but there are some limitations:
+Ngspice `.control` sections can be manipulated with the `SpiceEditor` class, but there are some limitations:
 
 * you cannot use interactive/GUI elements like `plot`.
 * you must do your own writing to the raw file, using the `write $rawfile [...]` command. `$rawfile` will be filled by ngspice, from the `-r` command line parameter that spicelib will provide.
 * you must add `quit` at the end of the control section (otherwise the raw file will be deleted).
 
-If you want to create something similar to the missing `.step` directive, you can use loops and `set appendwrite` inside a `.control` section to create multiple plots in the same raw file. RawRead knows how to read this, but you will need to use `raw.plots[<index>]` to access the different plots, instead or constructions like `raw.get_wave('name', step)`. See `examples/testfiles/ngsteps.net` and `examples/ngsteps.py` for an example of how to do this.
+If you want to create something similar to the missing `.step` directive, you can use loops and `set appendwrite` inside a `.control` section to create multiple plots in the same raw file. RawRead knows how to read this, but you will need to use `raw.plots[step].get_wave('name')` to access the different plots, instead of `raw.get_wave('name', step)`. See `examples/testfiles/ngsteps.net` and `examples/ngsteps.py` for an example of how to do this and how to edit `.control` sections.
 
 For the other simulators, built-in Linux/MacOS support is coming, but you can always try to use it under Linux via
 setting of the executable paths.
