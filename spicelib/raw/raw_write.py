@@ -217,7 +217,7 @@ class RawWrite(object):
         :param other: an instance of the RawRead class where the traces are going to be copied from.
         :type other: RawRead
         :param trace_filter: A list of signals that should be imported into the new file
-        :type trace_filter: list, Tuple, or just a string for one trace
+        :type trace_filter: list, tuple, or just a string for one trace
 
         :keyword force_axis_alignment: If two raw files don't have the same axis, an attempt is made to sync the two
 

@@ -26,7 +26,7 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
 from .updates import UpdateType
 
-from typing import Union, List, Callable, Any, Tuple, Optional
+from typing import Union, Callable, Any, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 from ..utils.file_search import search_file_in_containers
 from ..log.logfile_data import try_convert_value
@@ -456,7 +456,7 @@ class SpiceCircuit(BaseEditor):
     and protect parameters and components from edits made at a higher level.
     """
     
-    simulator_lib_paths: List[str] = LTspice.get_default_library_paths()    
+    simulator_lib_paths: list[str] = LTspice.get_default_library_paths()    
     """ This is initialised with typical locations found for LTspice.
     You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
     This is a class variable, so it will be shared between all instances.
@@ -548,7 +548,7 @@ class SpiceCircuit(BaseEditor):
                         sub._write_lines(f)
                 f.write(command)
 
-    def _get_param_named(self, param_name) -> Tuple[int, Union[re.Match, None]]:
+    def _get_param_named(self, param_name) -> tuple[int, Union[re.Match, None]]:
         """
         Internal function. Do not use. Returns a line starting with command and matching the search with the regular
         expression
@@ -570,7 +570,7 @@ class SpiceCircuit(BaseEditor):
             line_no += 1
         return -1, None  # If it fails, it returns an invalid line number and No match
 
-    def get_all_parameter_names(self) -> List[str]:
+    def get_all_parameter_names(self) -> list[str]:
         # docstring inherited from BaseEditor
         param_names = []
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
@@ -583,12 +583,12 @@ class SpiceCircuit(BaseEditor):
                     param_names.append(param_name.upper())
         return sorted(param_names)
 
-    def get_subcircuit_names(self) -> List[str]:
+    def get_subcircuit_names(self) -> list[str]:
         """
         Returns a list of the names of the sub-circuits in the netlist.
         
         :return: list of sub-circuit names
-        :rtype: List[str]
+        :rtype: list[str]
         """
 
         subckt_names = []
@@ -664,7 +664,7 @@ class SpiceCircuit(BaseEditor):
             # The search was not successful
             raise ComponentNotFoundError(f'Sub-circuit "{subcircuit_name}" not found')
 
-    def _get_component_line_and_regex(self, reference: str) -> Tuple[int, re.Match]:
+    def _get_component_line_and_regex(self, reference: str) -> tuple[int, re.Match]:
         """Internal function. Do not use."""
         prefix = reference[0]
         regex = component_replace_regexs.get(prefix, None)
@@ -1096,14 +1096,14 @@ class SpiceCircuit(BaseEditor):
         """
         return self.get_component(reference).value_str
 
-    def get_component_nodes(self, reference: str) -> List[str]:
+    def get_component_nodes(self, reference: str) -> list[str]:
         """
         Returns the nodes to which the component is attached to.
 
         :param reference: Reference of the circuit element to get the nodes.
         :type reference: str
         :return: List of nodes
-        :rtype: list
+        :rtype: list[str]
         """
         nodes = self.get_component(reference).ports
         return nodes
@@ -1207,7 +1207,7 @@ class SpiceCircuit(BaseEditor):
         """
         SpiceCircuit.set_custom_library_paths(*paths)
 
-    def get_all_nodes(self) -> List[str]:
+    def get_all_nodes(self) -> list[str]:
         """
         Retrieves all nodes existing on a Netlist.
 

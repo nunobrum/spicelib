@@ -30,7 +30,7 @@ import threading
 import time
 import traceback
 from time import sleep
-from typing import Callable, Union, Any, Tuple, Type
+from typing import Callable, Union, Any, Type
 import logging
 
 from ..editor.updates import Updates
@@ -173,7 +173,7 @@ class RunTask(threading.Thread):
             if self.log_file.exists():
                 self.log_file = self.log_file.replace(self.log_file.with_suffix('.fail'))
 
-    def get_results(self) -> Union[None, Any, Tuple[str, str]]:
+    def get_results(self) -> Union[None, Any, tuple[str, str]]:
         """
         Returns the simulation outputs if the simulation and callback function has already finished.
         If the simulation is not finished, it simply returns None. If no callback function is defined, then
@@ -198,7 +198,7 @@ class RunTask(threading.Thread):
             else:
                 return self.raw_file, self.log_file
 
-    def wait_results(self) -> Union[Any, Tuple[str, str]]:
+    def wait_results(self) -> Union[Any, tuple[str, str]]:
         """
         Waits for the completion of the task and returns a tuple with the raw and log files.
         

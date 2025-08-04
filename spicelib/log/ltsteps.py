@@ -90,7 +90,6 @@ __copyright__ = "Copyright 2023, Fribourg Switzerland"
 import dataclasses
 import os.path
 import re
-from typing import List
 
 from .logfile_data import LogfileData, try_convert_value
 from ..utils.detect_encoding import detect_encoding
@@ -251,7 +250,7 @@ class FourierData:
     dc_component: float
     phd: float  # Partial Harmonic Distortion
     thd: float  # Total Harmonic Distortion
-    harmonics: List[HarmonicData]
+    harmonics: list[HarmonicData]
     step: int
 
     @property
