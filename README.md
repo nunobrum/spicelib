@@ -1042,6 +1042,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.5
+    * Fixing Issue #224 - Allow maintenance of `.control` sections
     * Fixing Issue #219 - Provide an option for defining the directory in which spice is executed
     * Fixing Issue #218 - Allow reading of multiple plots from 1 raw file
     * Fixing Issue #214 - Netlist concatenations are badly interpreted
