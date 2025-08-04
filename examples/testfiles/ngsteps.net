@@ -1,0 +1,41 @@
+* step test file for ngspice with some constructions that may be helpful
+Vin in 0 PWL(0 0 1n 1)
+R1 in out rval
+XX1 0 out sub_circuit
+C1 out 0 10u
+
+.subckt sub_circuit IN OUT
+L1 IN OUT 1m
+.ends sub_circuit
+
+* .option savecurrents
+.param rval=100
+
+.control
+
+* Loop over the following code setting the variable rval to different values
+ foreach rval 100 1k 10k
+ 
+   * Changes the parameter rval to the value of the variable rval To add confusion two different things have the same name here.
+   alterparam rval = $rval
+   
+   * New parameters are only applied after a reset, so reset.
+   reset
+   * the real somutaion that is to be performed:
+   tran 1u 5m
+   * tidy up the result a bit
+   remzerovec
+   * Set the file type to ascii or binary
+   set filetype = ascii   
+   * get the wanted raw file name from the '-r' command line option, as that is in $rawfile
+   * $rval is at the end, to let the raw file readers know what iteration this is. Yes, this is a cludge.
+   write $rawfile v(in) v(out) $rval
+   * appendwrite: All subsequent writes will be appended at the end of the file instead of overwriting the existing files. The result is a raw file with multiple sections, one per iteration.
+   set appendwrite
+   * If you want to, you can write to multiple files (like binary + ascii) in one loop iteration, just use multiple write commands to different files
+ end
+ quit
+.endc
+
+.backanno
+.end
