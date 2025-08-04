@@ -12,7 +12,7 @@ from __future__ import annotations
 # -------------------------------------------------------------------------------
 
 import re
-from typing import Union, Iterable, List
+from typing import Union, Iterable
 from collections import OrderedDict
 import math
 import logging
@@ -103,7 +103,7 @@ def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, 
     return ans
 
 
-def split_line_into_values(line: str) -> List[Union[int, float, str]]:
+def split_line_into_values(line: str) -> list[Union[int, float, str]]:
     """
     Splits a line into values. The values are separated by tabs or spaces. If a value starts with ( and ends with ),
     then it is considered a complex value, and it is returned as a single value. If converting values within () fails,
@@ -171,7 +171,7 @@ class LogfileData:
         __getitem__ implements
         :key: step or measurement name. This is case insensitive.
         :return: step or measurement set
-        :rtype: List[float]
+        :rtype: list[float]
         """
         if isinstance(key, slice):
             raise NotImplementedError("Slicing in not allowed in this class")
@@ -190,7 +190,7 @@ class LogfileData:
         """
         return self.step_count > 0
 
-    def steps_with_parameter_equal_to(self, param: str, value: Union[str, int, float]) -> List[int]:
+    def steps_with_parameter_equal_to(self, param: str, value: Union[str, int, float]) -> list[int]:
         """
         Returns the steps that contain a given condition.
 
@@ -199,7 +199,7 @@ class LogfileData:
         :param value:
         :type value:
         :return: List of positions that respect the condition of equality with parameter value
-        :rtype: List[int]
+        :rtype: list[int]
         """
         param = param.lower()
         if param in self.stepset:
@@ -213,14 +213,14 @@ class LogfileData:
         # returns the positions where there is match
         return [i for i, a in enumerate(condition_set) if a == v]
 
-    def steps_with_conditions(self, **conditions) -> List[int]:
+    def steps_with_conditions(self, **conditions) -> list[int]:
         """
         Returns the steps that respect one or more equality conditions
 
         :key conditions: parameters within the Spice simulation. Values are the matches to be found.
         :type conditions: dict
         :return: List of steps that respect all the given conditions
-        :rtype: List[int]
+        :rtype: list[int]
         """
         current_set = None
         for param, value in conditions.items():
@@ -233,19 +233,19 @@ class LogfileData:
                 current_set = [v for v in current_set if v in condition_set]
         return current_set
 
-    def get_step_vars(self) -> List[str]:
+    def get_step_vars(self) -> list[str]:
         """
         Returns the stepped variable names on the log file.
         :return: List of step variables.
-        :rtype: list of str
+        :rtype: list[str]
         """
         return list(self.stepset.keys())
 
-    def get_measure_names(self) -> List[str]:
+    def get_measure_names(self) -> list[str]:
         """
         Returns the names of the measurements read from the log file.
         :return: List of measurement names.
-        :rtype: list of str
+        :rtype: list[str]
         """
         return list(self.dataset.keys())
 
@@ -283,7 +283,7 @@ class LogfileData:
                 raise TypeError("Step must be an integer or a slice")
 
     def get_measure_values_at_steps(self, measure: str, steps: Union[None, int, Iterable]) \
-            -> List[Union[float, int, str, LTComplex]]:
+            -> list[Union[float, int, str, LTComplex]]:
         """
         Returns the measurements taken at a list of steps provided by the steps list.
 
