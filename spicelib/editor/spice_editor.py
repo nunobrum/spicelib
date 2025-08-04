@@ -1687,15 +1687,15 @@ class SpiceEditor(SpiceCircuit):
         if index < 0:
             raise IndexError("Control section index out of range")
         i = 0
-        for line in self.netlist:
+        for nr, line in enumerate(self.netlist):
             if isinstance(line, ControlEditor):
-                if line == index:
-                    del self.netlist[i]
+                if i == index:
+                    del self.netlist[nr]
                     logtxt = line.content.replace("\r", "\\r").replace("\n", "\\n")
                     self.add_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
                     _logger.info(f"Control section {index} removed")
                     return True
-            i += 1
+                i += 1
         _logger.error(f"Control section {index} was not found")
         return False
     

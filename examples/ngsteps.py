@@ -16,21 +16,27 @@ raw_file = "testfiles/ngsteps.raw"
 netlist = SpiceEditor(netlist_file)
 # print the netlist
 # TODO: get the section, edit the section, save the netlist
-print(f"Control sections: {netlist.get_control_sections()}")
+cs = netlist.get_control_sections()
+print(f"nr Control sections: {len(cs)}")
+s = cs[0]
+print(f"Control section 0:\n*********\n{s}\n*********")
+# replace the control section with another. Remove/add only, no edit
+netlist.remove_control_section(0)  # remove the first control section
+s = s.replace(" foreach rval 100 1k 10k", " foreach rval 100 500 1k 5k")
+netlist.add_control_section(s)  # add the modified control section back
 
-print("************************")
+print("Updates:")
+for update in netlist.netlist_updates:
+    print(update)
+            
+netlist_file = "testfiles/temp/ngsteps.net"
+netlist.save_netlist(netlist_file)
 
-i = 0
-while i < len(netlist.netlist):
-    line = netlist.netlist[i]
-    i += 1
-    print(f"Line {i}: {line}")
-
-exit()
 
 # run the netlist with ngspice simulator, if present
 simulator = NGspiceSimulator
 if simulator.is_available():
+    raw_file = "testfiles/temp/ngsteps.raw"
     # ngspice -D ngbehavior=kiltspa -D filetype=ascii -b -r ngsteps.raw ngsteps.net
     extraparams = simulator.valid_switch("-D", "filetype=ascii")  # binary, or omitting this will work as well.
     ret = simulator.run(netlist_file, cmd_line_switches=extraparams, exe_log=False)
