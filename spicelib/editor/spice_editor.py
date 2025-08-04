@@ -1352,16 +1352,13 @@ class SpiceCircuit(BaseEditor):
             return None
 
 
-class ControlEditor(BaseEditor):
+class ControlEditor:
     """
     Provides interfaces to manipulate SPICE `.control` instructions.
     """
 
     def __init__(self, parent: "SpiceCircuit" = None):
-        super().__init__()
         self._content = ""
-        self._readonly = False
-        self.modified_control_lines = {}
         self.parent = parent
         
     def _add_lines(self, line_iter):
@@ -1394,99 +1391,7 @@ class ControlEditor(BaseEditor):
         :param value: The new content to be set
         :type value: str
         """
-        if self.is_read_only():
-            raise ValueError("Editor is read-only")
         self._content = value.strip() + END_LINE_TERM
-    
-    # and the rest is just here to make the ControlEditor compatible with the BaseEditor interface, no added value
-    @property
-    def circuit_file(self) -> Path:
-        """
-        Returns the path of the circuit file. Always returns an empty Path for ControlEditor.
-        """
-        return Path('')
-
-    def save_netlist(self, run_netlist_file):
-        # docstring is in the parent class
-        pass
-
-    def add_instruction(self, instruction: str) -> None:
-        pass
-
-    def remove_instruction(self, instruction) -> bool:
-        return False
-
-    def remove_Xinstruction(self, search_pattern: str) -> bool:
-        return False
-
-    def reset_netlist(self, create_blank: bool = False) -> None:
-        self._content = ""
-
-    def add_update(self, name, value, updates):
-        pass
-
-    def get_component(self, reference):
-        raise NotImplementedError("ControlEditor does not support get_component.")
-
-    def get_component_attribute(self, reference: str, attribute: str) -> str:
-        raise NotImplementedError("ControlEditor does not support get_component_attribute.")
-
-    def get_component_parameters(self, element: str) -> dict:
-        raise NotImplementedError("ControlEditor does not support get_component_parameters.")
-
-    def set_component_parameters(self, element: str, **kwargs) -> None:
-        raise NotImplementedError("ControlEditor does not support set_component_parameters.")
-
-    def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
-        raise NotImplementedError("ControlEditor does not support set_component_value.")
-
-    def set_element_model(self, element: str, model: str) -> None:
-        raise NotImplementedError("ControlEditor does not support set_element_model.")
-
-    def get_component_value(self, element: str) -> str:
-        raise NotImplementedError("ControlEditor does not support get_component_value.")
-
-    def get_component_nodes(self, reference: str) -> list:
-        raise NotImplementedError("ControlEditor does not support get_component_nodes.")
-
-    def get_components(self, prefixes='*'):
-        return []
-
-    def add_component(self, component, **kwargs):
-        raise NotImplementedError("ControlEditor does not support add_component.")
-
-    def remove_component(self, designator):
-        raise NotImplementedError("ControlEditor does not support remove_component.")
-
-    def get_all_nodes(self):
-        return []
-
-    def get_all_parameter_names(self, param: str) -> list[str]:
-        return []
-
-    def get_parameter(self, param):
-        raise NotImplementedError("ControlEditor does not support get_parameter.")
-
-    def set_parameter(self, param, value):
-        raise NotImplementedError("ControlEditor does not support set_parameter.")
-
-    def is_read_only(self):
-        return self._readonly
-
-    def __getitem__(self, item):
-        raise NotImplementedError("ControlEditor does not support __getitem__.")
-
-    def __delitem__(self, key):
-        raise NotImplementedError("ControlEditor does not support __delitem__.")
-
-    def __contains__(self, key):
-        return False
-
-    def __iter__(self):
-        return iter([])
-
-    def get_subcircuit(self, reference: str) -> 'ControlEditor':
-        raise NotImplementedError("ControlEditor does not support get_subcircuit.")
 
 
 class SpiceEditor(SpiceCircuit):
