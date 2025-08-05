@@ -42,7 +42,6 @@ will try to find the trace name with the I() qualifier.
 """
 
 from optparse import OptionParser
-import clipboard
 from spicelib.raw.raw_read import RawRead
 
 
