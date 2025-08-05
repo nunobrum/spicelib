@@ -177,3 +177,4 @@ README.bak
 doc_build/
 unittests/output/
 examples/testfiles/Batch_Test.exe.log
+examples/testfiles/ngsteps.log

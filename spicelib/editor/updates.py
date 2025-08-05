@@ -44,7 +44,7 @@ class Update:
         elif self.updates == UpdateType.DeleteComponentParameter:
             return f"Component Parameter {self.name} was deleted"
         elif self.updates == UpdateType.DeleteInstruction:
-            return f"Instruction {self.value} was deleted"
+            return f"Instruction \"{self.value}\" was deleted"
         elif self.updates == UpdateType.AddParameter:
             return f"Parameter {self.name} was added with {self.value}"
         elif self.updates == UpdateType.AddComponent:
@@ -52,7 +52,7 @@ class Update:
         elif self.updates == UpdateType.AddComponentParameter:
             return f"Component Parameter {self.name} was added with value {self.value}"
         elif self.updates == UpdateType.AddInstruction:
-            return f"Instruction {self.value} was added."
+            return f"Instruction \"{self.value}\" was added."
         elif self.updates == UpdateType.CloneSubcircuit:
             return f"Sub-circuit {self.name} was added"
         else:

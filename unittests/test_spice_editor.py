@@ -362,7 +362,9 @@ class SpiceEditor_Test(unittest.TestCase):
         my_edt[sc + ":X2:R1"].value = 99
         my_edt.save_netlist(temp_dir + "top_circuit_edit2.net")
         self.equalFiles(temp_dir + "top_circuit_edit2.net", golden_dir + "top_circuit_edit2.net")
-        print(my_edt.netlist_updates)
+        print("Updates:")
+        for update in my_edt.netlist_updates:
+            print(update)
 
     def test_semiconductor_edits(self):
         # inspecting W/L parameters
