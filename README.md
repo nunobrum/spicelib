@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.4_ (Candidate to 1.4.5)
+_current version: 1.4.5_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
