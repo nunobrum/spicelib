@@ -30,7 +30,7 @@ import threading
 import time
 import traceback
 from time import sleep
-from typing import Callable, Union, Any, Tuple, Type
+from typing import Callable, Union, Any, Type
 import logging
 
 from ..editor.updates import Updates
@@ -64,8 +64,9 @@ class RunTask(threading.Thread):
 
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
                  callback: Union[Type[ProcessCallback], Callable[[Path, Path], Any]],
-                 callback_args: dict = None,
-                 switches: Any = None, timeout: float = None, verbose: bool = False,
+                 callback_args: Union[dict, None] = None,
+                 switches: Any = None, timeout: Union[float, None] = None, verbose: bool = False,
+                 cwd: Union[str, Path, None] = None,
                  exe_log: bool = False):
 
         super().__init__(name=f"RunTask#{runno}")
@@ -79,6 +80,7 @@ class RunTask(threading.Thread):
         self.netlist_file = netlist_file
         self.callback = callback
         self.callback_args = callback_args
+        self.cwd = cwd
         self.retcode = -1  # Signals an error by default
         self.raw_file = None
         self.log_file = None
@@ -112,8 +114,8 @@ class RunTask(threading.Thread):
         self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
         # start execution
         try:
-            self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches, 
-                                              self.timeout, exe_log=self.exe_log)
+            self.retcode = self.simulator.run(self.netlist_file.absolute().as_posix(), self.switches,
+                                              self.timeout, cwd=self.cwd, exe_log=self.exe_log)
         except Exception as e:
             self.exception_text = f"{e.__class__.__name__}: {e}"
             self.retcode = -2
@@ -171,7 +173,7 @@ class RunTask(threading.Thread):
             if self.log_file.exists():
                 self.log_file = self.log_file.replace(self.log_file.with_suffix('.fail'))
 
-    def get_results(self) -> Union[None, Any, Tuple[str, str]]:
+    def get_results(self) -> Union[None, Any, tuple[str, str]]:
         """
         Returns the simulation outputs if the simulation and callback function has already finished.
         If the simulation is not finished, it simply returns None. If no callback function is defined, then
@@ -196,7 +198,7 @@ class RunTask(threading.Thread):
             else:
                 return self.raw_file, self.log_file
 
-    def wait_results(self) -> Union[Any, Tuple[str, str]]:
+    def wait_results(self) -> Union[Any, tuple[str, str]]:
         """
         Waits for the completion of the task and returns a tuple with the raw and log files.
         

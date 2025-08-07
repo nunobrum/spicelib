@@ -26,7 +26,7 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
 from .updates import UpdateType
 
-from typing import Union, List, Callable, Any, Tuple, Optional
+from typing import Union, Callable, Any, Optional
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 from ..utils.file_search import search_file_in_containers
 from ..log.logfile_data import try_convert_value
@@ -271,8 +271,10 @@ def get_line_command(line) -> str:
                     raise SyntaxError(f"Unrecognized command in line: \"{line}\"")
     elif isinstance(line, SpiceCircuit):
         return ".SUBCKT"
-    else:
-        raise SyntaxError('Unrecognized command in line "{}"'.format(line))
+    elif isinstance(line, ControlEditor):
+        return ".CONTROL"    
+    
+    raise SyntaxError('Unrecognized command in line "{}"'.format(line))
 
 
 def _first_token_upped(line):
@@ -456,7 +458,7 @@ class SpiceCircuit(BaseEditor):
     and protect parameters and components from edits made at a higher level.
     """
     
-    simulator_lib_paths: List[str] = LTspice.get_default_library_paths()    
+    simulator_lib_paths: list[str] = LTspice.get_default_library_paths()    
     """ This is initialised with typical locations found for LTspice.
     You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
     This is a class variable, so it will be shared between all instances.
@@ -499,6 +501,8 @@ class SpiceCircuit(BaseEditor):
         for line_no, line in enumerate(self.netlist):
             if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
                 continue
+            elif isinstance(line, ControlEditor):  # same for control editor
+                continue
             line_upcase = _first_token_upped(line)
             if line_upcase == substr_upper:
                 return line_no
@@ -511,6 +515,7 @@ class SpiceCircuit(BaseEditor):
         Add a list of lines to the netlist."""
         for line in line_iter:
             cmd = get_line_command(line)
+            # cmd is guaranteed to be uppercased
             if cmd == '.SUBCKT':
                 sub_circuit = SpiceCircuit(self)
                 sub_circuit.netlist.append(line)
@@ -520,6 +525,15 @@ class SpiceCircuit(BaseEditor):
                     self.netlist.append(sub_circuit)
                 else:
                     return False
+            elif cmd == ".CONTROL":
+                sub_circuit = ControlEditor(self)
+                sub_circuit.content = line
+                # Advance to the next .ENDC. There is no risk of nesting, as control sections cannot be nested.
+                finished = sub_circuit._add_lines(line_iter)
+                if finished:
+                    self.netlist.append(sub_circuit)
+                else:
+                    return False                
             elif cmd == '+':
                 assert len(self.netlist) > 0, "ERROR: The first line cannot be starting with a +"
                 # TODO: maybe remove the '+' with line = line[1:]
@@ -530,7 +544,7 @@ class SpiceCircuit(BaseEditor):
                 self.netlist.append(line)
             else:
                 self.netlist.append(line)
-                if cmd[:4] == '.END':  # True for either .END and .ENDS primitives
+                if cmd[:4] == '.END':  # True for either .END, .ENDS and .ENDC primitives
                     return True  # If a sub-circuit is ended correctly, returns True
         return False  # If a sub-circuit ends abruptly, returns False
 
@@ -540,6 +554,8 @@ class SpiceCircuit(BaseEditor):
         for command in self.netlist:
             if isinstance(command, SpiceCircuit):
                 command._write_lines(f)
+            elif isinstance(command, ControlEditor):
+                command._write_lines(f)
             else:
                 # Writes the modified sub-circuits at the end just before the .END clause
                 if command.upper().startswith(".ENDS"):
@@ -548,7 +564,7 @@ class SpiceCircuit(BaseEditor):
                         sub._write_lines(f)
                 f.write(command)
 
-    def _get_param_named(self, param_name) -> Tuple[int, Union[re.Match, None]]:
+    def _get_param_named(self, param_name) -> tuple[int, Union[re.Match, None]]:
         """
         Internal function. Do not use. Returns a line starting with command and matching the search with the regular
         expression
@@ -561,6 +577,9 @@ class SpiceCircuit(BaseEditor):
             if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
                 line_no += 1
                 continue
+            elif isinstance(line, ControlEditor):  # same for control editor
+                line_no += 1
+                continue
             cmd = get_line_command(line)
             if cmd == '.PARAM':
                 matches = search_expression.finditer(line)
@@ -570,7 +589,7 @@ class SpiceCircuit(BaseEditor):
             line_no += 1
         return -1, None  # If it fails, it returns an invalid line number and No match
 
-    def get_all_parameter_names(self) -> List[str]:
+    def get_all_parameter_names(self) -> list[str]:
         # docstring inherited from BaseEditor
         param_names = []
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
@@ -583,12 +602,12 @@ class SpiceCircuit(BaseEditor):
                     param_names.append(param_name.upper())
         return sorted(param_names)
 
-    def get_subcircuit_names(self) -> List[str]:
+    def get_subcircuit_names(self) -> list[str]:
         """
         Returns a list of the names of the sub-circuits in the netlist.
         
         :return: list of sub-circuit names
-        :rtype: List[str]
+        :rtype: list[str]
         """
 
         subckt_names = []
@@ -664,7 +683,7 @@ class SpiceCircuit(BaseEditor):
             # The search was not successful
             raise ComponentNotFoundError(f'Sub-circuit "{subcircuit_name}" not found')
 
-    def _get_component_line_and_regex(self, reference: str) -> Tuple[int, re.Match]:
+    def _get_component_line_and_regex(self, reference: str) -> tuple[int, re.Match]:
         """Internal function. Do not use."""
         prefix = reference[0]
         regex = component_replace_regexs.get(prefix, None)
@@ -927,6 +946,8 @@ class SpiceCircuit(BaseEditor):
         for line_no, line in enumerate(self.netlist):
             if isinstance(line, SpiceCircuit):
                 yield from line
+            elif isinstance(line, ControlEditor):
+                continue  # no components here, just control commands
             else:
                 cmd = get_line_command(line)
                 if cmd in REPLACE_REGEXS:
@@ -1096,14 +1117,14 @@ class SpiceCircuit(BaseEditor):
         """
         return self.get_component(reference).value_str
 
-    def get_component_nodes(self, reference: str) -> List[str]:
+    def get_component_nodes(self, reference: str) -> list[str]:
         """
         Returns the nodes to which the component is attached to.
 
         :param reference: Reference of the circuit element to get the nodes.
         :type reference: str
         :return: List of nodes
-        :rtype: list
+        :rtype: list[str]
         """
         nodes = self.get_component(reference).ports
         return nodes
@@ -1129,6 +1150,8 @@ class SpiceCircuit(BaseEditor):
         for line in self.netlist:
             if isinstance(line, SpiceCircuit):  # Only gets components from the main netlist,
                 # it currently skips sub-circuits
+                continue
+            elif isinstance(line, ControlEditor):  # same for control editor
                 continue
             tokens = line.split()
             try:
@@ -1207,7 +1230,7 @@ class SpiceCircuit(BaseEditor):
         """
         SpiceCircuit.set_custom_library_paths(*paths)
 
-    def get_all_nodes(self) -> List[str]:
+    def get_all_nodes(self) -> list[str]:
         """
         Retrieves all nodes existing on a Netlist.
 
@@ -1305,6 +1328,8 @@ class SpiceCircuit(BaseEditor):
         for line in self.netlist:
             if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
                 continue
+            elif isinstance(line, ControlEditor):  # same for control editor
+                continue
             m = lib_inc_regex.match(line)
             if m:  # If it is a library include
                 lib = m.group(2)
@@ -1325,6 +1350,48 @@ class SpiceCircuit(BaseEditor):
             return self.parent.find_subckt_in_included_libs(subcircuit_name)
         else:
             return None
+
+
+class ControlEditor:
+    """
+    Provides interfaces to manipulate SPICE `.control` instructions.
+    """
+
+    def __init__(self, parent: "SpiceCircuit" = None):
+        self._content = ""
+        self.parent = parent
+        
+    def _add_lines(self, line_iter):
+        """Internal function. Do not use.
+        Add a list of lines to the section. No parsing, just loop until a .ENDC is found."""
+        self._content = self._content.rstrip() + END_LINE_TERM
+        for line in line_iter:
+            self._content += line.rstrip() + END_LINE_TERM
+            if line.strip().upper().startswith(".ENDC"):
+                return True
+        return False  # If a file ends abruptly, returns False
+    
+    def _write_lines(self, f):
+        """Internal function. Do not use."""
+        # This helper function writes the contents of the section to the file f
+        f.write(self._content)
+        
+    @property
+    def content(self) -> str:
+        """The content as a string
+
+        :getter: Returns the value as a string
+        """        
+        return self._content
+    
+    @content.setter
+    def content(self, value: str):
+        """Sets the content of the ControlEditor to the given value.
+
+        :param value: The new content to be set
+        :type value: str
+        """
+        self._content = value.strip() + END_LINE_TERM
 
 
 class SpiceEditor(SpiceCircuit):
@@ -1372,6 +1439,7 @@ class SpiceEditor(SpiceCircuit):
                   .tran 10m ; makes a transient simulation
                   .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms ; Establishes a measuring
                   .step run 1 100, 1 ; makes the simulation run 100 times
+                  .control ... control statements on multiple lines ... .endc
 
         :param instruction:
             Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
@@ -1382,7 +1450,9 @@ class SpiceEditor(SpiceCircuit):
         super().add_instruction(instruction)
         if not instruction.endswith(END_LINE_TERM):
             instruction += END_LINE_TERM
-        if _is_unique_instruction(instruction):
+            
+        cmd = get_line_command(instruction)
+        if _is_unique_instruction(cmd):
             # Before adding new instruction, delete previously set unique instructions
             i = 0
             while i < len(self.netlist):
@@ -1392,19 +1462,27 @@ class SpiceEditor(SpiceCircuit):
                     break
                 else:
                     i += 1
-        elif get_line_command(instruction) == '.PARAM':
+        elif cmd == '.PARAM':
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
-
+        
         # check whether the instruction is already there (dummy proofing)
         # TODO: if adding a .MODEL or .SUBCKT it should verify if it already exists and update it.
         if instruction not in self.netlist:
-            # Insert before backanno instruction
-            try:
-                line = self.netlist.index(
-                    '.backanno\n')  # TODO: Improve this. END of line termination could be differnt and case as well
-            except ValueError:
-                line = len(self.netlist) - 2  # This is where typically the .backanno instruction is
-            self.netlist.insert(line, instruction)
+            # Insert at the end
+            line = len(self.netlist) - 1
+            # If there is .backanno, then it will be added just before that statement
+            for nr, linecontent in enumerate(self.netlist):
+                if isinstance(linecontent, str): 
+                    if linecontent.lower().startswith('.backanno'):
+                        line = nr
+                        break
+            if cmd == ".CONTROL":
+                # If it is a control instruction, then it should be added as a ControlEditor
+                c = ControlEditor(self)
+                c.content = instruction
+                self.netlist.insert(line, c)
+            else:
+                self.netlist.insert(line, instruction)
 
     def remove_instruction(self, instruction) -> bool:
         # docstring is in the parent class
@@ -1414,14 +1492,25 @@ class SpiceEditor(SpiceCircuit):
         # they are added to the netlist.
         if not instruction.endswith(END_LINE_TERM):
             instruction += END_LINE_TERM
-        if instruction in self.netlist:
-            self.netlist.remove(instruction)
-            _logger.info(f'Instruction "{instruction}" removed')
-            self.add_update('INSTRUCTION', instruction.strip(), UpdateType.DeleteInstruction)
-            return True
-        else:
-            _logger.error(f'Instruction "{instruction}" not found.')
-            return False
+        
+        i = 0
+        for line in self.netlist:
+            if isinstance(line, SpiceCircuit):  # If it is a sub-circuit it will simply ignore it.
+                i += 1
+                continue
+            elif isinstance(line, ControlEditor):  # compare contents
+                line = line.content
+                
+            if line.strip() == instruction.strip():
+                del self.netlist[i]
+                logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
+                _logger.info(f'Instruction "{logtxt}" removed')
+                self.add_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
+                return True
+            i += 1
+        
+        _logger.error(f'Instruction "{instruction}" not found.')
+        return False
 
     def remove_Xinstruction(self, search_pattern: str) -> bool:
         # docstring is in the parent class
@@ -1453,6 +1542,8 @@ class SpiceEditor(SpiceCircuit):
             for line in lines:
                 if isinstance(line, SpiceCircuit):
                     line._write_lines(f)
+                elif isinstance(line, ControlEditor):  # same for control editor
+                    line._write_lines(f)
                 else:
                     # Writes the modified sub-circuits at the end just before the .END clause
                     if line.upper().startswith(".END"):
@@ -1461,6 +1552,62 @@ class SpiceEditor(SpiceCircuit):
                             sub._write_lines(f)
                     f.write(line)
 
+    def get_control_sections(self) -> list[str]:
+        """
+        Returns a list representing the control sections in the netlist.
+        Control sections are all anonymous, so they do not have a name, just an index.
+        They are also not parsed, they are just a list of strings (with embedded newlines).
+
+        :return: list of control section strings. These strings have each multiple lines, start with ``.CONTROL`` and end with ``.ENDC``.
+        :rtype: list[str]
+        """
+        control_sections = []
+        for line in self.netlist:
+            if isinstance(line, ControlEditor):
+                control_sections.append(line.content)
+        return control_sections
+    
+    def add_control_section(self, instruction: str) -> None:
+        """
+        Adds a control section to the netlist. The instruction should be a multi-line string that starts with '.CONTROL' and ends with '.ENDC'.
+        It will be added as a ControlEditor object to the netlist.
+        
+        You can also use the `add_instruction()` method, but that method has less checking of the format.
+        
+        :param instruction: control section instruction
+        :type instruction: str
+        :raises ValueError: if the instruction does not start with ``.CONTROL`` or does not end with ``.ENDC``
+        """
+        instruction = instruction.strip()
+        if not instruction.upper().startswith('.CONTROL') or not instruction.upper().endswith('.ENDC'):
+            raise ValueError("Control section must start with '.CONTROL' and end with '.ENDC'")        
+        self.add_instruction(instruction)
+                
+    def remove_control_section(self, index: int = 0) -> bool:
+        """
+        Removes a control section from the netlist, based on the index in `get_control_sections()`.
+        You can also use `remove_instruction()`, but there, the given text must match the entire control section.
+        
+        :param index: index of the control section to remove, according to `get_control_sections()`
+        :type index: int
+        :returns: True if the control section was found and removed, False otherwise
+        :rtype: bool
+        """
+        if index < 0:
+            raise IndexError("Control section index out of range")
+        i = 0
+        for nr, line in enumerate(self.netlist):
+            if isinstance(line, ControlEditor):
+                if i == index:
+                    del self.netlist[nr]
+                    logtxt = line.content.replace("\r", "\\r").replace("\n", "\\n")
+                    self.add_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
+                    _logger.info(f"Control section {index} removed")
+                    return True
+                i += 1
+        _logger.error(f"Control section {index} was not found")
+        return False
+    
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
         Removes all previous edits done to the netlist, i.e. resets it to the original state.

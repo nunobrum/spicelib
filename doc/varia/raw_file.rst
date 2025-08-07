@@ -48,12 +48,6 @@ In the preamble, the lines are always started by one of the following identifier
 
    + Binary|Values:  => Start of the trace section, resp. in binary form or ASCII form. See section below for details.
    
-Multiple trace sets in one RAW file
------------------------------------
-
-When a simulation is run with multiple .STEP commands, it is possible to have multiple sets of traces in the same RAW file.
-In this case, the RAW file will contain separate sections for each set of traces, each with its own header and data, all tightly concatenated.
-
 Variables List
 --------------
 The variable list contains the list of measurements saved in the raw file. The order of the variables defines how they
@@ -130,4 +124,11 @@ contiguously as illustrated below.
 
 This can speed up the data reading. Note that this transformation is not done automatically. Transforming data to Fast
 Access must be requested by the user. If the transformation is done, it is registered in the Flags: line in the
-header. RawReader supports both Normal and Fast Access formats
+header. RawReader supports both Normal and Fast Access formats.
+
+Multiple data sets/plots in one RAW file
+-----------------------------------------
+
+Some simulators can create multiple result sets/plots in the same raw file. These are simply individual plots concatenated in the same file.
+
+See :doc:`../modules/read_rawfiles` for more information on this.

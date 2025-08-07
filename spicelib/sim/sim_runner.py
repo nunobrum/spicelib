@@ -109,7 +109,7 @@ import inspect  # Library used to get the arguments of the callback function
 import time
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Union, Type, Protocol, Tuple, List, Iterator, Any, Optional
+from typing import Callable, Union, Type, Protocol, Iterator, Any, Optional
 import logging
 
 from .process_callback import ProcessCallback
@@ -252,8 +252,8 @@ class SimRunner(AnyRunner):
     If you used callbacks, it will return the return code of the callback function, or None if there was an error. 
     Also see `sim_info()` for more details on the completed tasks.
     
-    :raises FileNotFoundError: When the file is not found.  !This will be changed.
-
+    :param simulator: Forcing a given simulator executable.
+    :type simulator: Simulator, optional
     :param parallel_sims: Defines the number of parallel simulations that can be executed at the same time. Ideally this
                           number should be aligned to the number of CPUs (processor cores) available on the machine.
     :type parallel_sims: int, optional
@@ -264,24 +264,41 @@ class SimRunner(AnyRunner):
     :type verbose: bool, optional
     :param output_folder: specifying which directory shall be used for simulation files (raw and log files).
     :type output_folder: str, optional
-    :param simulator: Forcing a given simulator executable.
-    :type simulator: Simulator, optional
+    :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory.
+    :type cwd: str or Path, optional
+
+    :raises FileNotFoundError: When the file is not found.  !This will be changed.
     """
 
     def __init__(self, *, simulator=None, parallel_sims: int = 4, timeout: float = 600.0, verbose=False,
-                 output_folder: str = None):
+                 output_folder: Union[str, Path, None] = None, cwd: Union[str, Path, None] = None):
         # The '*' in the parameter list forces the user to use named parameters for the rest of the parameters.
         # This is a good practice to avoid confusion.
         self.verbose = verbose
         self.timeout = timeout
         self.cmdline_switches = []
 
-        if output_folder:
-            self.output_folder = Path(output_folder)  # If not None converts to Path() object
+        if output_folder is not None:
+            # If not None converts to Path() object
+            if not isinstance(output_folder, Path):
+                self.output_folder = Path(output_folder)
+            else:
+                self.output_folder = output_folder
             if not self.output_folder.exists():
                 self.output_folder.mkdir()
         else:
             self.output_folder = None
+
+        if cwd is not None:
+            # If not None converts to Path() object
+            if not isinstance(cwd, Path):
+                self.cwd = Path(cwd)
+            else:
+                self.cwd = cwd
+            if not self.cwd.exists():
+                self.cwd.mkdir()
+        else:
+            self.cwd = None
 
         self.parallel_sims = parallel_sims
         self.active_tasks = []
@@ -426,7 +443,7 @@ class SimRunner(AnyRunner):
             netlist = netlist.with_suffix('.net')
         return "%s_%i%s" % (netlist.stem, self._runno, netlist.suffix)
 
-    def _prepare_sim(self, netlist: Union[str, Path, BaseEditor], run_filename: str):
+    def _prepare_sim(self, netlist: Union[str, Path, BaseEditor], run_filename: Union[str, None]):
         """Internal function"""
         # update number of simulation
         self._runno += 1  # Incrementing internal simulation number
@@ -451,7 +468,7 @@ class SimRunner(AnyRunner):
         return run_netlist_file
 
     @staticmethod
-    def validate_callback_args(callback: Callable, callback_args: Union[tuple, dict]) -> Union[dict, None]:
+    def validate_callback_args(callback: Callable, callback_args: Union[tuple, dict, None]) -> Union[dict, None]:
         """
         It validates that the callback_args are matching the callback function.
         Note that the first two parameters of the callback functions need to be the raw and log files.
@@ -486,11 +503,11 @@ class SimRunner(AnyRunner):
 
     def run(self, netlist: Union[str, Path, BaseEditor], *,
             wait_resource: bool = True,
-            callback: Union[Type[ProcessCallback], Callable] = None,
-            callback_args: Union[tuple, dict] = None,
+            callback: Union[Type[ProcessCallback], Callable, None] = None,
+            callback_args: Union[tuple, dict, None] = None,
             switches=None,
-            timeout: float = None,
-            run_filename: str = None,
+            timeout: Union[float, None] = None,
+            run_filename: Union[str, None] = None,
             exe_log: bool = False) -> Union[RunTask, None]:
         """
         Executes a simulation run with the conditions set by the user.
@@ -555,7 +572,7 @@ class SimRunner(AnyRunner):
                     simulator=self.simulator, runno=self._runno, netlist_file=run_netlist_file,
                     callback=callback, callback_args=callback_kwargs,
                     switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
-                    exe_log=exe_log
+                    cwd=self.cwd, exe_log=exe_log
                 )
                 if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
                     t.edits = netlist.netlist_updates  # Copy is made in this assignment
@@ -570,8 +587,8 @@ class SimRunner(AnyRunner):
                 _logger.warning("Timeout on launching simulation %d." % self._runno)
             return None
 
-    def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: str = None,
-                timeout: float = None, exe_log: bool = False) -> Tuple[str, str]:
+    def run_now(self, netlist: Union[str, Path, BaseEditor], *, switches=None, run_filename: Union[str, None] = None,
+                timeout: Union[float, None] = None, exe_log: bool = False) -> tuple[Union[Path, None], Union[Path, None]]:
         """
         Executes a simulation run with the conditions set by the user.
         Conditions are set by the `set_parameter`, `set_component_value` or `add_instruction functions`.
@@ -610,7 +627,7 @@ class SimRunner(AnyRunner):
             simulator=self.simulator, runno=self._runno, netlist_file=run_netlist_file,
             callback=dummy_callback, callback_args=None,
             switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
-            exe_log=exe_log
+            cwd=self.cwd, exe_log=exe_log
         )
         if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
             t.edits = netlist.netlist_updates  # Copy is made in this assignment
@@ -794,7 +811,7 @@ class SimRunner(AnyRunner):
         """
         return TaskIterator(self, lambda x: x, True, conditions)
 
-    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: List[str],
+    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: list[str],
                              conditions: IteratorFilterType):
         """
         Creates a new raw_file, with traces belonging to different runs. The type of the raw file is the same as
