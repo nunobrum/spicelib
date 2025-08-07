@@ -807,7 +807,7 @@ class SimRunner(AnyRunner):
 
         :param conditions: Filter to be used in the iterator. See TaskIterator conditions parameter documentation.
         :type conditions: Optional or dict or func(RunTask) -> bool
-        :returns: Iterator
+        :return: Iterator[RunTask]
         """
         return TaskIterator(self, lambda x: x, True, conditions)
 
