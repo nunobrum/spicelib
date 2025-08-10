@@ -8,9 +8,10 @@ SOURCEDIR     = doc
 BUILDDIR      = doc_build
 POETRY        = poetry
 
+# on macOS this should be /usr/local/bin/bash, otherwise you'll get an error "bad substitution". Only needed for dist generation though.
 SHELL := /bin/bash
 
-shPRJ2WHEEL = function prj2wheel () { PROJECT=$1; PVER=$$(${POETRY} version -s);echo "dist/$${PROJECT}-$${PVER}-py3-none-any.whl"; }
+shPRJ2WHEEL = function prj2wheel () { PROJECT=$1; PVER=$$(${POETRY} version -s);echo "dist/$${PROJECT@L}-$${PVER}-py3-none-any.whl"; }
 fnPRJ2WHEEL = $(shell ${shPRJ2WHEEL}; prj2wheel "$1")
 
 .PHONY: sphinx-help all help Makefile pyproject.toml doc dist clean doc-clean
