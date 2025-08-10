@@ -84,11 +84,12 @@ class Montecarlo(ToleranceDeviations):
                     tol_norm_func = True
             elif dev.typ == DeviationType.minmax:
                 if dev.distribution == 'uniform':
-                    new_val = "{urng(%s, %s,%s)}" % (val, dev.min_val, dev.max_val)  # calculate expression for new value
+                    new_val = "{urng(%s,%g,%g)}" % (
+                    val, (dev.max_val + dev.min_val) / 2, (dev.max_val - dev.min_val) / 2)
                     min_max_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = "{nrng(%s,%s,%s)}" % (val, dev.min_val, dev.max_val)
-                    min_max_norm_func = True
+                    new_val = "{nrng(%s,%g,%g)}" % (
+                    val, (dev.max_val + dev.min_val) / 2, (dev.max_val - dev.min_val) / 6)
 
             if new_val != val:  # Only update the value if it has changed
                 self.set_component_value(ref, new_val)  # update the value
