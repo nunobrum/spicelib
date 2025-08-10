@@ -1047,6 +1047,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.5
+    * Fixing Issue #235 and #236 - Inconsistent formulas in montecarlo.py and in tolerance_deviations.py
     * Fixing Issue #233 and #234 - `run_server` enhancements and platform compatibility
     * Fixing Issue #224 - Allow maintenance of `.control` sections
     * Fixing Issue #219 - Provide an option for defining the directory in which spice is executed

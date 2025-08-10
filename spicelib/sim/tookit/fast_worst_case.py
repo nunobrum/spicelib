@@ -102,7 +102,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
 
         def check_and_add_component(ref1: str):
             val1, dev1 = self.get_component_value_deviation_type(ref1)  # get there present value
-            if dev1.min_val == dev1.max_val or dev1.typ == DeviationType.none:
+            if dev1.is_not_valid():
                 return
             worst_case_elements[ref1] = val1, dev1, 'component'
             self.elements_analysed.append(ref1)
@@ -115,9 +115,9 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             # Preparing the variation on components, but only on the ones that have changed
             if dev.typ == DeviationType.tolerance:
                 if to == WorstCaseType.max:
-                    new_val = val * (1 + dev.max_val)
+                    new_val = val * (1 + dev.tolerance)
                 elif to == WorstCaseType.min:
-                    new_val = val * (1 - dev.max_val)
+                    new_val = val * (1 - dev.tolerance)
                 else:
                     # Default to nominal case
                     new_val = val

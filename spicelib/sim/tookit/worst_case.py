@@ -21,7 +21,7 @@
 import logging
 from typing import Union, Callable, Type
 
-from .tolerance_deviations import ToleranceDeviations, DeviationType
+from .tolerance_deviations import ToleranceDeviations, DeviationType, ComponentDeviation
 from ..process_callback import ProcessCallback
 from ...log.logfile_data import LogfileData
 
@@ -54,11 +54,11 @@ class WorstCaseAnalysis(ToleranceDeviations):
         """Sets the deviation of a component. Returns True if the component is valid and the deviation was set.
         Otherwise, returns False"""
         val, dev = self.get_component_value_deviation_type(ref)  # get there present value
-        if dev.min_val == dev.max_val:
+        if dev.is_not_valid():
             return False  # no need to set the deviation
         new_val = val
         if dev.typ == DeviationType.tolerance:
-            new_val = "{wc(%s,%g,%d)}" % (val, dev.max_val, index)  # calculate expression for new value
+            new_val = "{wc(%s,%g,%d)}" % (val, dev.tolerance, index)  # calculate expression for new value
         elif dev.typ == DeviationType.minmax:
             new_val = "{wc1(%s,%g,%g,%d)}" % (val, dev.min_val, dev.max_val, index)  # calculate expression for new value
 
@@ -78,7 +78,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
             val, dev = self.get_parameter_value_deviation_type(ref)
             new_val = val
             if dev.typ == DeviationType.tolerance:
-                new_val = "{wc(%s,%g,%d)}" % (val, dev.max_val, index)  # calculate expression for new value
+                new_val = "{wc(%s,%g,%d)}" % (val, dev.tolerance, index)  # calculate expression for new value
             elif dev.typ == DeviationType.minmax:
                 new_val = "{wc1(%s,%g,%g,%d)}" % (val, dev.min_val, dev.max_val, index)
             if new_val != val:
@@ -116,7 +116,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
 
         def check_and_add_component(ref1: str):
             val1, dev1 = self.get_component_value_deviation_type(ref1)  # get there present value
-            if dev1.min_val == dev1.max_val or dev1.typ == DeviationType.none:
+            if dev1.is_not_valid():
                 return
             worst_case_elements[ref1] = val1, dev1, 'component'
             self.elements_analysed.append(ref1)
@@ -167,7 +167,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
                     ref = self.elements_analysed[bit_index]
                     val, dev, typ = worst_case_elements[ref]
                     if dev.typ == DeviationType.tolerance:
-                        new_val = val * (1 - dev.max_val) if run & (1 << bit_index) else val * (1 + dev.max_val)
+                        new_val = val * (1 - dev.tolerance) if run & (1 << bit_index) else val * (1 + dev.tolerance)
                     elif dev.typ == DeviationType.minmax:
                         new_val = dev.min_val if run & (1 << bit_index) else dev.max_val
                     else:
