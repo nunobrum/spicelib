@@ -18,15 +18,27 @@
 # Created:     10-08-2023
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
-import sys
 import argparse
 from spicelib.client_server.sim_server import SimServer
 import time
-import keyboard
+import signal
+import os
+
+kill_server_requested: bool = False
+
+
+def signal_handler(sig, frame):
+    global kill_server_requested
+    if sig == signal.SIGINT:
+        mysig = "SIGINT"
+    else:
+        mysig = "SIGTERM"
+    print(f"Signal {mysig} received. Stopping server...")
+    kill_server_requested = True
 
 
 def main():
-    
+    global kill_server_requested
     supported_sims = ["ltspice", "ngspice", "xyce"]
     parser = argparse.ArgumentParser(
         description="Run the LTSpice Server. This is a command line interface to the SimServer class."
@@ -39,6 +51,8 @@ def main():
                         help="Simulator to be used (LTSpice, NGSpice, XYCE, etc.). Default is LTSpice")
     parser.add_argument("-p", "--port", type=int, default=9000,
                         help="Port to run the server. Default is 9000")
+    parser.add_argument("-H", "--host", type=str, default='localhost',
+                        help="The IP address where the server will listen for requests. Default is 'localhost', which might mean that the server will only accept requests from the local machine")
     parser.add_argument("-o", "--output", type=str, default=".",
                         help="Output folder for the results. Default is the current folder")
     parser.add_argument("-l", "--parallel", type=int, default=4,
@@ -66,12 +80,14 @@ def main():
 
     print(f"Starting {simulator.__name__} simulation server on port {args.port}.")
     server = SimServer(simulator, parallel_sims=args.parallel, output_folder=args.output,
-                       port=args.port, timeout=args.timeout)
-    print("Server Started. Press and hold 'q' to stop")
+                       port=args.port, timeout=args.timeout, host=args.host)
+    print(f"Server Started. Press Ctrl-C or send signal SIGINT or SIGTERM to process ID {os.getpid()} to stop.")
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     while server.running():
         time.sleep(0.2)
-        # Check whether a key was pressed
-        if keyboard.is_pressed('q'):
+        # Check whether relevant signal was received
+        if kill_server_requested:
             server.stop_server()
             break
 

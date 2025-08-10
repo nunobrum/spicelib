@@ -17,7 +17,6 @@ numpy = "*"
 scipy = "*"
 psutil = "*"
 matplotlib = "*"
-keyboard = "*"
 
 [tool.poetry.scripts]
 ltsteps = "spicelib.scripts.ltsteps:main"
