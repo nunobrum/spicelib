@@ -968,21 +968,24 @@ server.close_session()
 -- in examples/sim_client_example.py [SimClient Example]
 
 ```text
-usage: run_server [-h] [-p PORT] [-o OUTPUT] [-l PARALLEL] simulator
+usage: run_server.py [-h] [-p PORT] [-H HOST] [-o OUTPUT] [-l PARALLEL] [{ltspice,ngspice,xyce}] [timeout]
 
-Run the LTSpice Server. This is a command line interface to the SimServer class. The SimServer class is used to run
-simulations in parallel using a server-client architecture. The server is a machine that runs the SimServer class and
-the client is a machine that runs the SimClient class. The argument is the simulator to be used (LTSpice, Ngspice, XYCE, etc.)
+Run the LTSpice Server. This is a command line interface to the SimServer class.The SimServer class is used to run simulations in parallel using a
+server-client architecture.The server is a machine that runs the SimServer class and the client is a machine that runs the SimClient class.The
+argument is the simulator to be used (LTSpice, NGSpice, XYCE, etc.)
 
 positional arguments:
-  simulator             Simulator to be used (LTSpice, Ngspice, XYCE, etc.)
+  {ltspice,ngspice,xyce}
+                        Simulator to be used (LTSpice, NGSpice, XYCE, etc.). Default is LTSpice
+  timeout               Timeout for the simulations. Default is 300 seconds (5 minutes)
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  Port to run the server. Default is 9000
-  -o OUTPUT, --output OUTPUT
-                        Output folder for the results. Default is the current folder
-  -l PARALLEL, --parallel PARALLEL
+  -p, --port PORT       Port to run the server. Default is 9000
+  -H, --host HOST       The IP address where the server will listen for requests. Default is 'localhost', which might mean that the server will only
+                        accept requests from the local machine
+  -o, --output OUTPUT   Output folder for the results. Default is the current folder
+  -l, --parallel PARALLEL
                         Maximum number of parallel simulations. Default is 4
 ```
 
