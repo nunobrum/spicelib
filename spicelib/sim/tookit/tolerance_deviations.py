@@ -39,8 +39,8 @@ class DeviationType(Enum):
 @dataclass
 class ComponentDeviation:
     """Class to store the deviation of a component"""
-    max_val: float
-    min_val: float = 0.0
+    min_val: float
+    max_val: float = 0.0
     typ: DeviationType = DeviationType.tolerance
     distribution: str = 'uniform'
 
@@ -55,6 +55,17 @@ class ComponentDeviation:
     @classmethod
     def none(cls):
         return cls(0.0, 0.0, DeviationType.none)
+
+    @property
+    def tolerance(self):
+        return self.min_val
+
+    @tolerance.setter
+    def tolerance(self, value):
+        self.min_val = value
+
+    def is_not_valid(self):
+        return self.min_val == self.max_val or self.typ == DeviationType.none
 
 
 class ToleranceDeviations(SimAnalysis, ABC):

@@ -42,7 +42,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
             val, dev = self.get_component_value_deviation_type(comp)
             new_val = val
             if dev.typ == DeviationType.tolerance:
-                new_val = "{satol(%s,%g,%d)}" % (val, dev.max_val, no)
+                new_val = "{satol(%s,%g,%d)}" % (val, dev.tolerance, no)
             elif dev.typ == DeviationType.minmax:
                 used_value = dev.min_val if use_min else dev.max_val
                 new_val = "{sammx(%s,%g,%d)}" % (val, used_value, no)
@@ -109,7 +109,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
 
         def check_and_add_component(ref1: str):
             val1, dev1 = self.get_component_value_deviation_type(ref1)  # get there present value
-            if dev1.min_val == dev1.max_val or dev1.typ == DeviationType.none:
+            if dev1.is_not_valid():
                 return
             worst_case_elements[ref1] = val1, dev1, 'component'
             self.elements_analysed.append(ref1)
@@ -155,9 +155,9 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
                     ref = self.elements_analysed[bit_index]
                     val, dev, typ = worst_case_elements[ref]
                     if dev.typ == DeviationType.tolerance:
-                        new_val = val * (1 + dev.max_val) if bit_setting & (1 << bit_index) else val
+                        new_val = val * (1 + dev.tolerance) if bit_setting & (1 << bit_index) else val
                     elif dev.typ == DeviationType.minmax:
-                        new_val = dev.max_val if bit_setting & (1 << bit_index) else val
+                        new_val = dev.min_val if bit_setting & (1 << bit_index) else val
                     else:
                         _logger.warning("Unknown deviation type")
                         new_val = val

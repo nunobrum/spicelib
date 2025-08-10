@@ -75,7 +75,7 @@ class Montecarlo(ToleranceDeviations):
             val, dev = self.get_component_value_deviation_type(ref)  # get there present value
             new_val = val
             if dev.typ == DeviationType.tolerance:
-                tolstr = ('%g' % dev.max_val).rstrip('0').rstrip('.')
+                tolstr = ('%g' % dev.tolerance).rstrip('0').rstrip('.')
                 if dev.distribution == 'uniform':
                     new_val = "{utol(%s,%s)}" % (val, tolstr)  # calculate expression for new value
                     tol_uni_func = True
@@ -100,10 +100,10 @@ class Montecarlo(ToleranceDeviations):
             new_val = val
             if dev.typ == DeviationType.tolerance:
                 if dev.distribution == 'uniform':
-                    new_val = "{utol(%s,%g)}" % (val, dev.max_val)
+                    new_val = "{utol(%s,%g)}" % (val, dev.tolerance)
                     tol_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = "{ntol(%g,%g)}" % (val, dev.max_val)
+                    new_val = "{ntol(%g,%g)}" % (val, dev.tolerance)
                     tol_norm_func = True
             elif dev.typ == DeviationType.minmax:
                 if dev.distribution == 'uniform':
@@ -161,9 +161,9 @@ class Montecarlo(ToleranceDeviations):
         new_val = value
         if dev.typ == DeviationType.tolerance:
             if dev.distribution == 'uniform':
-                new_val = f"{random.Random().uniform(value * (1- dev.max_val), value * (1 + dev.max_val)):g}"
+                new_val = f"{random.Random().uniform(value * (1- dev.tolerance), value * (1 + dev.tolerance)):g}"
             elif dev.distribution == 'normal':
-                new_val = f"{random.Random().gauss(value, dev.max_val / 3):g}"
+                new_val = f"{random.Random().gauss(value, dev.tolerance / 3):g}"
         elif dev.typ == DeviationType.minmax:
             if dev.distribution == 'uniform':
                 new_val = f"{random.Random().uniform(dev.min_val, dev.max_val):g}"
