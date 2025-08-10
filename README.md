@@ -958,8 +958,10 @@ for runid in server:  # Ma
     zip_filename = server.get_runno_data(runid)
     print(f"Received {zip_filename} from runid {runid}")
     with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
-        print(zipf.namelist())  # Debug printing the contents of the zip file
-        zipf.extract(zipf.namelist()[0])  # Normally the raw file comes first
+        # print(zipf.namelist())  # Debug printing the contents of the zip file
+        for name in zipf.namelist():
+            print(f"Extracting {name} from {zip_filename}")
+            zipf.extract(name)
     os.remove(zip_filename)  # Remove the zip file
 
 server.close_session()
@@ -968,21 +970,24 @@ server.close_session()
 -- in examples/sim_client_example.py [SimClient Example]
 
 ```text
-usage: run_server [-h] [-p PORT] [-o OUTPUT] [-l PARALLEL] simulator
+usage: run_server.py [-h] [-p PORT] [-H HOST] [-o OUTPUT] [-l PARALLEL] [{ltspice,ngspice,xyce}] [timeout]
 
-Run the LTSpice Server. This is a command line interface to the SimServer class. The SimServer class is used to run
-simulations in parallel using a server-client architecture. The server is a machine that runs the SimServer class and
-the client is a machine that runs the SimClient class. The argument is the simulator to be used (LTSpice, Ngspice, XYCE, etc.)
+Run the LTSpice Server. This is a command line interface to the SimServer class.The SimServer class is used to run simulations in parallel using a
+server-client architecture.The server is a machine that runs the SimServer class and the client is a machine that runs the SimClient class.The
+argument is the simulator to be used (LTSpice, NGSpice, XYCE, etc.)
 
 positional arguments:
-  simulator             Simulator to be used (LTSpice, Ngspice, XYCE, etc.)
+  {ltspice,ngspice,xyce}
+                        Simulator to be used (LTSpice, NGSpice, XYCE, etc.). Default is LTSpice
+  timeout               Timeout for the simulations. Default is 300 seconds (5 minutes)
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  Port to run the server. Default is 9000
-  -o OUTPUT, --output OUTPUT
-                        Output folder for the results. Default is the current folder
-  -l PARALLEL, --parallel PARALLEL
+  -p, --port PORT       Port to run the server. Default is 9000
+  -H, --host HOST       The IP address where the server will listen for requests. Default is 'localhost', which might mean that the server will only
+                        accept requests from the local machine
+  -o, --output OUTPUT   Output folder for the results. Default is the current folder
+  -l, --parallel PARALLEL
                         Maximum number of parallel simulations. Default is 4
 ```
 
@@ -1042,8 +1047,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.5
-    * Fixing Issue #236 - Inconsistent formulas in montecarlo.py
-    * Fixing Issue #235 - Incorrect behavior of DeviationType.minmax 
+    * Fixing Issue #235 and #236 - Inconsistent formulas in montecarlo.py and in tolerance_deviations.py
+    * Fixing Issue #233 and #234 - `run_server` enhancements and platform compatibility
     * Fixing Issue #224 - Allow maintenance of `.control` sections
     * Fixing Issue #219 - Provide an option for defining the directory in which spice is executed
     * Fixing Issue #218 - Allow reading of multiple plots from 1 raw file

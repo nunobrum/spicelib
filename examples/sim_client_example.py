@@ -39,8 +39,10 @@ for runid in server:  # Ma
     zip_filename = server.get_runno_data(runid)
     print(f"Received {zip_filename} from runid {runid}")
     with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
-        print(zipf.namelist())  # Debug printing the contents of the zip file
-        zipf.extract(zipf.namelist()[0])  # Normally the raw file comes first
+        # print(zipf.namelist())  # Debug printing the contents of the zip file
+        for name in zipf.namelist():
+            print(f"Extracting {name} from {zip_filename}")
+            zipf.extract(name)
     os.remove(zip_filename)  # Remove the zip file
 
 server.close_session()

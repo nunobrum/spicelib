@@ -21,7 +21,6 @@
 from xmlrpc.client import Binary
 from xmlrpc.server import SimpleXMLRPCServer
 import logging
-_logger = logging.getLogger("spicelib.SimServer")
 
 import threading
 from pathlib import Path
@@ -29,6 +28,8 @@ import zipfile
 import io
 from spicelib.client_server.srv_sim_runner import ServerSimRunner
 import uuid
+
+_logger = logging.getLogger("spicelib.SimServer")
 
 
 class SimServer(object):
@@ -43,10 +44,19 @@ class SimServer(object):
     The server can be stopped by the client by calling the stop_server method.
 
     :param simulator: The simulator to be used. It must be a class that derives from the BaseSimulator class.
+    :type simulator: class
     :param parallel_sims: The maximum number of parallel simulations that the server can run. Default is 4.
+    :type parallel_sims: int
     :param output_folder: The folder where the results of the simulations will be stored. Default is './temp'
+    :type output_folder: str
     :param timeout: The maximum time that a simulation can run. Default is None, which means that there is no timeout.
+    :type timeout: float
     :param port: The port where the server will listen for requests. Default is 9000
+    :type port: int
+    :param host: The IP address where the server will listen for requests. 
+                 Default is 'localhost', which might mean that the server will only accept requests from the local machine.
+                 Use '0.0.0.0' to accept requests from any IP address (if your firewall allows it).
+    :type host: str
     """
 
     def __init__(self, simulator, parallel_sims=4, output_folder='./temp', timeout: float = 300, port=9000,
@@ -54,10 +64,9 @@ class SimServer(object):
         self.output_folder = output_folder
         self.simulation_manager = ServerSimRunner(parallel_sims=parallel_sims, timeout=timeout, verbose=False,
                                                   output_folder=output_folder, simulator=simulator)
-        self.server = SimpleXMLRPCServer(
-                (host, port),
-                # requestHandler=RequestHandler
-        )
+        self.server = SimpleXMLRPCServer((host, port), 
+                                         # requestHandler=RequestHandler
+                                         )
         self.server.register_introspection_functions()
         self.server.register_instance(self)
         self.sessions = {}  # this will contain the session_id ids hashing their respective list of sim_tasks
@@ -162,4 +171,3 @@ class SimServer(object):
 
     def running(self):
         return self.simulation_manager.running()
-

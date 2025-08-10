@@ -175,6 +175,7 @@ spicelib.egg-info
 .DS_Store
 README.bak
 doc_build/
+doc_build_markdown/
 unittests/output/
 examples/testfiles/Batch_Test.exe.log
 examples/testfiles/ngsteps.log

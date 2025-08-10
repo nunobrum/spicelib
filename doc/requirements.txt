@@ -5,3 +5,4 @@ matplotlib
 insipid-sphinx-theme
 autodocsumm
 myst-parser
+poetry
