@@ -6,3 +6,4 @@ insipid-sphinx-theme
 autodocsumm
 myst-parser
 poetry
+sphinx_markdown_builder
