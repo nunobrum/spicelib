@@ -185,7 +185,7 @@ class RunTask(threading.Thread):
         :returns: Tuple with the path to the raw file and the path to the log file
         :rtype: tuple(str, str) or None
         """
-        if self.is_alive():
+        if self.is_alive() or self.start_time is None:  # running or not yet started
             return None
 
         if self.retcode == 0:  # All finished OK
@@ -206,6 +206,6 @@ class RunTask(threading.Thread):
         :returns: Tuple with the path to the raw file and the path to the log file. See get_results() for more details.
         :rtype: tuple(str, str)
         """
-        while self.is_alive() or self.retcode == -1:
+        while self.is_alive() or self.start_time is None or self.retcode == -1:
             sleep(0.1)
         return self.get_results()

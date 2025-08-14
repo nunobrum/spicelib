@@ -666,7 +666,7 @@ class SimRunner(AnyRunner):
         """
         i = 0
         while i < len(self.active_tasks):
-            if self.active_tasks[i].is_alive():
+            if self.active_tasks[i].is_alive() or self.active_tasks[i].start_time is None:  # running or not yet started
                 i += 1
             else:
                 if self.active_tasks[i].retcode == 0:
