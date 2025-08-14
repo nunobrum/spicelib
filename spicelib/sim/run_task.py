@@ -63,10 +63,11 @@ class RunTask(threading.Thread):
     """This is an internal Class and should not be used directly by the User."""
 
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
-                 callback: Optional[Union[Type[ProcessCallback], Callable[[Path, Path], Any]]],
+                 callback: Optional[Union[Type[ProcessCallback], Callable[[Optional[Path], Optional[Path]], Any]]],
                  callback_args: Union[dict, None] = None,
                  switches: Any = None, timeout: Union[float, None] = None, verbose: bool = False,
                  cwd: Union[str, Path, None] = None,
+                 callback_on_error: bool = False,
                  exe_log: bool = False):
 
         super().__init__(name=f"RunTask#{runno}")
@@ -80,6 +81,7 @@ class RunTask(threading.Thread):
         self.netlist_file = netlist_file
         self.callback = callback
         self.callback_args = callback_args
+        self.callback_on_error = callback_on_error
         self.cwd = cwd
         self.retcode = -1  # Signals an error by default
         self.raw_file = None
@@ -111,6 +113,10 @@ class RunTask(threading.Thread):
     def run(self):
         # Running the Simulation
 
+        self.callback_return = None
+        self.raw_file = None
+        self.log_file = None
+        
         self.start_time = time.time()
         self.print_info(_logger.info, ": Starting simulation %d: %s" % (self.runno, self.netlist_file))
         # start execution
@@ -128,6 +134,8 @@ class RunTask(threading.Thread):
         sim_time = format_time_difference(self.stop_time - self.start_time)
         # Format the time difference
         self.log_file = self.netlist_file.with_suffix('.log')
+        
+        some_error = False
 
         # Cleanup everything
         if self.retcode == 0:
@@ -135,69 +143,68 @@ class RunTask(threading.Thread):
             if self.raw_file.exists() and self.log_file.exists():
                 # simulation successful
                 self.print_info(_logger.info, "Simulation Successful. Time elapsed: %s" % sim_time)
-
-                if self.callback:
-                    if self.callback_args is not None:
-                        callback_print = ', '.join([f"{key}={value}" for key, value in self.callback_args.items()])
-                    else:
-                        callback_print = ''
-                    self.print_info(_logger.info, "Simulation Finished. Calling...{}(rawfile, logfile{})".format(
-                        self.callback.__name__, callback_print))
-                    try:
-                        if self.callback_args is not None:
-                            return_or_process = self.callback(self.raw_file, self.log_file, **self.callback_args)
-                        else:
-                            return_or_process = self.callback(self.raw_file, self.log_file)
-                    except Exception:
-                        error = traceback.format_exc()
-                        self.print_info(_logger.error, error)
-                    else:
-                        if isinstance(return_or_process, ProcessCallback):
-                            proc = return_or_process
-                            proc.start()
-                            self.callback_return = proc.queue.get()
-                            proc.join()
-                        else:
-                            self.callback_return = return_or_process
-                    finally:
-                        callback_start_time = self.stop_time
-                        self.stop_time = time.time()
-                        self.print_info(_logger.info, "Callback Finished. Time elapsed: %s" % format_time_difference(
-                            self.stop_time - callback_start_time))
-                else:
-                    self.print_info(_logger.info, "Simulation Finished. No Callback function given")
             else:
                 self.print_info(_logger.error, "Simulation Raw file or Log file were not found")
+                some_error = True
         else:
             # simulation failed
+            some_error = True
             self.print_info(_logger.error, "Simulation Aborted. Time elapsed: %s" % sim_time)
             if self.log_file.exists():
                 self.log_file = self.log_file.replace(self.log_file.with_suffix('.fail'))
+
+        # Do I need to use callback?
+        if self.callback and (self.callback_on_error or not some_error):
+            # If the callback function is defined and callback_on_error is True, call the callback function
+            # even if the simulation failed
+            if self.callback_args is not None:
+                callback_print = ', '.join([f"{key}={value}" for key, value in self.callback_args.items()])
+            else:
+                callback_print = ''
+            self.print_info(_logger.info, f"Simulation Finished. Calling...{self.callback.__name__}(rawfile, logfile{callback_print})")
+            try:
+                if self.callback_args is not None:
+                    return_or_process = self.callback(self.raw_file, self.log_file, **self.callback_args)
+                else:
+                    return_or_process = self.callback(self.raw_file, self.log_file)
+            except Exception:
+                error = traceback.format_exc()
+                self.print_info(_logger.error, error)
+            else:
+                if isinstance(return_or_process, ProcessCallback):
+                    proc = return_or_process
+                    proc.start()
+                    self.callback_return = proc.queue.get()
+                    proc.join()
+                else:
+                    self.callback_return = return_or_process
+            finally:
+                callback_start_time = self.stop_time
+                self.stop_time = time.time()
+                self.print_info(_logger.info, "Simulation Callback Finished. Time elapsed: %s" % format_time_difference(
+                    self.stop_time - callback_start_time))
+        else:
+            self.print_info(_logger.debug, "Simulation Callback not called.")
+            self.callback_return = None
 
     def get_results(self) -> Union[None, Any, tuple[str, str]]:
         """
         Returns the simulation outputs if the simulation and callback function has already finished.
         If the simulation is not finished, it simply returns None. If no callback function is defined, then
-        it returns a tuple with (raw_file, log_file). If a callback function is defined, and the simulation succeeded,
-        it returns whatever the callback function is returning. If the simulation failed and a callback function is defined,
-        it returns None.
-        
+        it returns a tuple with (raw_file, log_file).
+        If a callback function is defined, it returns whatever the callback function is returning.
+        If a callback function is defined, the simulation failed, and `callback_on_error` is False (default), it returns None.
+
         :returns: Tuple with the path to the raw file and the path to the log file
         :rtype: tuple(str, str) or None
         """
         if self.is_alive() or self.start_time is None:  # running or not yet started
             return None
 
-        if self.retcode == 0:  # All finished OK
-            if self.callback:
-                return self.callback_return
-            else:
-                return self.raw_file, self.log_file
+        if self.callback:
+            return self.callback_return  # callback_return is guaranteed to be set correctly by `run()`
         else:
-            if self.callback:
-                return None
-            else:
-                return self.raw_file, self.log_file
+            return self.raw_file, self.log_file
 
     def wait_results(self) -> Union[Any, tuple[str, str]]:
         """

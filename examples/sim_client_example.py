@@ -24,6 +24,7 @@ import zipfile
 import logging
 import sys
 
+
 from spicelib.client_server.sim_client import SimClient
 
 # In order for this, to work, you need to have a server running. To start a server, run the following command:
@@ -44,8 +45,9 @@ for runid in server:  # May not arrive in the same order as runids were launched
     if zip_filename is None:
         print(f"Run id {runid} has no data")
         continue
+    # the zip file normally contains a `.raw` and a `.log` file, 
+    # but it can also hold a `.fail` file in case of a simulation error.    
     with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
-        # print(zipf.namelist())  # Debug printing the contents of the zip file
         for name in zipf.namelist():
             print(f"Extracting {name} from {zip_filename}")
             zipf.extract(name)

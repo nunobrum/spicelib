@@ -28,6 +28,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 import logging
 from typing import Union, Iterable, Optional
+from pathlib import Path
 
 _logger = logging.getLogger("spicelib.SimClient")
 
@@ -98,10 +99,16 @@ class SimClient(object):
         for runid in server:   # may not arrive in the same order as runids were launched
             zip_filename = server.get_runno_data(runid)
             print(f"Received {zip_filename} from runid {runid}")
-
+            if zip_filename is None:
+                print(f"Run id {runid} has no data")
+                continue
+            # the zip file normally contains a `.raw` and a `.log` file, 
+            # but it can also hold a `.fail` file in case of a simulation error.
             with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
-                print(zipf.namelist())  # Debug printing the contents of the zip file
-                zipf.extract(zipf.namelist()[0])  # Normally the raw file comes first
+                for name in zipf.namelist():
+                    print(f"Extracting {name} from {zip_filename}")
+                    zipf.extract(name)
+            os.remove(zip_filename)  # Remove the zip file
 
     NOTE: More elaborate algorithms such as managing multiple servers will be done on another class.
     """
@@ -184,17 +191,19 @@ class SimClient(object):
         else:
             _logger.error(f"Client: Circuit {circuit} doesn't exit")
             return -1
-        
-    def get_runno_data(self, runno: int) -> Union[str, None]:
+
+    def get_runno_data(self, runno: int) -> Union[Path, None]:
         """
         Returns the simulation output data inside a zip file name.
 
-        :return: The name of the zip file containing the simulation output data, or None if not found
-        :rtype: str
+        :return: The name of the zip file containing the simulation output data, or None if not found.
+                 The zip file is not guaranteed to hold both a `.raw` file and a `.log` file.
+                 It can hold a `.fail` file in case of a simulation error.
+        :rtype: Path
         """
         if runno not in self.stored_jobs:
             raise SimClientInvalidRunId(f"Invalid Job id {runno}")
-        
+
         # def get_files(self, session_id, runno) -> tuple[str, Binary]
         zip_filename, zipdata = self.server.get_files(self.session_id, runno)  # type: ignore
         job = self.stored_jobs.pop(runno)  # Removes it from stored jobs
@@ -209,7 +218,7 @@ class SimClient(object):
 
     def __iter__(self):
         return self
-    
+
     def __next__(self):
         while len(self.started_jobs) > 0:
             # def status(self, session_id: str) -> list[int]
@@ -226,7 +235,7 @@ class SimClient(object):
                     time.sleep(delta)  # Go asleep for a sec
                 self._last_server_call = now
 
-        # when there are no pending jobs left, exit the iterator    
+        # when there are no pending jobs left, exit the iterator
         raise StopIteration
 
     def close_session(self):

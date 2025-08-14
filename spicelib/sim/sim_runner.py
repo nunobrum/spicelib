@@ -516,6 +516,7 @@ class SimRunner(AnyRunner):
             switches=None,
             timeout: Union[float, None] = None,
             run_filename: Union[str, None] = None,
+            callback_on_error: bool = False,
             exe_log: bool = False) -> Union[RunTask, None]:
         """
         Executes a simulation run with the conditions set by the user.
@@ -555,7 +556,11 @@ class SimRunner(AnyRunner):
         :type timeout: float, optional
         :param run_filename: Name to be used for the log and raw file.
         :type run_filename: str or Path
-        :param exe_log: If True, the simulator's execution console messages will be written to a log file 
+        :param callback_on_error: If False (default), the callback function is not called if the simulation fails.
+            If True, the callback function is called even if the simulation fails.
+            Know that in that case it is not guaranteed that the raw and log files will be available.
+        :type callback_on_error: bool, optional
+        :param exe_log: If True, the simulator's execution console messages will be written to a log file
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running
             simultaneous tasks.
         :type exe_log: bool, optional        
@@ -580,7 +585,7 @@ class SimRunner(AnyRunner):
                     simulator=self.simulator, runno=self._runno, netlist_file=run_netlist_file,
                     callback=callback, callback_args=callback_kwargs,
                     switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
-                    cwd=self.cwd, exe_log=exe_log
+                    cwd=self.cwd, callback_on_error=callback_on_error, exe_log=exe_log
                 )
                 if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
                     t.edits = netlist.netlist_updates  # Copy is made in this assignment
@@ -635,7 +640,7 @@ class SimRunner(AnyRunner):
             simulator=self.simulator, runno=self._runno, netlist_file=run_netlist_file,
             callback=dummy_callback, callback_args=None,
             switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
-            cwd=self.cwd, exe_log=exe_log
+            cwd=self.cwd, callback_on_error=False, exe_log=exe_log
         )
         if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
             t.edits = netlist.netlist_updates  # Copy is made in this assignment
