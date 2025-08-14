@@ -27,7 +27,7 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 import logging
-from typing import Union, Iterable
+from typing import Union, Iterable, Optional
 
 _logger = logging.getLogger("spicelib.SimClient")
 
@@ -35,6 +35,7 @@ _logger = logging.getLogger("spicelib.SimClient")
 class SimClientInvalidRunId(LookupError):
     """Raised when asking for a run_no that doesn't exist"""
     ...
+
 
 @dataclass
 class JobInformation:
@@ -137,9 +138,10 @@ class SimClient(object):
 
         # Read the zip file from the buffer and send it to the server
         zip_data = zip_buffer.read()
-        self.server.add_sources(self.session_id, zip_data)
+        # def add_sources(self, session_id: str, zip_data: Binary) -> bool
+        return bool(self.server.add_sources(self.session_id, zip_data))
 
-    def run(self, circuit, dependencies: list[Union[str, pathlib.Path]] = None) -> int:
+    def run(self, circuit: Union[str, pathlib.Path], dependencies: Optional[list[Union[str, pathlib.Path]]] = None) -> int:
         """
         Sends the netlist identified with the argument "circuit" to the server, and it receives a run identifier
         (runno). Since the server can receive requests from different machines, this identifier is not guaranteed to be
@@ -149,7 +151,6 @@ class SimClient(object):
         :type circuit: pathlib.Path or str
         :param dependencies: list of files that the netlist depends on. This is used to ensure that the netlist is
          transferred to the server with all the necessary files.
-
         :type dependencies: list of pathlib.Path or str
         :returns: identifier on the server of the simulation.
         :rtype: int
@@ -175,7 +176,8 @@ class SimClient(object):
             # Read the zip file from the buffer and send it to the server
             zip_data = zip_buffer.read()
 
-            run_id = self.server.run(self.session_id, circuit_name, zip_data)
+            # def run(self, session_id: str, circuit_name: str, zip_data: Binary) -> int
+            run_id = int(self.server.run(self.session_id, circuit_name, zip_data))  # type: ignore
             job_info = JobInformation(run_number=run_id, file_dir=circuit_path.parent)
             self.started_jobs[run_id] = job_info
             return run_id
@@ -183,22 +185,24 @@ class SimClient(object):
             _logger.error(f"Client: Circuit {circuit} doesn't exit")
             return -1
         
-    def get_runno_data(self, runno) -> Union[str, None]:
+    def get_runno_data(self, runno: int) -> Union[str, None]:
         """
         Returns the simulation output data inside a zip file name.
 
+        :return: The name of the zip file containing the simulation output data, or None if not found
         :rtype: str
         """
         if runno not in self.stored_jobs:
             raise SimClientInvalidRunId(f"Invalid Job id {runno}")
-
-        zip_filename, zipdata = self.server.get_files(self.session_id, runno)
+        
+        # def get_files(self, session_id, runno) -> tuple[str, Binary]
+        zip_filename, zipdata = self.server.get_files(self.session_id, runno)  # type: ignore
         job = self.stored_jobs.pop(runno)  # Removes it from stored jobs
         self.completed_jobs += 1
         if zip_filename != '':
             store_path = job.file_dir / zip_filename
             with open(store_path, 'wb') as f:
-                f.write(zipdata.data)
+                f.write(zipdata.data)  # type: ignore
             return store_path
         else:
             return None
@@ -208,7 +212,8 @@ class SimClient(object):
     
     def __next__(self):
         while len(self.started_jobs) > 0:
-            status = self.server.status(self.session_id)
+            # def status(self, session_id: str) -> list[int]
+            status: list[int] = self.server.status(self.session_id)  # type: ignore
             if len(status) > 0:
                 runno = status.pop(0)
                 self.stored_jobs[runno] = self.started_jobs.pop(runno)  # Job is taken out of the started jobs list and
@@ -225,5 +230,7 @@ class SimClient(object):
         raise StopIteration
 
     def close_session(self):
+        """Closes the current session.
+        """
         _logger.info(f"Client: Closing session {self.session_id}")
         self.server.close_session(self.session_id)

@@ -35,9 +35,12 @@ server = SimClient('http://localhost', 9000)
 print(server.session_id)
 runid = server.run("./testfiles/testfile.net")
 print("Got Job id", runid)
-for runid in server:  # Ma
+for runid in server:  # May not arrive in the same order as runids were launched
     zip_filename = server.get_runno_data(runid)
     print(f"Received {zip_filename} from runid {runid}")
+    if zip_filename is None:
+        print(f"Run id {runid} has no data")
+        continue
     with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
         # print(zipf.namelist())  # Debug printing the contents of the zip file
         for name in zipf.namelist():
