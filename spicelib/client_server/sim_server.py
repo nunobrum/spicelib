@@ -141,15 +141,15 @@ class SimServer(object):
         :return: A list of completed task numbers for the session
         :rtype: list[int]
         """
-        _logger.debug(f"Server: collecting status for {session_id}")
+        _logger.debug(f"Server: status({session_id})")
         ret = []
         for task_info in self.simulation_manager.completed_tasks:
-            _logger.debug(task_info)
             runno = task_info['runno']
             if runno in self.sessions[session_id]:
+                _logger.debug(f"Server: status({session_id}) will return task {task_info}")
                 ret.append(runno)  # transfers the dictionary from the simulation_manager completed task
                 # to the return dictionary 
-        _logger.debug(f"Server: Returning status {ret}")
+        _logger.debug(f"Server: status({session_id}) returns {ret}")
         return ret
 
     def get_files(self, session_id: str, runno: int) -> tuple[str, Binary]:
@@ -162,33 +162,44 @@ class SimServer(object):
         :return: file name and content of the file
         :rtype: tuple[str, Binary]
         """
+        _logger.debug(f"Server: get_files({session_id}, {runno})")
         if runno in self.sessions[session_id]:
-
             for task_info in self.simulation_manager.completed_tasks:
                 if runno == task_info['runno']:
                     # Create a buffer to store the zip file in memory
                     zip_file = task_info['zipfile']
+                    if not zip_file:
+                        _logger.error(f"Server: get_files({session_id}, {runno}) no zip file found. Probably crashed.")
+                        continue
                     zip = zip_file.open('rb')
                     # Read the zip file from the buffer and send it to the server
                     zip_data = zip.read()
                     zip.close()
                     self.simulation_manager.erase_files_of_runno(runno)
+                    _logger.debug(f"Server: get_files({session_id}, {runno}) returns zip file name {zip_file.name}")
                     return zip_file.name, Binary(zip_data)
 
+        _logger.debug(f"Server: get_files({session_id}, {runno}) returns no data")
         return "", Binary(b'')  # Returns and empty data
 
-    def close_session(self, session_id: str):
+    def close_session(self, session_id: str) -> bool:
         """Cleans all the pending sim_tasks with the session_id.
 
         :return: True if the session was closed successfully, False otherwise
         :rtype: bool
         """
-        if session_id not in self.sessions:
-            return False
         _logger.info(f"Closing session {session_id}")
+        if session_id not in self.sessions:
+            _logger.info(f"Closing session {session_id} - not found")
+            return False
         for runno in self.sessions[session_id]:
-            self.simulation_manager.erase_files_of_runno(runno)
+            _logger.info(f"Closing session {session_id}, erasing all files associated with run {runno}")
+            try:
+                self.simulation_manager.erase_files_of_runno(runno)
+            except Exception as e:
+                _logger.error(f"Closing session {session_id}: error erasing files for run {runno}: {e}")
         del self.sessions[session_id]
+        _logger.info(f"Session {session_id} closed")
         return True  # Needs to return always something. None is not supported
 
     def stop_server(self) -> bool:

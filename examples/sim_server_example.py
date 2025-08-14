@@ -32,6 +32,9 @@ simulator = LTspice
 _logger = logging.getLogger("spicelib.SimServer")
 _logger.setLevel(logging.DEBUG)
 _logger.addHandler(logging.StreamHandler(sys.stdout))
+_logger = logging.getLogger("spicelib.ServerSimRunner")
+_logger.setLevel(logging.DEBUG)
+_logger.addHandler(logging.StreamHandler(sys.stdout))
 
 kill_server_requested: bool = False
 

@@ -111,23 +111,32 @@ class ServerSimRunner(threading.Thread):
             return task.runno
 
     def _erase_files_and_info(self, pos):
+        # _logger.debug(f"deleting files for task at position {pos}")
         task = self.completed_tasks[pos]
         for filename in ('circuit', 'log', 'raw', 'zipfile'):
-            f = task[filename]
-            if f.exists():
-                _logger.info(f"deleting {f}")
-                f.unlink()
+            if filename in task:
+                f = task[filename]
+                if f is not None and f.exists():
+                    _logger.debug(f"deleting file {f}")
+                    try:
+                        f.unlink()
+                        _logger.debug(f"deleted file {f}")
+                    except Exception as e:
+                        _logger.error(f"Error deleting file {f}: {e}")
         del self.completed_tasks[pos]
 
     def erase_files_of_runno(self, runno):
         """Will delete all files related with a completed task. Will also delete information on the completed_tasks
         attribute."""
+        _logger.debug(f"deleting files of run {runno}")
         for i, task_info in enumerate(self.completed_tasks):
             if task_info['runno'] == runno:
                 self._erase_files_and_info(i)
+                # _logger.debug(f"deleting files of run {runno} - done")
                 break
 
     def cleanup_completed(self):
+        _logger.debug("deleting all files of all completed tasks")
         while len(self.completed_tasks):
             self._erase_files_and_info(0)
 
