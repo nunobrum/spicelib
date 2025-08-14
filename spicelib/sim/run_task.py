@@ -30,15 +30,15 @@ import threading
 import time
 import traceback
 from time import sleep
-from typing import Callable, Union, Any, Type
+from typing import Callable, Union, Any, Type, Optional
 import logging
 
-from ..editor.updates import Updates
-
-_logger = logging.getLogger("spicelib.RunTask")
+from ..editor.updates import Updates, UpdateValueType
 
 from .process_callback import ProcessCallback
 from .simulator import Simulator
+
+_logger = logging.getLogger("spicelib.RunTask")
 
 END_LINE_TERM = '\n'
 
@@ -63,7 +63,7 @@ class RunTask(threading.Thread):
     """This is an internal Class and should not be used directly by the User."""
 
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
-                 callback: Union[Type[ProcessCallback], Callable[[Path, Path], Any]],
+                 callback: Optional[Union[Type[ProcessCallback], Callable[[Path, Path], Any]]],
                  callback_args: Union[dict, None] = None,
                  switches: Any = None, timeout: Union[float, None] = None, verbose: bool = False,
                  cwd: Union[str, Path, None] = None,
@@ -90,18 +90,19 @@ class RunTask(threading.Thread):
         self._edits = None
 
     @property
-    def edits(self) -> Updates:
+    def edits(self) -> Optional[Updates]:
         return self._edits
 
     @edits.setter
     def edits(self, netlist_updates: Updates):
         self._edits = copy(netlist_updates)
 
-    def value(self, reference):
+    def value(self, reference) -> UpdateValueType:
+        if not self._edits:
+            return None
         return self._edits.value(reference)
 
-
-    def print_info(self, logger_fun, message):
+    def print_info(self, logger_fun: Callable[[str], None], message: str):
         message = f"RunTask #{self.runno}:{message}"
         logger_fun(message)
         if self.verbose:
