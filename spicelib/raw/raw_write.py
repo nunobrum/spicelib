@@ -149,7 +149,7 @@ class RawWrite(object):
         in this version.
         
         :param filename: filename to where the RAW file is going to be written. Make sure that the extension of the file is .RAW.
-        :type filename: str or pathlib.Path
+        :type filename: str or Path
         :return: Nothing
         """
         if len(self._imported_data):

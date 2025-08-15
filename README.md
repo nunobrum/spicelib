@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.5_
+_current version: 1.4.6, preliminary_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -941,24 +941,29 @@ SimClient class. An example of its usage is shown below:
 import os
 import zipfile
 import logging
+import sys
+from spicelib.client_server.sim_client import SimClient
 
 # In order for this, to work, you need to have a server running. To start a server, run the following command:
 # python -m spicelib.scripts.run_server --port 9000 --parallel 4 --output ./temp LTSpice 300
 
 _logger = logging.getLogger("spicelib.SimClient")
 _logger.setLevel(logging.DEBUG)
-
-from spicelib.client_server.sim_client import SimClient
+_logger.addHandler(logging.StreamHandler(sys.stdout))
 
 server = SimClient('http://localhost', 9000)
 print(server.session_id)
 runid = server.run("./testfiles/testfile.net")
 print("Got Job id", runid)
-for runid in server:  # Ma
+for runid in server:  # May not arrive in the same order as runids were launched
     zip_filename = server.get_runno_data(runid)
     print(f"Received {zip_filename} from runid {runid}")
+    if zip_filename is None:
+        print(f"Run id {runid} has no data")
+        continue
+    # the zip file normally contains a `.raw` and a `.log` file, 
+    # but it can instead only hold a `.fail` file in case of a simulation error.    
     with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
-        # print(zipf.namelist())  # Debug printing the contents of the zip file
         for name in zipf.namelist():
             print(f"Extracting {name} from {zip_filename}")
             zipf.extract(name)
@@ -1046,6 +1051,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 
+* Version 1.4.6
+    * Fixing Issue #242 and #243 - Improve error handling in SimServer, and return log information in case of errors.
 * Version 1.4.5
     * Fixing Issue #235 and #236 - Inconsistent formulas in montecarlo.py and in tolerance_deviations.py
     * Fixing Issue #233 and #234 - `run_server` enhancements and platform compatibility

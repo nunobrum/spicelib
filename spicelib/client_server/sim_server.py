@@ -74,9 +74,13 @@ class SimServer(object):
         self.server_thread = threading.Thread(target=self.server.serve_forever, name="ServerThread")
         self.server_thread.start()
 
-    def add_sources(self, session_id, zip_data) -> bool:
+    def add_sources(self, session_id: str, zip_data: Binary) -> bool:
         """Add sources to the simulation. The sources are contained in a zip file will be added to the simulation
-        folder. Returns True if the sources were added and False if the session_id is not valid. """
+        folder.
+        
+        :return: True if the sources were added, False otherwise
+        :rtype: bool
+        """
         _logger.info(f"Server: Add sources {session_id}")
         if session_id not in self.sessions:
             return False  # This indicates that no job is started
@@ -93,81 +97,127 @@ class SimServer(object):
                 answer = True
         return answer
 
-    def run(self, session_id, circuit_name, zip_data):
+    def run(self, session_id: str, circuit_name: str, zip_data: Binary) -> int:
+        """Runs a simulation for the given circuit.
+
+        :param session_id: The ID of the session to run the simulation in
+        :type session_id: str
+        :param circuit_name: The name of the circuit to simulate
+        :type circuit_name: str
+        :param zip_data: The zip file containing the circuit files
+        :type zip_data: bytes
+        :return: The run number of the simulation
+        :rtype: int
+        """
         _logger.info(f"Server: Run {session_id} : {circuit_name}")
         if not self.add_sources(session_id, zip_data):
             return -1
 
-        circuit_name = Path(self.output_folder) / circuit_name
-        _logger.info(f"Server: Running simulation of {circuit_name}")
-        runno = self.simulation_manager.add_simulation(circuit_name)
+        my_circuit_name = Path(self.output_folder) / circuit_name
+        _logger.info(f"Server: Running simulation of {my_circuit_name}")
+        runno = self.simulation_manager.add_simulation(my_circuit_name)
         if runno != -1:
             self.sessions[session_id].append(runno)
         return runno
 
-    def start_session(self):
+    def start_session(self) -> str:
         """Returns an unique key that represents the session. It will be later used to sort the sim_tasks belonging
-        to the session."""
+        to the session.
+
+        :return: A unique key that represents the session
+        :rtype: str
+        """
         session_id = str(uuid.uuid4())  # Needs to be a string, otherwise the rpc client can't handle it
         _logger.info(f"Server: Starting session {session_id}")
         self.sessions[session_id] = []
         return session_id
 
-    def status(self, session_id):
+    def status(self, session_id: str) -> list[int]:
         """
-        Returns a dictionary with task information. The key for the dictionary is the simulation identifier returned
-        by the simulation start command. The value associated with each simulation identifier is another dictionary
-        containing the following keys:
+        Returns a list with the task numbers that are completed for that session
 
-            * 'completed' - whether the simulation is already finished
-
-            * 'start' - time when the simulation was started
-
-            * 'stop' - server time
+        :param session_id: The ID of the session to check
+        :type session_id: str
+        :return: A list of completed task numbers for the session
+        :rtype: list[int]
         """
-        _logger.debug(f"Server: collecting status for {session_id}")
+        _logger.debug(f"Server: status({session_id})")
         ret = []
         for task_info in self.simulation_manager.completed_tasks:
-            _logger.debug(task_info)
             runno = task_info['runno']
             if runno in self.sessions[session_id]:
+                _logger.debug(f"Server: status({session_id}) will return task {task_info}")
                 ret.append(runno)  # transfers the dictionary from the simulation_manager completed task
                 # to the return dictionary 
-        _logger.debug(f"Server: Returning status {ret}")
+        _logger.debug(f"Server: status({session_id}) returns {ret}")
         return ret
 
-    def get_files(self, session_id, runno) -> tuple[str, Binary]:
-        if runno in self.sessions[session_id]:
+    def get_files(self, session_id: str, runno: int) -> tuple[str, Binary]:
+        """Returns the files associated with a specific run number of a completed task in a session.
 
+        :param session_id: The ID of the session to check
+        :type session_id: str
+        :param runno: The run number to check
+        :type runno: int
+        :return: file name and content of the file
+        :rtype: tuple[str, Binary]
+        """
+        _logger.debug(f"Server: get_files({session_id}, {runno})")
+        if runno in self.sessions[session_id]:
             for task_info in self.simulation_manager.completed_tasks:
                 if runno == task_info['runno']:
                     # Create a buffer to store the zip file in memory
                     zip_file = task_info['zipfile']
+                    if not zip_file:
+                        _logger.error(f"Server: get_files({session_id}, {runno}) no zip file found. Probably crashed.")
+                        continue
                     zip = zip_file.open('rb')
                     # Read the zip file from the buffer and send it to the server
                     zip_data = zip.read()
                     zip.close()
                     self.simulation_manager.erase_files_of_runno(runno)
+                    _logger.debug(f"Server: get_files({session_id}, {runno}) returns zip file name {zip_file.name}")
                     return zip_file.name, Binary(zip_data)
 
+        _logger.debug(f"Server: get_files({session_id}, {runno}) returns no data")
         return "", Binary(b'')  # Returns and empty data
 
-    def close_session(self, session_id):
-        """Cleans all the pending sim_tasks with """
-        if session_id not in self.sessions:
-            return False
+    def close_session(self, session_id: str) -> bool:
+        """Cleans all the pending sim_tasks with the session_id.
+
+        :return: True if the session was closed successfully, False otherwise
+        :rtype: bool
+        """
         _logger.info(f"Closing session {session_id}")
+        if session_id not in self.sessions:
+            _logger.info(f"Closing session {session_id} - not found")
+            return False
         for runno in self.sessions[session_id]:
-            self.simulation_manager.erase_files_of_runno(runno)
+            _logger.info(f"Closing session {session_id}, erasing all files associated with run {runno}")
+            try:
+                self.simulation_manager.erase_files_of_runno(runno)
+            except Exception as e:
+                _logger.error(f"Closing session {session_id}: error erasing files for run {runno}: {e}")
         del self.sessions[session_id]
+        _logger.info(f"Session {session_id} closed")
         return True  # Needs to return always something. None is not supported
 
-    def stop_server(self):
+    def stop_server(self) -> bool:
+        """Stops the server and cleans up resources.
+
+        :return: True if the server was stopped successfully, False otherwise
+        :rtype: bool
+        """
         _logger.debug("Server: stopping...ServerInterface")
         self.simulation_manager.stop()
         self.server.shutdown()
         _logger.info("Server: stopped...ServerInterface")
         return True  # Needs to return always something. None is not supported
 
-    def running(self):
+    def running(self) -> bool:
+        """Checks if the server is currently running.
+
+        :return: True if the server is running, False otherwise
+        :rtype: bool
+        """
         return self.simulation_manager.running()

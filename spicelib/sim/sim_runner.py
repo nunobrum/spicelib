@@ -103,11 +103,10 @@ __copyright__ = "Copyright 2020, Fribourg Switzerland"
 
 __all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask']
 
-import pathlib
+from pathlib import Path
 import shutil
 import inspect  # Library used to get the arguments of the callback function
 import time
-from pathlib import Path
 from time import sleep, thread_time as clock
 from typing import Callable, Union, Type, Protocol, Iterator, Any, Optional
 import logging
@@ -116,6 +115,9 @@ from .process_callback import ProcessCallback
 from ..sim.run_task import RunTask
 from ..sim.simulator import Simulator
 from ..editor.base_editor import BaseEditor
+from spicelib import RawWrite, RawRead
+from ..editor.updates import Update
+
 
 _logger = logging.getLogger("spicelib.SimRunner")
 END_LINE_TERM = '\n'
@@ -165,17 +167,22 @@ class TaskIterator:
         self.wait = wait
         self._iterator_counter = 0
 
-    def match_conditions(self, runtask: RunTask):
+    def match_conditions(self, runtask: RunTask) -> bool:
         if self.conditions is None:
             return True  # No filter was set
         elif isinstance(self.conditions, dict):
             for name, value in self.conditions.items():
-                for update in runtask.edits:
-                    if name == update.name and (value == update.value or
-                                                (isinstance(value, (list, tuple, set)) and update.value in value)):
-                        break
+                if runtask.edits:
+                    for update in runtask.edits:
+                        if isinstance(update, Update):  # it cannot be a list, as we do for..in and not use a slice, but this keeps lint happy
+                            if name == update.name and (
+                                value == update.value or (isinstance(value, (list, tuple, set)) and update.value in value)
+                            ):
+                                break
+                    else:
+                        return False  # No match found
                 else:
-                    return False  # No match found
+                    return False  # No edits to match against
             return True  # This means that all items on the dictionary were found
         else:
             # This is a function that will return True or False
@@ -215,11 +222,11 @@ class TaskIterator:
 class AnyRunner(Protocol):
     def run(self, netlist: Union[str, Path, BaseEditor], *,
             wait_resource: bool = True,
-            callback: Union[Type[ProcessCallback], Callable] = None,
-            callback_args: Union[tuple, dict] = None,
-            switches=None,
-            timeout: float = None,
-            run_filename: str = None,
+            callback: Optional[Union[Type[ProcessCallback], Callable]] = None,
+            callback_args: Optional[Union[tuple, dict]] = None,
+            switches: Optional[dict] = None,
+            timeout: Optional[float] = None,
+            run_filename: Optional[str] = None,
             exe_log: bool = False) -> Union[RunTask, None]:
         ...
 
@@ -301,8 +308,8 @@ class SimRunner(AnyRunner):
             self.cwd = None
 
         self.parallel_sims = parallel_sims
-        self.active_tasks = []
-        self.completed_tasks = []
+        self.active_tasks: list[RunTask] = []
+        self.completed_tasks: list[RunTask] = []
 
         self._runno = 0  # number of total runs
         self._failSim = 0  # number of failed simulations
@@ -463,12 +470,12 @@ class SimRunner(AnyRunner):
                 netlist = Path(netlist)
             run_netlist_file = self._to_output_folder(netlist, copy=True, new_name=run_filename)
         else:
-            raise TypeError("'netlist' parameter shall be a SpiceEditor, pathlib.Path or a plain str")
+            raise TypeError("'netlist' parameter shall be a SpiceEditor, Path or a plain str")
 
         return run_netlist_file
 
     @staticmethod
-    def validate_callback_args(callback: Callable, callback_args: Union[tuple, dict, None]) -> Union[dict, None]:
+    def validate_callback_args(callback: Optional[Callable], callback_args: Union[tuple, dict, None]) -> Union[dict, None]:
         """
         It validates that the callback_args are matching the callback function.
         Note that the first two parameters of the callback functions need to be the raw and log files.
@@ -508,6 +515,7 @@ class SimRunner(AnyRunner):
             switches=None,
             timeout: Union[float, None] = None,
             run_filename: Union[str, None] = None,
+            callback_on_error: bool = False,
             exe_log: bool = False) -> Union[RunTask, None]:
         """
         Executes a simulation run with the conditions set by the user.
@@ -547,7 +555,11 @@ class SimRunner(AnyRunner):
         :type timeout: float, optional
         :param run_filename: Name to be used for the log and raw file.
         :type run_filename: str or Path
-        :param exe_log: If True, the simulator's execution console messages will be written to a log file 
+        :param callback_on_error: If False (default), the callback function is not called if the simulation fails.
+            If True, the callback function is called even if the simulation fails.
+            Know that in that case it is not guaranteed that the raw and log files will be available.
+        :type callback_on_error: bool, optional
+        :param exe_log: If True, the simulator's execution console messages will be written to a log file
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running
             simultaneous tasks.
         :type exe_log: bool, optional        
@@ -572,7 +584,7 @@ class SimRunner(AnyRunner):
                     simulator=self.simulator, runno=self._runno, netlist_file=run_netlist_file,
                     callback=callback, callback_args=callback_kwargs,
                     switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
-                    cwd=self.cwd, exe_log=exe_log
+                    cwd=self.cwd, callback_on_error=callback_on_error, exe_log=exe_log
                 )
                 if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
                     t.edits = netlist.netlist_updates  # Copy is made in this assignment
@@ -627,7 +639,7 @@ class SimRunner(AnyRunner):
             simulator=self.simulator, runno=self._runno, netlist_file=run_netlist_file,
             callback=dummy_callback, callback_args=None,
             switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
-            cwd=self.cwd, exe_log=exe_log
+            cwd=self.cwd, callback_on_error=False, exe_log=exe_log
         )
         if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
             t.edits = netlist.netlist_updates  # Copy is made in this assignment
@@ -658,7 +670,7 @@ class SimRunner(AnyRunner):
         """
         i = 0
         while i < len(self.active_tasks):
-            if self.active_tasks[i].is_alive():
+            if self.active_tasks[i].is_alive() or self.active_tasks[i].start_time is None:  # running or not yet started
                 i += 1
             else:
                 if self.active_tasks[i].retcode == 0:
@@ -699,7 +711,7 @@ class SimRunner(AnyRunner):
         alarm = None
         for task in self.active_tasks:
             tout = task.timeout if task.timeout is not None else self.timeout
-            if tout is not None:
+            if tout is not None and task.start_time is not None:
                 stop = task.start_time + tout
                 if alarm is None:
                     alarm = stop
@@ -740,7 +752,7 @@ class SimRunner(AnyRunner):
         return self._failSim == 0
 
     @staticmethod
-    def _del_file_if_exists(workfile: Path):
+    def _del_file_if_exists(workfile: Optional[Path]):
         """
         Deletes a file if it exists.
         :param workfile: File to be deleted
@@ -811,26 +823,32 @@ class SimRunner(AnyRunner):
         """
         return TaskIterator(self, lambda x: x, True, conditions)
 
-    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: list[str],
-                             conditions: IteratorFilterType):
+    def create_raw_file_with(self, raw_filename: Union[Path, str], save: list[str],
+                             conditions: IteratorFilterType) -> bool:
         """
         Creates a new raw_file, with traces belonging to different runs. The type of the raw file is the same as
         the first raw file that is matching the conditions. See filter_completed_tasks() method.
 
         :param raw_filename: The new RAW filename
-        :type raw_filename: str or pathlib.Path
+        :type raw_filename: str or Path
         :param save: A list with traces that are going to be saved in the new raw file
         :type save: list[str]
         :param conditions: A filter as specified on the TaskIterator class
         :type conditions: dict
+        :return: True if the raw file was created successfully and includes ALL runs, False otherwise
+        :rtype: bool
         """
-        from spicelib import RawWrite
+        
+        retval = True
 
         # Obtain a first task
         first_task: RunTask = next(self.tasks(conditions))
 
         # Initialize a raw file based on the contents of the first raw
-        from spicelib import RawRead
+        if not first_task.raw_file:
+            _logger.error(f"Raw file {first_task.raw_file} does not exist. Cannot create new raw file.")
+            return False
+            
         template = RawRead(first_task.raw_file)
 
         new_raw = RawWrite(
@@ -843,14 +861,23 @@ class SimRunner(AnyRunner):
         # Go through the tasks that match the conditions given
         for run_task in self.tasks(conditions):
             # Open the raw file
+            if not run_task.raw_file:
+                _logger.error(f"Raw file {run_task.raw_file} does not exist. Skipping this task.")
+                retval = False
+                continue
             source_raw = RawRead(run_task.raw_file, traces_to_read=save)
             new_raw.add_traces_from_raw(source_raw, save, force_axis_alignment=True, add_tag=run_task.runno)
 
         new_raw.save(raw_filename)
+        return retval
 
     def export_sim_log(self, logfile: Union[Path, str]):
+        """Exports the simulation log to a file.
+
+        :param logfile: The path to the log file
+        :type logfile: Union[Path, str]
+        """
         import pprint
         logfile = self._on_output_folder(logfile)
         with open(logfile, 'w') as log_file:
             pprint.pprint(self.sim_info(), log_file)
-
