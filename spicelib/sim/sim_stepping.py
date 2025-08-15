@@ -23,7 +23,7 @@
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
-import pathlib
+from pathlib import Path
 from typing import Callable, Union, Type, Iterable
 from functools import wraps
 import logging
@@ -243,7 +243,7 @@ class SimStepper(AnyRunner):
             # Now waits for the simulations to end
             self.runner.wait_completion()
 
-    def export_step_info(self, export_filename: Union[pathlib.Path, str], delimiter: str = ";"):
+    def export_step_info(self, export_filename: Union[Path, str], delimiter: str = ";"):
         """
         Exports the stepping values to a CSV file. It writes a row per each simulation done.
         The columns are all the values that were set during the session. The value on each row is the value
@@ -253,7 +253,7 @@ class SimStepper(AnyRunner):
         there were set for that simulation.
 
         :param export_filename: export file path
-        :type export_filename: str or pathlib.Path
+        :type export_filename: str or Path
         :param delimiter: delimiter character on the CSV
         :type delimiter: str
         """
@@ -279,7 +279,7 @@ class SimStepper(AnyRunner):
                 row_data_with_id.update(self.sim_info[runno])
                 writer.writerow(row_data_with_id)
 
-    # def run(self, netlist: Union[str, pathlib.Path, BaseEditor], *,
+    # def run(self, netlist: Union[str, Path, BaseEditor], *,
     #         wait_resource: bool = True,
     #         callback: Union[Type[ProcessCallback], Callable] = None,
     #         callback_args: Union[tuple, dict] = None,

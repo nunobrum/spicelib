@@ -192,8 +192,8 @@ class RunTask(threading.Thread):
         Returns the simulation outputs if the simulation and callback function has already finished.
         If the simulation is not finished, it simply returns None. If no callback function is defined, then
         it returns a tuple with (raw_file, log_file).
-        If a callback function is defined, it returns whatever the callback function is returning.
-        If a callback function is defined, the simulation failed, and `callback_on_error` is False (default), it returns None.
+        If a callback function is defined, it returns whatever the callback function is returning, unless
+        the simulation failed, and `callback_on_error` is False (default), in which case it returns None.
 
         :returns: Tuple with the path to the raw file and the path to the log file
         :rtype: tuple(str, str) or None

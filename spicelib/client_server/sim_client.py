@@ -22,13 +22,12 @@ import os.path
 import zipfile
 import xmlrpc.client
 import io
-import pathlib
+from pathlib import Path
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
 import logging
 from typing import Union, Iterable, Optional
-from pathlib import Path
 
 _logger = logging.getLogger("spicelib.SimClient")
 
@@ -42,7 +41,7 @@ class SimClientInvalidRunId(LookupError):
 class JobInformation:
     """Contains information about pending simulation jobs"""
     run_number: int  # The run id that is returned by the Server and which identifies the server
-    file_dir: pathlib.Path
+    file_dir: Path
 
 # class RunIterator(object):
 #
@@ -103,7 +102,7 @@ class SimClient(object):
                 print(f"Run id {runid} has no data")
                 continue
             # the zip file normally contains a `.raw` and a `.log` file, 
-            # but it can also hold a `.fail` file in case of a simulation error.
+            # but it can instead only hold a `.fail` file in case of a simulation error.
             with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
                 for name in zipf.namelist():
                     print(f"Extracting {name} from {zip_filename}")
@@ -136,7 +135,7 @@ class SimClient(object):
         # Create the zip file in memory
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for source in sources:
-                dep_path = pathlib.Path(source)
+                dep_path = Path(source)
                 if dep_path.exists():
                     zip_file.write(source, dep_path.name)
 
@@ -148,21 +147,21 @@ class SimClient(object):
         # def add_sources(self, session_id: str, zip_data: Binary) -> bool
         return bool(self.server.add_sources(self.session_id, zip_data))
 
-    def run(self, circuit: Union[str, pathlib.Path], dependencies: Optional[list[Union[str, pathlib.Path]]] = None) -> int:
+    def run(self, circuit: Union[str, Path], dependencies: Optional[list[Union[str, Path]]] = None) -> int:
         """
         Sends the netlist identified with the argument "circuit" to the server, and it receives a run identifier
         (runno). Since the server can receive requests from different machines, this identifier is not guaranteed to be
         sequential.
 
         :param circuit: path to the netlist file containing the simulation directives.
-        :type circuit: pathlib.Path or str
+        :type circuit: Path or str
         :param dependencies: list of files that the netlist depends on. This is used to ensure that the netlist is
          transferred to the server with all the necessary files.
-        :type dependencies: list of pathlib.Path or str
+        :type dependencies: list of Path or str
         :returns: identifier on the server of the simulation.
         :rtype: int
         """
-        circuit_path = pathlib.Path(circuit)
+        circuit_path = Path(circuit)
         circuit_name = circuit_path.name
         if os.path.exists(circuit):
             # Create a buffer to store the zip file in memory
@@ -173,7 +172,7 @@ class SimClient(object):
                 zip_file.write(circuit, circuit_name)  # Makes sure it writes it to the root of the zipfile
                 if dependencies is not None:
                     for dep in dependencies:
-                        dep_path = pathlib.Path(dep)
+                        dep_path = Path(dep)
                         if dep_path.exists():
                             zip_file.write(dep, dep_path.name)
 

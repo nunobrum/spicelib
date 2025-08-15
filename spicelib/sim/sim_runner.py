@@ -103,11 +103,10 @@ __copyright__ = "Copyright 2020, Fribourg Switzerland"
 
 __all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask']
 
-import pathlib
+from pathlib import Path
 import shutil
 import inspect  # Library used to get the arguments of the callback function
 import time
-from pathlib import Path
 from time import sleep, thread_time as clock
 from typing import Callable, Union, Type, Protocol, Iterator, Any, Optional
 import logging
@@ -471,7 +470,7 @@ class SimRunner(AnyRunner):
                 netlist = Path(netlist)
             run_netlist_file = self._to_output_folder(netlist, copy=True, new_name=run_filename)
         else:
-            raise TypeError("'netlist' parameter shall be a SpiceEditor, pathlib.Path or a plain str")
+            raise TypeError("'netlist' parameter shall be a SpiceEditor, Path or a plain str")
 
         return run_netlist_file
 
@@ -824,14 +823,14 @@ class SimRunner(AnyRunner):
         """
         return TaskIterator(self, lambda x: x, True, conditions)
 
-    def create_raw_file_with(self, raw_filename: Union[pathlib.Path, str], save: list[str],
+    def create_raw_file_with(self, raw_filename: Union[Path, str], save: list[str],
                              conditions: IteratorFilterType) -> bool:
         """
         Creates a new raw_file, with traces belonging to different runs. The type of the raw file is the same as
         the first raw file that is matching the conditions. See filter_completed_tasks() method.
 
         :param raw_filename: The new RAW filename
-        :type raw_filename: str or pathlib.Path
+        :type raw_filename: str or Path
         :param save: A list with traces that are going to be saved in the new raw file
         :type save: list[str]
         :param conditions: A filter as specified on the TaskIterator class
