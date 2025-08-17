@@ -414,7 +414,7 @@ class BaseEditor(ABC):
         Saves the current state of the netlist to a file.
 
         :param run_netlist_file: File name of the netlist file.
-        :type run_netlist_file: Path or str
+        :type run_netlist_file: pathlib.Path or str
         :returns: Nothing
         """
         ...

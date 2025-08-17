@@ -133,7 +133,6 @@ class ServerSimRunner(threading.Thread):
             return task.runno
 
     def _erase_files_and_info(self, pos):
-        # _logger.debug(f"deleting files for task at position {pos}")
         task = self.completed_tasks[pos]
         for filename in ('circuit', 'log', 'raw', 'zipfile'):
             if filename in task:
@@ -154,7 +153,6 @@ class ServerSimRunner(threading.Thread):
         for i, task_info in enumerate(self.completed_tasks):
             if task_info['runno'] == runno:
                 self._erase_files_and_info(i)
-                # _logger.debug(f"deleting files of run {runno} - done")
                 break
 
     def cleanup_completed(self):

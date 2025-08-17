@@ -1401,7 +1401,7 @@ class SpiceEditor(SpiceCircuit):
     netlist file.
 
     :param netlist_file: Name of the .NET file to parse
-    :type netlist_file: str or Path
+    :type netlist_file: str or pathlib.Path
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This however is not 100% foolproof.
     :type encoding: str, optional

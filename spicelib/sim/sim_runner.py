@@ -170,22 +170,26 @@ class TaskIterator:
     def match_conditions(self, runtask: RunTask) -> bool:
         if self.conditions is None:
             return True  # No filter was set
-        elif isinstance(self.conditions, dict):
+        if not runtask.edits:
+            return False   # There are no edits, so a match is not possible
+        if isinstance(self.conditions, dict):
             for name, value in self.conditions.items():
-                if runtask.edits:
-                    for update in runtask.edits:
-                        if isinstance(update, Update):  # it cannot be a list, as we do for..in and not use a slice, but this keeps lint happy
-                            if name == update.name and (
-                                value == update.value or (isinstance(value, (list, tuple, set)) and update.value in value)
-                            ):
-                                break
+                # all conditions must be met. Any failure to match will result in a rejection
+                for update in runtask.edits:
+                    if isinstance(update, Update):
+                        if name == update.name and (
+                            value == update.value or (isinstance(value, (list, tuple, set)) and update.value in value)
+                        ):
+                            break  # force the next iteration of `for name, value in self.conditions.items():`, making it an AND comparison
                     else:
-                        return False  # No match found
+                        # this means: update is a list, but that can never happen, as we do for..in and not a slice
+                        # anyway, this construction keeps lint happy
+                        continue  # or we should raise a programmer error exception
                 else:
-                    return False  # No edits to match against
-            return True  # This means that all items on the dictionary were found
+                    return False  # No match found.
+            return True  # All items on the dictionary were found
         else:
-            # This is a function that will return True or False
+            # if `conditions` is not a dict, then it is a function that will return True or False
             return self.conditions(runtask)
 
     def __iter__(self):
@@ -272,7 +276,7 @@ class SimRunner(AnyRunner):
     :param output_folder: specifying which directory shall be used for simulation files (raw and log files).
     :type output_folder: str, optional
     :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory.
-    :type cwd: str or Path, optional
+    :type cwd: str or pathlib.Path, optional
 
     :raises FileNotFoundError: When the file is not found.  !This will be changed.
     """
@@ -524,7 +528,7 @@ class SimRunner(AnyRunner):
         :param netlist:
             The name of the netlist can be optionally overridden if the user wants to have a better control of how the
             simulations files are generated.
-        :type netlist: SpiceEditor or a path to the file
+        :type netlist: SpiceEditor or a pathlib.Path to the file
         :param wait_resource:
             Setting this parameter to False will force the simulation to start immediately, irrespective of the number
             of simulations already active.
@@ -554,7 +558,7 @@ class SimRunner(AnyRunner):
             Timeout to be used in waiting for resources. Default time is value defined in this class constructor.
         :type timeout: float, optional
         :param run_filename: Name to be used for the log and raw file.
-        :type run_filename: str or Path
+        :type run_filename: str or pathlib.Path
         :param callback_on_error: If False (default), the callback function is not called if the simulation fails.
             If True, the callback function is called even if the simulation fails.
             Know that in that case it is not guaranteed that the raw and log files will be available.
@@ -608,11 +612,11 @@ class SimRunner(AnyRunner):
         :param netlist:
             The name of the netlist can be optionally overridden if the user wants to have a better control of how the
             simulations files are generated.
-        :type netlist: SpiceEditor or a path to the file
+        :type netlist: SpiceEditor or a pathlib.Path to the file
         :param switches: Command line switches override
         :type switches: list
         :param run_filename: Name to be used for the log and raw file.
-        :type run_filename: str or Path
+        :type run_filename: str or pathlib.Path
         :param timeout: Timeout to be used in waiting for resources. Default time is value defined in this class
             constructor.
         :type timeout: float, optional
@@ -756,7 +760,7 @@ class SimRunner(AnyRunner):
         """
         Deletes a file if it exists.
         :param workfile: File to be deleted
-        :type workfile: Path
+        :type workfile: pathlib.Path
         :return: Nothing
         """
         if workfile is not None and workfile.exists():
@@ -768,7 +772,7 @@ class SimRunner(AnyRunner):
         """
         Deletes a file extension if it exists.
         :param workfile: File to be deleted
-        :type workfile: Path
+        :type workfile: pathlib.Path
         :param ext: Extension to be deleted
         :type ext: str
         :return: Nothing
@@ -830,7 +834,7 @@ class SimRunner(AnyRunner):
         the first raw file that is matching the conditions. See filter_completed_tasks() method.
 
         :param raw_filename: The new RAW filename
-        :type raw_filename: str or Path
+        :type raw_filename: str or pathlib.Path
         :param save: A list with traces that are going to be saved in the new raw file
         :type save: list[str]
         :param conditions: A filter as specified on the TaskIterator class

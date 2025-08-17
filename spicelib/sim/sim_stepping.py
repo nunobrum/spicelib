@@ -253,7 +253,7 @@ class SimStepper(AnyRunner):
         there were set for that simulation.
 
         :param export_filename: export file path
-        :type export_filename: str or Path
+        :type export_filename: str or pathlib.Path
         :param delimiter: delimiter character on the CSV
         :type delimiter: str
         """

@@ -144,7 +144,7 @@ class SimClient(object):
 
         # Read the zip file from the buffer and send it to the server
         zip_data = zip_buffer.read()
-        # def add_sources(self, session_id: str, zip_data: Binary) -> bool
+        # server side method signature: def add_sources(self, session_id: str, zip_data: Binary) -> bool
         return bool(self.server.add_sources(self.session_id, zip_data))
 
     def run(self, circuit: Union[str, Path], dependencies: Optional[list[Union[str, Path]]] = None) -> int:
@@ -154,10 +154,10 @@ class SimClient(object):
         sequential.
 
         :param circuit: path to the netlist file containing the simulation directives.
-        :type circuit: Path or str
+        :type circuit: pathlib.Path or str
         :param dependencies: list of files that the netlist depends on. This is used to ensure that the netlist is
          transferred to the server with all the necessary files.
-        :type dependencies: list of Path or str
+        :type dependencies: list of pathlib.Path or str
         :returns: identifier on the server of the simulation.
         :rtype: int
         """
@@ -182,7 +182,7 @@ class SimClient(object):
             # Read the zip file from the buffer and send it to the server
             zip_data = zip_buffer.read()
 
-            # def run(self, session_id: str, circuit_name: str, zip_data: Binary) -> int
+            # server side method signature: def run(self, session_id: str, circuit_name: str, zip_data: Binary) -> int
             run_id = int(self.server.run(self.session_id, circuit_name, zip_data))  # type: ignore
             job_info = JobInformation(run_number=run_id, file_dir=circuit_path.parent)
             self.started_jobs[run_id] = job_info
@@ -203,7 +203,7 @@ class SimClient(object):
         if runno not in self.stored_jobs:
             raise SimClientInvalidRunId(f"Invalid Job id {runno}")
 
-        # def get_files(self, session_id, runno) -> tuple[str, Binary]
+        # server side method signature: def get_files(self, session_id, runno) -> tuple[str, Binary]
         zip_filename, zipdata = self.server.get_files(self.session_id, runno)  # type: ignore
         job = self.stored_jobs.pop(runno)  # Removes it from stored jobs
         self.completed_jobs += 1
@@ -220,7 +220,7 @@ class SimClient(object):
 
     def __next__(self):
         while len(self.started_jobs) > 0:
-            # def status(self, session_id: str) -> list[int]
+            # server side method signature: def status(self, session_id: str) -> list[int]
             status: list[int] = self.server.status(self.session_id)  # type: ignore
             if len(status) > 0:
                 runno = status.pop(0)
