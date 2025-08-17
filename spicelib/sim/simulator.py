@@ -108,8 +108,8 @@ class Simulator(ABC):
         Creates a simulator class from a path to the simulator executable
         
         :param path_to_exe:
-        :type path_to_exe: pathlib.Path or str. If it is a string, it supports multiple sections, 
-            allowing loaders like wine, but MUST be in posix format in that case, and 
+        :type path_to_exe: pathlib.Path or str. If it is a string, it supports multiple sections,
+            allowing loaders like wine, but MUST be in posix format in that case, and
             the last section MUST be the simulator executable.
         :param process_name: the process_name to be used for killing phantom processes. If not provided, it will be 
         :return: a class instance representing the Spice simulator

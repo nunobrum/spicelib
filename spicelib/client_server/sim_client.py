@@ -22,12 +22,12 @@ import os.path
 import zipfile
 import xmlrpc.client
 import io
-import pathlib
+from pathlib import Path
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
 import logging
-from typing import Union, Iterable
+from typing import Union, Iterable, Optional
 
 _logger = logging.getLogger("spicelib.SimClient")
 
@@ -36,11 +36,12 @@ class SimClientInvalidRunId(LookupError):
     """Raised when asking for a run_no that doesn't exist"""
     ...
 
+
 @dataclass
 class JobInformation:
     """Contains information about pending simulation jobs"""
     run_number: int  # The run id that is returned by the Server and which identifies the server
-    file_dir: pathlib.Path
+    file_dir: Path
 
 # class RunIterator(object):
 #
@@ -97,10 +98,16 @@ class SimClient(object):
         for runid in server:   # may not arrive in the same order as runids were launched
             zip_filename = server.get_runno_data(runid)
             print(f"Received {zip_filename} from runid {runid}")
-
+            if zip_filename is None:
+                print(f"Run id {runid} has no data")
+                continue
+            # the zip file normally contains a `.raw` and a `.log` file, 
+            # but it can instead only hold a `.fail` file in case of a simulation error.
             with zipfile.ZipFile(zip_filename, 'r') as zipf:  # Extract the contents of the zip file
-                print(zipf.namelist())  # Debug printing the contents of the zip file
-                zipf.extract(zipf.namelist()[0])  # Normally the raw file comes first
+                for name in zipf.namelist():
+                    print(f"Extracting {name} from {zip_filename}")
+                    zipf.extract(name)
+            os.remove(zip_filename)  # Remove the zip file
 
     NOTE: More elaborate algorithms such as managing multiple servers will be done on another class.
     """
@@ -128,7 +135,7 @@ class SimClient(object):
         # Create the zip file in memory
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for source in sources:
-                dep_path = pathlib.Path(source)
+                dep_path = Path(source)
                 if dep_path.exists():
                     zip_file.write(source, dep_path.name)
 
@@ -137,9 +144,10 @@ class SimClient(object):
 
         # Read the zip file from the buffer and send it to the server
         zip_data = zip_buffer.read()
-        self.server.add_sources(self.session_id, zip_data)
+        # server side method signature: def add_sources(self, session_id: str, zip_data: Binary) -> bool
+        return bool(self.server.add_sources(self.session_id, zip_data))
 
-    def run(self, circuit, dependencies: list[Union[str, pathlib.Path]] = None) -> int:
+    def run(self, circuit: Union[str, Path], dependencies: Optional[list[Union[str, Path]]] = None) -> int:
         """
         Sends the netlist identified with the argument "circuit" to the server, and it receives a run identifier
         (runno). Since the server can receive requests from different machines, this identifier is not guaranteed to be
@@ -149,12 +157,11 @@ class SimClient(object):
         :type circuit: pathlib.Path or str
         :param dependencies: list of files that the netlist depends on. This is used to ensure that the netlist is
          transferred to the server with all the necessary files.
-
         :type dependencies: list of pathlib.Path or str
         :returns: identifier on the server of the simulation.
         :rtype: int
         """
-        circuit_path = pathlib.Path(circuit)
+        circuit_path = Path(circuit)
         circuit_name = circuit_path.name
         if os.path.exists(circuit):
             # Create a buffer to store the zip file in memory
@@ -165,7 +172,7 @@ class SimClient(object):
                 zip_file.write(circuit, circuit_name)  # Makes sure it writes it to the root of the zipfile
                 if dependencies is not None:
                     for dep in dependencies:
-                        dep_path = pathlib.Path(dep)
+                        dep_path = Path(dep)
                         if dep_path.exists():
                             zip_file.write(dep, dep_path.name)
 
@@ -175,40 +182,46 @@ class SimClient(object):
             # Read the zip file from the buffer and send it to the server
             zip_data = zip_buffer.read()
 
-            run_id = self.server.run(self.session_id, circuit_name, zip_data)
+            # server side method signature: def run(self, session_id: str, circuit_name: str, zip_data: Binary) -> int
+            run_id = int(self.server.run(self.session_id, circuit_name, zip_data))  # type: ignore
             job_info = JobInformation(run_number=run_id, file_dir=circuit_path.parent)
             self.started_jobs[run_id] = job_info
             return run_id
         else:
             _logger.error(f"Client: Circuit {circuit} doesn't exit")
             return -1
-        
-    def get_runno_data(self, runno) -> Union[str, None]:
+
+    def get_runno_data(self, runno: int) -> Union[Path, None]:
         """
         Returns the simulation output data inside a zip file name.
 
-        :rtype: str
+        :return: The name of the zip file containing the simulation output data, or None if not found.
+                 The zip file is not guaranteed to hold both a `.raw` file and a `.log` file.
+                 It can hold a `.fail` file in case of a simulation error.
+        :rtype: pathlib.Path
         """
         if runno not in self.stored_jobs:
             raise SimClientInvalidRunId(f"Invalid Job id {runno}")
 
-        zip_filename, zipdata = self.server.get_files(self.session_id, runno)
+        # server side method signature: def get_files(self, session_id, runno) -> tuple[str, Binary]
+        zip_filename, zipdata = self.server.get_files(self.session_id, runno)  # type: ignore
         job = self.stored_jobs.pop(runno)  # Removes it from stored jobs
         self.completed_jobs += 1
         if zip_filename != '':
             store_path = job.file_dir / zip_filename
             with open(store_path, 'wb') as f:
-                f.write(zipdata.data)
+                f.write(zipdata.data)  # type: ignore
             return store_path
         else:
             return None
 
     def __iter__(self):
         return self
-    
+
     def __next__(self):
         while len(self.started_jobs) > 0:
-            status = self.server.status(self.session_id)
+            # server side method signature: def status(self, session_id: str) -> list[int]
+            status: list[int] = self.server.status(self.session_id)  # type: ignore
             if len(status) > 0:
                 runno = status.pop(0)
                 self.stored_jobs[runno] = self.started_jobs.pop(runno)  # Job is taken out of the started jobs list and
@@ -221,9 +234,11 @@ class SimClient(object):
                     time.sleep(delta)  # Go asleep for a sec
                 self._last_server_call = now
 
-        # when there are no pending jobs left, exit the iterator    
+        # when there are no pending jobs left, exit the iterator
         raise StopIteration
 
     def close_session(self):
+        """Closes the current session.
+        """
         _logger.info(f"Client: Closing session {self.session_id}")
         self.server.close_session(self.session_id)

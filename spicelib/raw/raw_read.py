@@ -591,7 +591,7 @@ class PlotInterface(Protocol):
         Saves the data to an Excel file.
         
         :param filename: Name of the file to save the data to
-        :type filename: Union[str, Path]
+        :type filename: Union[str, pathlib.Path]
         :param columns: List of traces to use as columns. Default is None, meaning all traces
         :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1
@@ -1488,7 +1488,7 @@ class PlotData(PlotInterface):
         Saves the data to an Excel file.
         
         :param filename: Name of the file to save the data to
-        :type filename: Union[str, Path]
+        :type filename: Union[str, pathlib.Path]
         :param columns: List of traces to use as columns. Default is None, meaning all traces
         :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1
@@ -1511,7 +1511,7 @@ class RawRead(PlotInterface):
     If stepped data is detected, it will also try to read the corresponding LOG file so to retrieve the stepped data.
 
     :param raw_filename: The file containing the RAW data to be read
-    :type raw_filename: str | pahtlib.Path
+    :type raw_filename: str or pathlib.Path
     :param traces_to_read:
         A string or a list containing the list of traces to be read. If None is provided, only the header is read and
         all trace data is discarded. If a '*' wildcard is given or no parameter at all then all traces are read.
@@ -1631,7 +1631,7 @@ class RawRead(PlotInterface):
         """Detects the encoding of the RAW file.
         
         :param raw_file: The file object to read from
-        :type raw_file: Path
+        :type raw_file: pathlib.Path
         :return: The encoding of the RAW file
         :rtype: str
         :raises EncodingDetectError: if the encoding cannot be detected
@@ -1990,7 +1990,7 @@ class RawRead(PlotInterface):
         Saves the data to an Excel file.
         
         :param filename: Name of the file to save the data to
-        :type filename: Union[str, Path]
+        :type filename: Union[str, pathlib.Path]
         :param columns: List of traces to use as columns. Default is None, meaning all traces
         :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1

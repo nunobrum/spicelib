@@ -1,9 +1,9 @@
 import dataclasses
 import enum
 from copy import deepcopy
-from typing import Union, Optional
+from typing import Union
 
-UpdateValueType = Union[str, int, float]
+UpdateValueType = Union[str, int, float, None]
 
 
 class UpdateType(enum.Enum):
@@ -72,9 +72,9 @@ class Updates:
     def __len__(self):
         return len(self.netlist_updates)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[int, slice, str]) -> Union[Update, list[Update]]:
         if isinstance(item, (int, slice)):
-            return self.netlist_updates[item]
+            return self.netlist_updates[item]  # with item = slice, we could get a list here. Otherwise, it is a single Update
         elif isinstance(item, str):
             # Try to get it by name
             for update in self.netlist_updates:
@@ -88,7 +88,7 @@ class Updates:
         """Clear the list of updates."""
         self.netlist_updates.clear()
 
-    def add_update(self, name: str, value: Optional[UpdateValueType], updates: UpdateType):
+    def add_update(self, name: str, value: UpdateValueType, updates: UpdateType):
         """Add an update to the list"""
         for update in self.netlist_updates:
             if (update.name == name and
@@ -103,7 +103,7 @@ class Updates:
         update.value = value
         return update
 
-    def value(self, reference) -> Optional[UpdateValueType]:
+    def value(self, reference) -> UpdateValueType:
         "Get the value update done to a component. Returns None if there wasn't any update."
         for update in self.netlist_updates:
             if update.updates == UpdateType.UpdateComponentValue and update.name == reference:

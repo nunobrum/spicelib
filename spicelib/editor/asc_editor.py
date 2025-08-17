@@ -85,7 +85,7 @@ class AscEditor(BaseSchematic):
         For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
 
         :param run_netlist_file: File name of the netlist file.
-        :type run_netlist_file: Path or str
+        :type run_netlist_file: pathlib.Path or str
         :returns: Nothing
         """        
         if isinstance(run_netlist_file, str):
