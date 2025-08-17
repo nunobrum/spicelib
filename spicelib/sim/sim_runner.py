@@ -548,7 +548,7 @@ class SimRunner(AnyRunner):
             function, the first two parameters are the raw and log files. The other parameters are passed as dictionary
             in the callback_args parameter.
 
-        :type: callback: function(raw_file: Path, log_file: Path, ...), optional
+        :type callback: function(raw_file: pathlib.Path, log_file: pathlib.Path, ...), optional
         :param callback_args:
             The callback function arguments. This parameter is passed as keyword arguments to the callback function.
         :type callback_args: dict or tuple, optional

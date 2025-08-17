@@ -111,7 +111,7 @@ class QspiceLogReader(LogfileData):
             assume the name of the log file but with the extension '.meas'.
         :type meas_filename: Optional str or pathlib.Path
         :returns: The .meas file path
-        :rtype: Path
+        :rtype: pathlib.Path
         """
         if meas_filename is None:
             meas_filename = self.logname.with_suffix(".meas")

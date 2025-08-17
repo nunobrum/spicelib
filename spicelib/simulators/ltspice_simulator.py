@@ -331,7 +331,7 @@ class LTspice(Simulator):
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :raises RuntimeError: when the netlist cannot be created
         :return: path to the netlist produced
-        :rtype: Path
+        :rtype: pathlib.Path
         """
         if not cls.is_available():
             _logger.error("================== ALERT! ====================")

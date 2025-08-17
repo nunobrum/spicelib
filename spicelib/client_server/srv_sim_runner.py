@@ -35,9 +35,9 @@ def zip_files(raw_filename: Optional[Path], log_filename: Optional[Path]) -> Opt
     """Zips the raw and log files into a single zip file.
 
     :param raw_filename: The path to the raw file.
-    :type raw_filename: Optional[Path]
+    :type raw_filename: Optional[pathlib.Path]
     :param log_filename: The path to the log file.
-    :type log_filename: Optional[Path]
+    :type log_filename: Optional[pathlib.Path]
     :return: The path to the zip file or None if no files were provided.
     :rtype: Optional[Path]
     """

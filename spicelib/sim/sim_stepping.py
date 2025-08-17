@@ -184,7 +184,7 @@ class SimStepper(AnyRunner):
         wait_completion parameters.
 
         :param callback: See the SimRunner run method.
-        :type: callback: function(raw_file: Path, log_file: Path, ...), optional
+        :type callback: function(raw_file: pathlib.Path, log_file: pathlib.Path, ...), optional
         :param callback_args: See the SimRunner run method.
         :type callback_args: dict or tuple, optional
         :param switches: Command line switches override

@@ -1511,7 +1511,7 @@ class RawRead(PlotInterface):
     If stepped data is detected, it will also try to read the corresponding LOG file so to retrieve the stepped data.
 
     :param raw_filename: The file containing the RAW data to be read
-    :type raw_filename: str | pahtlib.Path
+    :type raw_filename: str or pathlib.Path
     :param traces_to_read:
         A string or a list containing the list of traces to be read. If None is provided, only the header is read and
         all trace data is discarded. If a '*' wildcard is given or no parameter at all then all traces are read.

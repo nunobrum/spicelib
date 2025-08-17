@@ -198,7 +198,7 @@ class SimClient(object):
         :return: The name of the zip file containing the simulation output data, or None if not found.
                  The zip file is not guaranteed to hold both a `.raw` file and a `.log` file.
                  It can hold a `.fail` file in case of a simulation error.
-        :rtype: Path
+        :rtype: pathlib.Path
         """
         if runno not in self.stored_jobs:
             raise SimClientInvalidRunId(f"Invalid Job id {runno}")
