@@ -619,14 +619,8 @@ class PlotData(PlotInterface):
         # Initialize and type the instance variables, for the documentation
         self._raw_filename = raw_filename
         self._plot_nr = plot_nr
-        self._dialect = dialect
         self._verbose = verbose
         self._has_data = False  # Indicates if the plot is recognizable
-        
-        # Initialize other attributes
-        self._nVariables = 0
-        self._nPoints = 0
-        self._raw_type = ""
 
         self._raw_params: OrderedDict = OrderedDict()  # Dictionary to store the raw parameters
         self._raw_params['Filename'] = raw_filename.as_posix()  # Storing the filename as part of the dictionary
