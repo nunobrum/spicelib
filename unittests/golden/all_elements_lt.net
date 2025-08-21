@@ -117,6 +117,7 @@ XU3 NC_01 NC_02 NC_03 NC_04 NC_05 1e-9 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m
 XU4 in out1 V1 V2 out1 1e-9 bla_v2=1e-09 bla_sp2=3 blabla=1 2 3 4 5 6 7
 XU5 in out1 V1 V2 out1 GND 1e-9
 XM1 mos upper_gate_A A tj_m1 tcase_m1 1e-9
+XM2 vout VIN VSS VSS 1e-9 w={XM1_w} nf=1 ad='int((nf+1)/2) * W/nf * 0.18u' as=1e-09 pd='2*int((nf+1)/2) * (W/nf + 0.18u)' ps='2*int((nf+2)/2) * (W/nf + 0.18u)' nrd='0.18u / W' nrs='0.18u / W' sa=0 sb=0 sd=0 m=1 blabla=1 2 3 4 5 6 7
 
 * (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
 * Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]

@@ -479,6 +479,8 @@ class SpiceEditor_Test(unittest.TestCase):
             "XU4": ["OPAx189", {"bla_v2": "1%", "bla_sp1": 2, "bla_sp2": 3}],
             "XU5": ["OPAx189_float", {}],
             "XM1": ["{model_name}", {}],
+            "XM2": ["nfet_06v0", {"l": "{XM1_l}", "w": "{XM1_w}", "nf": 1, "ad": "'int((nf+1)/2) * W/nf * 0.18u'", "as": "'int((nf+2)/2) * W/nf * 0.18u'", "pd": "'2*int((nf+1)/2) * (W/nf + 0.18u)'", "ps": "'2*int((nf+2)/2) * (W/nf + 0.18u)'", "nrd": "'0.18u / W'", "nrs": "'0.18u / W'", "sa": 0, "sb": 0, "sd": 0, "m": 1}],
+
             #
             "Y1": ["ymod", {"LEN": 2}],
             "Y2": ["1e8", {"q": 10}],
