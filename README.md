@@ -26,17 +26,23 @@ It's awesome.
 - [How to use](#how-to-use)
 - [LICENSE](#license)
 - [Main modules](#main-modules)
+  - [SpiceEditor, AscEditor, QschEditor and SimRunner](#spiceeditor-asceditor-qscheditor-and-simrunner)
+    - [Overview](#overview)
+    - [Integration of the simulators](#integration-of-the-simulators)
+      - [LTspice](#ltspice)
+      - [Ngspice](#ngspice)
+      - [QSPICE](#qspice)
+      - [Xyce](#xyce)
+      - [Other simulators](#other-simulators)
+      - [Simulators and the Executable paths](#simulators-and-the-executable-paths)
+      - [Simulator Runner log redirection](#simulator-runner-log-redirection)
+    - [Symbol and Library paths](#symbol-and-library-paths)
+    - [SpiceEditor: Limitations and specifics](#spiceeditor-limitations-and-specifics)
+    - [AscEditor: Limitations and specifics](#asceditor-limitations-and-specifics)
+    - [Hierarchial circuits: reading and editing](#hierarchial-circuits-reading-and-editing)
   - [RawRead](#rawread)
   - [RawWrite](#rawwrite)
-  - [SpiceEditor, AscEditor, QschEditor and SimRunner](#spiceeditor-asceditor-qscheditor-and-simrunner)
-    - [SimStepper](#simstepper)
-    - [Simulators and Windows, Linux and MacOS compatibility](#simulators-and-windows-linux-and-macos-compatibility)
-    - [Executable and Library paths](#executable-and-library-paths)
-    - [Runner log redirection](#runner-log-redirection)
-    - [Adding search paths for symbols and library files](#adding-search-paths-for-symbols-and-library-files)
-    - [Limitations and specifics of SpiceEditor](#limitations-and-specifics-of-spiceeditor)
-    - [Limitations and specifics of AscEditor](#limitations-and-specifics-of-asceditor)
-    - [Hierarchial circuits: reading and editing](#hierarchial-circuits-reading-and-editing)
+  - [SimStepper](#simstepper)
   - [Simulation Analysis Toolkit](#simulation-analysis-toolkit)
   - [ltsteps](#ltsteps)
 - [Command Line Interface](#command-line-interface)
@@ -159,84 +165,14 @@ GNU V3 License
 
 ## Main modules
 
-### RawRead
-
-The example below reads the data from a Spice Simulation called
-"TRAN - STEP.raw" and displays all steps of the "I(R1)" trace in a matplotlib plot
-
- ```python
-from spicelib import RawRead
-
-from matplotlib import pyplot as plt
-
-# read a raw file that has only 1 data set/plot in it, but has multiple steps
-
-rawfile = RawRead("./testfiles/TRAN - STEP.raw")
-
-print(rawfile.get_trace_names())
-print(rawfile.get_raw_property())
-
-IR1 = rawfile.get_trace("I(R1)")
-x = rawfile.get_trace('time')  # Gets the time axis
-steps = rawfile.get_steps()
-for step in range(len(steps)):
-    # print(steps[step])
-    plt.plot(x.get_wave(step), IR1.get_wave(step), label=steps[step])
-
-plt.legend()  # order a legend
-plt.show()
-
-# read a raw file that has multiple data sets/plots in it
-
-raw = RawRead("./testfiles/noise_multi.bin.raw")
-print(raw.get_plot_names())            # names of all the plots in the file
-print(raw.get_trace_names())           # names of all the traces of the first plot in the file
-print(raw.plots[0].get_trace_names())  # same as above
-print(raw.plots[1].get_trace_names())  # names of all the traces of the second plot in the file
-
-x = raw.get_trace('frequency')  # could have used raw.get_axis() as well here
-y = raw.get_trace('onoise_spectrum')
-plt.plot(x.get_wave(), y.get_wave(), label='noise spectrum')
-plt.xlabel('Frequency (Hz)')
-plt.ylabel('Noise (V/√Hz)')
-plt.yscale('log')
-plt.xscale('log')
-plt.legend()
-plt.show()
-
-# and get the integrated noise from the second part in the file
-total = raw.plots[1].get_trace('v(onoise_total)')
-print(f"Total Integral noise: {total.get_wave()[0]} V") 
- ```
-
--- in examples/raw_read_example.py
-
-### RawWrite
-
-The following example writes a RAW file with a 3 milliseconds transient simulation sine with a 10kHz and a cosine with
-9.997kHz
-
- ```python
-import numpy as np
-from spicelib import Trace, RawWrite
-LW = RawWrite(fastacces=False)
-tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))
-vy = Trace('N001', np.sin(2 * np.pi * tx.data * 10000))
-vz = Trace('N002', np.cos(2 * np.pi * tx.data * 9970))
-LW.add_trace(tx)
-LW.add_trace(vy)
-LW.add_trace(vz)
-LW.save("./testfiles/teste_snippet1.raw")
- ```
-
--- in examples/raw_write_example.py [Example 1]
-
 ### SpiceEditor, AscEditor, QschEditor and SimRunner
+
+#### Overview
 
 These modules are used to prepare and launch SPICE simulations.
 
 The editors can be used change component values, parameters or simulation commands. After the simulation is run, the
-results then can be processed with either the RawRead or with the LTSpiceLogReader module to read the log file which can
+results then can be processed with either the `RawRead` or with the `LTSpiceLogReader` module to read the log file which can
 contain .MEAS results.
 
 Here follows an example of operation.
@@ -307,88 +243,29 @@ The example above is using the SpiceEditor to modify a spice netlist, but it is 
 directly modify a .asc file. The edited .asc file can be opened by the LTspice GUI and the simulation can be run from
 there. It is also possible to open a .asc file and to generate a spice netlist from it.
 
-#### SimStepper
+#### Integration of the simulators
 
-To avoid having loops inside loops spicelib can handle the work of making multi-dimensional sweeps using the SimStepper
-class. The code in the previous section can be writen as shown here.
+##### LTspice
 
-```python
-import os
+**LTspice** runs under Windows and MacOS, and can also run on MacOS and linux via wine.
 
-from spicelib import SpiceEditor, SimRunner
-from spicelib.simulators.ltspice_simulator import LTspice
-from spicelib.sim.sim_stepping import SimStepper
-
-
-def processing_data(raw_file, log_file):
-    print("Handling the simulation data of %s" % log_file)
-
-
-runner = SimRunner(parallel_sims=4, output_folder='./temp2', simulator=LTspice)
-
-# select spice model
-Stepper = SimStepper(SpiceEditor("./testfiles/Batch_Test.net"), runner)
-# set default arguments
-
-Stepper.set_parameters(res=0, cap=100e-6)
-Stepper.set_component_value('R2', '2k')
-Stepper.set_component_value('R1', '4k')
-Stepper.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
-# define simulation
-Stepper.add_instructions(
-    "; Simulation settings",
-    ";.param run = 0"
-)
-Stepper.set_parameter('run', 0)
-Stepper.set_parameter('test_param2', 20)
-Stepper.add_model_sweep('XU1', ('AD712', 'AD820_ALT'))
-Stepper.add_value_sweep('V1', (5, 10, 15))
-# Stepper.add_value_sweep('V1', (-5, -10, -15))
-
-run_netlist_file = "run_OPAMP_{XU1}_VDD_{V1}.net"
-Stepper.run_all(callback=processing_data, filenamer=run_netlist_file.format)
-
-# Sim Statistics
-print('Successful/Total Simulations: ' + str(Stepper.okSim) + '/' + str(Stepper.runno))
-Stepper.export_step_info("./temp2/export.csv")
-runner.cleanup_files()
-```
-
--- in examples/sim_stepper_example.py
-
-The SimStepper methods
-
- * add_value_sweep(ref, iterable) 
- * add_model_sweep(ref, iterable) 
- * add_param_sweep(name, iterable) 
-
-receive as first argument the component or parameter reference as the first argument and an iterable object such as a 
-list or a generator as a second argument. 
-
-When the run_all() method is called, it will make run a simulation per each combination of values. On the example above 
-it will make the simulations: 
-
-`(XU1, V1) in (("AD712", 5), ("AD712", 10), ("AD712", 15), ("AD820_ALT", 5), ("AD820_ALT", 10), ("AD820_ALT", 15))`   
-
-It should be noted that for each sweep method added it will add a new dimension simulation space. 
-In other words, the total number of simulations will be the product of each vector length. There is no restriction to
-the number of simulations to be done, however, a huge number of simulation will take a long time to execute and may
-occupy a considerable amount of space on the disk.
-
-#### Simulators and Windows, Linux and MacOS compatibility
-
-The **LTspice** class tries to detect the correct path of the LTspice installation depending on the platform. On Linux
+The `LTspice` class tries to detect the correct path of the LTspice installation depending on the platform. On Linux
 it expects LTspice to be installed under wine. On MacOS, it first looks for LTspice installed under wine, and when it
 cannot be found, it will look for native LTspice. The reason is that the command line interface of the native LTspice is
 severely limited.
 
-If you use the native LTspice, please make sure that you have installed the libraries via Settings: `Operation`
+If you use LTspice, please make sure that you have installed the libraries via Settings: `Operation`
 tab, `Model Update` button.
 
-**Ngspice** runs natively under Windows, Linux and MacOS (via brew). This library works with Ngspice CLI, and tries to
-detect the correct executable path, no matter the platform. It cannot (yet) work with the shared library version of
+##### Ngspice
+
+**Ngspice** runs natively under Windows, Linux and MacOS (via brew).
+
+The `NGspiceSimulator` class works with Ngspice CLI, it cannot (yet) work with the shared library version of
 Ngspice that is delivered with for example Kicad, you will need to install the CLI version. You can however use Kicad as
 the schema editor and subsequently save the Ngspice netlist to use it with this library.
+
+The `NGspiceSimulator` class tries to detect the correct executable path, no matter the platform.
 
 Please note that the Ngspice does not support the `.step` command, so you would need to use SimStepper, or a `.control` section.
 
@@ -400,10 +277,29 @@ Ngspice `.control` sections can be manipulated with the `SpiceEditor` class, but
 
 If you want to create something similar to the missing `.step` directive, you can use loops and `set appendwrite` inside a `.control` section to create multiple plots in the same raw file. RawRead knows how to read this, but you will need to use `raw.plots[step].get_wave('name')` to access the different plots, instead of `raw.get_wave('name', step)`. See `examples/testfiles/ngsteps.net` and `examples/ngsteps.py` for an example of how to do this and how to edit `.control` sections.
 
-For the other simulators, built-in Linux/MacOS support is coming, but you can always try to use it under Linux via
-setting of the executable paths.
+If you read binary RAW files generated by old versions of ngspice, you may need to specify 'ngspice' as dialect for `RawRead`, as the format is slightly different than the other simulators and older versions of ngspice did not say it was ngspice that created the raw file.
 
-#### Executable and Library paths
+##### QSPICE
+
+**QSPICE** only runs under Windows. It is not compatible with MacOS nor Linux, and does not run under wine (although various efforts have been made to make it compatible).
+
+The `Qspice` class tries to automatically detect the correct executable path.
+
+##### Xyce
+
+**Xyce** runs natively under Windows, Linux and MacOS.
+
+The `XyceSimulator` class tries to automatically detect the correct executable path, but it may require manual configuration in some cases.
+
+If you read binary RAW files generated by xyce, you may need to specify 'xyce' as dialect for `RawRead`, as the format is slightly different than the other simulators and xyce does not say it was xyce that created the raw file. Work is ongoing in xyce to improve this.
+
+##### Other simulators
+
+Although spicelib does not have runners for other simulators than those mentioned above, it is relatively easy to support for more.
+
+`SpiceEditor` should natively support editing of netlists for other simulators as well.
+
+##### Simulators and the Executable paths
 
 A large variety of standard paths are automatically detected. To see what paths are detected:
 
@@ -427,19 +323,6 @@ If you want, you can set your own **executable paths**, via the two variables sh
 
 You can also use `simulator.create_from()`.
 
-The **library paths** are needed for the editors. However, the default library paths depend on the simulator used, its
-installation path, and if that simulator runs under wine or not. The function `editor.prepare_for_simulator()` allows
-you to tell the editor what simulator is used, and its library paths. This not always needed however:
-
-* `AscEditor` and `SpiceEditor` presume that LTspice is used.
-* `QschEditor` presumes that QSPICE is used.
-
-This will of course not work out if you use the editors on other simulators (as can be the case with `SpiceEditor`), or
-if you have manually set the simulator's executable path. In those cases you will want to inform your editor of that
-change via `editor.prepare_for_simulator()`.
-
-If you want, you can also specify library and symbol search paths using `editor.set_custom_library_paths()`.
-
 **Example**:
 
 ```python
@@ -462,22 +345,9 @@ runner = SimRunner(output_folder='./tmp', simulator=MySpiceInstallation)
 runner = SimRunner(output_folder='./tmp',
                    simulator=LTspice.create_from('wine /custompath/LTspice.exe')
                    )
-
-# ** Editor library paths
-
-# In case of non standard paths, or a change of the default simulator, it is preferred to
-# inform your editor of it, so it can better guess the library paths. 
-AscEditor.prepare_for_simulator(MySpiceInstallation)
-
-# You can also add your own library paths to the search paths
-AscEditor.set_custom_library_paths("/mypath/lib/sub",
-                                   "/mypath/lib/sym",
-                                   "/mypath/lib/sym/OpAmps",
-                                   "/mypath/lib/cmp")
-
 ```
 
-#### Runner log redirection
+##### Simulator Runner log redirection
 
 When you use wine (on Linux or MacOS) or a simulator like NGspice, or if you run simultaneous simulators,
 you may want to redirect the output of `run()` or `run_now()` or `create_netlist()`, as it prints a lot of
@@ -493,23 +363,54 @@ runner.run(netlist, exe_log=True)
 This is supported on both the SimRunner and directly on the various simulators (LTspice,..).
 The runner client server function (see `SimClient`) does not (yet) support this, but it is less bothersome there.
 
-#### Adding search paths for symbols and library files
+#### Symbol and Library paths
 
-LTspice allows users to add Search Paths for symbol and libraries. This is very helpful when sharing non-native
+The **library paths** are needed for the editor. However, the default library paths depend on the simulator used, its
+installation path, and if that simulator runs under wine or not. The function `editor.prepare_for_simulator()` allows
+you to tell the editor what simulator is used, and its library paths. This not always needed however:
+
+* `AscEditor` and `SpiceEditor` presume that LTspice is used.
+* `QschEditor` presumes that QSPICE is used.
+
+This will of course not work out if you use the editors on other simulators (as can be the case with `SpiceEditor`), or
+if you have manually set the simulator's executable path. In those cases you will want to inform your editor of that
+change via `editor.prepare_for_simulator()`.
+
+In some cases you need to reference libraries or symbols that are not included in the standard library paths, for example when sharing non-native
 libraries and symbols between different projects. The `spicelib` supports this feature by using the
-set_custom_library_paths() class method as is exemplified in the code snippet below.
+`set_custom_library_paths()` class method.
+
+**Example**:
 
 ```python
-from spicelib import AscEditor
+from spicelib.simulators.ltspice_simulator import LTspice
+from spicelib.editor.asc_editor import AscEditor
 
-AscEditor.set_custom_library_paths([r"C:\work\MyLTspiceSymbols", r"C:\work\MyLTspiceLibraries"])
+# ** Editor library paths
+
+# Example with an LTspice installation on a non standard path
+class MySimulator(LTspice):
+    spice_exe = ['wine', '/custompath/LTspice.exe']
+    process_name = 'wine'
+
+# In case of non standard paths, or if you use another simulator than ltspice, it is preferred to
+# inform your editor of it, so it can better guess the library paths. 
+AscEditor.prepare_for_simulator(MySimulator)
+
+# ** Editor custom search paths
+
+# You can also add your own library paths to the search paths
+AscEditor.set_custom_library_paths("/mypath/lib/sub",
+                                   "/mypath/lib/sym",
+                                   "/mypath/lib/sym/OpAmps",
+                                   "/mypath/lib/cmp")
 ```
 
 The user can specify one or more search paths. Note that each call to this method will invalidate previously set search
 paths. Also, note that this is a class method in all available editors (SpiceEditor, AscEditor and QschEditor), this
 means that updating one instantiation, will update all other instances of the same class.
 
-#### Limitations and specifics of SpiceEditor
+#### SpiceEditor: Limitations and specifics
 
 Not all elements support value editing or parameter editing, and not all elements are supported by all Spice variants.
 
@@ -574,7 +475,7 @@ For a detailed reference to the elements, see amongst others:
 * <https://github.com/KSKelvin-Github/Qspice/blob/main/Guideline/Qspice%20-%20Device%20Reference%20Guide%20by%20KSKelvin.pdf>
 * <https://xyce.sandia.gov/files/xyce/Xyce_Reference_Guide_7.6.pdf>
 
-#### Limitations and specifics of AscEditor
+#### AscEditor: Limitations and specifics
 
 AscEditor has some limitations and differences in regard to SpiceEditor.
 
@@ -702,6 +603,145 @@ my_sub.set_component_parameters("C1", Rser=1)
 my_sub["C1"].set_params(Rser=1)
 my_sub["C1"].params = dict(Rser=1)
 ```
+### RawRead
+
+The example below reads the data from a Spice Simulation called
+"TRAN - STEP.raw" and displays all steps of the "I(R1)" trace in a matplotlib plot
+
+ ```python
+from spicelib import RawRead
+
+from matplotlib import pyplot as plt
+
+# read a raw file that has only 1 data set/plot in it, but has multiple steps
+
+rawfile = RawRead("./testfiles/TRAN - STEP.raw")
+
+print(rawfile.get_trace_names())
+print(rawfile.get_raw_property())
+
+IR1 = rawfile.get_trace("I(R1)")
+x = rawfile.get_trace('time')  # Gets the time axis
+steps = rawfile.get_steps()
+for step in range(len(steps)):
+    # print(steps[step])
+    plt.plot(x.get_wave(step), IR1.get_wave(step), label=steps[step])
+
+plt.legend()  # order a legend
+plt.show()
+
+# read a raw file that has multiple data sets/plots in it
+
+raw = RawRead("./testfiles/noise_multi.bin.raw")
+print(raw.get_plot_names())            # names of all the plots in the file
+print(raw.get_trace_names())           # names of all the traces of the first plot in the file
+print(raw.plots[0].get_trace_names())  # same as above
+print(raw.plots[1].get_trace_names())  # names of all the traces of the second plot in the file
+
+x = raw.get_trace('frequency')  # could have used raw.get_axis() as well here
+y = raw.get_trace('onoise_spectrum')
+plt.plot(x.get_wave(), y.get_wave(), label='noise spectrum')
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Noise (V/√Hz)')
+plt.yscale('log')
+plt.xscale('log')
+plt.legend()
+plt.show()
+
+# and get the integrated noise from the second part in the file
+total = raw.plots[1].get_trace('v(onoise_total)')
+print(f"Total Integral noise: {total.get_wave()[0]} V") 
+ ```
+
+-- in examples/raw_read_example.py
+
+### RawWrite
+
+The following example writes a RAW file with a 3 milliseconds transient simulation sine with a 10kHz and a cosine with
+9.997kHz
+
+ ```python
+import numpy as np
+from spicelib import Trace, RawWrite
+LW = RawWrite(fastacces=False)
+tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))
+vy = Trace('N001', np.sin(2 * np.pi * tx.data * 10000))
+vz = Trace('N002', np.cos(2 * np.pi * tx.data * 9970))
+LW.add_trace(tx)
+LW.add_trace(vy)
+LW.add_trace(vz)
+LW.save("./testfiles/teste_snippet1.raw")
+ ```
+
+-- in examples/raw_write_example.py [Example 1]
+
+### SimStepper
+
+To avoid having loops inside loops spicelib can handle the work of making multi-dimensional sweeps using the SimStepper
+class. The code in the previous section can be writen as shown here.
+
+```python
+import os
+
+from spicelib import SpiceEditor, SimRunner
+from spicelib.simulators.ltspice_simulator import LTspice
+from spicelib.sim.sim_stepping import SimStepper
+
+
+def processing_data(raw_file, log_file):
+    print("Handling the simulation data of %s" % log_file)
+
+
+runner = SimRunner(parallel_sims=4, output_folder='./temp2', simulator=LTspice)
+
+# select spice model
+Stepper = SimStepper(SpiceEditor("./testfiles/Batch_Test.net"), runner)
+# set default arguments
+
+Stepper.set_parameters(res=0, cap=100e-6)
+Stepper.set_component_value('R2', '2k')
+Stepper.set_component_value('R1', '4k')
+Stepper.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
+# define simulation
+Stepper.add_instructions(
+    "; Simulation settings",
+    ";.param run = 0"
+)
+Stepper.set_parameter('run', 0)
+Stepper.set_parameter('test_param2', 20)
+Stepper.add_model_sweep('XU1', ('AD712', 'AD820_ALT'))
+Stepper.add_value_sweep('V1', (5, 10, 15))
+# Stepper.add_value_sweep('V1', (-5, -10, -15))
+
+run_netlist_file = "run_OPAMP_{XU1}_VDD_{V1}.net"
+Stepper.run_all(callback=processing_data, filenamer=run_netlist_file.format)
+
+# Sim Statistics
+print('Successful/Total Simulations: ' + str(Stepper.okSim) + '/' + str(Stepper.runno))
+Stepper.export_step_info("./temp2/export.csv")
+runner.cleanup_files()
+```
+
+-- in examples/sim_stepper_example.py
+
+The SimStepper methods
+
+ * add_value_sweep(ref, iterable)
+ * add_model_sweep(ref, iterable)
+ * add_param_sweep(name, iterable)
+
+receive as first argument the component or parameter reference as the first argument and an iterable object such as a
+list or a generator as a second argument.
+
+When the run_all() method is called, it will make run a simulation per each combination of values. On the example above
+it will make the simulations:
+
+`(XU1, V1) in (("AD712", 5), ("AD712", 10), ("AD712", 15), ("AD820_ALT", 5), ("AD820_ALT", 10), ("AD820_ALT", 15))`
+
+It should be noted that for each sweep method added it will add a new dimension simulation space.
+In other words, the total number of simulations will be the product of each vector length. There is no restriction to
+the number of simulations to be done, however, a huge number of simulation will take a long time to execute and may
+occupy a considerable amount of space on the disk.
 
 ### Simulation Analysis Toolkit
 
