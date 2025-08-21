@@ -1052,7 +1052,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.6
-    * Fixing Issue #246 - Correct line continuation handling in netlist
+    * Fixing Issue #246 - Correct line continuation handling in netlist, correction to error introduced in 1.4.5
     * Fixing Issue #242 and #243 - Improve error handling in SimServer, and return log information in case of errors.
 * Version 1.4.5
     * Fixing Issue #235 and #236 - Inconsistent formulas in montecarlo.py and in tolerance_deviations.py
