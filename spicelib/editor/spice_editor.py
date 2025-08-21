@@ -711,7 +711,7 @@ class SpiceCircuit(BaseEditor):
             return line
         
         section = section.strip()
-        # TODO why do we need a space? In the construction 'a=1' that must become 'a=2' a space shouyld not be needed.
+        # TODO why do we need a space? In the construction 'a=1' that must become 'a=2' a space should not be needed.
         if start > 0 and line[start - 1] != ' ':
             section = ' ' + section
         if end < len(line) and line[end] != ' ' and len(section) > 1:
