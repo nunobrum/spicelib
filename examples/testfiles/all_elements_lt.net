@@ -65,6 +65,8 @@ M3 Nd Ng Ns Si4410DY
 *  Nxxx NI1 NI2...NIX mname [<parameter>=<value>] ...
 N1 z a vdd vdd BSIMBULK_osdi_P  l=0.1u 
 +  w=1u as=0.26235p  ad=0.26235p  ps=2.51u   pd=2.51u 
+N2 z a vdd vdd BSIMBULK_osdi_P  l=0.1u 
++  w=1u as=0.26235p  ad=0.26235p  ps=2.51u   pd=2.51u 
 
 * Oxxx L+ L- R+ R- <model>
 O1 NC_34 NC_35 NC_36 NC_37 LTRA
