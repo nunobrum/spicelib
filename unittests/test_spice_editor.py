@@ -447,7 +447,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "M3": ["Si4410DY", {}],
             #
             "N1": ["BSIMBULK_osdi_P", {"as": "0.26235p", "ad": "0.26235p", "ps": "2.51u", "pd": "2.51u", "l": "0.1u", "w": "1u"}],
-            # N2 is mentioned not here on purpose, as it is identical to N1 and I want to see it unscatched at write time 
+            # N2 is not mentioned on purpose, as it is identical to N1 and I want to see it unscathed at write time
             #
             "O1": ["LTRA", {}],
             #
