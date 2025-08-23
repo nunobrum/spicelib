@@ -619,14 +619,8 @@ class PlotData(PlotInterface):
         # Initialize and type the instance variables, for the documentation
         self._raw_filename = raw_filename
         self._plot_nr = plot_nr
-        self._dialect = dialect
         self._verbose = verbose
         self._has_data = False  # Indicates if the plot is recognizable
-        
-        # Initialize other attributes
-        self._nVariables = 0
-        self._nPoints = 0
-        self._raw_type = ""
 
         self._raw_params: OrderedDict = OrderedDict()  # Dictionary to store the raw parameters
         self._raw_params['Filename'] = raw_filename.as_posix()  # Storing the filename as part of the dictionary
@@ -644,13 +638,15 @@ class PlotData(PlotInterface):
         self._axis = None  # Creating the axis
         self._flags = []
         self._has_axis = True  # Indicates if the RAW file has an axis.
-        self._fpos_header = 0  # File position of the header section, used to skip the data when reading the header.
-        self._fpos_data = 0  # File position of the data section, used to skip the header when reading the data.
+
+        # TODO: Preparation for lazy reading
+        # self._fpos_header = 0  # File position of the header section, used to skip the data when reading the header.
+        # self._fpos_data = 0  # File position of the data section, used to skip the header when reading the data.
 
         plotinfo = f"Plot nr {plot_nr}:"
-        
+
         # mark the file position of the header section
-        self._fpos_header = raw_file.tell()
+        # self._fpos_header = raw_file.tell()
 
         # Check how many bytes are still available in the file
         bytes_remaining = self._get_remaining_bytes(raw_file)
@@ -824,8 +820,8 @@ class PlotData(PlotInterface):
         # We can now read the data section.
 
         # mark the file position of the start of the data section
-        self._fpos_data = raw_file.tell()
-        
+        # self._fpos_data = raw_file.tell()
+
         if self._raw_type.lower() == "binary:":
             # Will start the reading of binary values
             
