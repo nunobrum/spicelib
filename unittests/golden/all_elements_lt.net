@@ -64,6 +64,7 @@ M3 Nd Ng Ns 1e-9
 
 *  Nxxx NI1 NI2...NIX mname [<parameter>=<value>] ...
 N1 z a vdd vdd 1e-9 l=1e-09 w=1u as=0.26235p ps=2.51u pd=2.51u blabla=1 2 3 4 5 6 7
+N2 z a vdd vdd BSIMBULK_osdi_P  l=0.1u   w=1u as=0.26235p  ad=0.26235p  ps=2.51u   pd=2.51u 
 
 * Oxxx L+ L- R+ R- <model>
 O1 NC_34 NC_35 NC_36 NC_37 1e-9
@@ -116,6 +117,7 @@ XU3 NC_01 NC_02 NC_03 NC_04 NC_05 1e-9 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m
 XU4 in out1 V1 V2 out1 1e-9 bla_v2=1e-09 bla_sp2=3 blabla=1 2 3 4 5 6 7
 XU5 in out1 V1 V2 out1 GND 1e-9
 XM1 mos upper_gate_A A tj_m1 tcase_m1 1e-9
+XM2 vout VIN VSS VSS 1e-9 w={XM1_w} nf=1 ad='int((nf+1)/2) * W/nf * 0.18u' as=1e-09 pd='2*int((nf+1)/2) * (W/nf + 0.18u)' ps='2*int((nf+2)/2) * (W/nf + 0.18u)' nrd='0.18u / W' nrs='0.18u / W' sa=0 sb=0 sd=0 m=1 blabla=1 2 3 4 5 6 7
 
 * (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
 * Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]

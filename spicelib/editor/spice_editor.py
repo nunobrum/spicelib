@@ -536,8 +536,9 @@ class SpiceCircuit(BaseEditor):
                     return False                
             elif cmd == '+':
                 assert len(self.netlist) > 0, "ERROR: The first line cannot be starting with a +"
-                # TODO: maybe remove the '+' with line = line[1:]
-                self.netlist[-1] += line[1:]  # Append to the last line, but remove the leading '+'
+                # Concatenate the line to the previous line. Make it easy to handle: just make it 1 line. (but keep spaces etc)
+                lastline = self.netlist[-1].rstrip('\r\n')
+                self.netlist[-1] = lastline + line[1:]  # Append to the last line, but remove the preceding newline and the leading '+'
             elif len(cmd) == 1 and len(line) > 1 and line[1] == '§':
                 # strip any §, it is not always present and seems optional, so scrap it
                 line = line[0] + line[2:]
@@ -710,6 +711,7 @@ class SpiceCircuit(BaseEditor):
             return line
         
         section = section.strip()
+        # TODO why do we need a space? In the construction 'a=1' that must become 'a=2' a space should not be needed.
         if start > 0 and line[start - 1] != ' ':
             section = ' ' + section
         if end < len(line) and line[end] != ' ' and len(section) > 1:
