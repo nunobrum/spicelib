@@ -12,16 +12,19 @@ _current version: 1.4.6, preliminary_
 [Ad] For finding the best values for passive components I've created the [WizEIA Calculator](https://WizEIA.com).
 It's awesome.
 
-The Original Spice language on its inception had as targets circuits with a small number of components and
-scarce computing power available, typically one only processor core doing all the computation. Fast-forward to today,
-and a SPICE user faces the following problems with existing electronics simulators: 
+The Original Spice language in its inception had as targets circuits with a small number of components and had
+scarce computing power available. Fast-forward to today, a modern SPICE user needs a solution that alllows: 
   
-  * Legacy simulators only exploit one processor core
-  * The number of simulations to be done and the amount of data they generate are not compatible with
-    having one only single output file.
-  * Limitations on the number of "step" dimensions 
+  * Exploiting all the processor cores available on the local machine;
+  * Keep simulation files small, because the bigger the raw files slow the simulation considerably;
+  * Have no limitations on the number of ".STEP" dimensions;
+  * Make advanced calculations on simulation files that surpass the capabilities of .MEAS primitives;
+  * Correlate information from different simulation runs;
+  * Execute simulations on several machines at the same time;
+  * Have a timeout and kill stalled simulation processes and
+  * Integrate simulations with advanced mathematical and machine learning algorithms.
     
-The spicelib and its front end libraries (PyLTspice and Qspice) try to solve these problems using python 
+The spicelib and its front end libraries (PyLTspice and Qspice) try to address all these points using python 
 scripting language.
 
 -- Nuno Brum, creator of this library.
