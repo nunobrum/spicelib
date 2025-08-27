@@ -13,7 +13,7 @@ _current version: 1.4.6, preliminary_
 It's awesome.
 
 The Original Spice language in its inception had as targets circuits with a small number of components and had
-scarce computing power available. Fast-forward to today, a modern SPICE user needs a solution that alllows: 
+scarce computing power available. Fast-forward to today, a modern SPICE user needs a solution that allows: 
   
   * Exploiting all the processor cores available on the local machine;
   * Keep simulation files small, because the bigger the raw files slow the simulation considerably;
