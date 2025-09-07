@@ -25,7 +25,7 @@ author = 'Nuno Brum'
 
 # The full version, including alpha/beta/rc tags
 
-release = '1.4.5'
+release = '1.4.6'
 
 try:
     # Read the version from the .toml file
