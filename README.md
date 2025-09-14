@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.6_
+_current version: 1.4.7 (alpha)_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1124,6 +1124,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 
+* Version 1.4.7
+    * Implementing a lazy loading approach in RawRead 
 * Version 1.4.6
     * Fixing Issue #246 - Correct line continuation handling in netlist, correction to error introduced in 1.4.5
     * Fixing Issue #242 and #243 - Improve error handling in SimServer, and return log information in case of errors.
