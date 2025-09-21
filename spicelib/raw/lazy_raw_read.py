@@ -221,7 +221,7 @@ __copyright__ = "Copyright 2022, Fribourg Switzerland"
 import io
 import os
 from collections import OrderedDict
-from typing import Union
+from typing import BinaryIO, Union
 from pathlib import Path
 import dataclasses
 
@@ -240,7 +240,7 @@ MIN_BYTES_IN_FILE = 20
 
 dtype_map = {
     'double': 'd',
-    'complex': 'c',
+    'complex': 'complex',
     'real': 'f'
 }
 
@@ -268,6 +268,8 @@ class TraceInfo:
     name: str
     dtype: str
     var_type: str
+
+
 def namify(spice_ref: str):
     """Translate from V(0,n01) to V__n01__ and I(R1) to I__R1__"""
     if spice_ref.lower() in ('time', 'frequency'):
@@ -304,15 +306,23 @@ def raw_detect_encoding(raw_file: io.IOBase, header_offset=0) -> str:
     raw_line = raw_file.read(6)
     if len(raw_line) < 6:
         raise SpiceReadException("Invalid RAW file. File is too short to determine encoding.")
-    line = raw_line.decode(encoding='utf_8')
+    try:
+        line = raw_line.decode(encoding='utf_8')
+    except UnicodeDecodeError:
+        line = ''
     if line == 'Title:' or line == '\nTitle':
-        return 'utf_8'
+        answer = 'utf_8'
     else:
-        line = raw_line.decode(encoding='utf_16_le')
+        try:
+            line = raw_line.decode(encoding='utf_16_le')
+        except UnicodeDecodeError:
+            line = ''
         if line == 'Tit' or line == '\nTi':
-            return 'utf_16_le'
+            answer = 'utf_16_le'
+        else:
+            raise SpiceReadException("Invalid RAW file. Unrecognized encoding.")
     raw_file.seek(header_offset)  # reposition the pointer at the beginning of the header
-    raise SpiceReadException("Invalid RAW file. Unrecognized encoding.")
+    return answer
 
 
 class PlotData(PlotInterface):
@@ -332,14 +342,13 @@ class PlotData(PlotInterface):
         self._raw_filename = raw_filename
         self._plot_nr = plot_nr
         self._verbose = verbose
-        self._has_data = False  # Indicates if the plot is recognizable
-        self._fpos_header = raw_file.tell()  # File position of the header section, used to skip the data when reading the header.
+        self._fpos_header = raw_file.tell()  # File position of the header section used to skip the data when reading the header.
         self._raw_params: OrderedDict = OrderedDict()  # Dictionary to store the raw parameters
         self._raw_params['Filename'] = raw_filename.as_posix()  # Storing the filename as part of the dictionary
         # TODO: use backannotations to store the backannotations
         self._backannotations = []  # Storing backannotations 
         self._encoding = raw_detect_encoding(raw_file, self._fpos_header)  # Encoding of the RAW file, either 'utf_8' or 'utf_16_le'
-        self._raw_type = ""  # Type of the RAW file, either 'Binary:' or 'Values:'
+        self._raw_type = None  # Type of the RAW file, either 'binary' or 'values' but initialized as None to indicate no data is available
         self._aliases = {}  # QSpice defines aliases for some of the traces that can be computed from other traces.
         self._spice_params = {}  # QSpice stores param values in the .raw file. They may have some usage later for
         self._nPoints = 0  # Number of points in the RAW file
@@ -360,11 +369,11 @@ class PlotData(PlotInterface):
         # Check how many bytes are still available in the file
         bytes_remaining = get_remaining_bytes(raw_file)
         if self._verbose:
-            _logger.debug(f"{plotinfo} {bytes_remaining} bytes remaining in file.")
+            _logger.debug(f"Plot nr {self._plot_nr}: {bytes_remaining} bytes remaining in file.")
 
         if bytes_remaining < MIN_BYTES_IN_FILE:
-            _logger.warning(f"{plotinfo} Not enough bytes remaining in file. The plot does not exist or is incomplete.")
-            raise SpiceReadException(f"Invalid RAW file. {plotinfo} Not enough bytes remaining in file. The plot does not exist.")
+            _logger.warning(f"Plot nr {self._plot_nr}: Not enough bytes remaining in file. The plot does not exist or is incomplete.")
+            raise SpiceReadException(f"Invalid RAW file. Plot nr {self._plot_nr}: Not enough bytes remaining in file. The plot does not exist.")
     
         if self._encoding in ['utf_16_le', 'utf-16']:
             # Detect the encoding of the file
@@ -384,7 +393,7 @@ class PlotData(PlotInterface):
                 # End of file reached
                 if self._verbose:
                     _logger.warning(f"{plotinfo} End of file reached while reading the header.")
-                # will raise exception later
+                # will raise an exception later
                 break
             if ch == '\n':
                 # read one line. must remove the \r
@@ -392,15 +401,14 @@ class PlotData(PlotInterface):
                 line = line.rstrip('\r')
                 header.append(line)
                 if line.lower() in ('binary:', 'values:'):
-                    self._raw_type = line
-                    self._has_data = True  # If we got here, we have a valid RAW file with data.
+                    self._raw_type = line.lower()
                     break
                 line = ""
             else:
                 line += ch
         self._fpos_data = raw_file.tell()  # File position of the data section, used to skip the header when reading the data.
 
-        if not self._has_data:
+        if not self.has_data:
             raise SpiceReadException(f"Invalid RAW file. {plotinfo} Header is incomplete.")
         
         # computing the aliases.
@@ -526,7 +534,7 @@ class PlotData(PlotInterface):
             if self._verbose:
                 _logger.debug(f"{plotinfo} RAW file has stepped data.")
             try:
-                self._load_step_information(raw_filename, plotinfo)
+                self._load_step_information(raw_filename)
             except SpiceReadException as err:
                 _logger.warning(f"{plotinfo} {str(err)}\nError in auto-detecting steps in '{raw_filename}'")
                 if self._has_axis:
@@ -542,15 +550,74 @@ class PlotData(PlotInterface):
         if self._verbose:
             _logger.info(f"{plotinfo} Plot read successfully.")
         # if the file is binary, we need to move the file pointer to the end of the data section
-        if self._raw_type.lower() == 'binary:':        
+        if self._raw_type == 'binary:':
             # now move the file pointer to the end of the data section, so that the next plot can be read
             record_size = sum([np.dtype(t.dtype).itemsize for t in self._trace_info])
             raw_file.seek(self._fpos_data + self._nPoints * record_size)
+        elif self._raw_type == 'values:':
+            # In this case for an ASCII file, it will not be lazy and will read all data.
+            if self._verbose:
+                _logger.debug(f"{plotinfo} ASCII RAW File")
+            self._read_ascii_vector(raw_file)
+
+    def _read_ascii_vector(self, raw_file):
+        # Create the traces read vector
+        for trace_info in self._trace_info:
+            if trace_info.name in self._aliases:
+                # This is an alias, the data will be computed later
+                continue
+
+            # Create the traces for all the info
+            trace_data = np.zeros(self._nPoints, dtype=trace_info.dtype)  # Pre-allocate array for speed
+
+            if trace_info.name == self._trace_info[0].name and self._has_axis:
+                # This is the axis trace
+                self._axis = Axis(trace_info.name, trace_info.var_type, self._nPoints,
+                                  inv_dtype_map[trace_info.dtype], trace_data)
+                if self._steps is not None:
+                    self._axis.set_steps(self._steps)
+                self._read_traces[trace_info.name] = self._axis
+            else:
+                # Create trace object
+                trace = TraceRead(trace_info.name, trace_info.var_type, self._nPoints, self._axis,
+                                  inv_dtype_map[trace_info.dtype],
+                                  trace_data)
+                self._read_traces[trace_info.name] = trace
+        # Will start the reading of ASCII Values
+        for point in range(self._nPoints):
+            var_index = 0
+            while var_index < len(self._trace_info):
+                line = raw_file.readline().decode(encoding=self._encoding, errors='ignore')
+                if len(line) == 0:
+                    raise SpiceReadException(
+                        f"Invalid RAW file. Plot nr. {self._plot_nr}: Invalid data: end of file encountered too early")
+                line = line.strip()
+                if len(line) == 0:
+                    continue  # skip empty lines
+                if var_index == 0:
+                    s_point, value = line.split("\t", 1)
+                    if point != int(s_point):
+                        raise SpiceReadException(
+                            f"Invalid RAW file. Plot nr. {self._plot_nr}: Invalid data: point is not in sequence ({point} != {int(s_point)})")
+
+                else:
+                    value = line
+
+                var = self._trace_info[var_index]
+                if var.dtype == 'complex':
+                    v = value.split(',')
+                    if len(v) != 2:
+                        raise SpiceReadException(
+                            f"Invalid RAW file. Plot nr. {self._plot_nr}: Invalid data for trace {var.name}: {value} is not a complex value")
+                    self._read_traces[var.name].data[point] = complex(float(v[0]), float(v[1]))
+                else:
+                    self._read_traces[var.name].data[point] = float(value)
+                var_index += 1
 
     @property
     def has_data(self) -> bool:
         """Indicates if the plot has data."""
-        return self._has_data
+        return self._raw_type is not None
     
     @property
     def dialect(self) -> Union[str, None]:
@@ -717,7 +784,10 @@ class PlotData(PlotInterface):
         trace = TraceRead(alias, whattype, self._nPoints, self._axis, 'double')
         local_vars = {'pi': 3.1415926536, 'e': 2.7182818285}  # This is the dictionary that will be used to compute the alias
         local_vars.update({name: scan_eng(value) for name, value in self._spice_params.items()})
-        local_vars.update({namify(trace.name): trace.data for trace in self._trace_info})
+        # used vars
+        used_vars = [var.name for var in self._trace_info if var.name in formula]
+        self.read_trace_data(used_vars)
+        local_vars.update({namify(name): self._read_traces[name].data for name in used_vars})
         try:
             trace.data = eval(formula, local_vars)
         except Exception as err:
@@ -745,82 +815,30 @@ class PlotData(PlotInterface):
         """
         Reads the trace data from the binary section of the RAW file.
         """
-        raw_file = open(self._raw_filename, 'rb')
+        with open(self._raw_filename, 'rb') as raw_file:
 
-        if self._raw_type.lower() == "binary:":
-            # Will start the reading of binary values
-            
-            if "fastaccess" in self._raw_params["Flags"].lower():
-                if self._verbose:
-                    _logger.debug(f"{self._raw_filename} Binary RAW file with Fast access")
-                # In Fast Accces mode, the data is already stored contiguously per trace
-                
-                previous_data_size = 0
-                start_index = 0
-                # Always read the axis first, if it exists and was not read before
-                if self._has_axis and self._trace_info and (self._axis is None):
-                    trace_info = self._trace_info[0]
-                    start_index = 1
-                    previous_data_size += np.dtype(trace_info.dtype).itemsize
-                    # read this trace
-                    raw_file.seek(self._fpos_data + previous_data_size)  # Move to the beginning of the data section
-                    raw_data = self._read_bytes_from_file(raw_file, self._nPoints * np.dtype(trace_info.dtype).itemsize)
-                    data = np.frombuffer(raw_data, dtype=trace_info.dtype)
-                    # Now create the axis
-                    num_type = inv_dtype_map[trace_info.dtype]
-                    trace = Axis(trace_info.name, trace_info.var_type, self._nPoints, num_type, data.dtype, data)
-                    self._axis = trace
-                    self._read_traces[trace_info.name] = trace
+            if self._raw_type == "binary:":
+                # Will start the reading of binary values
+
+                if "fastaccess" in self._raw_params["Flags"].lower():
                     if self._verbose:
-                        _logger.debug(f"Axis '{trace.name}' read successfully. Data type: {trace_info.dtype}, First 5 values: {trace.data[:5]}")
-                    # Set the steps if they exist
-                    if self._steps is not None:
-                        self._axis.set_steps(self._steps)
+                        _logger.debug(f"{self._raw_filename} Binary RAW file with Fast access")
+                    # In Fast Accces mode, the data is already stored contiguously per trace
 
-                for trace_info in self._trace_info[start_index:]:
-                    previous_data_size += np.dtype(trace_info.dtype).itemsize
-                    if trace_info.name in list_of_traces:
+                    previous_data_size = 0
+                    start_index = 0
+                    # Always read the axis first, if it exists and was not read before
+                    if self._has_axis and self._trace_info and (self._axis is None):
+                        trace_info = self._trace_info[0]
+                        start_index = 1
+                        previous_data_size += np.dtype(trace_info.dtype).itemsize
                         # read this trace
                         raw_file.seek(self._fpos_data + previous_data_size)  # Move to the beginning of the data section
                         raw_data = self._read_bytes_from_file(raw_file, self._nPoints * np.dtype(trace_info.dtype).itemsize)
                         data = np.frombuffer(raw_data, dtype=trace_info.dtype)
-                        num_type = inv_dtype_map[trace_info.dtype]
-                        # Now create the trace
-                        trace = TraceRead(trace_info.name, trace_info.var_type, self._nPoints, self._axis, num_type, data)
-                        self._read_traces[trace_info.name] = trace
-                        if self._verbose:
-                            _logger.debug(f"Binary data read successfully. Data shape: {data.shape}")
-            else:
-                # Normal Acccess
-                if self._verbose:
-                    _logger.debug(f"{self._raw_filename} Binary RAW file with Fast access")
-
-                # create the numpy num_type for the structured array
-                read_dtypes = []
-                for i, trace_info in enumerate(self._trace_info):
-                    if i == 0 and self._has_axis and (self._axis is None):
-                        # Always read the axis first, if it exists and was not read before
-                        read_dtypes.append((trace_info.name, trace_info.dtype))
-                    elif trace_info.name in list_of_traces:
-                        read_dtypes.append((trace_info.name, trace_info.dtype))
-                    else:
-                        # void num_type, to skip this trace
-                        read_dtypes.append((trace_info.name, 'V' + str(np.dtype(trace_info.dtype).itemsize)))
-                
-                if self._verbose:
-                    _logger.debug(f"{self._raw_filename} Reading traces: {list_of_traces}")
-                record_size = sum([np.dtype(t.dtype).itemsize for t in self._trace_info])
-                raw_file.seek(self._fpos_data)  # Move to the beginning of the data section
-                raw_data = self._read_bytes_from_file(raw_file, self._nPoints * record_size)  # Move to the beginning of the data section
-                data = np.frombuffer(raw_data, dtype=read_dtypes)
-                if self._verbose:   
-                    _logger.debug(f"Binary data read successfully. Data shape: {data.shape}")
-                for i, trace_info in enumerate(self._trace_info):
-                    if i == 0 and self._has_axis and (self._axis is None):
                         # Now create the axis
-                        trace_data = data[trace_info.name]
                         num_type = inv_dtype_map[trace_info.dtype]
-                        trace = Axis(trace_info.name, trace_info.var_type, self._nPoints, num_type, trace_data)
+                        trace = Axis(trace_info.name, trace_info.var_type, self._nPoints, num_type, data)
                         self._axis = trace
                         self._read_traces[trace_info.name] = trace
                         if self._verbose:
@@ -828,16 +846,70 @@ class PlotData(PlotInterface):
                         # Set the steps if they exist
                         if self._steps is not None:
                             self._axis.set_steps(self._steps)
-                    elif trace_info.name in list_of_traces:
-                        trace_data = data[trace_info.name]
-                        num_type = inv_dtype_map[trace_info.dtype]
-                        # Now create the trace
-                        trace = TraceRead(trace_info.name, trace_info.var_type, self._nPoints, self._axis, num_type, trace_data)
-                        self._read_traces[trace_info.name] = trace
-                        if self._verbose:
-                            _logger.debug(f"Trace '{trace.name}' read successfully. Data type: {trace_info.dtype}, First 5 values: {trace.data[:5]}")
-        else:
-            raise NotImplementedError("Only binary RAW files are supported at the moment.")
+
+                    for trace_info in self._trace_info[start_index:]:
+                        previous_data_size += np.dtype(trace_info.dtype).itemsize
+                        if trace_info.name in list_of_traces:
+                            # read this trace
+                            raw_file.seek(self._fpos_data + previous_data_size)  # Move to the beginning of the data section
+                            raw_data = self._read_bytes_from_file(raw_file, self._nPoints * np.dtype(trace_info.dtype).itemsize)
+                            data = np.frombuffer(raw_data, dtype=trace_info.dtype)
+                            num_type = inv_dtype_map[trace_info.dtype]
+                            # Now create the trace
+                            trace = TraceRead(trace_info.name, trace_info.var_type, self._nPoints, self._axis, num_type, data)
+                            self._read_traces[trace_info.name] = trace
+                            if self._verbose:
+                                _logger.debug(f"Binary data read successfully. Data shape: {data.shape}")
+                else:
+                    # Normal Acccess
+                    if self._verbose:
+                        _logger.debug(f"{self._raw_filename} Binary RAW file with Fast access")
+
+                    # create the numpy num_type for the structured array
+                    read_dtypes = []
+                    for i, trace_info in enumerate(self._trace_info):
+                        if i == 0 and self._has_axis and (self._axis is None):
+                            # Always read the axis first, if it exists and was not read before
+                            read_dtypes.append((trace_info.name, trace_info.dtype))
+                        elif trace_info.name in list_of_traces:
+                            read_dtypes.append((trace_info.name, trace_info.dtype))
+                        else:
+                            # void num_type, to skip this trace
+                            read_dtypes.append((trace_info.name, 'V' + str(np.dtype(trace_info.dtype).itemsize)))
+
+                    if self._verbose:
+                        _logger.debug(f"{self._raw_filename} Reading traces: {list_of_traces}")
+                    record_size = sum([np.dtype(t.dtype).itemsize for t in self._trace_info])
+                    raw_file.seek(self._fpos_data)  # Move to the beginning of the data section
+                    raw_data = self._read_bytes_from_file(raw_file, self._nPoints * record_size)  # Move to the beginning of the data section
+                    data = np.frombuffer(raw_data, dtype=read_dtypes)
+                    if self._verbose:
+                        _logger.debug(f"Binary data read successfully. Data shape: {data.shape}")
+                    for i, trace_info in enumerate(self._trace_info):
+                        if i == 0 and self._has_axis and (self._axis is None):
+                            # Now create the axis
+                            trace_data = data[trace_info.name]
+                            num_type = inv_dtype_map[trace_info.dtype]
+                            trace = Axis(trace_info.name, trace_info.var_type, self._nPoints, num_type, trace_data)
+                            self._axis = trace
+                            self._read_traces[trace_info.name] = trace
+                            if self._verbose:
+                                _logger.debug(f"Axis '{trace.name}' read successfully. Data type: {trace_info.dtype}, First 5 values: {trace.data[:5]}")
+                            # Set the steps if they exist
+                            if self._steps is not None:
+                                self._axis.set_steps(self._steps)
+                        elif trace_info.name in list_of_traces:
+                            trace_data = data[trace_info.name]
+                            num_type = inv_dtype_map[trace_info.dtype]
+                            # Now create the trace
+                            trace = TraceRead(trace_info.name, trace_info.var_type, self._nPoints, self._axis, num_type, trace_data)
+                            self._read_traces[trace_info.name] = trace
+                            if self._verbose:
+                                _logger.debug(f"Trace '{trace.name}' read successfully. Data type: {trace_info.dtype}, First 5 values: {trace.data[:5]}")
+            elif self._raw_type == "values:":
+                pass  # nothing to do here, since the reading of ascii raw files is not lazy
+            else:
+                raise NotImplementedError("Only binary and value RAW files are supported at the moment.")
 
     def get_trace(self, trace_ref: Union[str, int]) -> Union[Axis, TraceRead]:
         """
@@ -941,7 +1013,7 @@ class PlotData(PlotInterface):
             assert isinstance(self._axis, Axis), "This RAW file does not have an axis."
             return self._axis.get_len(step)
 
-    def _load_step_information(self, filename: Path, plotinfo: str):
+    def _load_step_information(self, filename: Path):
         if 'Command' not in self._raw_params:
             # probably ngspice before v44 or xyce. And anyway, ngspice does not support the '.step' directive
             # FYI: ngspice can do something like .step via a control section with while loop.
@@ -1000,7 +1072,7 @@ class PlotData(PlotInterface):
                     step_dict = {}
                     step = int(match.group(1))
                     stepset = match.group(2)
-                    _logger.debug(f"{plotinfo} Found step {step} with stepset {stepset}.")
+                    _logger.debug(f"Plot nr. {self._plot_nr}: Found step {step} with stepset {stepset}.")
 
                     tokens = stepset.strip('\r\n').split(' ')
                     for tok in tokens:
@@ -1236,7 +1308,7 @@ class RawRead(PlotInterface):
 
     def __init__(self, 
                  raw_filename: Union[str, Path], 
-                 traces_to_read: Union[str, list[str], tuple[str, ...]] = '*',
+                 traces_to_read: Union[str, list[str], tuple[str, ...]] = '',
                  dialect: Union[str, None] = None,
                  verbose: bool = True):
         """Initializes the RawRead object and reads the RAW file."""
@@ -1266,24 +1338,24 @@ class RawRead(PlotInterface):
         with open(raw_filename, "rb") as raw_file:
             while get_remaining_bytes(raw_file) > MIN_BYTES_IN_FILE:
                 plot = PlotData(raw_file, raw_filename, plot_nr, self._dialect, verbose)
-                # if traces_to_read is '*', read all traces
-                if isinstance(traces_to_read, str):
-                    if traces_to_read == '*':
-                        traces_to_read = self.get_trace_names()  # * means all traces
-                    else:
-                        traces_to_read = [name.strip() for name in traces_to_read.split(',')]
-                elif not isinstance(traces_to_read, (list, tuple)):
-                    raise SpiceReadException("Invalid traces_to_read parameter. Must be a string, list or tuple.")
-
-                plot.read_trace_data(traces_to_read)
                 if self._dialect is None:
                     self._dialect = plot.dialect
                 if plot.has_data:
                     self._plots.append(plot)
                     plot_nr += 1
 
-            
+        # Read the trace data, if requested
+        for plot in self._plots:
+            # if traces_to_read is '*', read all traces
+            if isinstance(traces_to_read, str):
+                if traces_to_read == '*':
+                    traces_to_read = self.get_trace_names()  # * means all traces
+                else:
+                    traces_to_read = [name.strip() for name in traces_to_read.split(',')]
+            elif not isinstance(traces_to_read, (list, tuple)):
+                raise SpiceReadException("Invalid traces_to_read parameter. Must be a string, list or tuple.")
 
+            plot.read_trace_data(traces_to_read)
 
     @property
     def dialect(self) -> Union[str, None]:
