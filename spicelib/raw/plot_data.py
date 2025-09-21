@@ -56,7 +56,7 @@ def namify(spice_ref: str):
     """Translate from V(0,n01) to V__n01__ and I(R1) to I__R1__"""
     if spice_ref.lower() in ('time', 'frequency'):
         return spice_ref
-    matchobj = re.match(r'([VIP])\((\w+)\)', spice_ref)
+    matchobj = re.match(r'(V|I|P)\((\w+)\)', spice_ref)
     if matchobj:
         return f'{matchobj.group(1)}__{matchobj.group(2)}__'
     else:
@@ -664,7 +664,7 @@ class PlotData(PlotInterface):
                 else:
                     # Normal Acccess
                     if self._verbose:
-                        _logger.debug(f"{self._raw_filename} Binary RAW file with Fast access")
+                        _logger.debug(f"{self._raw_filename} Binary RAW file with Normal access")
 
                     # create the numpy num_type for the structured array
                     read_dtypes = []
