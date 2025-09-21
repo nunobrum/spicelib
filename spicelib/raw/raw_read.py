@@ -1595,33 +1595,35 @@ class RawRead(PlotInterface):
         self._encoding = self._detect_encoding(raw_filename)
         if verbose:
             _logger.debug(f"Detected encoding: {self._encoding} for file {raw_filename}")
-                
-        raw_file = open(raw_filename, "rb")
-        
-        have_more_data = True
-        plot_nr = 1
-            
-        # read the contents of the file, one plot at a time
+
         try:
-            while have_more_data:
-                if plot_nr == 1 or force_reading_all:
-                    plot = PlotData(raw_file, raw_filename, traces_to_read, plot_nr, self._encoding, self._dialect, headeronly, verbose)
-                else:
-                    try:
+            with open(raw_filename, "rb") as raw_file:
+                have_more_data = True
+                plot_nr = 1
+                
+                # read the contents of the file, one plot at a time
+                while have_more_data:
+                    if plot_nr == 1 or force_reading_all:
                         plot = PlotData(raw_file, raw_filename, traces_to_read, plot_nr, self._encoding, self._dialect, headeronly, verbose)
-                    except Exception as e:
-                        if verbose:
-                            _logger.warning(f"Cannot read plot {plot_nr} from {raw_filename}: {e}, stopping reading further plots.")
-                        break
-                if self._dialect is None:
-                    self._dialect = plot.dialect
-                if plot.has_data:
-                    self._plots.append(plot)
-                    plot_nr += 1
-                else:
-                    have_more_data = False
-        finally:
-            raw_file.close()
+                    else:
+                        try:
+                            plot = PlotData(raw_file, raw_filename, traces_to_read, plot_nr, self._encoding, self._dialect, headeronly, verbose)
+                        except Exception as e:
+                            if verbose:
+                                _logger.warning(f"Cannot read plot {plot_nr} from {raw_filename}: {e}, stopping reading further plots.")
+                            break
+                    if self._dialect is None:
+                        self._dialect = plot.dialect
+                    if plot.has_data:
+                        self._plots.append(plot)
+                        plot_nr += 1
+                    else:
+                        have_more_data = False
+        except FileNotFoundError:
+            raise SpiceReadException(f"File not found: {raw_filename}")
+        except Exception as e:
+            # re-raise other potential exceptions for clarity
+            raise e
             
     def _detect_encoding(self, raw_filename) -> str:
         """Detects the encoding of the RAW file.
