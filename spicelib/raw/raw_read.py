@@ -305,7 +305,6 @@ class RawRead(PlotInterface):
                 if dialect not in ('ltspice', 'qspice', 'ngspice', 'xyce'):
                     raise ValueError(f"Invalid RAW file dialect: '{dialect}', must be one of 'ltspice', 'qspice', 'ngspice', 'xyce'.")
         self._dialect = dialect
-
         plot_nr = 1
         # read the contents of the file, one plot at a time
         with open(raw_filename, "rb") as raw_file:
