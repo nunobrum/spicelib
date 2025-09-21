@@ -45,18 +45,9 @@ class DataSet(object):
         self.whattype = whattype
         self.numerical_type = numerical_type
         self.datalen = datalen
+        self.data = data
         if data is not None:
-            self.data = data
             assert len(self.data) == datalen, f"Data length {len(self.data)} does not match expected length {datalen}"
-        else:
-            if numerical_type == 'double':
-                self.data = zeros(datalen, dtype=float64)
-            elif numerical_type == 'real':
-                self.data = zeros(datalen, dtype=float32)
-            elif numerical_type == 'complex':
-                self.data = zeros(datalen, dtype=complex128)
-            else:
-                raise NotImplementedError
 
     def __str__(self):
         return f"name:'{self.name}'\ntype:'{self.whattype}'\nlen:{len(self.data)}"
