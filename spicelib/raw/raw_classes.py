@@ -47,7 +47,7 @@ class DataSet(object):
         self.datalen = datalen
         if data is not None:
             self.data = data
-            assert len(self.data) == datalen, "Data length does not match the expected length"
+            assert len(self.data) == datalen, f"Data length {len(self.data)} does not match expected length {datalen}"
         else:
             if numerical_type == 'double':
                 self.data = zeros(datalen, dtype=float64)
