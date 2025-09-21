@@ -289,8 +289,6 @@ class RawRead(PlotInterface):
         # Initialize and type the instance variables, for the documentation
         self._plots: list[PlotData] = []
 
-        # ########## The code starts here
-
         # Validate input parameters
         if isinstance(raw_filename, str):
             raw_filename = Path(raw_filename)
