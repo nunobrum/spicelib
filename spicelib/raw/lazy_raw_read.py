@@ -362,8 +362,6 @@ class PlotData(PlotInterface):
         self._has_axis = False  # Indicates if the RAW file has an axis.
         self._flags = []
 
-        plotinfo = f"Plot nr {plot_nr}:"
-
         # mark the file position of the header section
         # self._fpos_header = raw_file.tell()
 
@@ -383,7 +381,7 @@ class PlotData(PlotInterface):
             sz_enc = 1
             
         if self._verbose:
-            _logger.debug(f"{plotinfo} Reading the file with encoding: '{self._encoding}'")
+            _logger.debug(f"Plot nr. {self._plot_nr}: Reading the file with encoding: '{self._encoding}'")
         
         # Read the header section of the RAW file
 
@@ -393,7 +391,7 @@ class PlotData(PlotInterface):
             if len(ch) == 0:
                 # End of file reached
                 if self._verbose:
-                    _logger.warning(f"{plotinfo} End of file reached while reading the header.")
+                    _logger.warning(f"Plot nr. {self._plot_nr}: End of file reached while reading the header.")
                 # will raise an exception later
                 break
             if ch == '\n':
@@ -414,7 +412,7 @@ class PlotData(PlotInterface):
             # Xyce can have a text section after the binary section, so we cannot raise an exception here
             # this will have to be handled by the caller.
             if self._verbose:
-                _logger.info(f"Invalid RAW file. {plotinfo} Header is incomplete.")
+                _logger.info(f"Invalid RAW file. Plot nr. {self._plot_nr}: Header is incomplete.")
             return
         
         # computing the aliases.
@@ -438,7 +436,7 @@ class PlotData(PlotInterface):
         self._nPoints = int(self._raw_params['No. Points'], 10)
         self._nVariables = int(self._raw_params['No. Variables'], 10)
         if self._nPoints == 0 or self._nVariables == 0:
-            raise SpiceReadException(f"Invalid RAW file. {plotinfo} No points or variables found: Points: {self._nPoints}, Variables: {self._nVariables}.")
+            raise SpiceReadException(f"Invalid RAW file. Plot nr. {self._plot_nr}: No points or variables found: Points: {self._nPoints}, Variables: {self._nVariables}.")
 
         self._has_axis = self._raw_params['Plotname'].lower() not in ('operating point', 'transfer function', 'integrated noise')
                         
@@ -454,14 +452,14 @@ class PlotData(PlotInterface):
                 # binary types: always double for time, complex for AC
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self._raw_params['Command']}'. Using qspice.")
+                    _logger.warning(f"Plot nr. {self._plot_nr}: Dialect is ambiguous: '{self._raw_params['Command']}'. Using qspice.")
                 autodetected_dialect = 'qspice'
             if 'ngspice' in self._raw_params['Command'].lower():
                 # Can only be auto detected from ngspice 44 on, as before there was no "Command:" 
                 # binary types: always double for time, complex for AC
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self._raw_params['Command']}'. Using ngspice.")
+                    _logger.warning(f"Plot nr. {self._plot_nr}: Dialect is ambiguous: '{self._raw_params['Command']}'. Using ngspice.")
                 autodetected_dialect = 'ngspice'
             if 'xyce' in self._raw_params['Command'].lower():
                 # Cannot be auto detected yet (at least not on 7.9, where there is no "Command:")
@@ -470,20 +468,20 @@ class PlotData(PlotInterface):
                 #  and potentially a text (csv) section that follows, that can be ignored.
                 # see if I already saw an autodetected dialect
                 if dialect is None and autodetected_dialect is not None:
-                    _logger.warning(f"{plotinfo} Dialect is ambiguous: '{self._raw_params['Command']}'. Using xyce.")
+                    _logger.warning(f"Plot nr. {self._plot_nr}: Dialect is ambiguous: '{self._raw_params['Command']}'. Using xyce.")
                 autodetected_dialect = 'xyce'
         
         if dialect:
             if autodetected_dialect is not None:
                 if dialect != autodetected_dialect:
-                    _logger.warning(f"{plotinfo} Dialect specified as {dialect}, but the file seems to be from {autodetected_dialect}. Trying to read it anyway.")
+                    _logger.warning(f"Plot nr. {self._plot_nr}: Dialect specified as {dialect}, but the file seems to be from {autodetected_dialect}. Trying to read it anyway.")
         else:
             # no dialect given. Take the autodetected version
             dialect = autodetected_dialect
 
         # Do I have something?
         if not dialect:
-            raise SpiceReadException(f"Invalid RAW file. {plotinfo} file dialect is not specified and could not be auto detected.")
+            raise SpiceReadException(f"Invalid RAW file. Plot nr. {self._plot_nr}: file dialect is not specified and could not be auto detected.")
 
         # and tell the outside world
         self._dialect = dialect
@@ -511,7 +509,7 @@ class PlotData(PlotInterface):
         for line in self.header[i + 1:-1]:  # Parse the variable names
             line_elmts = line.lstrip().split('\t')
             if len(line_elmts) < 3:
-                raise SpiceReadException(f"Invalid RAW file. {plotinfo} Invalid line in the Variables section: {line}")
+                raise SpiceReadException(f"Invalid RAW file. Plot nr. {self._plot_nr}: Invalid line in the Variables section: {line}")
             name = line_elmts[1]
             var_type = line_elmts[2]
             if ivar == 0:  # If it has an axis, it should be always read
@@ -529,7 +527,7 @@ class PlotData(PlotInterface):
             ivar += 1
 
         if self._verbose:
-            _logger.info(f"{plotinfo} Plot is of type '{self.get_plot_name()}', contains {ivar} "
+            _logger.info(f"Plot nr. {self._plot_nr}: Plot is of type '{self.get_plot_name()}', contains {ivar} "
                          f"traces with {self._nPoints} points, reading {len(self._trace_info)} traces.")
 
         # Setting the properties in the proper format
@@ -538,11 +536,11 @@ class PlotData(PlotInterface):
         # Finally, Check for Step Information
         if "stepped" in self._raw_params["Flags"].lower():
             if self._verbose:
-                _logger.debug(f"{plotinfo} RAW file has stepped data.")
+                _logger.debug(f"Plot nr. {self._plot_nr}: RAW file has stepped data.")
             try:
                 self._load_step_information(raw_filename)
             except SpiceReadException as err:
-                _logger.warning(f"{plotinfo} {str(err)}\nError in auto-detecting steps in '{raw_filename}'")
+                _logger.warning(f"Plot nr. {self._plot_nr}: {str(err)}\nError in auto-detecting steps in '{raw_filename}'")
                 if self._has_axis:
                     number_of_steps = 0
                     if self._axis is not None:
@@ -554,7 +552,7 @@ class PlotData(PlotInterface):
                 self._steps = [{'run': i + 1} for i in range(number_of_steps)]
 
         if self._verbose:
-            _logger.info(f"{plotinfo} Plot read successfully.")
+            _logger.info(f"Plot nr. {self._plot_nr}: Plot read successfully.")
         # if the file is binary, we need to move the file pointer to the end of the data section
         if self._raw_type == 'binary:':
             # now move the file pointer to the end of the data section, so that the next plot can be read
@@ -563,7 +561,7 @@ class PlotData(PlotInterface):
         elif self._raw_type == 'values:':
             # In this case for an ASCII file, it will not be lazy and will read all data.
             if self._verbose:
-                _logger.debug(f"{plotinfo} ASCII RAW File")
+                _logger.debug(f"Plot nr. {self._plot_nr}: ASCII RAW File")
             self._read_ascii_vector(raw_file)
 
     def _read_ascii_vector(self, raw_file):
@@ -1674,7 +1672,7 @@ class RawRead(PlotInterface):
         :rtype: pandas.DataFrame
         """
         if len(self._plots) == 0:
-            return OrderedDict()  # Return an empty OrderedDict if no plots are found
+            return {}  # Return an empty dictionary if no plots are found
         return self._plots[0].export(columns=columns, step=step, **kwargs)
 
     def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
@@ -1692,7 +1690,7 @@ class RawRead(PlotInterface):
         """
         # cannot type the return values, as pandas is an optional dependency
         if len(self._plots) == 0:
-            return None
+            raise SpiceReadException("No plots found in the RAW file.")
         return self._plots[0].to_dataframe(columns=columns, step=step, **kwargs)
 
     def to_csv(self, filename: Union[str, Path], columns: Union[list[str], None] = None, step: Union[int, list[int]] = -1,
@@ -1712,7 +1710,7 @@ class RawRead(PlotInterface):
         :type kwargs: ``**dict``
         """
         if len(self._plots) == 0:
-            return
+            raise SpiceReadException("No plots found in the RAW file.")
         return self._plots[0].to_csv(filename=filename, columns=columns, step=step, separator=separator, **kwargs)
 
     def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
@@ -1730,5 +1728,5 @@ class RawRead(PlotInterface):
         :raises ImportError: when the 'pandas' module is not installed
         """
         if len(self._plots) == 0:
-            return
+            raise SpiceReadException("No plots found in the RAW file.")
         return self._plots[0].to_excel(filename=filename, columns=columns, step=step, **kwargs)
