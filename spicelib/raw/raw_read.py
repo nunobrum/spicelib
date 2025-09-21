@@ -301,7 +301,7 @@ def raw_detect_encoding(raw_file: io.IOBase, header_offset=0) -> str:
     """
     # I cannot use detectencoding() here, as that only works on real text files.
     # This may be a partially binary file, where that function breaks.
-    # TODO: you might need to take care of the BOM (Byte Order Mark) in the file.
+
     raw_file.seek(header_offset)
     raw_line = raw_file.read(6)
     if len(raw_line) < 6:
