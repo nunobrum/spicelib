@@ -664,7 +664,7 @@ class PlotData(PlotInterface):
                 else:
                     # Normal Acccess
                     if self._verbose:
-                        _logger.debug(f"{self._raw_filename} Binary RAW file with Fast access")
+                        _logger.debug(f"{self._raw_filename} Binary RAW file with Normal access")
 
                     # create the numpy num_type for the structured array
                     read_dtypes = []
