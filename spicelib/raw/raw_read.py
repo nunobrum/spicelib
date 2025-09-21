@@ -222,10 +222,9 @@ from collections import OrderedDict
 from typing import Union
 from pathlib import Path
 
-from .plot_data import get_remaining_bytes
+from .plot_data import PlotData, get_remaining_bytes
 from .raw_classes import Axis, TraceRead, SpiceReadException
 from .plot_interface import PlotInterface, MIN_BYTES_IN_FILE
-from .. import PlotData
 
 import numpy as np
 import logging
