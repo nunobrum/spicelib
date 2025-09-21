@@ -47,7 +47,7 @@ sys.path.append(
 )  # add project root to lib search path
 
 import spicelib
-from spicelib.raw.lazy_raw_read import RawRead
+from spicelib.raw.raw_read import RawRead
 from numpy import pi, angle, exp
 
 test_dir = "../examples/testfiles/" if os.path.abspath(os.curdir).endswith("unittests") else "./examples/testfiles/"
