@@ -4,7 +4,7 @@ from typing import Union
 
 import numpy as np
 
-from spicelib.raw.raw_classes import Axis, TraceRead, DummyTrace
+from spicelib.raw.raw_classes import Axis, TraceRead
 
 # Constants
 MIN_BYTES_IN_FILE = 20
@@ -104,7 +104,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def get_trace(self, trace_ref: Union[str, int]) -> Union[Axis, TraceRead, DummyTrace]:
+    def get_trace(self, trace_ref: Union[str, int]) -> Union[Axis, TraceRead]:
         """
         Retrieves the trace with the requested name (trace_ref).
 
