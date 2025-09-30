@@ -1194,11 +1194,15 @@ class SpiceCircuit(BaseEditor):
                 line_no = len(self.netlist) - 2
 
         nodes = " ".join(component.ports)
-        model = component.attributes.get('model', None)
-        if model is None:
-            model = ''
-        else:
-            model = f" {model}"
+        # The code below is somewhat superfluous at the moment: 
+        #  Model and Value are used interchangeably and stored as Value.
+        # But this is what would be needed probably:
+        # model = component.attributes.get('model', None)
+        # if model is None:
+        #     model = ''
+        # else:
+        #     model = f" {model}"
+        model = ''
         value = component.attributes.get('value', None)
         if value is not None:
             if isinstance(value, (int, float)):
