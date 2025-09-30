@@ -1184,7 +1184,7 @@ class SpiceCircuit(BaseEditor):
         if 'insert_before' in kwargs:
             line_no = self.get_line_starting_with(kwargs['insert_before'])
         elif 'insert_after' in kwargs:
-            line_no = self.get_line_starting_with(kwargs['insert_after'])
+            line_no = self.get_line_starting_with(kwargs['insert_after']) + 1
         else:
             # Insert before backanno instruction
             try:
@@ -1194,9 +1194,24 @@ class SpiceCircuit(BaseEditor):
                 line_no = len(self.netlist) - 2
 
         nodes = " ".join(component.ports)
-        model = component.attributes.get('model', 'no_model')
-        parameters = " ".join([f"{k}={v}" for k, v in component.attributes.items() if k != 'model'])
-        component_line = f"{component.reference} {nodes} {model} {parameters}{END_LINE_TERM}"
+        model = component.attributes.get('model', None)
+        if model is None:
+            model = ''
+        else:
+            model = f" {model}"
+        value = component.attributes.get('value', None)
+        if value is not None:
+            if isinstance(value, (int, float)):
+                value = format_eng(value)
+            value = f" {value}"
+        else:
+            value = ''
+        if ('params' in component.attributes) and (isinstance(component.attributes['params'], dict)):
+            # Merge params into the main attributes so that they are added to the line
+            parameters = " " + " ".join([f"{k}={v}" for k, v in component.attributes['params'].items()])
+        else:
+            parameters = ''
+        component_line = f"{component.reference} {nodes}{model}{value}{parameters}{END_LINE_TERM}"
         self.netlist.insert(line_no, component_line)
         super().add_component(component.reference)
 
