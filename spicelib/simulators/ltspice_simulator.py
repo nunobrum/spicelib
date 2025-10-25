@@ -354,6 +354,8 @@ class LTspice(Simulator):
             raise NotImplementedError("MacOS native LTspice does not have netlist generation capabilities. Use LTspice under wine.")
         
         cmd_netlist = cls.spice_exe + ['-netlist'] + [circuit_file.as_posix()] + cmd_line_switches
+        # start execution
+        _logger.info("Creating Netlist for %s" % circuit_file)
         if exe_log:
             log_exe_file = circuit_file.with_suffix('.exe.log')            
             with open(log_exe_file, "w") as outfile:

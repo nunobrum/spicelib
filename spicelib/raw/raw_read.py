@@ -9,7 +9,7 @@
 #  ███████║██║     ██║╚██████╗███████╗███████╗██║██████╔╝
 #  ╚══════╝╚═╝     ╚═╝ ╚═════╝╚══════╝╚══════╝╚═╝╚═════╝
 #
-# Name:        lazy_raw_read.py
+# Name:        raw_read.py
 # Purpose:     Reads Spice simulator data files. Ex: .raw or .qraw
 #              In regards to the RawRead class which always read the full extend of the RAW file into memory
 #              this class only reads the raw file headers and gathers information for reading only the requested
