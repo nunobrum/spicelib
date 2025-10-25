@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.7 (alpha)_
+_current version: 1.4.7_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -26,8 +26,8 @@ scripting language.
 
 -- Nuno Brum, creator of this library.
 
-[Ad] For finding the best values for passive components I've created the [WizEIA Calculator](https://WizEIA.com).
-It's awesome.
+<b> [Ad] For finding the best values for passive components I've created the <a href="https://wizEIA.com">WizEIA Calculator</a>.
+Try it. It's awesome. </b>
 
 
 **Table of Contents**
@@ -1125,8 +1125,9 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 
 * Version 1.4.7
-    * Implementing a lazy loading approach in RawRead
+    * Implementing a lazy loading approach in RawRead 
     * Fixing Issue #256 - Correct add_component() in SpiceEditor
+    * Support for string parameters - Issue #154
 * Version 1.4.6
     * Fixing Issue #246 - Correct line continuation handling in netlist, correction to error introduced in 1.4.5
     * Fixing Issue #242 and #243 - Improve error handling in SimServer, and return log information in case of errors.
