@@ -21,6 +21,7 @@
 import os
 import sys
 import unittest
+from copy import copy
 
 sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
@@ -99,6 +100,7 @@ class SpiceEditor_Test(unittest.TestCase):
     def test_component_editing_1_obj(self):
         self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")
         r1 = self.edt['R1']
+        r3 = copy(r1)
         self.assertEqual(r1.value_str, '10k', "Tested R1 Value")
         self.assertEqual(r1.value, 10000, "Tested R1 Numeric Value")
         self.assertListEqual(r1.ports, ['in', 'out'], "Tested R1 Nodes")
@@ -117,13 +119,19 @@ class SpiceEditor_Test(unittest.TestCase):
         self.check_update(self.edt, 'R1:pwr', UpdateType.DeleteComponentParameter, 0, 3)
         self.assertEqual(r1.params['Tc1'], 0, "Tested R1 Tc1 Parameter")
         self.assertEqual(r1.params['Tc2'], 0, "Tested R1 Tc2 Parameter")
-        self.edt.save_netlist(temp_dir + 'test_components_output_2.net')
-        self.equalFiles(temp_dir + 'test_components_output_2.net', golden_dir + 'test_components_output_2.net')
+        r3.reference = 'R3'
+        self.edt.add_component(r3, insert_after='R2')
+        r3 = self.edt['R3']
+        r3.value = '1Meg'
+        self.assertEqual(r3.value_str, '1Meg', "Tested R3 Value")
+        self.edt.save_netlist(temp_dir + 'test_components_output_3.net')
+        self.equalFiles(temp_dir + 'test_components_output_3.net', golden_dir + 'test_components_output_3.net')
         r1_params = self.edt.get_component_parameters('R1')
         for key, value in {'Tc1': 0, 'Tc2': 0}.items():
             self.assertEqual(r1_params[key], value, f"Tested R1 {key} Parameter")
             self.assertEqual(r1[key], value, f"Tested R1 {key} Parameter")
         self.edt.remove_component('R1')
+        self.edt.remove_component('R3')
         self.edt.save_netlist(temp_dir + 'test_components_output_1.net')
         self.equalFiles(temp_dir + 'test_components_output_1.net', golden_dir + 'test_components_output_1.net')
 

@@ -1126,7 +1126,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 * Version 1.4.7
     * Implementing a lazy loading approach in RawRead 
-    * Support for string parameters
+    * Fixing Issue #256 - Correct add_component() in SpiceEditor
+    * Support for string parameters - Issue #154
 * Version 1.4.6
     * Fixing Issue #246 - Correct line continuation handling in netlist, correction to error introduced in 1.4.5
     * Fixing Issue #242 and #243 - Improve error handling in SimServer, and return log information in case of errors.
