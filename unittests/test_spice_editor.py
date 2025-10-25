@@ -163,6 +163,16 @@ class SpiceEditor_Test(unittest.TestCase):
         self.check_update(self.edt, 'expparam', UpdateType.UpdateParameter, -1E-34, 3)
         self.edt.save_netlist(temp_dir + 'test_parameter_output_1.net')
         self.equalFiles(temp_dir + 'test_parameter_output_1.net', golden_dir + 'test_parameter_output_1.net')
+        # String parameters
+        self.edt.set_parameter('bjt_model', '"2N2222"')
+        test_param = self.edt.get_parameter("bjt_model")
+        self.assertEqual('"2N2222"', test_param, "Obtained a text parameter")
+        # Formulas
+        self.edt.set_parameter("test_param1", "{sin(2*pi*sqrt(a/b)*time)}")
+        self.edt.set_parameter("test_param3", "{duty/freq + tstart + trise + tfall}")
+        self.edt.save_netlist(temp_dir + 'test_parameter_output_2.net')
+        self.equalFiles(temp_dir + 'test_parameter_output_2.net', golden_dir + 'test_parameter_output_2.net')
+
 
     def test_instructions(self):
         self.edt.add_instruction('.ac dec 10 1 100k')
