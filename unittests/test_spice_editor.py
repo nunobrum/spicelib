@@ -31,6 +31,8 @@ from spicelib.editor.base_editor import to_float
 from spicelib.editor.spice_editor import component_replace_regexs, SpiceCircuit
 from spicelib.editor.updates import UpdateType
 
+import io
+
 test_dir = '../examples/testfiles/' if os.path.abspath(os.curdir).endswith('unittests') else './examples/testfiles/'
 golden_dir = './golden/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/golden/'
 temp_dir = './temp/' if os.path.abspath(os.curdir).endswith('unittests') else './unittests/temp/'
@@ -202,6 +204,16 @@ class SpiceEditor_Test(unittest.TestCase):
         self.check_update(self.edt, 'INSTRUCTION', UpdateType.DeleteInstruction, '.save I(D1)')
         self.edt.save_netlist(temp_dir + 'test_instructions_output_2.net')
         self.equalFiles(temp_dir + 'test_instructions_output_2.net', golden_dir + 'test_instructions_output_2.net')
+        # Test storing netlists in StringIO
+        buffer=io.StringIO()
+        self.edt.save_netlist(buffer)
+        buffer.seek(0)
+        with open(temp_dir + 'test_instructions_output_2_StringIO.net', 'w') as f:
+            for line in buffer:
+                f.write(line)
+        self.equalFiles(temp_dir + 'test_instructions_output_2_StringIO.net', golden_dir + 'test_instructions_output_2.net')
+        
+
 
     def equalFiles(self, file1, file2):
         with open(file1, 'r') as f1:
