@@ -31,6 +31,7 @@ from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 from ..utils.file_search import search_file_in_containers
 from ..log.logfile_data import try_convert_value
 from ..simulators.ltspice_simulator import LTspice
+import io
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 
@@ -1270,7 +1271,7 @@ class SpiceCircuit(BaseEditor):
                             circuit_nodes.append(node)
         return circuit_nodes
 
-    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
         # docstring is in the parent class
         pass
 
@@ -1553,25 +1554,31 @@ class SpiceEditor(SpiceCircuit):
             _logger.error(f'No instruction matching pattern "{search_pattern}" was found')
             return False
 
-    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
         # docstring is in the parent class
         if isinstance(run_netlist_file, str):
-            run_netlist_file = Path(run_netlist_file)
+           run_netlist_file = Path(run_netlist_file)
+        if isinstance(run_netlist_file, Path):
+           f=open(run_netlist_file, 'w', encoding=self.encoding)
+        else:
+           f=run_netlist_file
 
-        with open(run_netlist_file, 'w', encoding=self.encoding) as f:
-            lines = iter(self.netlist)
-            for line in lines:
-                if isinstance(line, SpiceCircuit):
-                    line._write_lines(f)
-                elif isinstance(line, ControlEditor):  # same for control editor
-                    line._write_lines(f)
-                else:
-                    # Writes the modified sub-circuits at the end just before the .END clause
-                    if line.upper().startswith(".END"):
-                        # write here the modified sub-circuits
-                        for sub in self.modified_subcircuits.values():
-                            sub._write_lines(f)
-                    f.write(line)
+        lines = iter(self.netlist)
+        for line in lines:
+            if isinstance(line, SpiceCircuit):
+                line._write_lines(f)
+            elif isinstance(line, ControlEditor):  # same for control editor
+                line._write_lines(f)
+            else:
+                # Writes the modified sub-circuits at the end just before the .END clause
+                if line.upper().startswith(".END"):
+                    # write here the modified sub-circuits
+                    for sub in self.modified_subcircuits.values():
+                        sub._write_lines(f)
+                f.write(line)
+                
+        if isinstance(run_netlist_file, Path):
+            f.close()
 
     def get_control_sections(self) -> list[str]:
         """
