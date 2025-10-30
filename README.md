@@ -1123,7 +1123,8 @@ For support and improvement requests please open an Issue
 in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
-
+* Version 1.4.8
+    * SpiceEditor: Allow writing of netlists directly to an io.StringIO buffer (Issue  #258)
 * Version 1.4.7
     * Implementing a lazy loading approach in RawRead 
     * Fixing Issue #256 - Correct add_component() in SpiceEditor
