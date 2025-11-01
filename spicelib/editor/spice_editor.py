@@ -161,7 +161,7 @@ REPLACE_REGEXS = {
     # Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
     'J': PREFIX_AND_NODES_RGX("J", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # JFET
     # Kxxx Lyyy Lzzz ... value
-    'K': PREFIX_AND_NODES_RGX("K", 2, 99) + r"\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*" + COMMENT_RGX,  # Mutual Inductance
+    'K': PREFIX_AND_NODES_RGX("K", 2, 99) + r"\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?)" + COMMENT_RGX,  # Mutual Inductance
     # Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
     # Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>
     'L': PREFIX_AND_NODES_RGX("L", 2) + VALUE_RGX("L", r"(Meg|[kmuµnpgt])?H?\d*") + PARAM_RGX,  # Inductance
