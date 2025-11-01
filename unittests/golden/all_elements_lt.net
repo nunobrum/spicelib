@@ -82,7 +82,7 @@ Q2 NC_38 NC_39 NC_40 1e-9 temp=60 ic=0.6, 5
 * Rxxx n1 n2 <value> [tc=tc1, tc2, ...] [temp=<value>] ...
 * Rxxx n+ n- <value> <mname> <l=length> <w=width> ...
 * Rxxx n+ n- R = 'expression' <tc1=value> <tc2=value> <noisy=0> ...
-R1 in out 1e-9
+R1 in out 1e-9 ; withcomments
 R2 NC_41 NC_42 R= 1e-9
 R3 NC_41 NC_42 1e-9 temp=13
 R4 in out 1e-9 tol=1% pwr=0.1
@@ -112,7 +112,7 @@ W1 NC_56 NC_57 V1 1e-9
 
 * Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
 XU1 1 2 1e-9
-XU2 NC_58 NC_59 NC_60 NC_61 NC_62 1e-9
+XU2 NC_58 NC_59 NC_60 NC_61 NC_62 1e-9 ;§ withcomments
 XU3 NC_01 NC_02 NC_03 NC_04 NC_05 1e-9 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=1e-09 In=0 Ink=0 Rin=500Meg blabla=1 2 3 4 5 6 7
 XU4 in out1 V1 V2 out1 1e-9 bla_v2=1e-09 bla_sp2=3 blabla=1 2 3 4 5 6 7
 XU5 in out1 V1 V2 out1 GND 1e-9
