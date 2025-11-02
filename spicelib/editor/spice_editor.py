@@ -1277,7 +1277,13 @@ class SpiceCircuit(BaseEditor):
         return circuit_nodes
 
     def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
-        # docstring is in the parent class
+        """
+        Saves the current state of the netlist to a file or a string.
+
+        :param run_netlist_file: File name of the netlist file, or a StringIO object.
+        :type run_netlist_file: pathlib.Path or str or io.StringIO
+        :returns: Nothing
+        """
         pass
 
     def add_instruction(self, instruction: str) -> None:
@@ -1560,13 +1566,19 @@ class SpiceEditor(SpiceCircuit):
             return False
 
     def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
-        # docstring is in the parent class
+        """
+        Saves the current state of the netlist to a file or a string.
+
+        :param run_netlist_file: File name of the netlist file, or a StringIO object.
+        :type run_netlist_file: pathlib.Path or str or io.StringIO
+        :returns: Nothing
+        """
         if isinstance(run_netlist_file, str):
-           run_netlist_file = Path(run_netlist_file)
+            run_netlist_file = Path(run_netlist_file)
         if isinstance(run_netlist_file, Path):
-           f=open(run_netlist_file, 'w', encoding=self.encoding)
+            f = open(run_netlist_file, 'w', encoding=self.encoding)
         else:
-           f=run_netlist_file
+            f = run_netlist_file
 
         lines = iter(self.netlist)
         for line in lines:
