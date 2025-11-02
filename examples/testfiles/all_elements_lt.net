@@ -84,7 +84,7 @@ Q2 NC_38 NC_39 NC_40 BC517 temp=60 ic=0.6, 5
 * Rxxx n1 n2 <value> [tc=tc1, tc2, ...] [temp=<value>] ...
 * Rxxx n+ n- <value> <mname> <l=length> <w=width> ...
 * Rxxx n+ n- R = 'expression' <tc1=value> <tc2=value> <noisy=0> ...
-R1 in out 10k
+R1 in out 10k ; withcomments
 R2 NC_41 NC_42 R=2k5R
 R3 NC_41 NC_42 'V(cc) < {Vt} ? {R1} : {R2}' temp=13
 R4 in out 10k tol=1% pwr=0.1
@@ -114,7 +114,7 @@ W1 NC_56 NC_57 V1 W on
 
 * Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
 XU1 1 2 a
-X§U2 NC_58 NC_59 NC_60 NC_61 NC_62 AD549
+X§U2 NC_58 NC_59 NC_60 NC_61 NC_62 AD549 ;§ withcomments
 XU3 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
 XU4 in out1 V1 V2 out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
 XU5 in out1 V1 V2 out1 GND OPAx189_float

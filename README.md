@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.7_
+_current version: 1.4.8 (alpha)_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1124,9 +1124,10 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 * Version 1.4.8
+    * Fixing Issue #262 - Support for comments in netlists
     * SpiceEditor: Allow writing of netlists directly to an io.StringIO buffer (Issue  #258)
 * Version 1.4.7
-    * Implementing a lazy loading approach in RawRead 
+    * Implementing a lazy loading approach in RawRead
     * Fixing Issue #256 - Correct add_component() in SpiceEditor
     * Support for string parameters - Issue #154
 * Version 1.4.6

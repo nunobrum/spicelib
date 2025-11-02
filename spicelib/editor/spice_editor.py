@@ -74,11 +74,15 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> 
     return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥]+){" + nodes_str + "})"
 
 
+# Optional comment at end of line. Will consume trailing spaces and is to be used on all lines.
+COMMENT_RGX = r"(?:\s+;.*)?\\?\s*$"
+
 # Potential model name, probably needs expanding. Will require a leading space
 MODEL_OR_VALUE_RGX = r"\s+(?P<value>[\w\.\-\{\}]+)"
 
-# the rest of the line. Cannot be used with PARAM. Will require a leading space, and finish the line
-ANY_VALUE_RGX = r"\s+(?P<value>.*)$"
+# the rest of the line. Cannot be used with PARAM. 
+# Includes the comment regex and will expect to finish the line.
+ANY_VALUE_RGX = r"\s+(?P<value>.*)" + COMMENT_RGX
 
 # maybe a value. Will require a leading space
 MAYBE_VALUE_RGX = r"\s+(?P<value>.*?)"
@@ -108,8 +112,9 @@ def VALUE_RGX(prefix: str, number_regex_suffix: str) -> str:
     
 # Parameters expression of the type: key = value. 
 # key must be a full word without signs or dots
-# Value may be composite, and contain multiple spaces and quotes. Will expect to finish the line.
-PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)?)*)?\\?\s*$"
+# Value may be composite, and contain multiple spaces and quotes. 
+# Includes the comment regex and will expect to finish the line.
+PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)?)*)?" + COMMENT_RGX
 
     
 REPLACE_REGEXS = {
@@ -153,11 +158,11 @@ REPLACE_REGEXS = {
     # Ixxx n+ n- R=<value>
     # Ixxx n+ n- PWL(t1 i1 t2 i2 t3 i3...)
     # Ixxx n+ n- wavefile=<filename> [chan=<nnn>]
-    'I': PREFIX_AND_NODES_RGX("I", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)*)$",  # Independent Current Source
+    'I': PREFIX_AND_NODES_RGX("I", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)*)" + COMMENT_RGX,  # Independent Current Source
     # Jxxx D G S <model> [area] [off] [IC=Vds, Vgs] [temp=T]
     'J': PREFIX_AND_NODES_RGX("J", 3) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # JFET
     # Kxxx Lyyy Lzzz ... value
-    'K': PREFIX_AND_NODES_RGX("K", 2, 99) + r"\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?).*$",  # Mutual Inductance
+    'K': PREFIX_AND_NODES_RGX("K", 2, 99) + r"\s+(?P<value>[\+\-]?[0-9\.E+-]+[kmuµnpgt]?)" + COMMENT_RGX,  # Mutual Inductance
     # Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
     # Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>
     'L': PREFIX_AND_NODES_RGX("L", 2) + VALUE_RGX("L", r"(Meg|[kmuµnpgt])?H?\d*") + PARAM_RGX,  # Inductance
@@ -192,14 +197,14 @@ REPLACE_REGEXS = {
     # Vxxx n+ n- PWL(t1 v1 t2 v2 t3 v3...)
     # Vxxx n+ n- wavefile=<filename> [chan=<nnn>]
     # ex: V1 NC_08 NC_09 PWL(1u 0 +2n 1 +1m 1 +2n 0 +1m 0 +2n -1 +1m -1 +2n 0) AC 1 2 Rser=3 Cpar=4
-    'V': PREFIX_AND_NODES_RGX("V", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)*)$",  # Independent Voltage Source
+    'V': PREFIX_AND_NODES_RGX("V", 2) + MAYBE_VALUE_RGX + r"(?P<params>(\s+\w+\s*=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)*)" + COMMENT_RGX,  # Independent Voltage Source
     # Wxxx n1 n2 Vnam <model> [on,off]
     'W': PREFIX_AND_NODES_RGX("W", 3) + ANY_VALUE_RGX,  # Current Controlled Switch
     # Xxxx n1 n2 n3... <subckt name> [<parameter>=<expression>]
     # ex: XU1 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
     #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
     #     XU1 in out1 -V +V out1 GND OPAx189_float    
-    'X': PREFIX_AND_NODES_RGX("X", 1, 99) + MODEL_OR_VALUE_RGX + r"(?:\s+(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?\\?\s*$",
+    'X': PREFIX_AND_NODES_RGX("X", 1, 99) + MODEL_OR_VALUE_RGX + r"(?:\s+(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?" + COMMENT_RGX,  # Subcircuit Instance
     # (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
     # (qspice) Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]
     'Y': PREFIX_AND_NODES_RGX("Y", 2, 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Single Lossy Transmission Line

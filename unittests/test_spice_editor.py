@@ -527,7 +527,12 @@ class SpiceEditor_Test(unittest.TestCase):
         for el, exp in expected.items():
             # print(f"Reading {el}")
             value = exp[0]
-            self.assertEqual(edt.get_component_value(el).casefold(), value.casefold(), f"Test reading {el} Value")
+            if value is None:
+                value = ""
+            v2 = edt.get_component_value(el)
+            if v2 is None:
+                v2 = ""
+            self.assertEqual(v2.casefold(), value.casefold(), f"Test reading {el} Value")
             params = edt.get_component_parameters(el)
             self.assertDictEqual(params, params | exp[1], f"Test reading {el} Parameters")
         
