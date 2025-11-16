@@ -120,6 +120,10 @@ V53 VDD 0 5
 V54 N66 0 PULSE 0 5 5µ 1n 1n 50µ 100µ
 V55 CLR 0 PULSE 0 5 10m 1n 1n 50µ 10m
 V56 N67 0 PULSE 0 5 1m 1n 1n 50µ 1m
+Ø´X1 «CLK´b PRESET´b NIBBLE´uc» «OUT´uc MATCHED´b» «»  counter shortfloat test = 2
+V101 NIBBLE 0 6
+V102 CLK 0 PULSE 0 1 0 1µ 1µ .5m 1m
+V103 PRESET 0 pulse 0 1 25m 1µ 1µ .2m 25m
 .TRAN 100m
 .model urcmodel URC CPERL=100p RPERL=50m
 K1 L4 L5 1
