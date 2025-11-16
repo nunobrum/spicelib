@@ -203,7 +203,8 @@ class QschEditorSpiceGeneration(unittest.TestCase):
 
     def test_all_elements(self):
         self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "all_elements.qsch")
-        self.edt.save_netlist(temp_dir + "all_elements.net")
+        counter_config = {"X1": ["in,b", "in,b", "in,uc", "out,uc", "out,b"]}
+        self.edt.save_netlist(temp_dir + "all_elements.net", counter_config)
         equalFiles(self, temp_dir + 'all_elements.net', golden_dir + "all_elements.net")
 
 

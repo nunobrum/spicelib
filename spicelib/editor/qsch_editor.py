@@ -319,7 +319,7 @@ class QschTag:
             raise ValueError("Object not supported in set_attr")
         self.tokens[index] = value_str
 
-    def get_text(self, label: str, default: str = None) -> str:
+    def get_text(self, label: str, default: Union[str, None] = None) -> str:
         """
         Returns the text of the first child tag that matches the given label. The label can have up to 1 space in it.
         It will return the entire text of the tag, after the label.
@@ -336,7 +336,7 @@ class QschTag:
         a = self.get_items(label + ':')
         if len(a) != 1:
             if default is None:
-                raise IndexError(f"Label '{label}' not found in:{self}")
+                raise IndexError(f"Label '{label}' not found in {self}")
             else:
                 return default
         if len(a[0].tokens) >= 2:
@@ -386,6 +386,9 @@ class QschEditor(BaseSchematic):
         """
         Saves the schematic to a QSCH file. The file is saved in cp1252 encoding.
         """
+        if not self.schematic:
+            _logger.error("Empty Schematic information")
+            return
         if self.updated or Path(qsch_filename) != self._qsch_file_path:
             with open(qsch_filename, 'w', encoding="cp1252") as qsch_file:
                 _logger.info(f"Writing QSCH file {qsch_file}")
@@ -402,16 +405,22 @@ class QschEditor(BaseSchematic):
                 if sub_circuit is not None and sub_circuit.updated:
                     sub_circuit.save_as(sub_circuit._qsch_file_path)
 
-    def write_spice_to_file(self, netlist_file: TextIO):
+    def write_spice_to_file(self, netlist_file: TextIO, verilog_config: dict[str, list[str]] = {}):
         """
         Appends the netlist to a file buffer.
 
         :param netlist_file: The file buffer to save the netlist
         :type netlist_file: TextIO
+        :param verilog_config: Mandatory when using Ø components: Verilog modules in a DLL. Details: see `save_netlist()`
+        :type verilog_config: dict
         :return: Nothing
         """
         libraries_to_include = []
         subcircuits_to_write = OrderedDict()
+        
+        if not self.schematic:
+            _logger.error("Empty Schematic information")
+            return
 
         for refdes, component in self.components.items():
             component: SchematicComponent
@@ -426,8 +435,13 @@ class QschEditor(BaseSchematic):
                 symbol = symbol_tag.get_text_attr(1)
                 typ = symbol_tag.get_text('type')
             else:
+                typ = symbol_tag.get_text('type', "X")
                 symbol = 'X'
-                typ = 'X'
+                if not typ or typ[0] != 'Ø':
+                    typ = 'X'
+                else:
+                    typ = 'Ø'
+                    symbol = component.value
 
             if refdes[0] != typ[0]:
                 refdes = typ[0] + '´' + refdes
@@ -440,9 +454,11 @@ class QschEditor(BaseSchematic):
 
             ports = component.ports.copy()
             if typ in ('¥', 'Ã'):
+                # these 2 types MUST have 16 ports
                 if len(ports) < 16:
                     ports += ['¥'] * (16 - len(ports))
 
+            # Default nets assignment: just a concatenation of the port names
             nets = " ".join(ports)
             model = texts[1].get_text_attr(QSCH_TEXT_STR_ATTR)
             
@@ -499,6 +515,40 @@ class QschEditor(BaseSchematic):
                 netlist_file.write(f'{refdes} «{nets}» {model}{parameters}\n')
             elif typ in ('ZP', 'ZN'):
                 netlist_file.write(f'{refdes} {nets} {model} {symbol}{parameters}\n')
+            elif typ == 'Ø':
+                # Verilog module. Group the pin configurations, and annmotate the pins
+                basic_refdes = refdes[2:] if '´' in refdes else refdes
+                if basic_refdes in verilog_config:
+                    pin_configs = verilog_config[basic_refdes]
+                    if len(pin_configs) < len(ports):
+                        _logger.error(f"Verilog component {basic_refdes} has insufficient pin configuration, expected {len(ports)} but got {len(pin_configs)}.  Netlist will be wrong.")
+                    else:
+                        in_ports = ""
+                        out_ports = ""
+                        common_ports = ""
+                        for i in range(0, len(ports)):
+                            direction_type = pin_configs[i].split(',')
+                            if len(direction_type) != 2:
+                                _logger.error(f"Verilog component {basic_refdes} has invalid pin configuration '{pin_configs[i]}' for pin {i+1}. Expected format is 'direction,type'. Netlist will be wrong.")
+                                continue
+                            direction = direction_type[0].lower()
+                            port_type = direction_type[1]
+                            if direction in ('in', 'input'):
+                                in_ports += f" {ports[i]}´{port_type}"
+                            elif direction in ('out', 'output'):
+                                out_ports += f" {ports[i]}´{port_type}"
+                            elif direction in ('common', 'inout'):
+                                common_ports += f" {ports[i]}´{port_type}"
+                            else:
+                                _logger.error(f"Verilog component {basic_refdes} has unknown pin direction '{direction}' for pin {i+1}. Expected 'in', 'out' or 'common'. Netlist will be wrong.")
+                        in_ports = in_ports.strip()
+                        out_ports = out_ports.strip()
+                        common_ports = common_ports.strip()
+                        model = ""
+                        netlist_file.write(f'{refdes} «{in_ports}» «{out_ports}» «{common_ports}» {model} {symbol}{parameters}\n')
+                else:
+                    _logger.error(f"Verilog component {basic_refdes} used without pin configuration. Netlist will be wrong.")
+                
             else:
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
@@ -532,12 +582,23 @@ class QschEditor(BaseSchematic):
 
         # Note: the .END or .ENDCKT must be inserted by the calling function
 
-    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path], verilog_config: dict[str, list[str]] = {}) -> None:
         """
         Saves the current state of the netlist to a .qsh or to a .net or .cir file.
 
         :param run_netlist_file: File name of the netlist file. Can be .qsch, .net or .cir
         :type run_netlist_file: pathlib.Path or str
+        :param verilog_config: Mandatory when using Ø components: Verilog modules in a DLL.
+                                A dictionary with the component reference designators as keys and a 
+                                list of pin configurations as values, starting at the first pin (port).
+                                Each entry must have the format: "direction,type" where
+                                
+                                * direction is either "in"/"input", "out"/"output", "common"/"inout"
+                                * type is any of the verilog port types, for example "b", "uc", "f"
+                                
+                                Example: `{"X1": ["in,b", "in,b", "in,uc", "out,uc", "out,b"]}`
+                                Here the component "X1" has 5 pins, pin 1 is an input of type "bit" and pin 4 is an output of type "unsigned char".
+        :type verilog_config: dict[str, list[str]]
         :returns: Nothing
         """
         if isinstance(run_netlist_file, str):
@@ -552,7 +613,7 @@ class QschEditor(BaseSchematic):
             with open(run_netlist_file, 'w', encoding="cp1252") as netlist_file:
                 _logger.info(f"Writing NET file {run_netlist_file}")
                 netlist_file.write(f'* {os.path.abspath(self._qsch_file_path.as_posix())}\n')
-                self.write_spice_to_file(netlist_file)
+                self.write_spice_to_file(netlist_file, verilog_config)
                 netlist_file.write('.end\n')
 
     def _find_pin_position(self, comp_pos, orientation: int, pin: QschTag) -> tuple[int, int]:
@@ -698,6 +759,8 @@ class QschEditor(BaseSchematic):
 
             self.components[refdes] = sch_comp
             if refdes.startswith('X'):
+                if sch_comp.attributes['type'].startswith("Ø"):
+                    have_embedded_subcircuit = True
                 if not have_embedded_subcircuit:
                     sub_circuit_name = value + os.path.extsep + 'qsch'
                     mydir = self.circuit_file.parent.absolute().as_posix()
@@ -1146,6 +1209,7 @@ class QschEditor(BaseSchematic):
 
             for shape in self.shapes:
                 # TODO: Implement the line type and width conversion from LTSpice to QSpice.
+                shape_tag = None
                 if shape.name == "RECTANGLE" or shape.name == "rect":
                     shape_tag, _ = QschTag.parse('«rect (1850,1550) (3650,-400) 0 0 2 0xff0000 0x1000000 -1 0 -1»')
                     shape_tag.set_attr(QSCH_RECT_POS1, (shape.points[0].X, shape.points[0].Y))
@@ -1189,7 +1253,8 @@ class QschEditor(BaseSchematic):
                 else:
                     print(f"Invalid shape {shape.name}. Being ignored. Ask Developper to implement this")
 
-                self.schematic.items.append(shape_tag)
+                if shape_tag:
+                    self.schematic.items.append(shape_tag)
 
             for text in self.directives:
                 text_tag, _ = QschTag.parse('«text (0,0) 1 7 0 0x1000000 -1 -1 "text"»')
