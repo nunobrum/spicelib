@@ -457,6 +457,14 @@ class QschEditor(BaseSchematic):
                 # these 2 types MUST have 16 ports
                 if len(ports) < 16:
                     ports += ['¥'] * (16 - len(ports))
+            if typ == '€':
+                # this type MUST have 32 ports
+                if len(ports) < 32:
+                    ports += ['¥'] * (32 - len(ports))
+            if typ == '£':
+                # this type MUST have 64 ports
+                if len(ports) < 64:
+                    ports += ['¥'] * (64 - len(ports))
 
             # Default nets assignment: just a concatenation of the port names
             nets = " ".join(ports)
@@ -738,7 +746,7 @@ class QschEditor(BaseSchematic):
                 net = self._find_net_at_position(x, y)
                 # The pins that have "¥" are behavioral pins, they are not connected to any net, they will be connected
                 # to a net later.
-                if refdes[0] in ('¥', 'Ã'):
+                if refdes[0] in ('¥', 'Ã', '€', '£'):
                     if (len(pin.tokens) > QSCH_SYMBOL_PIN_NET_BEHAVIORAL and
                             pin.get_attr(QSCH_SYMBOL_PIN_NET_BEHAVIORAL) == '¥'):
                         net = '¥'
@@ -748,7 +756,7 @@ class QschEditor(BaseSchematic):
                         net = unconnected_pins[hash_key]
                     else:
                         _logger.info(f"Unconnected pin at {x},{y} in component {refdes}:{pin}")
-                        if refdes[0] in ('¥', 'Ã'):  # Behavioral pins are not connected
+                        if refdes[0] in ('¥', 'Ã', '€', '£'):  # Behavioral pins are not connected
                             net = f'¥{behavior_pin_counter:d}'
                             behavior_pin_counter += 1
                         else:

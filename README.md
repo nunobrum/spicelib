@@ -483,8 +483,8 @@ Not all elements support value editing or parameter editing, and not all element
 | ¥<br>(qspice)  | various | `¥xxx (16 nodes) value [parmkey=parmvalue]...` | holds model | yes |
 | €<br>(qspice)  | DAC | `€xxx (32 nodes) value [parmkey=parmvalue]...` | holds model | yes |
 | £<br>(qspice)  | Dual Gate Driver | `£xxx (64 nodes) value [parmkey=parmvalue]...` | holds model | yes |
-| Ø<br>(qspice)  | DLL | `Øxxx (1..99 nodes) value [parmkey=parmvalue]...` | holds model | yes |
-| ×<br>(qspice)  | Transformer | `×xxx (4..100 nodes) [parmkey=parmvalue]...` | no | yes |
+| Ø<br>(qspice)  | DLL | `Øxxx «(1..99 nodes)» «(0..99 nodes)» «(0..99 nodes)» value [parmkey=parmvalue]...` | holds model | yes (7) |
+| ×<br>(qspice)  | Transformer | `×xxx «(4..100 nodes)» [parmkey=parmvalue]...` | no | yes |
 | Ö<br>(ltspice) | Specialised OTA | `Öxxx (1..99 nodes) value [parmkey=parmvalue]...` | yes | yes |
 
 ---
@@ -498,6 +498,7 @@ For all parameters, composite parameter values (like `ic=vbe, vce`  or `turns=1 
 4. Can be a value or a formula. Formulas with embedded `=` signs are not supported, use `<` or `>`.
 5. Charge formulated expressions (`Q=...`) are not supported.
 6. Includes everything after first 2 nodes.
+7. when using `save_netlist()`, you must specify the pin configuration of the `Ø` component, as spicelib is not equipped to read that from the DLL. See the documentation of `QschEditor.save_netlist()`. Also, when doing simulations, make sure that the simulator can find the DLL: place it in the same directory as the netlist, or in the simulation output directory, depending on how the simulator is called.
 
 ---
 
@@ -1124,6 +1125,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
 * Version 1.4.8
+    * Fixing Issue #269 - Support for Ø,€,£,× components for Qspice
     * Fixing Issue #262 - Support for comments in netlists
     * SpiceEditor: Allow writing of netlists directly to an io.StringIO buffer (Issue  #258)
 * Version 1.4.7

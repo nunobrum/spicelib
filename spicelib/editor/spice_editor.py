@@ -71,7 +71,7 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> 
         # designator: word
         # nodes: 1 or more words with signs and . allowed. DO NOT include '=' (like with \S) as it will mess up params
         # The ¥ is for qspice
-    return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥]+){" + nodes_str + "})"
+    return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥«»]+){" + nodes_str + "})"
 
 
 # Optional comment at end of line. Will consume trailing spaces and is to be used on all lines.
