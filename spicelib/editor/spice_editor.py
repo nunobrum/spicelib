@@ -53,7 +53,7 @@ END_LINE_TERM = '\n'  #: This controls the end of line terminator used
 # NUMBER_RGX = FLOAT_RGX + r"(Meg|[kmuµnpfgt])?[a-zA-Z]*"
 
 
-def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> str:
+def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None, in_quotes: bool = False) -> str:
     """Create regex for the designator and nodes. Will not consume a trailing space.
 
     :param prefix: the prefix character of the element. 1 character.
@@ -62,6 +62,8 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> 
     :type nodes_min: int
     :param nodes_max: maximum number of nodes. None means: fixed number of nodes = nodes_min. Defaults to None
     :type nodes_max: int, optional
+    :param in_quotes: whether the nodes may be enclosed in quotes « » (qspice). Defaults to False
+    :type in_quotes: bool, optional
     :return: regex for the designator and nodes
     :rtype: str
     """
@@ -71,7 +73,10 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None) -> 
         # designator: word
         # nodes: 1 or more words with signs and . allowed. DO NOT include '=' (like with \S) as it will mess up params
         # The ¥ is for qspice
-    return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥«»]+){" + nodes_str + "})"
+    if in_quotes:
+        return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>\\s+«(?:\\s?[\\w+-\\.¥«´»]+){" + nodes_str + "}\\s*»)"
+    else:
+        return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥«»]+){" + nodes_str + "})"
 
 
 # Optional comment at end of line. Will consume trailing spaces and is to be used on all lines.
@@ -224,8 +229,8 @@ REPLACE_REGEXS = {
     '¥': PREFIX_AND_NODES_RGX("¥", 16) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Various
     '€': PREFIX_AND_NODES_RGX("€", 32) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DAC
     '£': PREFIX_AND_NODES_RGX("£", 64) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Dual Gate Driver
-    'Ø': PREFIX_AND_NODES_RGX("Ø", 1, 99) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DLL
-    '×': PREFIX_AND_NODES_RGX("×", 4, 100) + NO_VALUE_RGX + PARAM_RGX,  # transformer
+    'Ø': PREFIX_AND_NODES_RGX("Ø´?", 1, 99, in_quotes=True) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DLL
+    '×': PREFIX_AND_NODES_RGX("×", 4, 100, in_quotes=True) + NO_VALUE_RGX + PARAM_RGX,  # transformer
     
     # LTSPICE Unique components:
     'Ö': PREFIX_AND_NODES_RGX("Ö", 5) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # specialised OTA
@@ -349,6 +354,10 @@ def _parse_params(params_str: str) -> dict:
     
     params = {}
     # now split in pairs
+    # This will match key=value pairs, where value may contain spaces, but not unescaped '=' signs
+    
+    # TODO: do not allow spaces in value, and find a way to also produce parameters that are not in key=value pairs
+    # TODO but first find out how to name that and how to handle it
     pattern = r"(\w+)=(.*?)(?<!\\)(?=\s+\w+=|$)"
     matches = re.findall(pattern, params_str)
     if matches:
