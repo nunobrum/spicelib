@@ -85,7 +85,7 @@ COMMENT_RGX = r"(?:\s+;.*)?\\?\s*$"
 # Potential model name, probably needs expanding. Will require a leading space
 MODEL_OR_VALUE_RGX = r"\s+(?P<value>[\w\.\-\{\}]+)"
 
-# the rest of the line. Cannot be used with PARAM. 
+# the rest of the line. Cannot be used with PARAM.
 # Includes the comment regex and will expect to finish the line.
 ANY_VALUE_RGX = r"\s+(?P<value>.*)" + COMMENT_RGX
 
@@ -114,14 +114,14 @@ def VALUE_RGX(prefix: str, number_regex_suffix: str) -> str:
         number_regex_suffix + ")?(?P<formula1>\")?(?P<formula2>')?(?P<formula3>{)?" + \
         "(?(number)|(?(formula1).*\"|(?(formula2).*'|(?(formula3).*}|\\S*)))))"
 
-    
-# Parameters expression of the type: key = value. 
+
+# Parameters expression of the type: key = value.
 # key must be a full word without signs or dots
-# Value may be composite, and contain multiple spaces and quotes. 
+# Value may be composite, and contain multiple spaces and quotes.
 # Includes the comment regex and will expect to finish the line.
 PARAM_RGX = r"(?P<params>(\s+\w+\s*(=\s*[\w\{\}\(\)\-\+\*\/%\.\,'\"\s]+)?)*)?" + COMMENT_RGX
 
-    
+
 REPLACE_REGEXS = {
     'A': r"",  # LTspice Only : Special Functions, Parameter substitution not supported
     # Bxxx n001 n002 [VIRP]=<expression> [ic=<value>] ...
@@ -243,12 +243,12 @@ component_replace_regexs = {}
 for prefix, pattern in REPLACE_REGEXS.items():
     # print(f"Compiling regex for {prefix}: {pattern}")
     component_replace_regexs[prefix] = re.compile(pattern, re.IGNORECASE)
-    
+
 # component_replace_regexs = {prefix: re.compile(pattern, re.IGNORECASE) for prefix, pattern in REPLACE_REGEXS.items()}
 subckt_regex = re.compile(r"^.SUBCKT\s+(?P<name>[\w\.]+)", re.IGNORECASE)
 lib_inc_regex = re.compile(r"^\.(LIB|INC)\s+(.*)$", re.IGNORECASE)
 
-# The following variable deprecated, and here only so that people can find it. 
+# The following variable deprecated, and here only so that people can find it.
 # It is replaced by SpiceEditor.set_custom_library_paths().
 # Since I cannot keep it operational easily, I do not use the deprecated decorator or the magic from https://stackoverflow.com/a/922693.
 #
@@ -351,12 +351,44 @@ def _parse_params(params_str: str) -> dict:
     params_str = _clean_line(params_str)
     if len(params_str) == 0:
         return {}
-    
+
     params = {}
     # now split in pairs
     # This will match key=value pairs, where value may contain spaces, but not unescaped '=' signs
-    
-    # TODO in case of certain qspice components (Ø), allow "type key=value", but that is not easy to do, as we do not know the component type here
+
+    # TODO in case of a qspice verilog component (Ø), allow "type key=value", but that is not easy to do, as we do not know the component type here
+    # Here are the allowed types, just in case this will be correctly implemented one day:
+    # verilog_types = [
+    #     "bit",
+    #     "bool",
+    #     "boolean",
+    #     "int8_t",
+    #     "int8",
+    #     "char",
+    #     "char",
+    #     "uint8_t",
+    #     "uint8",
+    #     "uchar",
+    #     "uchar",
+    #     "byte",
+    #     "int16_t",
+    #     "int16",
+    #     "uint16_t",
+    #     "uint16",
+    #     "int32_t",
+    #     "int32",
+    #     "int",
+    #     "uint32_t",
+    #     "uint32",
+    #     "uint",
+    #     "int64_t",
+    #     "int64",
+    #     "uint64_t",
+    #     "uint64",
+    #     "shortfloat",
+    #     "float",
+    #     "double",
+    # ]
     pattern = r"(\w+)=(.*?)(?<!\\)(?=\s+\w+=|$)"
     matches = re.findall(pattern, params_str)
     if matches:
