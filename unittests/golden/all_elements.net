@@ -120,21 +120,27 @@ V53 VDD 0 5
 V54 N66 0 PULSE 0 5 5µ 1n 1n 50µ 100µ
 V55 CLR 0 PULSE 0 5 10m 1n 1n 50µ 10m
 V56 N67 0 PULSE 0 5 1m 1n 1n 50µ 1m
+Ø´X1 «CLK´b PRESET´b NIBBLE´uc» «OUT´uc MATCHED´b» «»  counter shortfloat test = 2
+V101 NIBBLE 0 6
+V102 CLK 0 PULSE 0 1 0 1µ 1µ .5m 1m
+V103 PRESET 0 pulse 0 1 25m 1µ 1µ .2m 25m
+€1 ¥2 ¥3 ¥4 ¥5 ¥6 ¥7 ¥8 ¥9 ¥10 ¥11 ¥12 ¥13 ¥ ¥ ¥ ¥ ¥14 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ DAC Rdac=val
+£1 ¥15 ¥16 ¥17 ¥18 ¥19 ¥20 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ 3STATE
 .TRAN 100m
 .model urcmodel URC CPERL=100p RPERL=50m
 K1 L4 L5 1
 .model LTL_MODEL LTRA
 .model MySW SW
 .model MyCSW CSW
-.lib C:\PROGRA~1\QSPICE\Diode.txt
-.lib C:\PROGRA~1\QSPICE\Schottky.txt
-.lib C:\PROGRA~1\QSPICE\Zener.txt
-.lib C:\PROGRA~1\QSPICE\Varactor.txt
-.lib C:\PROGRA~1\QSPICE\NJF.txt
-.lib C:\PROGRA~1\QSPICE\PJF.txt
-.lib C:\PROGRA~1\QSPICE\PwrNJF.txt
-.lib C:\PROGRA~1\QSPICE\NPN.txt
-.lib C:\PROGRA~1\QSPICE\PNP.txt
-.lib C:\PROGRA~1\QSPICE\NMOS.txt
-.lib C:\PROGRA~1\QSPICE\PMOS.txt
+.lib Diode.txt
+.lib Schottky.txt
+.lib Zener.txt
+.lib Varactor.txt
+.lib NJF.txt
+.lib PJF.txt
+.lib PwrNJF.txt
+.lib NPN.txt
+.lib PNP.txt
+.lib NMOS.txt
+.lib PMOS.txt
 .end
