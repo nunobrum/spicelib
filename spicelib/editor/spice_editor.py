@@ -356,8 +356,7 @@ def _parse_params(params_str: str) -> dict:
     # now split in pairs
     # This will match key=value pairs, where value may contain spaces, but not unescaped '=' signs
     
-    # TODO: do not allow spaces in value, and find a way to also produce parameters that are not in key=value pairs
-    # TODO but first find out how to name that and how to handle it
+    # TODO in case of certain qspice components (Ø), allow "type key=value", but that is not easy to do, as we do not know the component type here
     pattern = r"(\w+)=(.*?)(?<!\\)(?=\s+\w+=|$)"
     matches = re.findall(pattern, params_str)
     if matches:
