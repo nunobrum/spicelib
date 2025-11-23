@@ -18,6 +18,7 @@
 import math
 import os
 import sys
+import io
 from collections import OrderedDict
 from pathlib import Path
 from typing import Union, Optional, TextIO
@@ -353,6 +354,27 @@ class QschTag:
             return a
 
 
+def _find_pin_position(comp_pos, orientation: int, pin: QschTag) -> tuple[int, int]:
+    """Returns the net name at the pin position"""
+    pin_pos = pin.get_attr(1)
+    hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
+    if orientation % 2:
+        # in 45º rotations the component is 1.414 times larger
+        hyp *= 1.414
+    if 0 <= orientation <= 7:
+        theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians(orientation * 45)
+        x = comp_pos[0] + round(hyp * math.cos(theta), -2)  # round to multiple of 100
+        y = comp_pos[1] + round(hyp * math.sin(theta), -2)
+    elif 8 <= orientation <= 15:
+        # The component is mirrored on the X axis
+        theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians((orientation - 8) * 45)
+        x = comp_pos[0] - round(hyp * math.cos(theta), -2)  # round to multiple of 100
+        y = comp_pos[1] + round(hyp * math.sin(theta), -2)
+    else:
+        raise ValueError(f"Invalid orientation: {orientation}")
+    return x, y
+
+
 class QschEditor(BaseSchematic):
     """Class made to update directly QSCH files. It is a subclass of BaseSchematic, so it can be used to
     update the netlist and the parameters of the simulation. It can also be used to update the components.
@@ -532,48 +554,41 @@ class QschEditor(BaseSchematic):
 
         # Note: the .END or .ENDCKT must be inserted by the calling function
 
-    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
         """
         Saves the current state of the netlist to a .qsh or to a .net or .cir file.
 
         :param run_netlist_file: File name of the netlist file. Can be .qsch, .net or .cir
-        :type run_netlist_file: pathlib.Path or str
+        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :returns: Nothing
         """
-        if isinstance(run_netlist_file, str):
-            run_netlist_file = Path(run_netlist_file)
-
         if self.schematic is None:
             _logger.error("Empty Schematic information")
             return
-        if run_netlist_file.suffix == '.qsch':
-            self.save_as(run_netlist_file)
-        elif run_netlist_file.suffix in ('.net', '.cir'):
-            with open(run_netlist_file, 'w', encoding="cp1252") as netlist_file:
-                _logger.info(f"Writing NET file {run_netlist_file}")
-                netlist_file.write(f'* {os.path.abspath(self._qsch_file_path.as_posix())}\n')
-                self.write_spice_to_file(netlist_file)
-                netlist_file.write('.end\n')
-
-    def _find_pin_position(self, comp_pos, orientation: int, pin: QschTag) -> tuple[int, int]:
-        """Returns the net name at the pin position"""
-        pin_pos = pin.get_attr(1)
-        hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
-        if orientation % 2:
-            # in 45º rotations the component is 1.414 times larger
-            hyp *= 1.414
-        if 0 <= orientation <= 7:
-            theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians(orientation * 45)
-            x = comp_pos[0] + round(hyp * math.cos(theta), -2)  # round to multiple of 100
-            y = comp_pos[1] + round(hyp * math.sin(theta), -2)
-        elif 8 <= orientation <= 15:
-            # The component is mirrored on the X axis
-            theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians((orientation - 8) * 45)
-            x = comp_pos[0] - round(hyp * math.cos(theta), -2)  # round to multiple of 100
-            y = comp_pos[1] + round(hyp * math.sin(theta), -2)
+        if isinstance(run_netlist_file, io.StringIO):
+            netlist_file = run_netlist_file
+            _logger.info("Writing NET file to StringIO buffer")
         else:
-            raise ValueError(f"Invalid orientation: {orientation}")
-        return x, y
+            if isinstance(run_netlist_file, str):
+                run_netlist_file = Path(run_netlist_file)
+
+            if run_netlist_file.suffix == '.qsch':
+                return self.save_as(run_netlist_file)
+            elif run_netlist_file.suffix in ('.net', '.cir'):
+                netlist_file = open(run_netlist_file, 'w', encoding="cp1252")
+            else:
+                raise ValueError("Unsupported netlist file extension. Use .qsch, .net or .cir")
+
+        try:
+            _logger.info(f"Writing NET file {run_netlist_file}")
+            netlist_file.write(f'* {os.path.abspath(self._qsch_file_path.as_posix())}\n')
+            self.write_spice_to_file(netlist_file)
+            netlist_file.write('.end\n')
+        finally:
+            if not isinstance(run_netlist_file, io.StringIO):
+                netlist_file.close()
+
+        return None
 
     def _find_net_at_position(self, x, y) -> Optional[str]:
         """Returns the net name at the given position"""
@@ -673,7 +688,7 @@ class QschEditor(BaseSchematic):
             pins = symbol.get_items('pin')
 
             for pin in pins:
-                x, y = self._find_pin_position(position, orientation, pin)
+                x, y = _find_pin_position(position, orientation, pin)
                 net = self._find_net_at_position(x, y)
                 # The pins that have "¥" are behavioral pins, they are not connected to any net, they will be connected
                 # to a net later.

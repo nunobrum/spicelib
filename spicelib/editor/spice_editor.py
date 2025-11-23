@@ -1277,13 +1277,7 @@ class SpiceCircuit(BaseEditor):
         return circuit_nodes
 
     def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
-        """
-        Saves the current state of the netlist to a file or a string.
-
-        :param run_netlist_file: File name of the netlist file, or a StringIO object.
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
-        :returns: Nothing
-        """
+        # docstring is in the parent class
         pass
 
     def add_instruction(self, instruction: str) -> None:
@@ -1436,7 +1430,7 @@ class SpiceEditor(SpiceCircuit):
     :param netlist_file: Name of the .NET file to parse
     :type netlist_file: str or pathlib.Path
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
-        call a function that tries to detect the encoding automatically. This however is not 100% foolproof.
+        call a function that tries to detect the encoding automatically. This, however, is not 100% foolproof.
     :type encoding: str, optional
     :param create_blank: Create a blank '.net' file when 'netlist_file' not exist. False by default
     :type create_blank: bool, optional
@@ -1566,13 +1560,7 @@ class SpiceEditor(SpiceCircuit):
             return False
 
     def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
-        """
-        Saves the current state of the netlist to a file or a string.
-
-        :param run_netlist_file: File name of the netlist file, or a StringIO object.
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
-        :returns: Nothing
-        """
+        # docstring is in the parent class
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
         if isinstance(run_netlist_file, Path):
@@ -1580,22 +1568,22 @@ class SpiceEditor(SpiceCircuit):
         else:
             f = run_netlist_file
 
-        lines = iter(self.netlist)
-        for line in lines:
-            if isinstance(line, SpiceCircuit):
-                line._write_lines(f)
-            elif isinstance(line, ControlEditor):  # same for control editor
-                line._write_lines(f)
-            else:
-                # Writes the modified sub-circuits at the end just before the .END clause
-                if line.upper().startswith(".END"):
-                    # write here the modified sub-circuits
-                    for sub in self.modified_subcircuits.values():
-                        sub._write_lines(f)
-                f.write(line)
-                
-        if isinstance(run_netlist_file, Path):
-            f.close()
+        try:
+            for line in self.netlist:
+                if isinstance(line, SpiceCircuit):
+                    line._write_lines(f)
+                elif isinstance(line, ControlEditor):  # same for control editor
+                    line._write_lines(f)
+                else:
+                    # Writes the modified sub-circuits at the end just before the .END clause
+                    if line.upper().startswith(".END"):
+                        # write here the modified sub-circuits
+                        for sub in self.modified_subcircuits.values():
+                            sub._write_lines(f)
+                    f.write(line)
+        finally:
+            if not isinstance(f, io.StringIO):
+                f.close()
 
     def get_control_sections(self) -> list[str]:
         """
