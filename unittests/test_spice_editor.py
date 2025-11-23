@@ -520,6 +520,11 @@ class SpiceEditor_Test(unittest.TestCase):
             #
             "Ã1": ["TYPE", {"I": 5}],
             "¥1": ["TYPE", {"I": 5}],
+            "€1": ["OTHERDAC", {"bla": 1}],
+            "€2": ["DAC", {"Rdac": "val"}],
+            "£1": ["3STATE", {"bla": 2}],
+            "Ø´X1": ["counter1", {"bla": 1}],
+            "Ø´X2": ["counter2", {"n": 4, "bla": 2}],  # this is bad, as the it should be {"shortfloat n":2, "uint n":3, "uint n":4, "bla":2} , but we do not support it yet.
             "×1": ["", {"turns": "1 .5 .5"}],
             "×2": ["", {"turns": "1 .5 .5 .5", "L": 2}]
         }
@@ -535,15 +540,23 @@ class SpiceEditor_Test(unittest.TestCase):
             self.assertEqual(v2.casefold(), value.casefold(), f"Test reading {el} Value")
             params = edt.get_component_parameters(el)
             self.assertDictEqual(params, params | exp[1], f"Test reading {el} Parameters")
+            # if el.startswith("Ø"):
+            #     print(edt.get_component(el))
         
         new_value_default = "1e-9"
         new_values = {
-            "B": "V=1e-9"
+            "B": "V=1e-9",
+            "£": "DIGITALCOMPARATOR",
+            "Ø": "other",
+            "€": "otherotherdac"
         }
         new_param = {"blabla": "1 2 3 4 5 6 7"}
         new_param_value = 1e-9
         seq = 0  
+        self.maxDiff = None  # allow very long lines to compare
         for el, exp in expected.items():
+            # if el.startswith("Ø"):
+            #     print(f"Modifying {el}")
             value = exp[0]
             params = dict(sorted(exp[1].items()))  # sort the parameters, so that we can always get the same ones
             new_value = new_value_default

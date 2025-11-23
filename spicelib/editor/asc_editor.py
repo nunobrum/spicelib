@@ -91,7 +91,6 @@ class AscEditor(BaseSchematic):
         """
         if isinstance(run_netlist_file, io.StringIO):
             asc = run_netlist_file
-            run_netlist_file = "In-Memory Stream.asc"
         else:
             if isinstance(run_netlist_file, str):
                 run_netlist_file = Path(run_netlist_file)
