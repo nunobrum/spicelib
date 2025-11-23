@@ -22,6 +22,7 @@ import os
 import sys
 import unittest
 import logging
+import io
 
 sys.path.append(
     os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
@@ -162,6 +163,14 @@ class ASC_Editor_Test(unittest.TestCase):
         equalFiles(self, temp_dir + 'test_instructions_output_2.qsch', golden_dir + 'test_instructions_output_2.qsch')
         self.edt.save_netlist(temp_dir + 'test_instructions_output_qsch_2.net')
         equalFiles(self, temp_dir + 'test_instructions_output_qsch_2.net', golden_dir + 'test_instructions_output_qsch_2.net')
+        # Test storing netlists in StringIO
+        buffer=io.StringIO()
+        self.edt.save_netlist(buffer)
+        buffer.seek(0)
+        with open(temp_dir + 'test_instructions_output_qsch_2_StringIO.net', 'w') as f:
+            for line in buffer:
+                f.write(line)
+        equalFiles(self, temp_dir + 'test_instructions_output_qsch_2_StringIO.net', golden_dir + 'test_instructions_output_qsch_2.net')
         
     def test_comments(self):
         myfile = "comment_test.qsch"

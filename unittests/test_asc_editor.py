@@ -21,6 +21,7 @@
 import os
 import sys
 import unittest
+import io
 
 
 sys.path.append(
@@ -142,6 +143,14 @@ class ASC_Editor_Test(unittest.TestCase):
         self.check_update(self.edt, "INSTRUCTION", UpdateType.DeleteInstruction, '.save I(D1)', -1)
         self.edt.save_netlist(temp_dir + 'test_instructions_output_2.asc')
         self.equalFiles(temp_dir + 'test_instructions_output_2.asc', golden_dir + 'test_instructions_output_2.asc')
+        # Test storing netlists in StringIO
+        buffer=io.StringIO()
+        self.edt.save_netlist(buffer)
+        buffer.seek(0)
+        with open(temp_dir + 'test_instructions_output_2_StringIO.asc', 'w') as f:
+            for line in buffer:
+                f.write(line)
+        self.equalFiles(temp_dir + 'test_instructions_output_2_StringIO.asc', golden_dir + 'test_instructions_output_2.asc')
 
     def test_subcircuits_edit(self):
         """Test subcircuits editing in the Asc Editor.
