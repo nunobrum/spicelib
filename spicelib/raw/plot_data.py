@@ -188,6 +188,7 @@ class PlotData(PlotInterface):
             else:
                 line += ch
         self._fpos_data = raw_file.tell()  # File position of the data section, used to skip the header when reading the data.
+        _logger.debug(f"Plot nr {self._plot_nr}: Finished reading header.")
 
         if not self.has_data:
             # No data found this may be valid in some dialects, but not in others,
@@ -285,6 +286,7 @@ class PlotData(PlotInterface):
             else:
                 numerical_type = 'real'
         i = self.header.index('Variables:')
+        _logger.debug(f"Plot nr {self._plot_nr}: Header successfully parsed. Reading trace information...")
 
         # Construct the trace information list so to be used on the numpy structured array
         ivar = 0
@@ -555,7 +557,7 @@ class PlotData(PlotInterface):
         :rtype: list[str]
         """
         # parsing the aliases needs to be done before implementing this.
-        return [trace.name for trace in self._trace_info] + list(self._aliases.keys())
+        return self.raw_params['Variables'] + list(self._aliases.keys())
 
     def _compute_alias(self, alias: str) -> TraceRead:
         """
@@ -723,18 +725,31 @@ class PlotData(PlotInterface):
         :raises IndexError: When a trace is not found
         """
         if isinstance(trace_ref, str):
+            if trace_ref in self._read_traces:
+                return self._read_traces[trace_ref]
+            # not found directly, see if it's a case-insensitive match
+            trace_ref_lower = trace_ref.casefold()
             for trace_name in self._read_traces:
-                if trace_ref.casefold() == trace_name.casefold():  # The trace names are case-insensitive
+                if trace_ref_lower == trace_name.casefold():  # The trace names are case-insensitive
                     # assert isinstance(trace, DataSet)
                     return self._read_traces[trace_name]
             # not found as a read trace, see if needs to be read from file
-            for trace_info in self._trace_info:
-                if trace_ref.casefold() == trace_info.name.casefold():  # The trace names are case-insensitive
-                    # need to read it from file
-                    self.read_trace_data([trace_info.name])
-                    return self._read_traces[trace_info.name]
+            try:
+                index = self.raw_params['Variables'].index(trace_ref)
+            except ValueError:
+                for index, trace_info in enumerate(self._trace_info):
+                    if trace_ref_lower == trace_info.name.casefold():  # The trace names are case-insensitive
+                        break
+                else:
+                    index = -1
+            if index >= 0:
+                # need to read it from file
+                trace_info = self._trace_info[index]
+                self.read_trace_data([trace_info.name])
+                return self._read_traces[trace_info.name]
+            # see if it's an alias
             for alias in self._aliases:
-                if trace_ref.casefold() == alias.casefold():
+                if trace_ref_lower == alias.casefold():
                     return self._compute_alias(alias)
             raise IndexError(f"{self} doesn't contain trace \"{trace_ref}\"\n"
                              f"Valid traces are {[trc.name for trc in self._trace_info]}")
@@ -972,6 +987,7 @@ class PlotData(PlotInterface):
         for col in step_columns:
             data[col] = []
         # Read the data
+        self.read_trace_data(columns)
         for step in steps_to_read:
             for col in columns:
                 data[col] += list(self.get_wave(col, step))
