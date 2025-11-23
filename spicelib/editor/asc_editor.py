@@ -20,6 +20,7 @@ import os.path
 import sys
 from pathlib import Path
 from typing import Union, Optional
+import io
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
@@ -79,22 +80,28 @@ class AscEditor(BaseSchematic):
     def circuit_file(self) -> Path:
         return self.asc_file_path
 
-    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
         """
         Saves the current state of the netlist to a .asc file. 
         For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
 
         :param run_netlist_file: File name of the netlist file.
-        :type run_netlist_file: pathlib.Path or str
+        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :returns: Nothing
-        """        
-        if isinstance(run_netlist_file, str):
-            run_netlist_file = Path(run_netlist_file)
-        if run_netlist_file.suffix in ('.net', '.cir'):
-            raise ValueError("Use the `LTspice.create_netlist()` method instead")
-        if run_netlist_file.suffix != '.asc':
-            run_netlist_file = run_netlist_file.with_suffix(".asc")
-        with open(run_netlist_file, 'w', encoding=self.encoding) as asc:
+        """
+        if isinstance(run_netlist_file, io.StringIO):
+            asc = run_netlist_file
+            run_netlist_file = "In-Memory Stream.asc"
+        else:
+            if isinstance(run_netlist_file, str):
+                run_netlist_file = Path(run_netlist_file)
+            if run_netlist_file.suffix in ('.net', '.cir'):
+                raise ValueError("Use the `LTspice.create_netlist()` method instead")
+            if run_netlist_file.suffix != '.asc':
+                run_netlist_file = run_netlist_file.with_suffix(".asc")
+            asc = open(run_netlist_file, 'w', encoding=self.encoding)
+
+        try:
             _logger.info(f"Writing ASC file {run_netlist_file}")
 
             asc.write(f"Version {self.version}" + END_LINE_TERM)
@@ -143,6 +150,10 @@ class AscEditor(BaseSchematic):
                 line_style = f' {shape.line_style.pattern}' if shape.line_style.pattern != "" else ""
                 points = " ".join([f"{point.X} {point.Y}" for point in shape.points])
                 asc.write(f"{shape.name} Normal {points}{line_style}" + END_LINE_TERM)
+
+        finally:
+            if not isinstance(run_netlist_file, io.StringIO):
+                asc.close()
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()

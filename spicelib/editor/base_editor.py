@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Union
 import logging
 import os
+import io
 
 from .updates import UpdateType, Updates
 from ..sim.simulator import Simulator
@@ -409,12 +410,11 @@ class BaseEditor(ABC):
         self.netlist_updates.clear()
 
     @abstractmethod
-    def save_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
         """
-        Saves the current state of the netlist to a file.
-
-        :param run_netlist_file: File name of the netlist file.
-        :type run_netlist_file: pathlib.Path or str
+        Saves the current state of the netlist to a file or a string.
+        :param run_netlist_file: File name of the netlist file, or a StringIO object.
+        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :returns: Nothing
         """
         ...
