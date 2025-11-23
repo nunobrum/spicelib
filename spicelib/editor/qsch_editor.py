@@ -354,27 +354,6 @@ class QschTag:
             return a
 
 
-def _find_pin_position(comp_pos, orientation: int, pin: QschTag) -> tuple[int, int]:
-    """Returns the net name at the pin position"""
-    pin_pos = pin.get_attr(1)
-    hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
-    if orientation % 2:
-        # in 45º rotations the component is 1.414 times larger
-        hyp *= 1.414
-    if 0 <= orientation <= 7:
-        theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians(orientation * 45)
-        x = comp_pos[0] + round(hyp * math.cos(theta), -2)  # round to multiple of 100
-        y = comp_pos[1] + round(hyp * math.sin(theta), -2)
-    elif 8 <= orientation <= 15:
-        # The component is mirrored on the X axis
-        theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians((orientation - 8) * 45)
-        x = comp_pos[0] - round(hyp * math.cos(theta), -2)  # round to multiple of 100
-        y = comp_pos[1] + round(hyp * math.sin(theta), -2)
-    else:
-        raise ValueError(f"Invalid orientation: {orientation}")
-    return x, y
-
-
 class QschEditor(BaseSchematic):
     """Class made to update directly QSCH files. It is a subclass of BaseSchematic, so it can be used to
     update the netlist and the parameters of the simulation. It can also be used to update the components.
@@ -651,13 +630,33 @@ class QschEditor(BaseSchematic):
         try:
             _logger.info(f"Writing NET file {run_netlist_file}")
             netlist_file.write(f'* {os.path.abspath(self._qsch_file_path.as_posix())}\n')
-            self.write_spice_to_file(netlist_file)
+            self.write_spice_to_file(netlist_file, verilog_config)
             netlist_file.write('.end\n')
         finally:
             if not isinstance(run_netlist_file, io.StringIO):
                 netlist_file.close()
 
         return None
+
+    def _find_pin_position(self, comp_pos, orientation: int, pin: QschTag) -> tuple[int, int]:
+        """Returns the net name at the pin position"""
+        pin_pos = pin.get_attr(1)
+        hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
+        if orientation % 2:
+            # in 45º rotations the component is 1.414 times larger
+            hyp *= 1.414
+        if 0 <= orientation <= 7:
+            theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians(orientation * 45)
+            x = comp_pos[0] + round(hyp * math.cos(theta), -2)  # round to multiple of 100
+            y = comp_pos[1] + round(hyp * math.sin(theta), -2)
+        elif 8 <= orientation <= 15:
+            # The component is mirrored on the X axis
+            theta = math.atan2(pin_pos[1], pin_pos[0]) + math.radians((orientation - 8) * 45)
+            x = comp_pos[0] - round(hyp * math.cos(theta), -2)  # round to multiple of 100
+            y = comp_pos[1] + round(hyp * math.sin(theta), -2)
+        else:
+            raise ValueError(f"Invalid orientation: {orientation}")
+        return x, y
 
     def _find_net_at_position(self, x, y) -> Optional[str]:
         """Returns the net name at the given position"""
@@ -757,7 +756,7 @@ class QschEditor(BaseSchematic):
             pins = symbol.get_items('pin')
 
             for pin in pins:
-                x, y = _find_pin_position(position, orientation, pin)
+                x, y = self._find_pin_position(position, orientation, pin)
                 net = self._find_net_at_position(x, y)
                 # The pins that have "¥" are behavioral pins, they are not connected to any net, they will be connected
                 # to a net later.
