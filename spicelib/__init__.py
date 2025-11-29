@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Convenience direct imports
 from .raw.raw_classes import SpiceReadException
 from .raw.raw_read import RawRead

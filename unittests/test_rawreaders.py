@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -43,7 +42,7 @@ import logging
 from typing import Union
 
 sys.path.append(
-    os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../"))
+    os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../")
 )  # add project root to lib search path
 
 import spicelib

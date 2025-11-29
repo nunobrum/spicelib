@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -24,7 +23,7 @@ import os         # platform independent paths
 import unittest   # performs test
 #
 # Module libs
-sys.path.append(os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))   # add project root to lib search path
+sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../"))   # add project root to lib search path
 from spicelib.utils.sweep_iterators import sweep, sweep_n, sweep_log, sweep_log_n  # Python Script under test
 #------------------------------------------------------------------------------
 

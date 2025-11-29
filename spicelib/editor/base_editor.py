@@ -1,4 +1,3 @@
-# coding=utf-8
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -259,7 +258,7 @@ class ParameterNotFoundError(Exception):
         super().__init__(f'Parameter "{parameter}" not found')
 
 
-class Primitive(object):
+class Primitive:
     """Holds the information of a primitive element in the netlist. This is a base class for the Component and is
     used to hold the information of the netlist primitives, such as .PARAM, .OPTIONS, .IC, .NODESET, .GLOBAL, etc.
     """
@@ -909,7 +908,7 @@ class BaseEditor(ABC):
         return False
 
 
-class HierarchicalComponent(object):
+class HierarchicalComponent:
     """Helper class to allow setting parameters when using object oriented access."""
 
     def __init__(self, component: Component, parent: BaseEditor, reference: str):

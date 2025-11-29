@@ -35,7 +35,7 @@ from ..editor.base_editor import BaseEditor
 from .sim_runner import AnyRunner
 
 
-class StepInfo(object):
+class StepInfo:
     def __init__(self, what: str, elem: str, iterable: Iterable):
         self.what = what
         self.elem = elem

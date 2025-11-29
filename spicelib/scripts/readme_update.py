@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 """Helper script to be able to insert validated code into the README.md file."""
 import os

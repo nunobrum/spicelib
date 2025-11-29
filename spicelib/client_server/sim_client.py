@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -56,7 +55,7 @@ class JobInformation:
 #         return self.client.__next__()
 
 
-class SimClient(object):
+class SimClient:
     """
     Class used for launching simulations in a Spice Simulation Server.
     A Spice Simulation Server is a machine running a script with an active SimServer object.
