@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -36,7 +35,7 @@ from ...log.qspice_log_reader import QspiceLogReader
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
 
-class SimAnalysis(object):
+class SimAnalysis:
     """
     Base class for making Monte-Carlo, Extreme Value Analysis (EVA) or Failure Mode and Effects Analysis.
     As a base class, a certain number of assertions must be made on the simulation results that will make the pass/fail.

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -32,7 +31,7 @@ import uuid
 _logger = logging.getLogger("spicelib.SimServer")
 
 
-class SimServer(object):
+class SimServer:
     """This class implements a server that can run simulations by request of a client located in a different machine.
 
     The server is implemented using the SimpleXMLRPCServer class from the xmlrpc.server module.

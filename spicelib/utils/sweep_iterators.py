@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -27,7 +26,7 @@ __copyright__ = "Copyright 2021, Fribourg Switzerland"
 __all__ = ['sweep', 'sweep_n', 'sweep_log', 'sweep_log_n']
 
 
-class BaseIterator(object):
+class BaseIterator:
     """Common implementation to all Iterator classes"""
 
     def __init__(self, start: Union[int, float], stop: Optional[Union[int, float]] = None, step: Union[int, float] = 1):

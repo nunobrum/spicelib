@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -73,7 +72,7 @@ class Trace(DataSet):
             self.data[:] = data[:]  # This way the dtype is kept
 
 
-class RawWrite(object):
+class RawWrite:
     """
     This class represents the RAW data file being generated. Contrary to the RawRead this class doesn't support stepped
     data.

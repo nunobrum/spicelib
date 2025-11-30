@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -45,7 +44,7 @@ import pprint  # pretty print handling
 # Module libs
 
 sys.path.append(
-    os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
+    os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../"))  # add project root to lib search path
 from spicelib.log.ltsteps import LTSpiceLogReader
 from spicelib.raw.raw_read import RawRead
 from spicelib.editor.spice_editor import SpiceEditor

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -39,7 +38,7 @@ import unittest  # performs test
 import logging
 
 sys.path.append(
-    os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
+    os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../"))  # add project root to lib search path
 
 
 from spicelib import RawWrite, Trace
