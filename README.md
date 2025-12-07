@@ -1131,6 +1131,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Fixing Issue #269 - improved support for Ø,€,£,× components for Qspice
     * Fixing Issue #262 - Support for comments in netlists
     * SpiceEditor, QschEditor and AscEditor: Allow writing of netlists directly to an io.StringIO buffer (Issue  #258)
+    * Fixing Issue #267 - RawRead can be very cpu and memory intensive.
 * Version 1.4.7
     * Implementing a lazy loading approach in RawRead
     * Fixing Issue #256 - Correct add_component() in SpiceEditor
