@@ -981,19 +981,20 @@ class PlotData(PlotInterface):
                     for key in step_dict:
                         step_columns.append(key)
         data = OrderedDict()
-        # Create the headers with the column names and empty lists
-        for col in columns:
-            data[col] = []
-        for col in step_columns:
-            data[col] = []
         # Read the data
         self.read_trace_data(columns)
         for step in steps_to_read:
             for col in columns:
-                data[col] += list(self.get_wave(col, step))
+                if col not in data:
+                    data[col] = self.get_wave(col, step)
+                else:
+                    data[col] = np.concatenate((data[col], self.get_wave(col, step)))
             if self._steps is not None and step < len(self._steps):
                 for col in step_columns:
-                    data[col] += [self._steps[step][col]] * len(data[columns[0]])
+                    if col not in data:
+                        data[col] = [self._steps[step][col]] * len(data[columns[0]])
+                    else:
+                        data[col] += [self._steps[step][col]] * len(data[columns[0]])
         return data
 
     def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
