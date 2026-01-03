@@ -291,11 +291,12 @@ class Component(Primitive):
             if 'value' not in attr_dict:
                 raise ParameterNotFoundError(item)
             value = attr_dict['value']
-            if item == 'value_str':
-                if isinstance(value, str):
-                    return value
+            if item == 'value_str' and isinstance(value, (int, float)):
                 return format_eng(value)
-            return value
+            elif item == 'value' and isinstance(value, str):
+                return to_float(value, accept_invalid=True)
+            else:
+                return value
         elif item == 'model':
             if 'model' not in attr_dict:
                 raise ParameterNotFoundError('model')
@@ -335,8 +336,8 @@ class Component(Primitive):
                 raise ValueError("Component has no parent editor")
             if self._netlist.is_read_only():
                 raise ValueError("Editor is read-only")
-            if isinstance(value, str):
-                value = to_float(value, accept_invalid=True)
+            if isinstance(value, (int, float)):
+                value = format_eng(value)
             self.set_value(value)
         elif key in PARAMS_IDs:
             if self._netlist is None:

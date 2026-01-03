@@ -127,9 +127,13 @@ def get_line_command(line) -> str:
     elif isinstance(line, SpiceCircuit):
         return ".SUBCKT"
     elif isinstance(line, ControlEditor):
-        return ".CONTROL"    
-    
-    raise SyntaxError('Unrecognized command in line "{}"'.format(line))
+        return ".CONTROL"
+    elif isinstance(line, SpiceComponent):
+        return line._obj[0]
+    elif isinstance(line, Primitive):
+        return get_line_command(line._obj)
+    else:
+        raise SyntaxError('Unrecognized command in line "{}"'.format(line))
 
 
 def _first_token_upped(line):
@@ -613,7 +617,7 @@ class SpiceCircuit(BaseSubCircuit):
         # Now check if there is a value parameter
         # NOTE: This is a legacy behavior that may be removed in future versions.
         if hasattr(component, 'value'):
-            answer['Value'] = component.value
+            answer['Value'] = component.value_str
         return answer
 
     def set_component_parameters(self, reference: str, **kwargs) -> None:
