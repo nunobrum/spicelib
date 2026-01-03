@@ -27,11 +27,12 @@ import logging
 
 from .ltspice_utils import TEXT_REGEX, TEXT_REGEX_X, TEXT_REGEX_Y, TEXT_REGEX_ALIGN, TEXT_REGEX_SIZE, TEXT_REGEX_TYPE, \
     TEXT_REGEX_TEXT, END_LINE_TERM, ASC_ROTATION_DICT, ASC_INV_ROTATION_DICT, asc_text_align_set, asc_text_align_get
-from .spice_editor import SpiceEditor, SpiceCircuit
+from .spice_editor import SpiceEditor, SpiceCircuit, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 from ..simulators.ltspice_simulator import LTspice
 from ..utils.file_search import search_file_in_containers
-from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+from .primitives import format_eng
+from .editor_errors import ComponentNotFoundError, ParameterNotFoundError
+from .base_editor import PARAM_REGEX
 from .base_schematic import (BaseSchematic, Point, Line, Shape, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
 from .asy_reader import AsyReader
 

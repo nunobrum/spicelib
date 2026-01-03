@@ -22,7 +22,8 @@ from dataclasses import dataclass
 from typing import Union, Optional, Callable, Type
 
 from ..run_task import RunTask
-from ...editor.base_editor import BaseEditor, scan_eng
+from ...editor.base_editor import BaseEditor
+from ...editor.primitives import scan_eng
 from .sim_analysis import SimAnalysis, AnyRunner, ProcessCallback
 from enum import Enum
 

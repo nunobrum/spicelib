@@ -24,10 +24,10 @@ from pathlib import Path
 from typing import Union, Optional, TextIO
 import re
 import logging
-from .base_editor import (
-    format_eng, ComponentNotFoundError, ParameterNotFoundError,
-    PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
-)
+from .primitives import format_eng
+from .editor_errors import ComponentNotFoundError, ParameterNotFoundError
+from .base_editor import PARAM_REGEX
+from .spice_editor import UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
                              LineStyle, Shape)
 from ..simulators.qspice_simulator import Qspice

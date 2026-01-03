@@ -22,7 +22,10 @@ import enum
 from typing import Callable, Union
 from collections import OrderedDict
 import logging
-from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
+from .base_editor import BaseEditor
+from .primitives import Component
+from .editor_errors import ComponentNotFoundError
+from .spice_editor import SUBCKT_DIVIDER
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"

@@ -20,15 +20,14 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __version__ = "0.1.0"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
-from abc import ABC, abstractmethod
-from collections import OrderedDict
-from math import floor, log
+from abc import ABC, abstractmethod, ABCMeta
 from pathlib import Path
 from typing import Union
 import logging
 import os
 import io
 
+from .primitives import scan_eng, Component
 from .updates import UpdateType, Updates
 from ..sim.simulator import Simulator
 
@@ -38,393 +37,19 @@ _logger = logging.getLogger("spicelib.BaseEditor")
 SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
 # Ex: Editor.set_component_value('XU1:R1', '1k')
 
-UNIQUE_SIMULATION_DOT_INSTRUCTIONS = ('.AC', '.DC', '.TRAN', '.NOISE', '.DC', '.TF')
-SPICE_DOT_INSTRUCTIONS = (
-    '.BACKANNO',
-    '.END',
-    '.ENDS',
-    '.FERRET',  # Downloads a File from a given URL
-    '.FOUR',  # Compute a Fourier Component after a .TRAN Analysis
-    '.FUNC', '.FUNCTION',
-    '.GLOBAL',
-    '.IC',
-    '.INC', '.INCLUDE',  # Include another file
-    '.LIB',  # Include a Library
-    '.LOADBIAS',  # Load a Previously Solved DC Solution
-    # These Commands are part of the contraption Programming Language of the Arbitrary State Machine
-    '.MACHINE', '.STATE', '.RULE', '.OUTPUT', '.ENDMACHINE',
-    '.MEAS', '.MEASURE',
-    '.MODEL',
-    '.NET',  # Compute Network Parameters in a .AC Analysis
-    '.NODESET',  # Hints for Initial DC Solution
-    '.OP',
-    '.OPTIONS',
-    '.PARAM', '.PARAMS',
-    '.SAVE', '.SAV',
-    '.SAVEBIAS',
-    '.STEP',
-    '.SUBCKT',
-    '.CONTROL',  # Start of Control Section
-    ".ENDC",  # End of Control Section
-    '.TEXT',
-    '.WAVE',  # Write Selected Nodes to a .Wav File
-
-)
-
-
 def PARAM_REGEX(pname):
     return r"(?P<name>" + pname + r")\s*[= ]\s*(?P<value>(?P<cb>\{)?(?(cb)[^\}]*\}|(?P<st>\")?(?(st)[^\"]*\"|[\d\.\+\-Ee]+[a-zA-Z%]*)))"
 
 
-def format_eng(value) -> str:
-    """
-    Helper function for formatting value with the SI qualifiers.  That is, it will use
+class BaseSubCircuit(ABC):
 
-        * p for pico (10E-12)
-        * n for nano (10E-9)
-        * u for micro (10E-6)
-        * m for mili (10E-3)
-        * k for kilo (10E+3)
-        * Meg for Mega (10E+6)
-        * g for giga (10E+9)
-        * t for tera (10E+12)
-
-
-    :param value: float value to format
-    :type value: float
-    :return: String with the formatted value
-    :rtype: str
-    """
-    if value == 0.0:
-        return "{:g}".format(value)  # This avoids a problematic log(0), and the int and float conversions
-    e = floor(log(abs(value), 1000))
-    if -5 <= e < 0:
-        suffix = "fpnum"[e]
-    elif e == 0:
-        return "{:g}".format(value)
-    elif e == 1:
-        suffix = "k"
-    elif e == 2:
-        suffix = 'Meg'
-    elif e == 3:
-        suffix = 'g'
-    elif e == 4:
-        suffix = 't'
-    else:
-        return '{:E}'.format(value)
-    return '{:g}{:}'.format(value * 1000 ** -e, suffix)
-
-
-def scan_eng(value: str) -> float:
-    """
-    Converts a string to a float, considering SI multipliers
-
-        * f for femto (10E-15)
-        * p for pico (10E-12)
-        * n for nano (10E-9)
-        * u or µ for micro (10E-6)
-        * m for mili (10E-3)
-        * k for kilo (10E+3)
-        * meg for Mega (10E+6)
-        * g for giga (10E+9)
-        * t for tera (10E+12)
-        
-    The extra unit qualifiers such as V for volts or F for Farads are ignored.
-
-
-    :param value: string to be converted to float
-    :type value: str
-    :return:
-    :rtype: float
-    :raises: ValueError when the value cannot be converted.
-    """
-    # Search for the last digit on the string. Assuming that all after the last number are SI qualifiers and units.
-    value = value.strip()
-    x = len(value)
-    while x > 0:
-        if value[x - 1] in "0123456789":
-            break
-        x -= 1
-    suffix = value[x:]  # this is the non-numeric part at the end
-    f = float(value[:x])  # this is the numeric part. Can raise ValueError.
-    if suffix:
-        suffix = suffix.lower()
-        # By industry convention, SPICE is not case sensitive
-        if suffix.startswith("meg"):
-            return f * 1E+6
-        elif suffix[0] in "fpnuµmkgt":
-            return f * {
-                'f': 1.0e-15,
-                'p': 1.0e-12,
-                'n': 1.0e-09,
-                'u': 1.0e-06,
-                'µ': 1.0e-06,
-                'm': 1.0e-03,
-                'k': 1.0e+03,
-                'g': 1.0e+09,
-                't': 1.0e+12,
-            }[suffix[0]]
-    return f
-
-
-def to_float(value, accept_invalid: bool = True) -> Union[float, str]:
-    _MULT = {
-        'f': 1E-15,
-        'p': 1E-12,
-        'n': 1E-9,
-        'µ': 1E-6,
-        'u': 1E-6,
-        'U': 1E-6,
-        'm': 1E-3,
-        'M': 1E-3,
-        'k': 1E+3,
-        'K': 1E+3,  # For much of the world, K is the same as k. That is a sad fact of life. K is Kelvin in SI
-        'Meg': 1E+6,
-        'g': 1E+9,
-        't': 1E+12,
-        # These units can be used as decimal points in the number definition. Ex: 10R5 is 10.5 Ohms. In LTSpice
-        # the units can be used in any number definition. For example 10H5 is 10.5 Henrys but also can be used in
-        # resistors value definition. LTSpice doesn't care about the unit in the component value definition.
-        'Ω': 1,  # This is the Ohm symbol. It is supported by LTspice
-        'R': 1,  # This also represents the Ohm symbol. Can be used a decimal point. Ex: 10R2 is 10.2 Ohms
-        'V': 1,  # Volts
-        'A': 1,  # Amperes (Current)
-        'F': 1,  # Farads (Capacitance)
-        'H': 1,  # Henry (Inductance)
-        '%': 0.01,  # Percent. 10% is 0.1. 1%6 is 0.016
-    }
-
-    value = value.strip()  # Removing trailing and leading spaces
-    length = len(value)
-
-    multiplier = 1.0
-
-    i = 0
-    while i < length and (value[i] in "0123456789.+-"):  # Includes spaces
-        i += 1
-    if i == 0:
-        if accept_invalid:
-            return value
-        else:
-            raise ValueError("Doesn't start with a number")
-
-    if 0 < i < length and (value[i] == 'E' or value[i] == 'e'):
-        # if it is a number in scientific format, it doesn't have 1000x qualifiers (Ex: p, u, k, etc...)
-        i += 1
-        while i < length and (value[i] in "0123456789+-"):  # Includes spaces
-            i += 1
-        j = k = i
-    else:
-        # this first part should be able to be converted into float
-        k = i  # Stores the position of the end of the number
-        # Consume any spaces that may exist between the number and the unit
-        while i < length and (value[i] in " \t"):
-            i += 1
-
-        if i < length:  # Still has characters to consume
-            if value[i] in _MULT:
-                if value[i:].upper().startswith('MEG'):  # to 1E+06 qualifier 'Meg'
-                    i += 3
-                    multiplier = _MULT['Meg']
-                else:
-                    multiplier = _MULT[value[i]]
-                    i += 1
-
-            # This part is done to support numbers with the format 1k7 or 1R8
-            j = i
-            while i < length and (value[i] in "0123456789"):
-                i += 1
-        else:
-            j = i
-
-    try:
-        if j < i:  # There is a suffix number
-            value = float(value[:k] + "." + value[j:i]) * multiplier
-        else:
-            value = float(value[:k]) * multiplier
-    except ValueError as err:
-        if not accept_invalid:
-            raise err
-    return value
-
-
-class ComponentNotFoundError(Exception):
-    """Component Not Found Error"""
-
-
-class ParameterNotFoundError(Exception):
-    """ParameterNotFound Error"""
-
-    def __init__(self, parameter):
-        super().__init__(f'Parameter "{parameter}" not found')
-
-
-class Primitive(object):
-    """Holds the information of a primitive element in the netlist. This is a base class for the Component and is
-    used to hold the information of the netlist primitives, such as .PARAM, .OPTIONS, .IC, .NODESET, .GLOBAL, etc.
-    """
-
-    def __init__(self, line: str):
-        self.line = line
-
-    def append(self, line):
-        """:meta private:"""
-        self.line += line
-
-    def __str__(self):
-        return self.line
-
-
-class Component(Primitive):
-    """Holds component information"""
-
-    def __init__(self, parent, line: str):
-        super().__init__(line)
-        self.reference = ""
-        self.attributes = OrderedDict()
-        self.ports = []
-        self.parent = parent
-
-    @property
-    def value_str(self) -> str:
-        """The Value as a string
-
-        :getter: Returns the value as a string
-        :setter: Sets the value. This behaves like the `set_component_value()` method of the editor, but it is more convenient to use when dealing with a single component.
-
-        """        
-        return self.parent.get_component_value(self.reference)
-
-    @value_str.setter
-    def value_str(self, value):
-        if self.parent.is_read_only():
-            raise ValueError("Editor is read-only")        
-        self.parent.set_component_value(self.reference, value)
-
-    @property
-    def params(self) -> OrderedDict:
-        """Gets all parameters to the component 
-        
-        This behaves like the `get_component_parameters()` method of the editor, but it is more convenient to use when dealing with a single component.
-        """
-        return self.parent.get_component_parameters(self.reference)
-
-    def set_params(self, **param_dict):
-        """Adds one or more parameters to the component 
-        
-        The argument is in the form of a key-value pair where each parameter is the key and the value is value to be set in the netlist.
-        
-        This behaves like the `set_component_parameters()` method of the editor, but it is more convenient to use when dealing with a single component.
-
-        :raises ValueError: If the component is read only, as when it comes from a library
-        """
-        if self.parent.is_read_only():
-            raise ValueError("Editor is read-only")           
-        self.parent.set_component_parameters(self.reference, **param_dict)
-
-    @property
-    def value(self) -> Union[float, int, str]:
-        """The Value
-
-        :getter: Returns the value as a number. If the value is not a number, it will return a string.
-        :setter: Sets the value.
-
-        """
-        return to_float(self.value_str, accept_invalid=True)
-
-    @property
-    def model(self) -> str:
-        """The model of the component
-
-        :getter: Returns the model of the component
-        :setter: Sets the model. This behaves like the `set_element_model()` method of the editor, but it is more convenient to use when dealing with a single component.
- 
-        """
-        return self.parent.get_element_value(self.reference)
-
-    @model.setter
-    def model(self, model: str):
-        if self.parent.is_read_only():
-            raise ValueError("Editor is read-only")   
-        self.parent.set_element_model(self.reference, model)
-
-    @value.setter
-    def value(self, value: Union[str, int, float]):
-        if self.parent.is_read_only():
-            raise ValueError("Editor is read-only")
-        if isinstance(value, (int, float)):
-            self.value_str = format_eng(value)
-        else:
-            self.value_str = value
-
-    def __str__(self):
-        return f"{self.reference} = {self.value}"
-
-    def __getitem__(self, item):
-        return self.attributes[item]
-
-    def __setitem__(self, key, value):
-        if self.parent.is_read_only():
-            raise ValueError("Editor is read-only")        
-        self.attributes[key] = value
-
-
-class BaseEditor(ABC):
-    """
-    This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
-    classes.
-    """
-    custom_lib_paths: list[str] = []
-    """The custom library paths. Not to be modified, only set via `set_custom_library_paths()`.
-    This is a class variable, so it will be shared between all instances
-    
-    :meta hide-value:"""    
-    simulator_lib_paths: list[str] = []
-    """ This is initialised with typical locations found for your simulator.
-    You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
-    This is a class variable, so it will be shared between all instances.
-    
-    :meta hide-value:
-    """
-
-    def __init__(self):
-        """Initializing the list that contains all the modifications done to a netlist."""
-        self.netlist_updates = Updates()
-
+    @abstractmethod
     def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
-        self.netlist_updates.add_update(name, value, updates)
-
-    @property
-    @abstractmethod
-    def circuit_file(self) -> Path:
-        """Returns the path of the circuit file."""
         ...
 
+    @abstractmethod
     def reset_netlist(self, create_blank: bool = False) -> None:
-        """
-        Reverts all changes done to the netlist. If create_blank is set to True, then the netlist is blanked.
-
-        :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be
-                             reset to the original state.
-        """
-        self.netlist_updates.clear()
-
-    @abstractmethod
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
-        """
-        Saves the current state of the netlist to a file or a string.
-        :param run_netlist_file: File name of the netlist file, or a StringIO object.
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
-        :returns: Nothing
-        """
         ...
-
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
-        """
-        .. deprecated:: 1.x Use `save_netlist()` instead.
-
-        Writes the netlist to a file. This is an alias to save_netlist."""
-        self.save_netlist(run_netlist_file)
 
     @abstractmethod
     def get_component(self, reference: str) -> Component:
@@ -451,7 +76,7 @@ class BaseEditor(ABC):
         Returns the value of the attribute of the component. Attributes are the values that are not related with
         SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
         User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
-        
+
         :param reference: Reference of the component
         :type reference: str
         :param attribute: Name of the attribute to be retrieved
@@ -465,14 +90,14 @@ class BaseEditor(ABC):
 
     def get_component_nodes(self, reference: str) -> list:
         """Returns the value of the port of the component.
-        
+
         :param reference: Reference of the component
         :type reference: str
         :return: List with the ports of the component
         :rtype: str
         :raises: ComponentNotFoundError - In case the component is not found
                  KeyError - In case the port is not found
-        
+
         """
         return self.get_component(reference).ports
 
@@ -488,19 +113,19 @@ class BaseEditor(ABC):
         :raises: ParameterNotFoundError - In case the component is not found
         """
         ...
-        
+
     @abstractmethod
-    def get_all_parameter_names(self, param: str) -> list[str]:
+    def get_all_parameter_names(self) -> list[str]:
         """
         Returns all parameter names from the netlist.
 
         :return: A list of parameter names found in the netlist
         :rtype: list[str]
         """
-        ...        
+        ...
 
     @abstractmethod
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param, value):
         """Adds a parameter to the SPICE netlist.
 
         Usage: ::
@@ -522,7 +147,7 @@ class BaseEditor(ABC):
 
         :return: Nothing
         """
-        self.add_update(param, value, UpdateType.UpdateParameter)
+        self.add_update(f'PARAM {param}', value, UpdateType.UpdateParameter)
 
     def set_parameters(self, **kwargs):
         """Adds one or more parameters to the netlist.
@@ -625,7 +250,7 @@ class BaseEditor(ABC):
         """Sets the value of the attribute of the component. Attributes are the values that are not related with
         SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
         User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
-        
+
         :param reference: Reference of the component
         :type reference: str
         :param attribute: Name of the attribute to be set
@@ -636,7 +261,7 @@ class BaseEditor(ABC):
         :raises: ComponentNotFoundError - In case the component is not found
         """
         self.add_update(reference, value, UpdateType.UpdateComponentParameter)
-        self.get_component(reference).attributes[attribute] = value
+        self.get_component(reference).set_attribute(attribute, value)
 
     @abstractmethod
     def get_component_value(self, element: str) -> str:
@@ -741,7 +366,8 @@ class BaseEditor(ABC):
 
         :return: Nothing
         """
-        ...
+        value_or_model = component.value if component.value is not None else component.model
+        self.add_update(component.reference, value_or_model, UpdateType.AddComponent)
 
     @abstractmethod
     def remove_component(self, designator: str) -> None:
@@ -756,6 +382,15 @@ class BaseEditor(ABC):
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
         self.add_update(designator, "delete", UpdateType.DeleteComponent)
+
+    @abstractmethod
+    def is_read_only(self):
+        """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
+
+        :return: True if the component is read-only, False otherwise
+        :rtype: bool
+        """
+        ...
 
     @abstractmethod
     def add_instruction(self, instruction: str) -> None:
@@ -785,20 +420,20 @@ class BaseEditor(ABC):
         Removes a SPICE instruction from the netlist.
 
         Example:
-        
+
         .. code-block:: python
-                
+
             editor.remove_instruction(".STEP run -1 1023 1")
 
         This only works if the entire given instruction is contained in a line on the netlist.
-        It uses the 'in' comparison, and is case sensitive. 
+        It uses the 'in' comparison, and is case sensitive.
         It will remove 1 instruction at most, even if more than one could be found.
         `remove_Xinstruction()` is a more flexible way to remove instructions from the netlist.
 
         :param instruction: The instruction to remove.
         :type instruction: str
         :returns: True if the instruction was found and removed, False otherwise
-        :rtype: bool        
+        :rtype: bool
         """
         logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
         self.add_update("INSTRUCTION", logtxt, UpdateType.DeleteInstruction)
@@ -820,28 +455,86 @@ class BaseEditor(ABC):
         :param search_pattern: Pattern for the instruction to remove. In general it is best to use a raw string (r).
         :type search_pattern: str
         :returns: True if the instruction was found and removed, False otherwise
-        :rtype: bool        
+        :rtype: bool
         """
         ...
 
     def add_instructions(self, *instructions) -> None:
         """
         Adds a list of instructions to the SPICE NETLIST.
-        
+
         Example:
-        
+
         .. code-block:: python
 
             editor.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")
-        
+
         :param instructions: Argument list of instructions to add
         :type instructions: argument list
-        :returns: Nothing        
+        :returns: Nothing
         """
 
         for instruction in instructions:
             self.add_instruction(instruction)
-       
+
+
+class BaseEditor(BaseSubCircuit):
+    """
+    This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
+    classes.
+    """
+    custom_lib_paths: list[str] = []
+    """The custom library paths. Not to be modified, only set via `set_custom_library_paths()`.
+    This is a class variable, so it will be shared between all instances
+    
+    :meta hide-value:"""    
+    simulator_lib_paths: list[str] = []
+    """ This is initialised with typical locations found for your simulator.
+    You can (and should, if you use wine), call `prepare_for_simulator()` once you've set the executable paths.
+    This is a class variable, so it will be shared between all instances.
+    
+    :meta hide-value:
+    """
+
+    def __init__(self):
+        """Initializing the list that contains all the modifications done to a netlist."""
+        self.netlist_updates = Updates()
+
+    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+        self.netlist_updates.add_update(name, value, updates)
+
+    @property
+    @abstractmethod
+    def circuit_file(self) -> Path:
+        """Returns the path of the circuit file."""
+        ...
+
+    def reset_netlist(self, create_blank: bool = False) -> None:
+        """
+        Reverts all changes done to the netlist. If create_blank is set to True, then the netlist is blanked.
+
+        :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be
+                             reset to the original state.
+        """
+        self.netlist_updates.clear()
+
+    @abstractmethod
+    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+        """
+        Saves the current state of the netlist to a file or a string.
+        :param run_netlist_file: File name of the netlist file, or a StringIO object.
+        :type run_netlist_file: pathlib.Path or str or io.StringIO
+        :returns: Nothing
+        """
+        ...
+
+    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+        """
+        .. deprecated:: 1.x Use `save_netlist()` instead.
+
+        Writes the netlist to a file. This is an alias to save_netlist."""
+        self.save_netlist(run_netlist_file)
+
     @classmethod     
     def prepare_for_simulator(cls, simulator: Simulator) -> None:
         """
@@ -909,13 +602,12 @@ class BaseEditor(ABC):
         return False
 
 
-class HierarchicalComponent(object):
+class BaseContainerInstance(BaseSubCircuit):
     """Helper class to allow setting parameters when using object oriented access."""
 
-    def __init__(self, component: Component, parent: BaseEditor, reference: str):
-        self._component = component
+    def __init__(self, parent: BaseEditor, parent_reference: str):
         self._parent = parent
-        self._reference = reference
+        self._parent_ref = parent_reference
 
     def __getattr__(self, attr):
         return getattr(self._component, attr)
@@ -924,10 +616,10 @@ class HierarchicalComponent(object):
         if attr.startswith('_'):
             self.__dict__[attr] = value
         elif attr in ("value", "value_str"):
-            self._parent.set_component_value(self._reference, value)
+            self._parent.set_component_value(self._parent_ref + ":" + attr, value)
         elif attr == "params":
             if not isinstance(value, dict):
                 raise ValueError("Expecting value to be a dictionary type")
-            self._parent.set_component_parameters(self._reference, **value)
+            self._parent.set_component_parameters(self._parent_ref, **value)
         else:
             setattr(self._component, attr, value)
