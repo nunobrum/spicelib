@@ -28,7 +28,8 @@ sys.path.append(
 
 import spicelib
 from spicelib.editor.primitives import to_float
-from spicelib.editor.spice_editor import component_replace_regexs, SpiceCircuit
+from spicelib.editor.spice_components import component_replace_regexs
+from spicelib import SpiceCircuit
 from spicelib.editor.updates import UpdateType
 
 import io
