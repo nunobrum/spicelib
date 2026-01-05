@@ -458,3 +458,135 @@ class BaseSubCircuit(ABC):
 
         for instruction in instructions:
             self.add_instruction(instruction)
+
+
+class BaseSubCircuitInstance(BaseSubCircuit):
+    @property
+    @abstractmethod
+    def subcircuit(self) -> BaseSubCircuit:
+        """Returns the subcircuit object representing this instance."""
+        ...
+
+    def get_component(self, reference: str) -> Component:
+        """Returns the Component object representing the given reference in the netlist."""
+        return self.subcircuit.get_component(reference)
+
+    def get_subcircuit(self, reference: str) -> BaseSubCircuit:
+        """Returns a hierarchical subdesign"""
+        return self.subcircuit.get_subcircuit(reference)
+
+    def get_component_attribute(self, reference: str, attribute: str) -> str:
+        """
+        Returns the value of the attribute of the component. Attributes are the values that are not related with
+        SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
+        User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
+
+        :param reference: Reference of the component
+        :type reference: str
+        :param attribute: Name of the attribute to be retrieved
+        :type attribute: str
+        :return: Value of the attribute being sought
+        :rtype: str
+        :raises: ComponentNotFoundError - In case the component is not found
+                 KeyError - In case the attribute is not found
+        """
+        return self.subcircuit.get_component_attribute(reference, attribute)
+
+    def get_component_nodes(self, reference: str) -> list:
+        """Returns the value of the port of the component.
+
+        :param reference: Reference of the component
+        :type reference: str
+        :return: List with the ports of the component
+        :rtype: str
+        :raises: ComponentNotFoundError - In case the component is not found
+                 KeyError - In case the port is not found
+
+        """
+        return self.subcircuit.get_component_nodes(reference)
+
+    def get_parameter(self, param: str) -> str:
+        """
+        Retrieves a Parameter from the Netlist
+
+        :param param: Name of the parameter to be retrieved
+        :type param: str
+        :return: Value of the parameter being sought
+        :rtype: str
+        :raises: ParameterNotFoundError - In case the component is not found
+        """
+        return self.subcircuit.get_parameter(param)
+
+    def get_all_parameter_names(self) -> list[str]:
+        """
+        Returns all parameter names from the netlist.
+
+        :return: A list of parameter names found in the netlist
+        :rtype: list[str]
+        """
+        return self.subcircuit.get_all_parameter_names()
+
+    def get_component_value(self, element: str) -> str:
+        """
+        Returns the value of a component retrieved from the netlist.
+
+        :param element: Reference of the circuit element to get the value.
+        :type element: str
+
+        :return: value of the circuit element .
+        :rtype: str
+
+        :raises: ComponentNotFoundError - In case the component is not found
+
+                 NotImplementedError - for not supported operations
+        """
+        return self.subcircuit.get_component_value(element)
+
+    def get_component_parameters(self, element: str) -> dict:
+        """
+        Returns the parameters of a component retrieved from the netlist.
+
+        :param element: Reference of the circuit element to get the parameters.
+        :type element: str
+
+        :return: parameters of the circuit element in dictionary format.
+        :rtype: dict
+
+        :raises: ComponentNotFoundError - In case the component is not found
+
+                 NotImplementedError - for not supported operations
+        """
+        return self.subcircuit.get_component_parameters(element)
+
+    def get_component_floatvalue(self, element: str) -> float:
+        """
+        Returns the value of a component retrieved from the netlist.
+
+        :param element: Reference of the circuit element to get the value in float format.
+        :type element: str
+
+        :return: value of the circuit element in float type
+        :rtype: float
+
+        :raises: ComponentNotFoundError - In case the component is not found
+
+                 NotImplementedError - for not supported operations
+        """
+        return self.subcircuit.get_component_floatvalue(element)
+
+    def get_components(self, prefixes='*') -> list:
+        """
+        Returns a list of components that match the list of prefixes indicated on the parameter prefixes.
+        In case prefixes is left empty, it returns all the ones that are defined by the REPLACE_REGEXES.
+        The list will contain the designators of all components found.
+
+        :param prefixes:
+            Type of prefixes to search for. Examples: 'C' for capacitors; 'R' for Resistors; etc... See prefixes
+            in SPICE documentation for more details.
+            The default prefix is '*' which is a special case that returns all components.
+        :type prefixes: str
+
+        :return:
+            A list of components matching the prefixes demanded.
+        """
+        return self.subcircuit.get_components(prefixes)

@@ -23,17 +23,18 @@ from pathlib import Path
 from typing import Union, Optional
 import logging
 
-from spicelib.editor.spice_components import SpiceComponent
-from spicelib.editor.base_editor import SUBCKT_DIVIDER, PARAM_REGEX
-from spicelib.editor.base_subcircuit import BaseSubCircuit
-from spicelib.editor.editor_errors import ComponentNotFoundError, UnrecognizedSyntaxError, MissingExpectedClauseError, \
-    ParameterNotFoundError
-from spicelib.editor.primitives import Primitive, format_eng
-from spicelib.editor.spice_components import component_replace_regexs, _insert_section
 
-from spicelib.editor.spice_utils import subckt_regex, SUBCKT_CLAUSE_FIND, \
+
+from .editor_errors import *
+from .spice_utils import subckt_regex, SUBCKT_CLAUSE_FIND, \
     lib_inc_regex, END_LINE_TERM, REPLACE_REGEXS, VALID_PREFIXES, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
-from spicelib.editor.updates import UpdateType
+from .primitives import Primitive, format_eng
+from .updates import UpdateType
+from .base_subcircuit import BaseSubCircuit
+from .spice_components import SpiceComponent, component_replace_regexs, _insert_section
+from .spice_subcircuit_instance import SpiceCircuitInstance
+from .base_editor import SUBCKT_DIVIDER, PARAM_REGEX
+
 from spicelib.simulators.ltspice_simulator import LTspice
 from spicelib.utils.detect_encoding import detect_encoding, EncodingDetectError
 from spicelib.utils.file_search import search_file_in_containers
@@ -67,7 +68,7 @@ def get_line_command(line) -> str:
         return ".SUBCKT"
     elif isinstance(line, ControlEditor):
         return ".CONTROL"
-    elif isinstance(line, SpiceComponent):
+    elif isinstance(line, (SpiceComponent, SpiceCircuitInstance)):
         return line._obj[0]
     elif isinstance(line, Primitive):
         return get_line_command(line._obj)
@@ -110,14 +111,18 @@ class SpiceCircuit(BaseSubCircuit):
         Notifies the netlist that a component has been updated. This will serve to keep track of changes.
         of modified subcircuits and the updates done to the netlist.
 
-        :param update_type: The type of update that occurred.
-        :type update_type: UpdateType
+        :param name: The name of the component that was updated.
+        :type name: str
+        :param value: The new value of the component.
+        :type value: Union[str, int, float, None]
+        :param updates: The type of update that occurred.
+        :type updates: UpdateType
         """
         if self.parent is not None:
             new_ref = self.name() + SUBCKT_DIVIDER + name
             self.parent.add_update(new_ref, value, updates)
 
-    def get_reference(self, substr: str) -> Union[SpiceComponent, 'SpiceCircuit']:
+    def get_reference(self, substr: str) -> Union[SpiceComponent, SpiceCircuitInstance]:
         """Internal function. Do not use.
 
         :meta private:
@@ -129,7 +134,7 @@ class SpiceCircuit(BaseSubCircuit):
             if isinstance(component, SpiceComponent):
                 if component.reference.upper() == substr_upper:
                     return component
-            elif isinstance(component, SpiceCircuit):
+            elif isinstance(component, SpiceCircuitInstance):
                 name = component.name()
                 if name.upper() == substr_upper:
                     return component
@@ -168,7 +173,10 @@ class SpiceCircuit(BaseSubCircuit):
                 self.netlist[-1]+=line  # Append to the last line, but remove the preceding newline and the leading '+'
             elif len(cmd) == 1 and cmd in VALID_PREFIXES:
                 # This is a component line
-                component = SpiceComponent(netlist=self, obj=line)
+                if cmd == 'X':
+                    component = SpiceCircuitInstance(netlist=self, obj=line)
+                else:
+                    component = SpiceComponent(netlist=self, obj=line)
                 self.netlist.append(component)
             elif cmd == '*':
                 # This is a comment or blank line
@@ -179,7 +187,7 @@ class SpiceCircuit(BaseSubCircuit):
                 if cmd[:4] == '.END':  # True for either .END, .ENDS and .ENDC primitives
                     # Now construct the sub-circuit object
                     for component in self.netlist:
-                        if isinstance(component, SpiceComponent):
+                        if isinstance(component, (SpiceComponent, SpiceCircuitInstance)):
                             component.reset_attributes()
                     return True  # If a sub-circuit is ended correctly, returns True
         return False  # If a sub-circuit ends abruptly, returns False
@@ -290,9 +298,6 @@ class SpiceCircuit(BaseSubCircuit):
             subckt_ref = instance_name
             sub_subckts = None  # eliminating the code
 
-        if subckt_ref in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
-            return self.modified_subcircuits[subckt_ref]
-
         sub_circuit_instance = self.get_reference(subckt_ref)
         regex = component_replace_regexs['X']  # The sub-circuit instance regex
         m = regex.search(sub_circuit_instance._obj)
@@ -333,21 +338,17 @@ class SpiceCircuit(BaseSubCircuit):
             component_split = reference.split(SUBCKT_DIVIDER)
             subckt_instance = component_split[0]
             # reference = SUBCKT_DIVIDER.join(component_split[1:])
-            if subckt_instance in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
-                sub_circuit: SpiceCircuit = self.modified_subcircuits[subckt_instance]
+
+            sub_circuit_original = self.get_subcircuit(subckt_instance)  # If not will look for it.
+            if sub_circuit_original:
+                original_name = sub_circuit_original.name()
+                new_name = original_name + '_' + subckt_instance  # Creates a new name with the path appended
+                sub_circuit = sub_circuit_original.clone(new_name=new_name)
+                self.add_update(f"CLONE({original_name})", new_name, UpdateType.CloneSubcircuit)
+                # Change the call to the sub-circuit
+                self._set_component_attribute(subckt_instance, 'model', new_name)
             else:
-                sub_circuit_original = self.get_subcircuit(subckt_instance)  # If not will look for it.
-                if sub_circuit_original:
-                    original_name = sub_circuit_original.name()
-                    new_name = original_name + '_' + subckt_instance  # Creates a new name with the path appended
-                    sub_circuit = sub_circuit_original.clone(new_name=new_name)
-                    self.add_update(f"CLONE({original_name})", new_name, UpdateType.CloneSubcircuit)
-                    # Memorize that the copy is relative to that particular instance
-                    self.modified_subcircuits[subckt_instance] = sub_circuit
-                    # Change the call to the sub-circuit
-                    self._set_component_attribute(subckt_instance, 'model', new_name)
-                else:
-                    raise ComponentNotFoundError(reference)
+                raise ComponentNotFoundError(reference)
             # Update the component
             sub_circuit._set_component_attribute(SUBCKT_DIVIDER.join(component_split[1:]), attribute, value)
         else:
@@ -458,13 +459,9 @@ class SpiceCircuit(BaseSubCircuit):
             else:
                 # In this case the sub-circuit needs to be copied so that is copy is modified.
                 # A copy is created for each instance of a sub-circuit.
-                component_split = reference.split(SUBCKT_DIVIDER)
+                component_split = reference.split(SUBCKT_DIVIDER, 1)
                 subckt_ref = component_split[0]
-
-                if subckt_ref in self.modified_subcircuits:  # See if this was already a modified sub-circuit instance
-                    subcircuit = self.modified_subcircuits[subckt_ref]
-                else:
-                    subcircuit = self.get_subcircuit(subckt_ref)
+                subcircuit = self.get_subcircuit(subckt_ref)
 
                 if len(component_split) > 1:
                     return subcircuit.get_component(SUBCKT_DIVIDER.join(component_split[1:]))

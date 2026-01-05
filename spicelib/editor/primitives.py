@@ -411,7 +411,7 @@ class Component(Primitive):
                     del current_params[key]
             else:
                 current_params[key] = value
-        self.attributes['params'] = current_params
+        self.attributes['params'] = current_params  # This instruction is only needed if params was empty before
 
     def clear_params(self):
         """Clears all parameters"""

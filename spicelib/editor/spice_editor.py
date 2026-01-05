@@ -26,7 +26,7 @@ from .primitives import Primitive
 from .spice_components import SpiceComponent
 from .spice_utils import END_LINE_TERM
 from .updates import UpdateType
-from .spice_subcircuit import SpiceCircuit, get_line_command, ControlEditor, _is_unique_instruction
+from .spice_subcircuit import SpiceCircuit, SpiceCircuitInstance, get_line_command, ControlEditor, _is_unique_instruction
 import logging
 
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -74,7 +74,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         SpiceCircuit.__init__(self)
         self.netlist_file = Path(netlist_file)
         self._readonly = False
-        self.modified_subcircuits = {}
         if create_blank:
             self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
         else:
@@ -208,7 +207,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                     # Writes the modified sub-circuits at the end just before the .END clause
                     if line.upper().startswith(".END"):
                         # write here the modified sub-circuits
-                        for sub in self.modified_subcircuits.values():
+                        for sub in self.modified_subcircuits():
                             sub.write_lines(f)
                     f.write(line)
                 else:
@@ -280,7 +279,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         :returns: Nothing
         """
         super().reset_netlist(create_blank)
-        self.modified_subcircuits.clear()
         if create_blank:
             lines = ['* netlist generated from spicelib', '.end']
             finished = self._add_lines(lines)
@@ -308,3 +306,16 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         from ..sim.sim_runner import SimRunner
         runner = SimRunner(simulator=simulator)
         return runner.run(self, wait_resource=wait_resource, callback=callback, timeout=timeout, run_filename=run_filename)
+
+    def modified_subcircuits(self) -> list['SpiceCircuit']:
+        """
+        Returns a list of all sub-circuits that have been modified.
+
+        :return: List of modified sub-circuits
+        :rtype: list[SpiceCircuit]
+        """
+        modified = []
+        for subckt in self.netlist:
+            if isinstance(subckt, SpiceCircuitInstance) and subckt.was_updated():
+                modified.append(subckt)
+        return modified

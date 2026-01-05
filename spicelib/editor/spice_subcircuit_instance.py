@@ -19,58 +19,82 @@
 
 from typing import Union
 import logging
-from spicelib.editor.spice_subcircuit import SpiceCircuit
-from spicelib.editor.spice_editor import BaseEditor
-from spicelib.editor.updates import UpdateType
-from spicelib.editor.spice_components import SpiceComponent
+import re
+
+from .base_subcircuit import BaseSubCircuitInstance, BaseSubCircuit
+from .primitives import VALUE_IDs, PARAMS_IDs
+from .updates import UpdateType
+from .spice_components import SpiceComponent, component_replace_regexs, _parse_params
 
 logger = logging.getLogger("spicelib.SpiceEditor")
 
-class SpiceCircuitInstance:
+class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
     """Used for object-oriented manipulations where the parent reference of a component needs to be
     stored for registering updates, and managing modified sub-circuits.
 
     This class only implements
     """
+    # internals = ['subcircuit', '_subcircuit', '_modified_subcircuit', '_was_updated']
 
-    def __init__(self, parent: BaseEditor, parent_reference: str, subcircuit: SpiceCircuit = None):
-        self._parent = parent
-        self._parent_ref = parent_reference
+    def __init__(self, *ars, **kwargs):
+        SpiceComponent.__init__(self, *ars, **kwargs)
+        self._initialization = True
         self._was_updated = False
-        self._subcircuit = subcircuit or parent.get_subcircuit(parent_reference)  # In case it isn't given, get it from the parent
+        self._subcircuit = None
         self._modified_subcircuit = None
-        assert self._subcircuit is not None, f"Sub-circuit {parent_reference} not found in parent editor."
+
+    def reset_attributes(self):
+        """Resets the sub-circuit instance to its original state."""
+        new_line = re.sub(r'[\n\r]+\s*', ' ', self._obj)  # cleans up line breaks and extra spaces and tabs
+        regex = component_replace_regexs['X']
+        match = regex.match(new_line)
+        self.attributes.clear()
+        self.reference = match.group('designator')
+        self.ports = match.group('nodes').strip().split()
+        self.value = match.group('value').strip()
+        assert self.value != "", "Sub-circuit name cannot be empty."
+        if match.group('params'):
+            self.set_params(**_parse_params(match.group('params')))
+        # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
+        self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
+        del self._initialization
 
     @property
     def subcircuit(self):
+        """Returns the sub-circuit, modified if there were changes, or the original otherwise."""
+        if self._subcircuit is None:
+            # Try to get it from the parent netlist
+            self._subcircuit = self._netlist.get_subcircuit_named(self.value)
+            self._was_updated = False
+            self._modified_subcircuit = None
         return self._modified_subcircuit if self._was_updated else self._subcircuit
+
+    @property
+    def was_updated(self):
+        """Returns True if the sub-circuit was modified, False otherwise."""
+        return self._was_updated
 
     def make_modifications(self):
         """If there were modifications to the sub-circuit, clone it and apply the modifications to the parent editor."""
+        if hasattr(self, '_initialization'):
+            return  # during initialization, do not mark as modified
         if not self._was_updated:
             if self._modified_subcircuit is None:
-                self._modified_subcircuit = self._subcircuit.clone()
+                self._modified_subcircuit = self.subcircuit.clone()
 
-            self._parent.add_update(self._parent_ref, self._modified_subcircuit, UpdateType.CloneSubcircuit)
+            self._netlist.add_update(self.reference, self._modified_subcircuit, UpdateType.CloneSubcircuit)
             self._was_updated = True
 
     def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
         self._parent.add_update(f"{self._parent_ref}:{name}", value, updates)
 
-    def __getattr__(self, attr):
-        return getattr(self.subcircuit, attr)
+    def reset_netlist(self, create_blank: bool = False) -> None:
+        raise NotImplementedError("Resetting the netlist is not supported for sub-circuit instances.")
 
-    def __setattr__(self, attr, value):
-        self.make_modifications()
-        setattr(self.subcircuit, attr, value)
-
-    def get_component(self, reference: str) -> SpiceComponent:
-        """Returns the Component object representing the given reference in the netlist."""
-        return self.subcircuit.get_component(reference)
-
-    def get_subcircuit(self, reference: str) -> 'SpiceCircuit':
-        """Returns a hierarchical subdesign"""
-        return self.subcircuit.get_subcircuit(reference)
+    def __setattr__(self, key, value):
+        if key in VALUE_IDs or key in PARAMS_IDs:
+            self.make_modifications()
+        super().__setattr__(key, value)
 
     def __getitem__(self, item) -> Union[SpiceComponent, str]:
         """
@@ -93,63 +117,13 @@ class SpiceCircuitInstance:
         circuit['R1'] = '3.3k'
         If the key is not found, and if there is a parameter with the same name, it will set the parameter value instead.
         """
-        if key in self.subcircuit.has_component(key):
+        if key in self.subcircuit.get_components():
             self.set_component_attribute(key, 'value', value)
         elif key in self.subcircuit.get_all_parameter_names():
             self.set_parameter(key, value)
         else:
             raise KeyError(f'Key "{key}" not found as component or parameter in subcircuit "{self._parent_ref}".')
 
-    def get_component_attribute(self, reference: str, attribute: str) -> str:
-        """
-        Returns the value of the attribute of the component. Attributes are the values that are not related with
-        SPICE parameters. For example, component manufacturer, footprint, schematic appearance, etc.
-        User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
-
-        :param reference: Reference of the component
-        :type reference: str
-        :param attribute: Name of the attribute to be retrieved
-        :type attribute: str
-        :return: Value of the attribute being sought
-        :rtype: str
-        :raises: ComponentNotFoundError - In case the component is not found
-                 KeyError - In case the attribute is not found
-        """
-        return self.subcircuit.get_component_attribute(reference, attribute)
-
-    def get_component_nodes(self, reference: str) -> list:
-        """Returns the value of the port of the component.
-
-        :param reference: Reference of the component
-        :type reference: str
-        :return: List with the ports of the component
-        :rtype: str
-        :raises: ComponentNotFoundError - In case the component is not found
-                 KeyError - In case the port is not found
-
-        """
-        return self.subcircuit.get_component_nodes(reference)
-
-    def get_parameter(self, param: str) -> str:
-        """
-        Retrieves a Parameter from the Netlist
-
-        :param param: Name of the parameter to be retrieved
-        :type param: str
-        :return: Value of the parameter being sought
-        :rtype: str
-        :raises: ParameterNotFoundError - In case the component is not found
-        """
-        return self.subcircuit.get_parameter(param)
-
-    def get_all_parameter_names(self) -> list[str]:
-        """
-        Returns all parameter names from the netlist.
-
-        :return: A list of parameter names found in the netlist
-        :rtype: list[str]
-        """
-        return self.subcircuit.get_all_parameter_names()
 
     def set_parameter(self, param, value):
         """Adds a parameter to the SPICE netlist.
@@ -303,53 +277,6 @@ class SpiceCircuitInstance:
         self.subcircuit.set_component_attribute(reference, attribute, value)
         self.add_update(reference, value, UpdateType.UpdateComponentParameter)
 
-    def get_component_value(self, element: str) -> str:
-        """
-        Returns the value of a component retrieved from the netlist.
-
-        :param element: Reference of the circuit element to get the value.
-        :type element: str
-
-        :return: value of the circuit element .
-        :rtype: str
-
-        :raises: ComponentNotFoundError - In case the component is not found
-
-                 NotImplementedError - for not supported operations
-        """
-        return self.subcircuit.get_component_value(element)
-
-    def get_component_parameters(self, element: str) -> dict:
-        """
-        Returns the parameters of a component retrieved from the netlist.
-
-        :param element: Reference of the circuit element to get the parameters.
-        :type element: str
-
-        :return: parameters of the circuit element in dictionary format.
-        :rtype: dict
-
-        :raises: ComponentNotFoundError - In case the component is not found
-
-                 NotImplementedError - for not supported operations
-        """
-        return self.subcircuit.get_component_parameters(element)
-
-    def get_component_floatvalue(self, element: str) -> float:
-        """
-        Returns the value of a component retrieved from the netlist.
-
-        :param element: Reference of the circuit element to get the value in float format.
-        :type element: str
-
-        :return: value of the circuit element in float type
-        :rtype: float
-
-        :raises: ComponentNotFoundError - In case the component is not found
-
-                 NotImplementedError - for not supported operations
-        """
-        return self.subcircuit.get_component_floatvalue(element)
 
     def set_component_values(self, **kwargs):
         """
@@ -377,22 +304,6 @@ class SpiceCircuitInstance:
         for device, value in kwargs.items():
             self.add_update(device, value, UpdateType.UpdateComponentValue)
 
-    def get_components(self, prefixes='*') -> list:
-        """
-        Returns a list of components that match the list of prefixes indicated on the parameter prefixes.
-        In case prefixes is left empty, it returns all the ones that are defined by the REPLACE_REGEXES.
-        The list will contain the designators of all components found.
-
-        :param prefixes:
-            Type of prefixes to search for. Examples: 'C' for capacitors; 'R' for Resistors; etc... See prefixes
-            in SPICE documentation for more details.
-            The default prefix is '*' which is a special case that returns all components.
-        :type prefixes: str
-
-        :return:
-            A list of components matching the prefixes demanded.
-        """
-        return self.subcircuit.get_components(prefixes)
 
     def add_component(self, component: SpiceComponent, **kwargs) -> None:
         """
