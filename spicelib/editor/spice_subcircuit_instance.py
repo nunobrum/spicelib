@@ -34,14 +34,13 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
     This class only implements
     """
-    # internals = ['subcircuit', '_subcircuit', '_modified_subcircuit', '_was_updated']
+    # internals = ['subcircuit', '_subcircuit', 'shadow_subcircuit', '_was_updated']
 
     def __init__(self, *ars, **kwargs):
         SpiceComponent.__init__(self, *ars, **kwargs)
-        self._initialization = True
         self._was_updated = False
         self._subcircuit = None
-        self._modified_subcircuit = None
+        self.shadow_subcircuit = None
 
     def reset_attributes(self):
         """Resets the sub-circuit instance to its original state."""
@@ -57,44 +56,41 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
             self.set_params(**_parse_params(match.group('params')))
         # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
         self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
-        del self._initialization
 
     @property
     def subcircuit(self):
-        """Returns the sub-circuit, modified if there were changes, or the original otherwise."""
+        """Makes a copy of the target sub-circuit in order to manage updates done to instances. This is only
+        saved if there is an update made to it."""
         if self._subcircuit is None:
             # Try to get it from the parent netlist
             self._subcircuit = self._netlist.get_subcircuit_named(self.value)
             self._was_updated = False
-            self._modified_subcircuit = None
-        return self._modified_subcircuit if self._was_updated else self._subcircuit
+            self.shadow_subcircuit = None
+        if self.shadow_subcircuit is None:
+            self.shadow_subcircuit = self._subcircuit.clone()
+        return self.shadow_subcircuit
 
     @property
     def was_updated(self):
         """Returns True if the sub-circuit was modified, False otherwise."""
         return self._was_updated
 
-    def make_modifications(self):
-        """If there were modifications to the sub-circuit, clone it and apply the modifications to the parent editor."""
-        if hasattr(self, '_initialization'):
-            return  # during initialization, do not mark as modified
-        if not self._was_updated:
-            if self._modified_subcircuit is None:
-                self._modified_subcircuit = self.subcircuit.clone()
-
-            self._netlist.add_update(self.reference, self._modified_subcircuit, UpdateType.CloneSubcircuit)
-            self._was_updated = True
-
     def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+        # mark as updated only if the call comes from a component
+        if updates in (UpdateType.UpdateComponentParameter, UpdateType.UpdateComponentParameter):
+            self._was_updated = True
         self._parent.add_update(f"{self._parent_ref}:{name}", value, updates)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         raise NotImplementedError("Resetting the netlist is not supported for sub-circuit instances.")
 
     def __setattr__(self, key, value):
-        if key in VALUE_IDs or key in PARAMS_IDs:
-            self.make_modifications()
-        super().__setattr__(key, value)
+        if key in VALUE_IDs:
+            self.set_value(value)
+        elif key in PARAMS_IDs:
+            self.set_parameter(key, value)
+        else:
+            super().__setattr__(key, value)
 
     def __getitem__(self, item) -> Union[SpiceComponent, str]:
         """
@@ -103,12 +99,14 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
        circuit['TEMP']  # returns the parameter TEMP
        In case the item is not found as a component, it will try to get it as a parameter.
         """
-        if item in self.get_components():
+        if item in VALUE_IDs or item in PARAMS_IDs:
+            return getattr(self, item)
+        elif item in self.get_components():
             return self.get_component(item)
         elif item in self.get_all_parameter_names():
             return self.get_parameter(item)
         else:
-            raise KeyError(f'Key "{item}" not found as component or parameter in subcircuit "{self._parent_ref}".')
+            raise KeyError(f'Key "{item}" not found as component or parameter in subcircuit "{self.value}".')
 
 
     def __setitem__(self, key, value):
@@ -148,7 +146,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: Nothing
         """
         logger.debug(f'Setting parameter "{param}" to value "{value}"')
-        self.make_modifications()
         self.subcircuit.set_parameter(param, value)
         self.add_update(param, value, UpdateType.UpdateComponentParameter)
 
@@ -167,7 +164,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :returns: Nothing
         """
         logger.debug(f'Setting parameters: {kwargs}')
-        self.make_modifications()
         self.subcircuit.set_parameters(**kwargs)
         for key, value in kwargs.items():
             self.add_update(f"PARAMETERS.{key}", str(value), UpdateType.UpdateComponentParameter)
@@ -197,7 +193,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
         logger.debug(f'Setting component "{device}" to value "{value}"')
-        self.make_modifications()
         self.subcircuit.set_component_value(device, value)
         self.add_update(device, value, UpdateType.UpdateComponentValue)
 
@@ -223,7 +218,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
         logger.debug(f'Setting element "{element}" to model "{model}"')
-        self.make_modifications()
         self.subcircuit.set_element_model(element, model)
         self.add_update(element, model, UpdateType.UpdateComponentValue)
 
@@ -252,7 +246,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
         logger.debug(f'Setting parameters for component "{element}": {kwargs}')
-        self.make_modifications()
         self.subcircuit.set_component_parameters(element, **kwargs)
         for param, value in kwargs.items():
             update_type = UpdateType.DeleteComponentParameter if value is None else UpdateType.UpdateComponentParameter
@@ -273,7 +266,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :raises: ComponentNotFoundError - In case the component is not found
         """
         logger.debug(f'Setting attribute "{attribute}" of component "{reference}" to value "{value}"')
-        self.make_modifications()
         self.subcircuit.set_component_attribute(reference, attribute, value)
         self.add_update(reference, value, UpdateType.UpdateComponentParameter)
 
@@ -299,7 +291,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
-        self.make_modifications()
         self.subcircuit.set_component_values(**kwargs)
         for device, value in kwargs.items():
             self.add_update(device, value, UpdateType.UpdateComponentValue)
@@ -315,7 +306,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
         :return: Nothing
         """
-        self.make_modifications()
         self.subcircuit.add_component(component, **kwargs)
         self.add_update(component.reference, component.value, UpdateType.AddComponent)
 
@@ -330,7 +320,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: Nothing
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
-        self.make_modifications()
         self.subcircuit.remove_component(designator)
         self.add_update(designator, "delete", UpdateType.DeleteComponent)
 
@@ -360,7 +349,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :type instruction: str
         :return: Nothing
         """
-        self.make_modifications()
         logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
         logger.info(f"Adding instruction: {logtxt}")
         self.subcircuit.add_instruction(instruction)
@@ -386,7 +374,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :returns: True if the instruction was found and removed, False otherwise
         :rtype: bool
         """
-        self.make_modifications()
         result = self.subcircuit.remove_instruction(instruction)
         if result:
             logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
@@ -413,7 +400,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :returns: True if the instruction was found and removed, False otherwise
         :rtype: bool
         """
-        self.make_modifications()
         result, removed_instruction = self.subcircuit.remove_Xinstruction(search_pattern)
         if result:
             logtxt = removed_instruction.strip().replace("\r", "\\r").replace("\n", "\\n")

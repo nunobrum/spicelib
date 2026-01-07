@@ -316,6 +316,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         """
         modified = []
         for subckt in self.netlist:
-            if isinstance(subckt, SpiceCircuitInstance) and subckt.was_updated():
+            if isinstance(subckt, SpiceCircuitInstance) and subckt.was_updated:
                 modified.append(subckt)
         return modified
