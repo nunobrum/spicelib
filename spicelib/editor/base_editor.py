@@ -28,7 +28,6 @@ import os
 import io
 
 from .base_subcircuit import BaseSubCircuit
-from .updates import UpdateType, Updates
 from ..sim.simulator import Simulator
 
 
@@ -58,13 +57,6 @@ class BaseEditor(BaseSubCircuit):
     
     :meta hide-value:
     """
-
-    def __init__(self):
-        """Initializing the list that contains all the modifications done to a netlist."""
-        self.netlist_updates = Updates()
-
-    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
-        self.netlist_updates.add_update(name, value, updates)
 
     @property
     @abstractmethod

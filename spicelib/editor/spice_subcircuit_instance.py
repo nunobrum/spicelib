@@ -16,13 +16,13 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
-
+import io
 from typing import Union
 import logging
 import re
 
-from .base_subcircuit import BaseSubCircuitInstance, BaseSubCircuit
-from .primitives import VALUE_IDs, PARAMS_IDs
+from .base_subcircuit import BaseSubCircuitInstance
+from .primitives import VALUE_IDs, PARAMS_IDs, Component
 from .updates import UpdateType
 from .spice_components import SpiceComponent, component_replace_regexs, _parse_params
 
@@ -34,11 +34,9 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
     This class only implements
     """
-    # internals = ['subcircuit', '_subcircuit', 'shadow_subcircuit', '_was_updated']
 
     def __init__(self, *ars, **kwargs):
         SpiceComponent.__init__(self, *ars, **kwargs)
-        self._was_updated = False
         self._subcircuit = None
         self.shadow_subcircuit = None
 
@@ -53,9 +51,15 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         self.value = match.group('value').strip()
         assert self.value != "", "Sub-circuit name cannot be empty."
         if match.group('params'):
-            self.set_params(**_parse_params(match.group('params')))
+            self.set_parameters(**_parse_params(match.group('params')))
         # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
         self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
+
+    def write_lines(self, stream: io.StringIO) -> int:
+        """If the subcircuit was modified it needs to update the reference to the subcircuit"""
+        if self.was_modified:
+            self.value = self.shadow_subcircuit.name()
+        return super().write_lines(stream)
 
     @property
     def subcircuit(self):
@@ -64,22 +68,20 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         if self._subcircuit is None:
             # Try to get it from the parent netlist
             self._subcircuit = self._netlist.get_subcircuit_named(self.value)
-            self._was_updated = False
             self.shadow_subcircuit = None
         if self.shadow_subcircuit is None:
-            self.shadow_subcircuit = self._subcircuit.clone()
+            # In all cases it creates a new copy of the subcircuit, it is only writen to the netlist if it was modified.
+            new_name = self.value + '_' + self.reference
+            self.shadow_subcircuit = self._subcircuit.clone(new_name=new_name)
         return self.shadow_subcircuit
 
     @property
-    def was_updated(self):
+    def was_modified(self):
         """Returns True if the sub-circuit was modified, False otherwise."""
-        return self._was_updated
+        return self.shadow_subcircuit is not None and self.shadow_subcircuit.was_modified
 
     def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
-        # mark as updated only if the call comes from a component
-        if updates in (UpdateType.UpdateComponentParameter, UpdateType.UpdateComponentParameter):
-            self._was_updated = True
-        self._parent.add_update(f"{self._parent_ref}:{name}", value, updates)
+        self._netlist.add_update(f"{self.reference}:{name}", value, updates)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         raise NotImplementedError("Resetting the netlist is not supported for sub-circuit instances.")
@@ -88,7 +90,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         if key in VALUE_IDs:
             self.set_value(value)
         elif key in PARAMS_IDs:
-            self.set_parameter(key, value)
+            self.set_parameters(**value)
         else:
             super().__setattr__(key, value)
 
@@ -120,7 +122,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         elif key in self.subcircuit.get_all_parameter_names():
             self.set_parameter(key, value)
         else:
-            raise KeyError(f'Key "{key}" not found as component or parameter in subcircuit "{self._parent_ref}".')
+            raise KeyError(f'Key "{key}" not found as component or parameter in subcircuit "{self.reference}".')
 
 
     def set_parameter(self, param, value):
@@ -146,7 +148,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: Nothing
         """
         logger.debug(f'Setting parameter "{param}" to value "{value}"')
-        self.subcircuit.set_parameter(param, value)
+        SpiceComponent.set_param(self, param, value)
         self.add_update(param, value, UpdateType.UpdateComponentParameter)
 
     def set_parameters(self, **kwargs):
@@ -164,7 +166,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :returns: Nothing
         """
         logger.debug(f'Setting parameters: {kwargs}')
-        self.subcircuit.set_parameters(**kwargs)
+        SpiceComponent.set_parameters(self, **kwargs)
         for key, value in kwargs.items():
             self.add_update(f"PARAMETERS.{key}", str(value), UpdateType.UpdateComponentParameter)
 
@@ -329,7 +331,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: True if the component is read-only, False otherwise
         :rtype: bool
         """
-        return self._parent.is_read_only()
+        return self._netlist.is_read_only()
 
     def add_instruction(self, instruction: str) -> None:
         """

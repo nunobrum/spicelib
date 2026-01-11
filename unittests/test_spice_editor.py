@@ -77,6 +77,7 @@ class SpiceEditor_Test(unittest.TestCase):
             self.assertEqual(value, editor.netlist_updates[index].value, "Value mismatch")
 
     def test_component_editing_1(self):
+        self.edt.reset_netlist()
         self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here
         self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")  # add assertion here
         self.assertEqual(0, len(self.edt.netlist_updates), "There is no update")

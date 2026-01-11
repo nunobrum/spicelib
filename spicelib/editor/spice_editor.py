@@ -278,7 +278,10 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
 
         :returns: Nothing
         """
-        super().reset_netlist(create_blank)
+        # For some reason, the MRO is not working well here. Need to explicitly call each super class individually.
+        SpiceCircuit.reset_netlist(self, create_blank)
+        BaseEditor.reset_netlist(self, create_blank)
+        self.recording_updates = False
         if create_blank:
             lines = ['* netlist generated from spicelib', '.end']
             finished = self._add_lines(lines)
@@ -290,11 +293,49 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                 finished = self._add_lines(lines)
                 if not finished:
                     raise SyntaxError("Netlist with missing .END or .ENDS statements")
-                # else:
-                #     for _ in lines:  # Consuming the rest of the file.
-                #         pass  # print("Ignoring %s" % _)
+
+                # consume any extra lines that may exit
+                for line in lines:
+                    cmd = get_line_command(line)
+                    if cmd == '*':
+                        # comments are still acceptable
+                        self.netlist.append(line)
+                    else:
+                        # not expecting any valid primitive after the .END statement
+                        _logger.info(f"Ignoring line \"{line}\" found after END statement")
+                if not self.custom_lib_paths:
+                    # See if it can find a comment specifying who genereated this netlist, only checks the first
+                    # 5 lines
+                    lib_paths = None
+                    for line in self.netlist[:5]:
+                        if isinstance(line, str):
+                            line_stripped_upped = line.strip().upper()
+                            if line.startswith('*'):
+                                if line_stripped_upped.endswith(".ASC"):
+                                    from ..simulators.ltspice_simulator import LTspice
+                                    lib_paths = LTspice.get_default_library_paths()
+                                    _logger.info(f"Found LTspice netlist pattern.\nAdding search paths: [{lib_paths}]")
+                                    break
+                                elif line_stripped_upped.endswith(".QSCH"):
+                                    from ..simulators.qspice_simulator import Qspice
+                                    lib_paths = Qspice.get_default_library_paths()
+                                    _logger.info(f"Found Qspice netlist pattern.\nAdding search paths: [{lib_paths}]")
+                                    break
+                                elif 'XYCE' in line_stripped_upped:
+                                    from ..simulators.xyce_simulator import XyceSimulator
+                                    lib_paths = XyceSimulator.get_default_library_paths()
+                                    _logger.info(f"Found Xyce netlist pattern.\nAdding search paths: [{lib_paths}]")
+                                    break
+                                elif 'NGSPICE' in line_stripped_upped:
+                                    from ..simulators.ngspice_simulator import NGspiceSimulator
+                                    lib_paths = NGspiceSimulator.get_default_library_paths()
+                                    _logger.info(f"Found NGspice netlist pattern.\nAdding search paths: [{lib_paths}]")
+                                    break
+                    if lib_paths:
+                        self.set_custom_library_paths(lib_paths)
         else:
             _logger.error("Netlist file not found: {}".format(self.netlist_file))
+        self.recording_updates = True
 
     def run(self, wait_resource: bool = True,
             callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):
@@ -307,7 +348,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         runner = SimRunner(simulator=simulator)
         return runner.run(self, wait_resource=wait_resource, callback=callback, timeout=timeout, run_filename=run_filename)
 
-    def modified_subcircuits(self) -> list['SpiceCircuit']:
+    def modified_subcircuits(self) -> list[SpiceCircuit]:
         """
         Returns a list of all sub-circuits that have been modified.
 
@@ -315,7 +356,28 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         :rtype: list[SpiceCircuit]
         """
         modified = []
-        for subckt in self.netlist:
-            if isinstance(subckt, SpiceCircuitInstance) and subckt.was_updated:
-                modified.append(subckt)
+        netlists_to_check = [self]
+        i = 0
+        while i < len(netlists_to_check):
+            for subckt in netlists_to_check[i].netlist:
+                if isinstance(subckt, SpiceCircuitInstance) and subckt.was_modified:
+                    modified.append(subckt.shadow_subcircuit)
+                elif isinstance(subckt, SpiceCircuit) and subckt.was_modified:
+                    netlists_to_check.append(subckt)
+            i += 1
         return modified
+
+    @classmethod
+    def add_library_search_paths(cls, *paths) -> None:
+        """
+        .. deprecated:: 1.1.4 Use the class method `set_custom_library_paths()` instead.
+
+        Adds search paths for libraries. By default, the local directory and the
+        ~username/"Documents/LTspiceXVII/lib/sub will be searched forehand. Only when a library is not found in these
+        paths then the paths added by this method will be searched.
+
+        :param paths: Path to add to the Search path
+        :type paths: str
+        :return: Nothing
+        """
+        cls.set_custom_library_paths(*paths)

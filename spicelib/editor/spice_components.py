@@ -24,6 +24,7 @@ import logging
 
 from .editor_errors import UnrecognizedSyntaxError
 from .primitives import Component, format_eng
+from .updates import UpdateType
 from .spice_utils import END_LINE_TERM, REPLACE_REGEXS
 from ..log.logfile_data import try_convert_value
 
@@ -199,7 +200,7 @@ class SpiceComponent(Component):
                 self.ports = info[attr].split()
             elif attr == 'params':
                 if info[attr]:
-                    self.set_params(**_parse_params(info[attr]))
+                    self.set_parameters(**_parse_params(info[attr]))
             elif attr in ('number', 'formula1', 'formula2', 'formula3'):
                 continue  # these are subgroups of VALUE, ignore
             else:
@@ -320,20 +321,20 @@ class SpiceComponent(Component):
         count += len(END_LINE_TERM)
         return count
 
-    # def set_value(self, value):
-    #     """Informs the netlist that the value of the component has changed"""
-    #     super().set_value(value)
-    #     self.netlist.add_update(self.reference, value, UpdateType.UpdateComponentValue)
-    #
-    # def set_params(self, **params):
-    #     """Informs the netlist that the parameters of the component have changed"""
-    #     super().set_params(**params)
-    #     self.netlist.add_update(self.reference,  str(params), UpdateType.UpdateComponentParameter)
-    #
-    # def set_param(self, key: str, value):
-    #     """Informs the netlist that a parameter of the component has changed"""
-    #     super().set_param(key, value)
-    #     self.netlist.add_update(self.reference, f"{key}={value}", UpdateType.UpdateComponentParameter)
+    def set_value(self, value):
+        """Informs the netlist that the value of the component has changed"""
+        super().set_value(value)
+        self.netlist.add_update(self.reference, value, UpdateType.UpdateComponentValue)
+
+    def set_parameters(self, **params):
+        """Informs the netlist that the parameters of the component have changed"""
+        super().set_parameters(**params)
+        self.netlist.add_update(self.reference,  str(params), UpdateType.UpdateComponentParameter)
+
+    def set_parameter(self, key: str, value):
+        """Informs the netlist that a parameter of the component has changed"""
+        super().set_parameter(key, value)
+        self.netlist.add_update(self.reference, f"{key}={value}", UpdateType.UpdateComponentParameter)
 
 
 

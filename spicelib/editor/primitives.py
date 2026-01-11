@@ -328,7 +328,7 @@ class Component(Primitive):
         elif item in attr_dict.get('params', {}):
             return attr_dict['params'][item]
         else:
-            raise AttributeError(f"'Component' object has no attribute '{item}'")
+            return super().__getattribute__(item)
 
     def __setattr__(self, key, value):
         if key in VALUE_IDs:
@@ -344,7 +344,7 @@ class Component(Primitive):
                 raise ValueError("Component has no parent editor")
             if self._netlist.is_read_only():
                 raise ValueError("Editor is read-only")
-            self.set_params(**value)
+            self.set_parameters(**value)
         elif key in REF_IDs:
             super().__setattr__('reference', value)
         else:
@@ -387,7 +387,7 @@ class Component(Primitive):
         """
         return self.attributes.get('value', float('nan'))
 
-    def set_param(self, key: str, value: Union[float, str]):
+    def set_parameter(self, key: str, value: Union[float, str]):
         """Sets a parameter value
         :param key: Parameter name
         :param value: Parameter value
@@ -400,7 +400,7 @@ class Component(Primitive):
             params[key] = value
         self.attributes['params'] = params
 
-    def set_params(self, **params):
+    def set_parameters(self, **params):
         """Sets multiple parameter values
         :param params: Dictionary with parameter names and values
         """
@@ -413,11 +413,11 @@ class Component(Primitive):
                 current_params[key] = value
         self.attributes['params'] = current_params  # This instruction is only needed if params was empty before
 
-    def clear_params(self):
+    def clear_parameters(self):
         """Clears all parameters"""
         self.attributes['params'] = OrderedDict()
 
-    def clear_param(self, key: str):
+    def clear_paramemter(self, key: str):
         """Clears a parameter
         :param key: Parameter name
         """
@@ -426,6 +426,10 @@ class Component(Primitive):
             del params[key]
         self.attributes['params'] = params
 
+    clear_param = clear_parameters
+    set_param = set_parameter
+    set_params = set_parameters
+
     def clone(self):
         """Clones the component"""
         newone = type(self)()
@@ -433,7 +437,7 @@ class Component(Primitive):
         newone._obj = copy.deepcopy(self._obj)
         newone.attributes = copy.deepcopy(self.attributes)
         newone.ports = self.ports.copy()
-        newone.reference = ""  # reference is not copied to allow auto-assignment
+        newone.reference = self.reference
         return newone
 
 

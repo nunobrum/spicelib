@@ -20,14 +20,19 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 from spicelib.editor.primitives import Component, scan_eng
-from spicelib.editor.updates import UpdateType
+from .updates import UpdateType, Updates
 
 
 class BaseSubCircuit(ABC):
 
-    @abstractmethod
+    def __init__(self):
+        """Initializing the list that contains all the modifications done to a netlist."""
+        self.netlist_updates = Updates()
+        self.recording_updates = False
+
     def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
-        ...
+        if self.recording_updates:
+            self.netlist_updates.add_update(name, value, updates)
 
     @abstractmethod
     def reset_netlist(self, create_blank: bool = False) -> None:
