@@ -23,7 +23,7 @@ import io
 import logging
 
 from .editor_errors import UnrecognizedSyntaxError
-from .primitives import Component, format_eng
+from .primitives import Component, format_eng, to_float
 from .updates import UpdateType
 from .spice_utils import END_LINE_TERM, REPLACE_REGEXS
 from ..log.logfile_data import try_convert_value
@@ -265,12 +265,11 @@ class SpiceComponent(Component):
                     offset += len(new_params_str) - len(old_params_str)
                     update_done = True
             else:
-                old_attr_value = info[attr]
                 if hasattr(self, attr):
-                    if isinstance(self[attr], (int, float)):
-                        new_attr_value = format_eng(self[attr])
-                    else:
-                        new_attr_value = str(self[attr])
+                    old_attr_value = info[attr]
+                    if attr == 'value':
+                        attr = 'value_str'
+                    new_attr_value = self[attr]
                     if old_attr_value != new_attr_value:
                         new_line = _insert_section(new_line, start + offset, stop + offset, new_attr_value)
                         offset += len(new_attr_value) - len(old_attr_value)

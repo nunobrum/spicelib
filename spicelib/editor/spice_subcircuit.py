@@ -119,13 +119,13 @@ class SpiceCircuit(BaseSubCircuit):
         """
         if self.recording_updates:
             if len(self.netlist_updates) == 0 and self.parent is not None:   # This is the first update
-                name = self.name()
-                self.parent.add_update(name, name, UpdateType.CloneSubcircuit)
+                subckt_name = self.name()
+                self.parent.add_update(subckt_name, subckt_name, UpdateType.CloneSubcircuit)
             self.netlist_updates.add_update(name, value, updates)
 
     @property
     def was_modified(self) -> bool:
-        return len(self.netlist) > 0
+        return len(self.netlist_updates) > 0
 
     def _add_lines(self, line_iter):
         """Internal function. Do not use.
@@ -136,7 +136,8 @@ class SpiceCircuit(BaseSubCircuit):
             # cmd is guaranteed to be uppercased
             if cmd == '.SUBCKT':
                 sub_circuit = SpiceCircuit(self)
-                sub_circuit.netlist.append(line)
+                primitive = Primitive(netlist=self, obj=line)
+                sub_circuit.netlist.append(primitive)
                 # Advance to the next non nested .ENDS
                 finished = sub_circuit._add_lines(line_iter)
                 if finished:
@@ -181,17 +182,28 @@ class SpiceCircuit(BaseSubCircuit):
     def write_lines(self, stream: io.StringIO) -> None:
         """Internal function. Do not use."""
         # This helper function writes the contents of sub-circuit to the file stream
-        for command in self.netlist:
-            if isinstance(command, SpiceCircuit):
-                command.write_lines(stream)
-            elif isinstance(command, ControlEditor):
-                command.write_lines(stream)
-            elif isinstance(command, SpiceComponent):
-                command.write_lines(stream)
-            elif isinstance(command, Primitive):
-                stream.write(command._obj)
+        for primitive in self.netlist:
+            if isinstance(primitive, str):
+                line = primitive
+                # TODO: All dot instructions should be Primitives. Only comments and blank lines should be strings.
+                # Writes the modified sub-circuits at the end just before the .END clause
+                if line.upper().startswith(".END"):
+                    # write here the modified sub-circuits
+                    for sub in self.modified_subcircuits():
+                        sub.write_lines(stream)
+                stream.write(primitive)
+            elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
+                primitive.write_lines(stream)
+            elif isinstance(primitive, Primitive):
+                line = primitive._obj
+                # Writes the modified sub-circuits at the end just before the .END clause
+                if line.upper().startswith(".END"):
+                    # write here the modified sub-circuits
+                    for sub in self.modified_subcircuits():
+                        sub.write_lines(stream)
+                stream.write(line)
             else:
-                stream.write(command)
+                raise RuntimeError("Unknown primitive type found in netlist")
 
     def _get_parameter_named(self, param_name) -> tuple[int, Union[re.Match, None]]:
         """
@@ -293,7 +305,7 @@ class SpiceCircuit(BaseSubCircuit):
         super().reset_netlist()
         self.netlist.clear()
 
-    def clone(self, **kwargs) -> 'SpiceCircuit':
+    def clone(self, new_parent, **kwargs) -> 'SpiceCircuit':
         """
         Creates a new copy of the SpiceCircuit. Changes done at the new copy do not affect the original.
 
@@ -302,15 +314,15 @@ class SpiceCircuit(BaseSubCircuit):
         :return: The new replica of the SpiceCircuit object
         :rtype: SpiceCircuit
         """
-        clone = SpiceCircuit(self.parent)
+        clone = SpiceCircuit(new_parent)
         clone.netlist.append( "***** SpiceEditor Manipulated this sub-circuit ****" + END_LINE_TERM)
         for primitive in self.netlist:
             if isinstance(primitive, SpiceCircuit):
-                clone.netlist.append(primitive)
+                clone.netlist.append(primitive.clone(clone))
             elif isinstance(primitive, SpiceComponent):
-                clone.netlist.append(primitive.clone())
+                clone.netlist.append(primitive.clone(clone))
             elif isinstance(primitive, Primitive):
-                clone.netlist.append(Primitive(netlist=self.parent, obj=primitive._obj))
+                clone.netlist.append(Primitive(netlist=clone, obj=primitive._obj))
             else:
                 clone.netlist.append(primitive)
         clone.netlist.append("***** ENDS SpiceEditor ****" + END_LINE_TERM)
@@ -328,6 +340,8 @@ class SpiceCircuit(BaseSubCircuit):
         """
         if len(self.netlist):
             for line in self.netlist:
+                if isinstance(line, Primitive):
+                    line = line._obj
                 m = subckt_regex.search(line)
                 if m:
                     return m.group('name')
@@ -350,6 +364,8 @@ class SpiceCircuit(BaseSubCircuit):
             line_no = 0
             while line_no < lines:
                 line = self.netlist[line_no]
+                if isinstance(line, Primitive):
+                    line = line._obj
                 m = subckt_regex.search(line)
                 if m:
                     # Replacing the name in the SUBCKT Clause
@@ -365,6 +381,8 @@ class SpiceCircuit(BaseSubCircuit):
             # This second loop finds the .ENDS clause
             while line_no < lines:
                 line = self.netlist[line_no]
+                if isinstance(line, Primitive):
+                    line = line._obj
                 if get_line_command(line) == '.ENDS':
                     self.netlist[line_no] = '.ENDS ' + new_name + END_LINE_TERM
                     break
@@ -374,8 +392,8 @@ class SpiceCircuit(BaseSubCircuit):
         else:
             # Avoiding exception by creating an empty sub-circuit
             self.netlist.append("* SpiceEditor Created this sub-circuit")
-            self.netlist.append('.SUBCKT %s%s' % (new_name, END_LINE_TERM))
-            self.netlist.append('.ENDS %s%s' % (new_name, END_LINE_TERM))
+            self.netlist.append(Primitive(netlist=self, obj='.SUBCKT %s%s' % (new_name, END_LINE_TERM)))
+            self.netlist.append(Primitive(netlist=self, obj='.ENDS %s%s' % (new_name, END_LINE_TERM)))
 
     def get_component(self, reference: str) -> Union[SpiceComponent, 'SpiceCircuit']:
         """
@@ -865,7 +883,7 @@ class SpiceCircuit(BaseSubCircuit):
                 search = reg_subckt.match(line)
                 if search:
                     sub_circuit = SpiceCircuit()
-                    sub_circuit.netlist.append(line)
+                    sub_circuit.netlist.append(Primitive(netlist=sub_circuit, obj=line))
                     # Advance to the next non nested .ENDS
                     finished = sub_circuit._add_lines(lib)
                     if finished:
@@ -909,6 +927,21 @@ class SpiceCircuit(BaseSubCircuit):
             return self.parent.find_subckt_in_included_libs(subcircuit_name)
         else:
             return None
+
+    def modified_subcircuits(self) -> list['SpiceCircuit']:
+        """
+        Returns a list of all sub-circuits that have been modified.
+
+        :return: List of modified sub-circuits
+        :rtype: list[SpiceCircuit]
+        """
+        modified = []
+        for subckt in self.netlist:
+            if isinstance(subckt, SpiceCircuitInstance) and subckt.was_modified:
+                modified.append(subckt.shadow_subcircuit)
+            elif isinstance(subckt, SpiceCircuit) and subckt.was_modified:
+                modified.append(subckt)
+        return modified
 
 class ControlEditor:
     """

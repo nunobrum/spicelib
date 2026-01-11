@@ -72,7 +72,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         if self.shadow_subcircuit is None:
             # In all cases it creates a new copy of the subcircuit, it is only writen to the netlist if it was modified.
             new_name = self.value + '_' + self.reference
-            self.shadow_subcircuit = self._subcircuit.clone(new_name=new_name)
+            self.shadow_subcircuit = self._subcircuit.clone(self.parent, new_name=new_name)
         return self.shadow_subcircuit
 
     @property

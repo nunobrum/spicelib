@@ -430,10 +430,10 @@ class Component(Primitive):
     set_param = set_parameter
     set_params = set_parameters
 
-    def clone(self):
+    def clone(self, new_parent=None):
         """Clones the component"""
         newone = type(self)()
-        newone._netlist = self._netlist
+        newone._netlist = new_parent or self._netlist
         newone._obj = copy.deepcopy(self._obj)
         newone.attributes = copy.deepcopy(self.attributes)
         newone.ports = self.ports.copy()

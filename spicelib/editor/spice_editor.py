@@ -197,21 +197,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
             f = run_netlist_file
 
         try:
-            for primitive in self.netlist:
-                if isinstance(primitive, str):
-                    f.write(primitive)
-                elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
-                    primitive.write_lines(f)
-                elif isinstance(primitive, Primitive):
-                    line = primitive._obj
-                    # Writes the modified sub-circuits at the end just before the .END clause
-                    if line.upper().startswith(".END"):
-                        # write here the modified sub-circuits
-                        for sub in self.modified_subcircuits():
-                            sub.write_lines(f)
-                    f.write(line)
-                else:
-                    raise RuntimeError("Unknown primitive type found in netlist")
+            self.write_lines(f)
         finally:
             if not isinstance(f, io.StringIO):
                 f.close()
@@ -347,25 +333,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         from ..sim.sim_runner import SimRunner
         runner = SimRunner(simulator=simulator)
         return runner.run(self, wait_resource=wait_resource, callback=callback, timeout=timeout, run_filename=run_filename)
-
-    def modified_subcircuits(self) -> list[SpiceCircuit]:
-        """
-        Returns a list of all sub-circuits that have been modified.
-
-        :return: List of modified sub-circuits
-        :rtype: list[SpiceCircuit]
-        """
-        modified = []
-        netlists_to_check = [self]
-        i = 0
-        while i < len(netlists_to_check):
-            for subckt in netlists_to_check[i].netlist:
-                if isinstance(subckt, SpiceCircuitInstance) and subckt.was_modified:
-                    modified.append(subckt.shadow_subcircuit)
-                elif isinstance(subckt, SpiceCircuit) and subckt.was_modified:
-                    netlists_to_check.append(subckt)
-            i += 1
-        return modified
 
     @classmethod
     def add_library_search_paths(cls, *paths) -> None:
