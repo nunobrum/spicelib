@@ -289,7 +289,12 @@ class AscEditor(BaseSchematic):
                 asy_filename = asy_filename.replace('\\', '/')
                 # and sometimes you have more than one
                 asy_filename = asy_filename.replace('//', '/')
-         
+        elif sys.platform == "win32":
+            # Windows replaces spaces with \\<space> in filenames
+            asy_filename = asy_filename.replace('\\ ', ' ')
+            # and sometimes you have more than one
+            asy_filename = asy_filename.replace('\\\\', '\\')
+
         asy_path = self._asy_file_find(asy_filename)
         if asy_path is None:
             raise FileNotFoundError(f"File {asy_filename} not found")
