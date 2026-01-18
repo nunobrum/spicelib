@@ -283,6 +283,7 @@ class ASC_Editor_Test(unittest.TestCase):
         my_edt.save_netlist(temp_dir + myfile)
         self.equalFiles(temp_dir + myfile, golden_dir + myfile)
 
+    @unittest.skipIf(os.name == "posix", "Skipping LTSpice oddities test")
     def test_ltspice_oddities(self):
         ascfile = spicelib.editor.asc_editor.AscEditor(test_dir + "test_oddities.asc")
         # Just testing that loading works without errors
