@@ -160,12 +160,13 @@ class AscEditor(BaseSchematic):
             component = None
             for line in asc_file:
                 if line.startswith("SYMBOL"):
-                    tag, symbol, posX, posY, rotation = line.split()
                     if component is not None:
+                        # store previous component
                         assert component.reference is not None, "Component InstName was not given"
                         self.components[component.reference] = component
                     component = SchematicComponent(self, line)
-                    component.symbol = symbol
+                    tag, *symbol, posX, posY, rotation = line.split()
+                    component.symbol = symbol[0] if len(symbol) == 1 else ' '.join(symbol)
                     component.position.X = int(posX)
                     component.position.Y = int(posY)
                     if rotation in ASC_ROTATION_DICT:
@@ -288,7 +289,14 @@ class AscEditor(BaseSchematic):
                 asy_filename = asy_filename.replace('\\', '/')
                 # and sometimes you have more than one
                 asy_filename = asy_filename.replace('//', '/')
-         
+                # Escaped spaces
+                asy_filename = asy_filename.replace('/ ', ' ')
+        elif sys.platform == "win32":
+            # Windows replaces spaces with \\<space> in filenames
+            asy_filename = asy_filename.replace('\\ ', ' ')
+            # and sometimes you have more than one
+            asy_filename = asy_filename.replace('\\\\', '\\')
+
         asy_path = self._asy_file_find(asy_filename)
         if asy_path is None:
             raise FileNotFoundError(f"File {asy_filename} not found")
