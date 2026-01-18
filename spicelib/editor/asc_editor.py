@@ -285,6 +285,8 @@ class AscEditor(BaseSchematic):
         
         if sys.platform == "linux" or sys.platform == "darwin":
             if '\\' in asy_filename:
+                # If escaping a space
+                asy_filename = asy_filename.replace('\\ ', ' ')
                 # This is a Windows path, so we need to remove the backslashes for non-Windows use
                 asy_filename = asy_filename.replace('\\', '/')
                 # and sometimes you have more than one
