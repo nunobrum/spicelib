@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.8 (alpha)_
+_current version: 1.4.8
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1132,6 +1132,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Fixing Issue #262 - Support for comments in netlists
     * SpiceEditor, QschEditor and AscEditor: Allow writing of netlists directly to an io.StringIO buffer (Issue  #258)
     * Fixing Issue #267 - RawRead can be very cpu and memory intensive.
+    * Fixing Issue #278 - AscEditor - Error editing a schematic containing a component from a library with spaces in the path
 * Version 1.4.7
     * Implementing a lazy loading approach in RawRead
     * Fixing Issue #256 - Correct add_component() in SpiceEditor
