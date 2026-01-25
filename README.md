@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.8
+_current version: 1.4.9 (alpha)_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1127,6 +1127,8 @@ For support and improvement requests please open an Issue
 in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
+* Version 1.5.0
+    * Adopting clipin for clipboard operations
 * Version 1.4.8
     * Fixing Issue #269 - improved support for Ø,€,£,× components for Qspice
     * Fixing Issue #262 - Support for comments in netlists
@@ -1144,7 +1146,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Fixing Issue #235 and #236 - Inconsistent formulas in montecarlo.py and in tolerance_deviations.py
     * Fixing Issue #233 and #234 - `run_server` enhancements and platform compatibility
     * Fixing Issue #224 - Allow maintenance of `.control` sections
-    * Fixing Issue #219 - Provide an option for defining the directory in which spice is executed
+    * Fixing Issue #219 - Provides an option for defining the directory in which spice is executed
     * Fixing Issue #218 - Allow reading of multiple plots from 1 raw file
     * Fixing Issue #214 - Netlist concatenations are badly interpreted
     * Fixing Issue #213 - Add support for Verilog A elements

@@ -108,18 +108,15 @@ def main():
 
     if options.clipboard:
 
-        from spicelib.utils.clipboard import Clipboard
+        import clipin
 
-        cb = Clipboard()
-        
+
         if len(args) > 0:
             TRACE = args[-1]
         else:
             TRACE = "var"
 
-        text = cb.paste()
-
-        del(cb)
+        text = clipin.paste()
 
         for line in text.split('\n'):
             try:

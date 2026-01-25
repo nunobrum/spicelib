@@ -17,6 +17,7 @@ numpy = "*"
 scipy = "*"
 psutil = "*"
 matplotlib = "*"
+clipin = "*"
 
 [tool.poetry.scripts]
 ltsteps = "spicelib.scripts.ltsteps:main"
