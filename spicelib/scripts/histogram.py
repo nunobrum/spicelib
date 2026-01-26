@@ -94,7 +94,8 @@ def main():
     opts.add_option('-r', "--range", action="store", type="string", dest="range",
                     help="Range of the X axis to use for the histogram in the form min:max. Example: -r -1:1")
     opts.add_option('-C', "--clipboard", action="store_true", dest="clipboard",
-                    help="If the data from the clipboard is to be used.")
+                    help="If the data from the clipboard is to be used. If a full CSV is in the clipboard the user must provide the TRACE name as well."
+                         " If no TRACE is provided the script will try to convert all lines in the clipboard to numeric values.")
     # opts.add_option('-x', "--xname", action="store", dest="xname", help="Name for the variable displayed")
     opts.add_option('-o', "--output", action="store", type="string", dest="imagefile",
                     help="Output the image to a file. Argument is the name of the image File with png extension.\n"
@@ -116,13 +117,48 @@ def main():
         else:
             TRACE = "var"
 
-        text = clipin.paste()
+        text = clipin.paste('text/plain')
 
-        for line in text.split('\n'):
+        if len(args) == 0:
+            for line in text.split('\n'):
+                try:
+                    values.append(try_convert_value(line))
+                except ValueError:
+                    print("Failed to convert line: '", line, "'")
+
+            if len(values) == 0:
+                print("No valid numeric values found in clipboard.")
+                exit(-1)
+
+        elif len(args) == 1:  # The user provided the trace name
+            header = text.split('\n')[0]
+            for sep in ['\t', ';', ',']:
+                if sep in header:
+                    break
+            else:
+                sep = None
+
+            vars = header.split(sep)
             try:
-                values.append(try_convert_value(line))
+                sav_col = vars.index(TRACE)
             except ValueError:
-                print("Failed to convert line: '", line, "'")
+                print("Clipboard data doesn't have trace '%s'" % TRACE)
+                print("Clipboard data contains %s" % vars)
+                exit(-1)
+
+            for line in text.split('\n')[1:]:
+                if line.strip() == '':
+                    continue
+                vs = line.split(sep)
+                try:
+                    values.append(try_convert_value(vs[sav_col]))
+                except ValueError:
+                    print("Failed to convert value: '", vs[sav_col], "'")
+                    continue
+                except IndexError:
+                    print("Line has not enough columns: '", line, "'")
+                    continue
+
     elif len(args) == 0:
         opts.print_help()
         exit(-1)
@@ -208,7 +244,12 @@ def main():
         print("Not enough elements for an histogram."
               f"Only found {len(values)} elements. Histogram is specified for {options.nbins} bins")
     else:
-        x = np.array(values, dtype=float)
+        value_type = type(values[0])
+        print("Data type detected: ", value_type)
+        if value_type in [int, float]:
+            x = np.array(values, dtype=float)
+        elif value_type == complex:
+            x = abs(np.array([v.real for v in values], dtype=complex)) # Can be changed to .real or .imag
         mu = x.mean()
         mn = x.min()
         mx = x.max()
