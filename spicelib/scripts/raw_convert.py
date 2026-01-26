@@ -46,7 +46,7 @@ from spicelib.raw.raw_read import RawRead
 
 def main():
     usage = "usage: %prog [options] <rawfile> <trace_list>"
-    parser = OptionParser(usage=usage, version="%prog 0.1")
+    parser = OptionParser(usage=usage, version="%prog 1.2")
     parser.add_option("-o", "--output", dest="output", default=None,
                       help="Output file name.\n"
                            "Use .csv for CSV output, .xlsx for Excel output",
@@ -76,7 +76,7 @@ def main():
 
     # Read the raw file
     if traces != '*':
-        raw_data = RawRead(rawfile, '*', header_only=True, verbose=False)
+        raw_data = RawRead(rawfile, verbose=False)
         raw_traces = raw_data.get_trace_names()
         found_traces = []
         for trace in traces:
@@ -95,6 +95,7 @@ def main():
                     else:
                         print("Warning: Trace " + trace + " not found")
 
+
         if len(found_traces) == 0:
             print("Error: No traces found")
             print("Available Traces:\n ")
@@ -102,7 +103,7 @@ def main():
                 print("\t<" + trace + ">")
             exit(1)
         print("Reading traces: ", found_traces)
-        raw_data = RawRead(rawfile, found_traces, verbose=options.verbose)
+
     else:
         raw_data = RawRead(rawfile, traces, verbose=options.verbose)
 
@@ -117,7 +118,7 @@ def main():
         if options.clipboard:
             import clipin
             print(f"Copying to clipboard text with {len(text)} bytes")
-            clipin.copy(text)
+            clipin.copy({'text/plain': text})
         else:
             print(text)
     else:
