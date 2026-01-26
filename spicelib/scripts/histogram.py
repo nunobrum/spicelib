@@ -73,7 +73,7 @@ def main():
     from optparse import OptionParser
 
     usage = "usage: %prog [options] LOG_FILE TRACE"
-    opts = OptionParser(usage=usage, version="%prog 0.1")
+    opts = OptionParser(usage=usage, version="%prog 1.2")
     # opts.add_option('v', "var", action="store", type="string", dest="trace", help="The trace to be used in the histogram")
     opts.add_option('-s', "--sigma", action="store", type="int", dest="sigma", default=3,
                     help="Sigma to be used in the distribution fit. Default=3")
