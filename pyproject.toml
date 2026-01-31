@@ -25,7 +25,7 @@ histogram = "spicelib.scripts.histogram:main"
 rawplot = "spicelib.scripts.rawplot:main"
 run_server = "spicelib.scripts.run_server:main"
 asc_to_qsch = "spicelib.scripts.asc_to_qsch:main"
-rawconvert = "spicelib.scripts.raw_convert:main"
+raw_convert = "spicelib.scripts.raw_convert:main"
 readme_update = "spicelib.scripts.readme_update:main"
 
 [tool.poetry.urls]
