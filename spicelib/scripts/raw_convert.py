@@ -59,6 +59,9 @@ def main():
                       help='Value separator for CSV output. Default: "\\t" <TAB>\n'
                            'Example: -d ";"'
                       )
+    parser.add_option('-D', '--dialect', dest='dialect', default=None,
+                      help="Dialect to pass to RawRead (e.g., 'ltspice' , 'qspice', 'ngspice' ,'xyce')")
+
 
     (options, args) = parser.parse_args()
 
@@ -76,7 +79,7 @@ def main():
 
     # Read the raw file
     if traces != '*':
-        raw_data = RawRead(rawfile, verbose=False)
+        raw_data = RawRead(rawfile, verbose=False, dialect=options.dialect)
         raw_traces = raw_data.get_trace_names()
         found_traces = []
         for trace in traces:
@@ -105,7 +108,7 @@ def main():
         print("Reading traces: ", found_traces)
 
     else:
-        raw_data = RawRead(rawfile, traces, verbose=options.verbose)
+        raw_data = RawRead(rawfile, traces, dialect=options.dialect, verbose=options.verbose)
 
     # Output the file
     if options.output is None:
