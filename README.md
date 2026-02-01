@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.8 (alpha)_
+_current version: 1.4.9_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -61,12 +61,12 @@ Try it. It's awesome. </b>
   - [Simulation Analysis Toolkit](#simulation-analysis-toolkit)
   - [ltsteps](#ltsteps)
 - [Command Line Interface](#command-line-interface)
-  - [ltsteps.exe](#ltstepsexe)
-  - [histogram.exe](#histogramexe)
-  - [raw\_convert.exe](#raw_convertexe)
-  - [rawplot.exe](#rawplotexe)
-  - [run\_server.exe](#run_serverexe)
-  - [asc\_to\_qsch.exe](#asc_to_qschexe)
+  - [ltsteps](#ltsteps)
+  - [histogram](#histogram)
+  - [raw\_convert](#raw_convert)
+  - [rawplot](#rawplot)
+  - [run\_server](#run_server)
+  - [asc\_to\_qsch](#asc_to_qsch)
 - [Other functions](#other-functions)
   - [log\\semi\_dev\_op\_reader.opLogReader](#logsemi_dev_op_readeroplogreader)
 - [Debug Logging](#debug-logging)
@@ -96,19 +96,18 @@ Try it. It's awesome. </b>
   by the user and the netlist is updated accordingly. The netlist can then be used with the SimRunner to run a batch of
   simulations or with the LTspice GUI.
 
-* __ltsteps.exe__
+* __ltsteps__
   An command line tool that extracts from LTspice output files data, and formats it for import in a spreadsheet, such like Excel
   or Calc.
 
-* __histogram.exe__
+* __histogram__
   A command line tool that uses numpy and matplotlib to create a histogram and calculate the sigma deviations. This is
   useful for Monte-Carlo analysis.
 
-* __asc_to_qsch.exe__
+* __asc_to_qsch__
   A command line tool that converts LTspice schematic format [.asc] into Qspice schematic format [.qsch]  
 
-(Note that the extension '.exe' is only available on Windows. On MacOS or Linux, the commands will have the same name,
-but without '.exe')
+(Note that in Windows operating system the command line has the extension '.exe'. )
 
 ### Main Classes
 
@@ -932,11 +931,11 @@ The second possibility is to use the module directly on the command line
 
 ## Command Line Interface
 
-The following tools will be installed when you install the library via pip. The extension '.exe' is only available on
-Windows. On MacOS or Linux, the commands will have the same name, but without '.exe'. The executables are simple links
+The following tools will be installed when you install the library via pip. In windows operating system the command
+lines receive the .exe extension. Other OSes don't have this particularity. The executables are simple links
 to python scripts with the same name, of which the majority can be found in the package's 'scripts' directory.
 
-### ltsteps.exe
+### ltsteps
 
 ```text
 Usage: ltsteps [filename]
@@ -948,7 +947,7 @@ where the data read is formatted into a more convenient tab separated format. In
 the
 script will scan the directory and process the newest log, txt or out file found.
 
-### histogram.exe
+### histogram
 
 This module uses the data inside on the filename to produce a histogram image.
 
@@ -979,7 +978,7 @@ Options:
                         Name of the image File. extension 'png'    
  ```
 
-### raw_convert.exe
+### raw_convert
 
 A tool to convert .raw files into csv or Excel files.
 
@@ -997,17 +996,21 @@ Options:
   -s SEPARATOR, --sep=SEPARATOR
                         Value separator for CSV output. Default: "\t" <TAB>
                         Example: -d ";"
+  -D DIALECT, --dialect=DIALECT
+                        Dialect to pass to RawRead (e.g., 'ltspice' ,
+                        'qspice', 'ngspice' ,'xyce')
+
 ```
 
-### rawplot.exe
+### rawplot
 
-Uses matplotlib to plot the data in the raw file.
+Uses matplotlib to plot the data in the raw file. Matplotlib must be installed for this to work.
 
 ```text
 Usage: rawplot RAW_FILE TRACE_NAME
 ```
 
-### run_server.exe
+### run_server
 
 This module is used to run a server that can be used to run simulations in a remote machine. The server will run in the
 background and will wait for a client to connect. The client will send a netlist to the server and the server will run
@@ -1073,9 +1076,9 @@ options:
                         Maximum number of parallel simulations. Default is 4
 ```
 
-### asc_to_qsch.exe
+### asc_to_qsch
 
-Converts LTspice schematics into QSPICE schematics.
+Converts LTspice schematics into QSPICE schematics. Note that not all LTspice components are supported in QSPICE.
 
 ```text
 Usage: asc_to_qsch [options] ASC_FILE [QSCH_FILE]
@@ -1127,10 +1130,17 @@ For support and improvement requests please open an Issue
 in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
+* Version 1.4.9
+    * Adopting clipin for clipboard operations
+    * Adding dialect support to raw_convert
+    * renamed CLI rawconvert to raw_convert for consistency
+    * Removing .exe extensions from CLI tools references in README
 * Version 1.4.8
     * Fixing Issue #269 - improved support for Ø,€,£,× components for Qspice
     * Fixing Issue #262 - Support for comments in netlists
     * SpiceEditor, QschEditor and AscEditor: Allow writing of netlists directly to an io.StringIO buffer (Issue  #258)
+    * Fixing Issue #267 - RawRead can be very cpu and memory intensive.
+    * Fixing Issue #278 - AscEditor - Error editing a schematic containing a component from a library with spaces in the path
 * Version 1.4.7
     * Implementing a lazy loading approach in RawRead
     * Fixing Issue #256 - Correct add_component() in SpiceEditor
@@ -1142,7 +1152,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Fixing Issue #235 and #236 - Inconsistent formulas in montecarlo.py and in tolerance_deviations.py
     * Fixing Issue #233 and #234 - `run_server` enhancements and platform compatibility
     * Fixing Issue #224 - Allow maintenance of `.control` sections
-    * Fixing Issue #219 - Provide an option for defining the directory in which spice is executed
+    * Fixing Issue #219 - Provides an option for defining the directory in which spice is executed
     * Fixing Issue #218 - Allow reading of multiple plots from 1 raw file
     * Fixing Issue #214 - Netlist concatenations are badly interpreted
     * Fixing Issue #213 - Add support for Verilog A elements

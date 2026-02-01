@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -26,7 +25,7 @@ from numpy import zeros, complex128, float32, float64
 from typing import Union
 
 
-class DataSet(object):
+class DataSet:
     """
     This is the base class for storing all traces of a RAW file. Returned by the get_trace() or by the get_axis()
     methods.

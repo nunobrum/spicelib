@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -25,7 +24,7 @@ import io
 
 
 sys.path.append(
-    os.path.abspath((os.path.dirname(os.path.abspath(__file__)) + "/../")))  # add project root to lib search path
+    os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../"))  # add project root to lib search path
 
 import spicelib
 from spicelib.editor.updates import UpdateType
@@ -283,7 +282,17 @@ class ASC_Editor_Test(unittest.TestCase):
         
         my_edt.save_netlist(temp_dir + myfile)
         self.equalFiles(temp_dir + myfile, golden_dir + myfile)
-                
+
+    @unittest.skipIf(os.name == "posix", "Skipping LTSpice oddities test")
+    def test_ltspice_oddities(self):
+        ascfile = spicelib.editor.asc_editor.AscEditor(test_dir + "test_oddities.asc")
+        # Just testing that loading works without errors
+        # This file contains a subcircuit inside a path with spaces.
+        self.assertListEqual(['X1', 'V1', 'R1', 'V2', 'V3'] , ascfile.get_components(), "Top-level components should be X1, V1, R1, V2, V3")
+        subc = ascfile.get_subcircuit("X1")
+        self.assertIsNotNone(subc, "Subcircuit X1 should be found")
+        self.assertListEqual(["A1", "B1", "E1"], subc.get_components(), "Subcircuit U1 components should be E1, A1, B1")
+
     def equalFiles(self, file1, file2):
         with open(file1, 'r') as f1:
             lines1 = f1.readlines()

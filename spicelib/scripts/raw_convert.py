@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -47,7 +46,7 @@ from spicelib.raw.raw_read import RawRead
 
 def main():
     usage = "usage: %prog [options] <rawfile> <trace_list>"
-    parser = OptionParser(usage=usage, version="%prog 0.1")
+    parser = OptionParser(usage=usage, version="%prog 1.2")
     parser.add_option("-o", "--output", dest="output", default=None,
                       help="Output file name.\n"
                            "Use .csv for CSV output, .xlsx for Excel output",
@@ -60,6 +59,9 @@ def main():
                       help='Value separator for CSV output. Default: "\\t" <TAB>\n'
                            'Example: -d ";"'
                       )
+    parser.add_option('-D', '--dialect', dest='dialect', default=None,
+                      help="Dialect to pass to RawRead (e.g., 'ltspice' , 'qspice', 'ngspice' ,'xyce')")
+
 
     (options, args) = parser.parse_args()
 
@@ -77,7 +79,7 @@ def main():
 
     # Read the raw file
     if traces != '*':
-        raw_data = RawRead(rawfile, '*', header_only=True, verbose=False)
+        raw_data = RawRead(rawfile, verbose=False, dialect=options.dialect)
         raw_traces = raw_data.get_trace_names()
         found_traces = []
         for trace in traces:
@@ -96,6 +98,7 @@ def main():
                     else:
                         print("Warning: Trace " + trace + " not found")
 
+
         if len(found_traces) == 0:
             print("Error: No traces found")
             print("Available Traces:\n ")
@@ -103,9 +106,9 @@ def main():
                 print("\t<" + trace + ">")
             exit(1)
         print("Reading traces: ", found_traces)
-        raw_data = RawRead(rawfile, found_traces, verbose=options.verbose)
+
     else:
-        raw_data = RawRead(rawfile, traces, verbose=options.verbose)
+        raw_data = RawRead(rawfile, traces, dialect=options.dialect, verbose=options.verbose)
 
     # Output the file
     if options.output is None:
@@ -116,11 +119,9 @@ def main():
         for i in range(data_size):
             text += options.separator.join([str(data[col][i]) for col in data.keys()]) + '\n'
         if options.clipboard:
-            from spicelib.utils.clipboard import Clipboard
-            cb = Clipboard()
+            import clipin
             print(f"Copying to clipboard text with {len(text)} bytes")
-            cb.copy(text)
-            del(cb)
+            clipin.copy({'text/plain': text})
         else:
             print(text)
     else:

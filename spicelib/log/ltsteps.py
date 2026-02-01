@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -156,7 +155,7 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
     fout.close()
 
 
-class LTSpiceExport(object):
+class LTSpiceExport:
     """
     Opens and reads LTSpice export data when using the "Export data as text" in the File Menu on the waveform window.
 

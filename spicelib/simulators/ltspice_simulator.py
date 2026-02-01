@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 # -------------------------------------------------------------------------------
 #
@@ -122,9 +121,11 @@ class LTspice(Simulator):
                 break
     
     # The following variables are not needed anymore. This also makes sphinx not mention them in the documentation.
-    del exe
-    if sys.platform == "linux" or sys.platform == "darwin":
+    if 'exe' in locals():
+        del exe
+    if 'spice_folder' in locals():
         del spice_folder
+    if 'spice_executable' in locals():
         del spice_executable
             
     # fall through        

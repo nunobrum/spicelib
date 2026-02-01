@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Convenience direct imports
 from .raw.raw_classes import SpiceReadException
 from .raw.raw_read import RawRead
@@ -9,7 +7,6 @@ from .editor.spice_editor import SpiceEditor, SpiceCircuit, SpiceComponent
 from .editor.asc_editor import AscEditor
 from .editor.qsch_editor import QschEditor
 from .sim.sim_runner import SimRunner
-from .utils.clipboard import Clipboard
 
 
 def all_loggers():

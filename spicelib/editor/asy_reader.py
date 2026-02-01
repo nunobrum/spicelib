@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 # -------------------------------------------------------------------------------
 #
 #  ███████╗██████╗ ██╗ ██████╗███████╗██╗     ██╗██████╗
@@ -33,7 +32,7 @@ SCALE_X = 6.25
 SCALE_Y = - 6.25
 
 
-class AsyReader(object):
+class AsyReader:
     """Symbol parser"""
 
     def __init__(self, asy_file: Union[Path, str], encoding='autodetect'):
