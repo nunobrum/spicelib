@@ -20,6 +20,7 @@ class UpdateType(enum.Enum):
     AddComponent = enum.auto()
     AddComponentParameter = enum.auto()
     AddInstruction = enum.auto()
+    UpdateInstruction = enum.auto()
     CloneSubcircuit = enum.auto()
 
 

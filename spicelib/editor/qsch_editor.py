@@ -29,6 +29,7 @@ from .base_editor import PARAM_REGEX
 from .spice_utils import UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
                              LineStyle, Shape)
+from .updates import UpdateType
 from ..simulators.qspice_simulator import Qspice
 from ..utils.file_search import search_file_in_containers
 
@@ -352,6 +353,157 @@ class QschTag:
         else:
             return a
 
+class QschComponent(SchematicComponent):
+    """Class to represent a component in a QSCH file. It is a subclass of SchematicComponent."""
+
+    def __init__(self, parent: 'QschEditor', tag: QschTag, **kwargs):
+        super().__init__(parent, tag, **kwargs)
+
+    @property
+    def tag(self) -> QschTag:
+        return self._obj
+
+    @property
+    def symbol_tag(self) -> QschTag:
+        return self.tag.get_items('symbol')[0]
+
+    def reset_attributes(self):
+        pass # TODO: Place here the code that is below on the _parse_qsch_stream function
+
+    def set_value(self, value: Union[str, int, float]) -> None:
+        # docstring inherited from BaseEditor
+        if self.parent.is_read_only():
+            raise ValueError("Editor is read-only")
+        if isinstance(value, str):
+            value_str = value
+        else:
+            value_str = format_eng(value)
+        self.set_model(value_str)
+
+    def set_model(self, model: str) -> None:
+        texts = self.symbol_tag.get_items('text')
+        assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == self.reference
+        texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
+        self.attributes['value'] = model
+        _logger.info(f"Component {self.reference} updated to {model}")
+        self.parent.add_update(self.reference, model, UpdateType.UpdateComponentValue)
+
+    def get_value(self) -> str:
+        return self.attributes["value"]
+
+    def get_parameters(self) -> dict:
+        """
+        Returns the parameters of the component in a dictionary. Since QSpice stores attributes by their order of
+        appearance on the QSCH file, some parameters may not be found if they are not in the standard format.
+        If a line contains a parameter definition that is on the standard format, it will be parsed and stored in the
+        dictionary. The key of the dictionary is the line number where the parameter was found.
+
+        :return: A dictionary with the parameters of the component
+        :rtype: dict
+        """
+        texts = self.symbol_tag.get_items('text')
+        parameters = {}
+        param_regex = re.compile(PARAM_REGEX(r'\w+'), re.IGNORECASE)
+        for i in range(2, len(texts)):
+            text = texts[i].get_attr(QSCH_TEXT_STR_ATTR)
+            matches = param_regex.finditer(text)
+            for match in matches:
+                parameters[match.group('name')] = match.group('value')
+            else:
+                parameters[i] = text
+
+        return parameters
+
+    def set_parameters(self, **kwargs) -> None:
+        """
+        Sets the parameters of the component. If key parameters that are integers, they represent the line number
+        where the parameter was found. If the key is a string, it represents the parameter name. If the parameter name
+        already exists, it will be replaced. If not found, it will be added as a new text line.
+        """
+        symbol = self.symbol_tag
+        texts = symbol.get_items('text')
+
+        for key, value in kwargs.items():
+            if isinstance(key, int):
+                if key < 2 or key > len(texts):
+                    raise ValueError(f"Invalid line number {key} for component {self.reference}")
+                if key == len(texts):
+                    x, y = 0, 0  # TODO: Find a way to get the position of the last text
+                    tag, _ = QschTag.parse(
+                        f'«text ({x},{y}) 1 7 0 0x1000000 -1 -1 "{value}"»'
+                    )
+                    symbol.items.append(tag)
+
+                else:
+                    texts[key].set_attr(QSCH_TEXT_STR_ATTR, value)
+                self.parent.add_update(self.reference, value, UpdateType.UpdateComponentParameter)
+            else:
+                found = False
+                search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
+                for text in texts[QSCH_SYMBOL_TEXT_VALUE:]:
+                    text_value = text.get_attr(QSCH_TEXT_STR_ATTR)
+
+                    for match in search_expression.finditer(text_value):
+                        if match.group("name") == key:
+                            start, stop = match.span("value")
+                            text_value = text_value[:start] + value + text_value[stop:]
+                            text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
+                            self.parent.add_update(self.reference, value, UpdateType.UpdateComponentParameter)
+                            found = True
+                            break
+                        if found:
+                            break
+                if not found:
+                    x, y = 0, 0  # TODO: Find a way to get the position of the last text
+                    new_tag, _ = QschTag.parse(
+                        f'«text ({x},{y}) 0.5 0 0 0x1000000 -1 -1 "{key}={value}"»'
+                    )
+                    # Inserting the new tag just after the last text and the first pin
+                    last_text = 0
+                    for i, tag in enumerate(symbol.items):
+                        if tag.tag == 'pin':
+                            last_text = i
+                            break
+                        elif tag.tag == 'text':
+                            last_text = i + 1  # The new text should be inserted after the last text
+                    if 0 <= last_text < len(symbol.items):
+                        symbol.items.insert(last_text, new_tag)
+                    else:
+                        symbol.items.append(new_tag)
+                    self.parent.add_update(self.reference, value, UpdateType.AddComponentParameter)
+                    self.parent.canvas_updated = True
+
+    def get_position(self) -> tuple[Point, ERotation]:
+        return self.position, self.rotation
+
+    def set_position(self,
+         position: Union[Point, tuple],
+         rotation: Union[ERotation, int],
+         mirror: bool = False,
+         ) -> None:
+        # docstring inherited from BaseSchematic
+
+        comp_tag: QschTag = self.tag
+        if isinstance(position, tuple):
+            position = Point(position[0], position[1])
+        elif isinstance(position, Point):
+            pass
+        else:
+            raise ValueError("Invalid position object")
+        if isinstance(rotation, ERotation):
+            rot = rotation.value / 45
+        elif isinstance(rotation, int):
+            rot = (rotation % 360) // 45
+            if mirror:
+                rot += 8
+        else:
+            raise ValueError("Invalid rotation parameter")
+
+        comp_tag.set_attr(QSCH_COMPONENT_POS, (position.X, position.Y))
+        comp_tag.set_attr(QSCH_COMPONENT_ROTATION, rot)
+        self.position = position
+        self.rotation = rotation
+
 
 class QschEditor(BaseSchematic):
     """Class made to update directly QSCH files. It is a subclass of BaseSchematic, so it can be used to
@@ -389,20 +541,18 @@ class QschEditor(BaseSchematic):
         if not self.schematic:
             _logger.error("Empty Schematic information")
             return
-        if self.updated or Path(qsch_filename) != self._qsch_file_path:
+        if self.updated() or Path(qsch_filename) != self._qsch_file_path:
             with open(qsch_filename, 'w', encoding="cp1252") as qsch_file:
                 _logger.info(f"Writing QSCH file {qsch_file}")
                 for c in QSCH_HEADER:
                     qsch_file.write(chr(c))
                 qsch_file.write(self.schematic.out(0))
                 qsch_file.write('\n')  # Terminates the new line
-            if Path(qsch_filename) == self._qsch_file_path:
-                self.updated = False
         # now checks if there are subcircuits that need to be saved
         for component in self.components.values():
             if "_SUBCKT" in component.attributes:
                 sub_circuit = component.attributes['_SUBCKT']
-                if sub_circuit is not None and sub_circuit.updated:
+                if sub_circuit is not None and sub_circuit.updated():
                     sub_circuit.save_as(sub_circuit._qsch_file_path)
 
     def write_spice_to_file(self, netlist_file: TextIO, verilog_config: dict[str, list[str]] = {}):
@@ -736,8 +886,7 @@ class QschEditor(BaseSchematic):
                 raise RuntimeError(f"Missing texts in component at coordinates {component.get_attr(1)}")
             refdes = texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR)
             value = texts[QSCH_SYMBOL_TEXT_VALUE].get_attr(QSCH_TEXT_STR_ATTR)
-            sch_comp = SchematicComponent(self, refdes)
-            sch_comp.reference = refdes
+            sch_comp = QschComponent(self, component, reference=refdes, value=value)
             x, y = position = component.get_attr(QSCH_COMPONENT_POS)
             orientation = component.get_attr(QSCH_COMPONENT_ROTATION)
             sch_comp.position = Point(x, y)
@@ -902,6 +1051,7 @@ class QschEditor(BaseSchematic):
             tag.set_attr(QSCH_TEXT_STR_ATTR, text)
             _logger.info(f"Parameter {param} updated to {value_str}")
             _logger.debug(f"Text at {tag.get_attr(QSCH_TEXT_POS)} Updated to {text}")
+            self.add_update(param, value, UpdateType.UpdateParameter)
         else:
             # Was not found so we need to add it,
             _logger.debug(f"Parameter {param} not found in QSCH file, adding it")
@@ -912,133 +1062,58 @@ class QschEditor(BaseSchematic):
             self.schematic.items.append(tag)
             _logger.info(f"Parameter {param} added with value {value}")
             _logger.debug(f"Text added to {tag.get_attr(QSCH_TEXT_POS)} Added: {tag.get_attr(QSCH_TEXT_STR_ATTR)}")
-        self.updated = True
+            self.add_update(param, value, UpdateType.AddParameter)
 
-    def _get_component_symbol(self, reference: str) -> tuple["BaseSchematic", str, QschTag]:
-        sub_circuit, ref = self._get_parent(reference)
-        if ref not in sub_circuit.components:
-            _logger.error(f"Component {ref} not found")
-            raise ComponentNotFoundError(f"Component {ref} not found in Schematic file")
-
-        component = sub_circuit.components[ref]
-        comp_tag: QschTag = component.attributes['tag']
-        symbol: QschTag = comp_tag.get_items('symbol')[0]
-        return sub_circuit, ref, symbol
+    # def _get_component_symbol(self, reference: str) -> tuple["BaseSchematic", str, QschTag]:
+    #     sub_circuit, ref = self._get_parent(reference)
+    #     if ref not in sub_circuit.components:
+    #         _logger.error(f"Component {ref} not found")
+    #         raise ComponentNotFoundError(f"Component {ref} not found in Schematic file")
+    #
+    #     component = sub_circuit.components[ref]
+    #     symbol: QschTag = component.symbol_tag
+    #     return sub_circuit, ref, symbol
 
     def set_component_value(self, reference: str, value: Union[str, int, float]) -> None:
         # docstring inherited from BaseEditor
         if self.is_read_only():
             raise ValueError("Editor is read-only")
-        super().set_component_value(reference, value)
-        if isinstance(value, str):
-            value_str = value
-        else:
-            value_str = format_eng(value)
-        self.set_element_model(reference, value_str)
+        component = self.get_component(reference)
+        component.set_value(value)
 
     def set_element_model(self, device: str, model: str) -> None:
         # docstring inherited from BaseEditor
-        sub_circuit, ref, symbol = self._get_component_symbol(device)
-        texts = symbol.get_items('text')
-        assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == ref
-        super().set_element_model(device, model)
-        texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
-        sub_circuit.components[ref].attributes['value'] = model
-        _logger.info(f"Component {device} updated to {model}")
-        sub_circuit.updated = True
+        component = self.get_component(device)
+        component.set_model(model)
 
-    def get_component_value(self, element: str) -> str:
+    def get_component_value(self, reference: str) -> str:
         # docstring inherited from BaseEditor
-        component = self.get_component(element)
-        if "value" not in component.attributes:
-            _logger.error(f"Component {element} does not have a Value attribute")
-            raise ComponentNotFoundError(f"Component {element} does not have a Value attribute")
-        return component.attributes["value"]
+        component = self.get_component(reference)
+        return component.get_value()
 
-    def get_component_parameters(self, element: str) -> dict:
+    def get_component_parameters(self, reference: str) -> dict:
         """
         Returns the parameters of the component in a dictionary. Since QSpice stores attributes by their order of
         appearance on the QSCH file, some parameters may not be found if they are not in the standard format.
         If a line contains a parameter definition that is on the standard format, it will be parsed and stored in the
         dictionary. The key of the dictionary is the line number where the parameter was found.
 
-        :param element: The reference of the component
-        :type element: str
+        :param reference: The reference of the component
+        :type reference: str
         :return: A dictionary with the parameters of the component
         :rtype: dict
         """
-        _, _, symbol = self._get_component_symbol(element)
-        texts = symbol.get_items('text')
-        parameters = {}
-        param_regex = re.compile(PARAM_REGEX(r'\w+'), re.IGNORECASE)
-        for i in range(2, len(texts)):
-            text = texts[i].get_attr(QSCH_TEXT_STR_ATTR)
-            matches = param_regex.finditer(text)
-            for match in matches:
-                parameters[match.group('name')] = match.group('value')
-            else:
-                parameters[i] = text
+        component = self.get_component(reference)
+        return component.get_parameters()
 
-        return parameters
-
-    def set_component_parameters(self, element: str, **kwargs) -> None:
+    def set_component_parameters(self, reference: str, **kwargs) -> None:
         """
         Sets the parameters of the component. If key parameters that are integers, they represent the line number
         where the parameter was found. If the key is a string, it represents the parameter name. If the parameter name
         already exists, it will be replaced. If not found, it will be added as a new text line.
         """
-        super().set_component_parameters(element, **kwargs)
-        sub_circuit, ref, symbol = self._get_component_symbol(element)
-        texts = symbol.get_items('text')
-
-        for key, value in kwargs.items():
-            if isinstance(key, int):
-                if key < 2 or key > len(texts):
-                    raise ValueError(f"Invalid line number {key} for component {element}")
-                if key == len(texts):
-                    x, y = 0, 0  # TODO: Find a way to get the position of the last text
-                    tag, _ = QschTag.parse(
-                        f'«text ({x},{y}) 1 7 0 0x1000000 -1 -1 "{value}"»'
-                    )
-                    symbol.items.append(tag)
-
-                else:
-                    texts[key].set_attr(QSCH_TEXT_STR_ATTR, value)
-                sub_circuit.updated = True
-            else:
-                found = False
-                search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
-                for text in texts[QSCH_SYMBOL_TEXT_VALUE:]:
-                    text_value = text.get_attr(QSCH_TEXT_STR_ATTR)
-
-                    for match in search_expression.finditer(text_value):
-                        if match.group("name") == key:
-                            start, stop = match.span("value")
-                            text_value = text_value[:start] + value + text_value[stop:]
-                            text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
-                            sub_circuit.updated = True
-                            found = True
-                            break
-                        if found:
-                            break
-                if not found:
-                    x, y = 0, 0  # TODO: Find a way to get the position of the last text
-                    new_tag, _ = QschTag.parse(
-                        f'«text ({x},{y}) 0.5 0 0 0x1000000 -1 -1 "{key}={value}"»'
-                    )
-                    # Inserting the new tag just after the last text and the first pin
-                    last_text = 0
-                    for i, tag in enumerate(symbol.items):
-                        if tag.tag == 'pin':
-                            last_text = i
-                            break
-                        elif tag.tag == 'text':
-                            last_text = i + 1  # The new text should be inserted after the last text
-                    if 0 <= last_text < len(symbol.items):
-                        symbol.items.insert(last_text, new_tag)
-                    else:
-                        symbol.items.append(new_tag)
-                    sub_circuit.updated = True
+        component = self.get_component(reference)
+        component.set_parameters(**kwargs)
 
     def get_component_position(self, reference: str) -> tuple[Point, ERotation]:
         # docstring inherited from BaseSchematic
@@ -1052,26 +1127,7 @@ class QschEditor(BaseSchematic):
                                ) -> None:
         # docstring inherited from BaseSchematic
         component = self.get_component(reference)
-        comp_tag: QschTag = component.attributes['tag']
-        if isinstance(position, tuple):
-            position = (position[0], position[1])
-        elif isinstance(position, Point):
-            position = (position.X, position.Y)
-        else:
-            raise ValueError("Invalid position object")
-        if isinstance(rotation, ERotation):
-            rot = rotation.value / 45
-        elif isinstance(rotation, int):
-            rot = (rotation % 360) // 45
-            if mirror:
-                rot += 8
-        else:
-            raise ValueError("Invalid rotation parameter")
-
-        comp_tag.set_attr(QSCH_COMPONENT_POS, position)
-        comp_tag.set_attr(QSCH_COMPONENT_ROTATION, rot)
-        component.position = position
-        component.rotation = rotation
+        component.set_position(position, rotation, mirror)
 
     def get_components(self, prefixes='*') -> list:
         # docstring inherited from BaseEditor

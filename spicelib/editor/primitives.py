@@ -224,7 +224,7 @@ class Primitive(object):
         return self
 
 PORTS_IDs = ['ports', 'p', 'pins']
-VALUE_IDs = ['value', 'val', 'v', 'value_str', 'model']
+VALUE_IDs = ['value', 'val', 'v', 'value_str', 'model', 'Value']
 PARAMS_IDs = ['params', 'parameters', 'param']
 REF_IDs = ['reference', 'ref', 'designator']
 
@@ -239,7 +239,7 @@ class Component(Primitive):
         self.ports : List[Net]= []
         self.reference = None
 
-        self._netlist = self._netlist or self.default_netlist
+        self._netlist = self._netlist or self.default_netlist  # This allows to create components without specifying the netlist every time
         for i, arg in enumerate(args):
             if i == 0 and isinstance(arg, (int, float, str)):
                 if isinstance(arg, str):
@@ -259,13 +259,15 @@ class Component(Primitive):
             elif key in REF_IDs:
                 self.reference = value
 
-
     def __hasattr__(self, item):
         if item in self.__dict__:
             return True
         if not self.__dict__.get('attributes'):
             return False
         attr_dict = self.__dict__['attributes']
+        if not attr_dict:
+            # Populate attributes from _obj if empty
+            self.reset_attributes()
         if item in attr_dict:
             return True
         elif item in VALUE_IDs:
@@ -286,11 +288,12 @@ class Component(Primitive):
     def __getattr__(self, item):
         if item in self.__dict__:
             return self.__dict__[item]
-        attr_dict = self.__dict__.get('attributes', {})
+        attr_dict = self.__dict__.get('attributes')
+        if not attr_dict:
+            # Populate attributes from _obj if empty
+            self.reset_attributes()
         if item in VALUE_IDs:
-            if 'value' not in attr_dict:
-                raise ParameterNotFoundError(item)
-            value = attr_dict['value']
+            value = self.get_value()
             if item == 'value_str' and isinstance(value, (int, float)):
                 return format_eng(value)
             elif item == 'value' and isinstance(value, str):
@@ -322,7 +325,7 @@ class Component(Primitive):
         elif item in PORTS_IDs:
             return CallMe(self, Component.set_ports)
         elif item in PARAMS_IDs:
-            return attr_dict.get('params', OrderedDict())
+            return self.get_parameters()
         elif item in attr_dict:
             return attr_dict[item]
         elif item in attr_dict.get('params', {}):
@@ -387,6 +390,23 @@ class Component(Primitive):
         """
         return self.attributes.get('value', float('nan'))
 
+    def get_parameters(self) -> OrderedDict:
+        """Gets all parameter values
+        :return: Dictionary with parameter names and values
+        """
+        return self.attributes.get('params', OrderedDict())
+
+    def get_parameter(self, key: str) -> Union[float, str]:
+        """Gets a parameter value
+        :param key: Parameter name
+        :return: Parameter value
+        :raises: ParameterNotFoundError when the parameter is not found
+        """
+        params = self.attributes.get('params', OrderedDict())
+        if key not in params:
+            raise ParameterNotFoundError(key)
+        return params[key]
+
     def set_parameter(self, key: str, value: Union[float, str]):
         """Sets a parameter value
         :param key: Parameter name
@@ -426,9 +446,16 @@ class Component(Primitive):
             del params[key]
         self.attributes['params'] = params
 
-    clear_param = clear_parameters
-    set_param = set_parameter
-    set_params = set_parameters
+    ## Aliases for parameter functions
+    def clear_param(self):
+        self.clear_parameters()
+
+    def set_param(self, key: str, value: Union[float, str]):
+        self.set_parameter(key, value)
+
+    def set_params(self, **params):
+        self.set_parameters(**params)
+
 
     def clone(self, new_parent=None):
         """Clones the component"""
@@ -440,6 +467,9 @@ class Component(Primitive):
         newone.reference = self.reference
         return newone
 
+    def reset_attributes(self):
+        """Abstract function. Populates the attributes with the contents of the _obj attribute"""
+        raise NotImplementedError("reset_attributes not implemented in base Component class")
 
 if __name__ == "__main__":  # TODO: Delete this test code
     V = R = Component

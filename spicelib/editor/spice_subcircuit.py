@@ -846,7 +846,13 @@ class SpiceCircuit(BaseSubCircuit):
         :return: True if the component is read-only, False otherwise
         :rtype: bool
         """
-        return self.parent.is_read_only() if self.parent is not None else True
+        if self.recording_updates:
+            if self.parent:
+                return self.parent.is_read_only()
+            else:
+                return True
+        else:
+            return False
 
     @property
     def top_netlist(self) -> BaseEditor:

@@ -29,6 +29,8 @@ from .editor_errors import ComponentNotFoundError
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
+from .updates import UpdateType
+
 _logger = logging.getLogger("spicelib.BaseSchematic")
 
 
@@ -261,10 +263,10 @@ class Port:
 class SchematicComponent(Component):
     """Holds component information"""
 
-    def __init__(self, parent, line):
-        super().__init__(parent, line)
-        self.position: Point = Point(0, 0)
-        self.rotation: ERotation = ERotation.R0
+    def __init__(self, parent, line, **kwargs):
+        super().__init__(netlist=parent, obj=line, **kwargs)
+        self.position: Point = kwargs.get('position', Point(0, 0))
+        self.rotation: ERotation =  kwargs.get('rotation', ERotation.R0)
         self.symbol = None
 
     def __str__(self):
@@ -286,7 +288,7 @@ class BaseSchematic(BaseEditor):
         self.ports: list[Port] = []
         self.lines: list[Line] = []
         self.shapes: list[Shape] = []
-        self.updated = False  # indicates if an edit was done and the file has to be written back to disk
+        self.canvas_updated = False
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """Resets the netlist to the original state"""
@@ -297,7 +299,8 @@ class BaseSchematic(BaseEditor):
         self.directives.clear()
         self.lines.clear()
         self.shapes.clear()
-        self.updated = False
+        self.netlist_updates.clear()
+        self.canvas_updated = False
 
     def copy_from(self, editor: 'BaseSchematic') -> None:
         """Clones the contents of the given editor"""
@@ -308,7 +311,8 @@ class BaseSchematic(BaseEditor):
         self.directives = deepcopy(editor.directives)
         self.lines = deepcopy(editor.lines)
         self.shapes = deepcopy(editor.shapes)
-        self.updated = True
+        self.netlist_updates = deepcopy(editor.netlist_updates)
+        self.canvas_updated = editor.canvas_updated
 
     def _get_parent(self, reference) -> tuple["BaseSchematic", str]:
         if SUBCKT_DIVIDER in reference:
@@ -319,11 +323,6 @@ class BaseSchematic(BaseEditor):
             return subcircuit, sub_comp
         else:
             return self, reference
-
-    def set_updated(self, reference):
-        """:meta private:"""
-        sub_circuit, _ = self._get_parent(reference)
-        sub_circuit.updated = True
 
     def get_component(self, reference: str) -> SchematicComponent:
         """
@@ -361,7 +360,7 @@ class BaseSchematic(BaseEditor):
         comp = self.get_component(reference)
         comp.position = position
         comp.rotation = rotation
-        self.set_updated(reference)
+        self.canvas_updated = True
 
     def add_component(self, component: SchematicComponent, **kwargs) -> None:
         self.components[component.reference] = component
@@ -369,7 +368,7 @@ class BaseSchematic(BaseEditor):
         if kwargs:
             # Update attributes
             component.attributes.update(kwargs)
-        self.updated = True
+        self.canvas_updated = True
 
     def scale(self, offset_x, offset_y, scale_x, scale_y: float,
               round_fun: Callable[[float], Union[int, float]] = None) -> None:
@@ -402,4 +401,13 @@ class BaseSchematic(BaseEditor):
             for point in shape.points:
                 point.X = round_fun(point.X * scale_x + offset_x)
                 point.Y = round_fun(point.Y * scale_y + offset_y)
-        self.updated = True
+        self.canvas_updated = True
+
+    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+        """Adds an update to the netlist updates list"""
+        update = super().add_update(name, value, updates)
+        self.canvas_updated = True
+        return update
+
+    def updated(self):
+        return self.canvas_updated or len(self.netlist_updates) > 0
