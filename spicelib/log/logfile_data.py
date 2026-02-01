@@ -96,9 +96,13 @@ def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, 
             ans = float(value)
         except ValueError:
             try:
-                ans = LTComplex(value)
+                # Tries to convert to complex
+                ans = complex(value)
             except ValueError:
-                ans = value.strip()  # Removes the leading trailing spaces
+                try:
+                    ans = LTComplex(value)
+                except ValueError:
+                    ans = value.strip()  # Removes the leading trailing spaces
     return ans
 
 

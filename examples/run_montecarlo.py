@@ -20,20 +20,17 @@ mc.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides th
 mc.set_parameter_deviation('Vos', 3e-4, 5e-3, 'uniform')  # The keyword 'distribution' is optional
 mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulations
 
-manually_simulating_in_LTspice = False
+# Finally the netlist is saved to a file. This file contains all the instructions to run the simulation in LTspice
+mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
+# -- End of Example 1 --
 
-if manually_simulating_in_LTspice:
-    # Finally the netlist is saved to a file. This file contains all the instructions to run the simulation in LTspice
-    mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
-    # -- End of Example 1 --
-else:
-    # Using the Toolkit to run the simulation.
-    mc.run_testbench(runs_per_sim=100, exe_log=False)  # Runs the simulation with splits of 100 runs each
-    logs = mc.read_logfiles()   # Reads the log files and stores the results in the results attribute
-    logs.obtain_amplitude_and_phase_from_complex_values()  # Splits the complex values into real and imaginary parts
-    logs.export_data('./temp_mc/data_testbench.csv')  # Exports the data to a csv file
-    logs.plot_histogram('fcut')  # Plots the histograms for the results
-    mc.cleanup_files()  # Deletes the temporary files
+# Using the Toolkit to run the simulation.
+mc.run_testbench(runs_per_sim=100, exe_log=False)  # Runs the simulation with splits of 100 runs each
+logs = mc.read_logfiles()   # Reads the log files and stores the results in the results attribute
+logs.obtain_amplitude_and_phase_from_complex_values()  # Splits the complex values into real and imaginary parts
+logs.export_data('./temp_mc/data_testbench.csv')  # Exports the data to a csv file
+logs.plot_histogram('fcut')  # Plots the histograms for the results
+mc.cleanup_files()  # Deletes the temporary files
 
 print("=====================================")
 a = input("Make 1000 simulations ? [Y/N]")

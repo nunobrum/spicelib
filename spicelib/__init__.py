@@ -7,7 +7,6 @@ from .editor.spice_editor import SpiceEditor, SpiceCircuit, SpiceComponent
 from .editor.asc_editor import AscEditor
 from .editor.qsch_editor import QschEditor
 from .sim.sim_runner import SimRunner
-from .utils.clipboard import Clipboard
 
 
 def all_loggers():
