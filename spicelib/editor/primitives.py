@@ -288,7 +288,7 @@ class Component(Primitive):
     def __getattr__(self, item):
         if item in self.__dict__:
             return self.__dict__[item]
-        attr_dict = self.__dict__.get('attributes')
+        attr_dict = self.__dict__.get('attributes', {})
         if not attr_dict:
             # Populate attributes from _obj if empty
             self.reset_attributes()
