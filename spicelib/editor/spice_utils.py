@@ -74,7 +74,8 @@ def _first_token_upped(line):
 
 
 
-def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None, in_quotes: bool = False) -> str:
+def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None, in_quotes: bool = False,
+                         qspice_prefix_quirk: bool = False) -> str:
     """Create regex for the designator and nodes. Will not consume a trailing space.
 
     :param prefix: the prefix character of the element. 1 character.
@@ -85,6 +86,7 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None, in_
     :type nodes_max: int, optional
     :param in_quotes: whether the nodes may be enclosed in quotes « » (qspice). Defaults to False
     :type in_quotes: bool, optional
+    :param qspice_prefix_quirk: whether to allow an optional '†' after the prefix, for qspice. Defaults to False
     :return: regex for the designator and nodes
     :rtype: str
     """
@@ -94,10 +96,11 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None, in_
         # designator: word
         # nodes: 1 or more words with signs and . allowed. DO NOT include '=' (like with \S) as it will mess up params
         # The ¥ is for qspice
+    prefix += "[§†]?" if qspice_prefix_quirk else "§?"
     if in_quotes:
-        return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>\\s+«(?:\\s?[\\w+-\\.¥«´»]+){" + nodes_str + "}\\s*»)"
+        return "^(?P<designator>" + prefix + "\\w+)(?P<nodes>\\s+«(?:\\s?[\\w+-\\.¥«´»]+){" + nodes_str + "}\\s*»)"
     else:
-        return "^(?P<designator>" + prefix + "§?\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥«»]+){" + nodes_str + "})"
+        return "^(?P<designator>" + prefix + "\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥«»]+){" + nodes_str + "})"
 
 END_LINE_TERM = '\n'  #: This controls the end of line terminator used
 
@@ -251,7 +254,7 @@ REPLACE_REGEXS : Dict[str, str] = {
     # QSPICE Unique components:
     # Ãnnn VDD VSS OUT IN- IN+ MULT+ MULT- IN-- IN++ EN ¥ ¥ ¥ ¥ ¥ ¥ <TYPE> [INSTANCE PARAMETERS]
     # etc...
-    'Ã': PREFIX_AND_NODES_RGX("Ã", 16) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MultGmAmp and RRopAmp
+    'Ã': PREFIX_AND_NODES_RGX("Ã", 16, qspice_prefix_quirk=True) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # MultGmAmp and RRopAmp
     '¥': PREFIX_AND_NODES_RGX("¥", 16) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Various
     '€': PREFIX_AND_NODES_RGX("€", 32) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # DAC
     '£': PREFIX_AND_NODES_RGX("£", 64) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Dual Gate Driver
