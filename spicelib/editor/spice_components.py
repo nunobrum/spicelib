@@ -30,6 +30,41 @@ from ..log.logfile_data import try_convert_value
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 
+VERILOG_TYPES = (
+    "bit",
+    "bool",
+    "boolean",
+    "int8_t",
+    "int8",
+    "char",
+    "char",
+    "uint8_t",
+    "uint8",
+    "uchar",
+    "uchar",
+    "byte",
+    "int16_t",
+    "int16",
+    "uint16_t",
+    "uint16",
+    "int32_t",
+    "int32",
+    "int",
+    "uint32_t",
+    "uint32",
+    "uint",
+    "int64_t",
+    "int64",
+    "uint64_t",
+    "uint64",
+    "shortfloat",
+    "float",
+    "double",
+)
+
+SPICE_KEYWORDS = (
+    "noiseless",
+)
 
 
 # Code Optimization objects, avoiding repeated compilation of regular expressions
@@ -38,6 +73,87 @@ for prefix, pattern in REPLACE_REGEXS.items():
     # print(f"Compiling regex for {prefix}: {pattern}")
     component_replace_regexs[prefix] = re.compile(pattern, re.IGNORECASE)
 
+def tokenize_line(stream: io.StringIO) -> list[str]:
+    """Tokenizes a line from the stream, handling line continuations and comments.
+    Also removes extra spaces and tabs, condensing them to a single space.
+    When a line starts with a '+', it is considered a continuation of the previous line, and the '+' is removed.        ed.
+    The { ( [ and their respective closing characters will be considered as part of the token, so that parameters
+    like "key={value with spaces and carriage returns}" are correctly tokenized as a single token.
+    Also, if there is a return inside tokens they are removed.
+    There are special cases that are treated as just one token, such as "key=value1, value2", which is common in qspice
+    for parameters like "type=bit, int, etc". In this case the comma is considered part of the token and not a separator.
+    Another case is when there are type qualifiers such as "type key=value", which is also common in qspice containing
+    verilog components.
+    in this case the type is considered part of the key and not a separate token. Finally keywords such as "noiseless"
+    are considered as special tokens.
+
+    The valid type qualifiers for verilog are: bit,bool,boolean,int8_t,int8,char,char,uint8_t,uint8,uchar,uchar,byte,
+    int16_t,int16,uint16_t,uint16,int32_t,int32,int,uint32_t,uint32,uint,int64_t,int64,uint64_t,uint64,shortfloat,
+    float,double.
+
+    The valid keywords are: noiseless.
+
+    :param stream: input stream
+    :type stream: io.StringIO
+    :return: list of tokens
+    :rtype: list[str]
+    """
+    tokens = []
+    current_token = ""
+    braces_stack = []
+    in_quotes = False
+    while True:
+        char = stream.read(1)
+        if not char:  # End of stream
+            if current_token:
+                tokens.append(current_token.strip())
+            break
+        if char in ['{', '(', '[']:
+            braces_stack.append(char)
+        elif char in ['}', ')', ']']:
+            if braces_stack:
+                closing = braces_stack.pop()
+                if (char == '}' and closing != '{') or (char == ')' and closing != '(') or (char == ']' and closing != '['):
+                    raise UnrecognizedSyntaxError(f"Mismatched braces: expected {closing} but got {char}")
+            else:
+                raise UnrecognizedSyntaxError(f"Unmatched closing brace: {char}")
+        elif char == '"':
+            in_quotes = not in_quotes
+
+        elif char == '\n' or char == '\r':
+            # if inside a token, ignore the line break and continue, otherwise treat it as a token separator
+            if braces_stack or in_quotes:
+                continue
+            else:
+                next_char = stream.read(1)
+                if next_char == '+':
+                    continue  # line continuation, ignore the newline and the '+'
+                else:
+                    stream.seek(stream.tell() - 1)  # put back the character if it's not a '+'
+                    if current_token:
+                        tokens.append(current_token.strip())
+                        current_token = next_char  # start a new token with the next character
+                    return tokens
+
+        elif char.isspace():
+            # Decide whether to close the current token or to ignore the space
+            if braces_stack or in_quotes:
+                current_token += char  # keep spaces inside braces or quotes
+            elif current_token and current_token.strip() in SPICE_KEYWORDS:
+                # if the current token is a keyword, close it immediately
+                tokens.append(current_token.strip())
+                current_token = ""
+        else:
+            current_token += char
+
+    return tokens
+
+TODO: complete the parser and integrate it in the Spice Editor parser. Make a
+parser for the parameters, which can be in the form of "key=value", but the value
+can contain spaces and commas, such as "key=value1, value2". Also handle type qualifiers such
+as "type key=value". The parameters should be stored in a dictionary in the component, and
+when writing back to the netlist they should be written in the same format. Also make sure to handle line
+continuations and comments correctly when parsing and writing back to the netlist.
 
 def _clean_line(line: str) -> str:
     """remove extra spaces and clean up the line so that the regexes have an easier time matching
@@ -85,38 +201,38 @@ def _parse_params(params_str: str) -> dict:
 
     # TODO in case of a qspice verilog component (Ø), allow "type key=value", but that is not easy to do, as we do not know the component type here
     # Here are the allowed types, just in case this will be correctly implemented one day:
-    # verilog_types = [
-    #     "bit",
-    #     "bool",
-    #     "boolean",
-    #     "int8_t",
-    #     "int8",
-    #     "char",
-    #     "char",
-    #     "uint8_t",
-    #     "uint8",
-    #     "uchar",
-    #     "uchar",
-    #     "byte",
-    #     "int16_t",
-    #     "int16",
-    #     "uint16_t",
-    #     "uint16",
-    #     "int32_t",
-    #     "int32",
-    #     "int",
-    #     "uint32_t",
-    #     "uint32",
-    #     "uint",
-    #     "int64_t",
-    #     "int64",
-    #     "uint64_t",
-    #     "uint64",
-    #     "shortfloat",
-    #     "float",
-    #     "double",
-    # ]
-    pattern = r"(\w+)=(.*?)(?<!\\)(?=\s+\w+=|$)"
+    verilog_types = '|'.join([
+        "bit",
+        "bool",
+        "boolean",
+        "int8_t",
+        "int8",
+        "char",
+        "char",
+        "uint8_t",
+        "uint8",
+        "uchar",
+        "uchar",
+        "byte",
+        "int16_t",
+        "int16",
+        "uint16_t",
+        "uint16",
+        "int32_t",
+        "int32",
+        "int",
+        "uint32_t",
+        "uint32",
+        "uint",
+        "int64_t",
+        "int64",
+        "uint64_t",
+        "uint64",
+        "shortfloat",
+        "float",
+        "double",
+    ])
+    pattern = r"(?P<key>(("+ verilog_types +r")\s)?\w+)=(.*?)(?<!\\)(?=\s+\w+=|$)?"
     matches = re.findall(pattern, params_str)
     if matches:
         for key, value in matches:
