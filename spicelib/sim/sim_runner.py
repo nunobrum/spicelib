@@ -797,8 +797,8 @@ class SimRunner(AnyRunner):
                 for ext in ('.log.raw', '.op.raw', '.db'):
                     self._del_file_ext_if_exists(netlistfile, ext)
 
-                if netlistfile.suffix == '.asc':  # If simulated from an asc file, delete the .net file
-                    # Then needs to delete the .net as well
+                if netlistfile.suffix == '.asc':
+                    # If simulated from an asc file, delete the .net file
                     self._del_file_ext_if_exists(netlistfile, '.net')
 
     def file_cleanup(self):
