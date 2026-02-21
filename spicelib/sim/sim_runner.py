@@ -794,7 +794,7 @@ class SimRunner(AnyRunner):
 
             if netlistfile.suffix == '.net' or netlistfile.suffix == '.asc':
                 # Delete the files that have been potentially created by LTSpice
-                for ext in ('.log.raw', '.op.raw'):
+                for ext in ('.log.raw', '.op.raw', '.db'):
                     self._del_file_ext_if_exists(netlistfile, ext)
 
                 if netlistfile.suffix == '.asc':  # If simulated from an asc file, delete the .net file
