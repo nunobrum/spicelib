@@ -1130,6 +1130,8 @@ For support and improvement requests please open an Issue
 in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
+* Version x.x.x (unreleased)
+    * Fixing issue when using LTspice where `.db` files were not cleaned up after a simulation completes.
 * Version 1.4.9
     * Adopting clipin for clipboard operations
     * Adding dialect support to raw_convert
