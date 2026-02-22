@@ -150,11 +150,11 @@ class SpiceEditor_Test(unittest.TestCase):
         # self.assertEqual(1, len(self.edt2.netlist_updates)) TODO: remove this line to check updates
         self.check_update(self.edt2, 'V3', UpdateType.UpdateComponentValue, 'PWL(2u 0 +1p 1 +1m 1)')
         self.edt2.set_component_parameters('V3', Rser=1)  # first in the list
-        # self.check_update(self.edt2, 'V3:Rser', UpdateType.UpdateComponentParameter, 1) TODO: remove this line to check updates
+        self.check_update(self.edt2, 'V3:Rser', UpdateType.UpdateComponentParameter, 1)
         self.edt2.set_component_value('XU1', 'level3')
-        # self.check_update(self.edt2, 'XU1', UpdateType.UpdateComponentValue, 'level3') TODO: remove this line to check updates
+        self.check_update(self.edt2, 'XU1', UpdateType.UpdateComponentValue, 'level3')
         self.edt2.set_component_parameters('XU1', GBW='1Meg')  # somewhere in the list
-        # self.check_update(self.edt2, 'XU1:GBW', UpdateType.UpdateComponentParameter, '1Meg') TODO: remove this line to check updates
+        self.check_update(self.edt2, 'XU1:GBW', UpdateType.UpdateComponentParameter, '1Meg')
         self.edt2.save_netlist(temp_dir + 'opamptest_output_1.net')
         self.equalFiles(temp_dir + 'opamptest_output_1.net', golden_dir + 'opamptest_output_1.net')
 
@@ -225,7 +225,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(len(lines1), len(lines2), "Files have different number of lines\n"
                                                    f"File1:{file1} and File2:{file2}")
         for i, lines in enumerate(zip(lines1, lines2)):
-            self.assertEqual(lines[0], lines[1], f"Line {i}\nFile1:{file1} and File2:{file2}")
+            self.assertEqual(lines[0] , lines[1], f"Line {i+1}\nFile1:{file1} and File2:{file2}")
 
     def test_resistors(self):
         """Validates the RegEx expressions on the Spice Editor file"""
@@ -442,7 +442,7 @@ class SpiceEditor_Test(unittest.TestCase):
         expected = {
             "B1": ["V=1", {"tc1": 2}],
             "B2": ["V=V(1) < {Vlow} ? {Vlow} : V(1) > {Vhigh} ? {Vhigh} : V(1)", {"delay": 1}],
-            "B3": ["I=cos(v(1))+sin(v(2))", {"ic": "1e-6,4", "delay": 10, "a": "b"}],
+            "B3": ["I=cos(v(1))+sin(v(2))", {"ic": [1e-6, 4], "delay": 10, "a": "b"}],
             "B4": ["R=V(1) < 0? 2 : 1", {}],
             "B5": ["B=V(NC_01)", {"VprXover": "50mV"}],
             #
@@ -465,7 +465,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "I2": ["2 AC 1", {"c4": "\"bla bla\"", "Rser": 3, "bb": "aa"}],
             #
             "J1": ["2N3819", {}],
-            "J2": ["2N3819", {"ic": "1,2", "temp": 6}],
+            "J2": ["2N3819", {"ic": [1, 2], "temp": 6}],
             #
             "K1": ["1", {}],
             "K2": ["0.1", {}],
@@ -487,7 +487,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "P2": ["12", {"port": 2, "Z0": 50}],  # 'DC' gets lost in translation
             #
             "Q1": ["2N2222", {}],
-            "Q2": ["BC517", {"temp": 60, "ic": "0.6,5"}],
+            "Q2": ["BC517", {"temp": 60, "ic":  [0.6, 5]}],
             #
             "R1": ["10k", {}],
             "R2": ["2k5r", {}],
@@ -518,7 +518,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "Y2": ["1e8", {"q": 10}],
             #
             "Z1": ["NMF", {}],
-            "Z2": ["NMF", {"ic": "1,2", "area": 1.4}],
+            "Z2": ["NMF", {"ic": [1, 2], "area": 1.4}],
             #
             "Ã1": ["TYPE", {"I": 5}],
             "¥1": ["TYPE", {"I": 5}],

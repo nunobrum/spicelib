@@ -189,14 +189,14 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertEqual(my_edt[sc + ":L1"].value_str, "3µH", "Subcircuit Value_str for X1:L1, after 2nd change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "3µH", "Subcircuit Value for X1:L1, after 2nd change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 3e-6, msg="Subcircuit Value for X1:L1, after 2nd change, float comparison")
-        # self.check_update(my_edt, "X1:L1", UpdateType.UpdateComponentValue, "3µH", 0)  TODO: This is not working
+        self.check_update(my_edt, "X1:L1", UpdateType.UpdateComponentValue, "3µH", 0)
         
         # now change the value to 4uH, because I don't want to deal with the µ character in equalFiles(). 
         my_edt.get_subcircuit(sc)["L1"].value = "4uH"  # set string value via indirect method
         self.assertEqual(my_edt[sc + ":L1"].value_str, "4uH", "Subcircuit Value_str for X1:L1, after 3rd change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "4uH", "Subcircuit Value for X1:L1, after 3rd change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 4e-6, msg="Subcircuit Value for X1:L1, after 3rd change, float comparison")
-        # TODO: self.check_update(my_edt, "X1:L1", UpdateType.UpdateComponentValue, "4uH", 0)
+        self.check_update(my_edt, "X1:L1", UpdateType.UpdateComponentValue, "4uH", 0)
         
         my_edt[sc + ":C1"].value = 22e-9
         self.assertEqual(my_edt[sc + ":C1"].value_str, "22n", "Subcircuit Value_str for X1:C1, after change")
@@ -211,7 +211,7 @@ class ASC_Editor_Test(unittest.TestCase):
             test_exiting_param_set4=27,
             test_add_parameter=34.45, )
         # END identical part with test_spice_editor.py:test_subcircuits_edit()
-        # TODO: self.check_update(my_edt, "X1:C1", UpdateType.UpdateComponentValue, 22e-9, 1)
+        self.check_update(my_edt, "X1:C1", UpdateType.UpdateComponentValue, 22e-9, 1)
         self.check_update(my_edt, "R1", UpdateType.UpdateComponentValue, '11', 1)
         self.check_update(my_edt, "V1", UpdateType.UpdateComponentValue, "PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)", 2)
         self.check_update(my_edt, "freq", UpdateType.UpdateParameter, 1e6, 3)

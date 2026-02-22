@@ -25,7 +25,8 @@ from .primitives import Primitive
 from .spice_components import SpiceComponent
 from .spice_utils import END_LINE_TERM
 from .updates import UpdateType
-from .spice_subcircuit import SpiceCircuit, SpiceCircuitInstance, get_line_command, ControlEditor, _is_unique_instruction
+from .spice_subcircuit import SpiceCircuit, SpiceCircuitInstance, get_line_command, ControlEditor, \
+    _is_unique_instruction, separate_lines
 import logging
 
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
@@ -110,6 +111,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         """
         if not instruction.endswith(END_LINE_TERM):
             instruction += END_LINE_TERM
+
         cmd = get_line_command(instruction)
         if _is_unique_instruction(cmd):
             # Before adding new instruction, delete previously set unique instructions
@@ -274,7 +276,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                 raise SyntaxError("Netlist with missing .END or .ENDS statements")
         elif self.netlist_file.exists():
             with open(self.netlist_file, 'r', encoding=self.encoding, errors='replace') as f:
-                lines = iter(f)  # Creates an iterator object to consume the file
+                lines = separate_lines(f)  # Creates an iterator object to consume the file
                 finished = self._add_lines(lines)
                 if not finished:
                     raise SyntaxError("Netlist with missing .END or .ENDS statements")

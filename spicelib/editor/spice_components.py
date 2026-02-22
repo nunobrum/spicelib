@@ -23,10 +23,9 @@ import io
 import logging
 
 from .editor_errors import UnrecognizedSyntaxError
-from .primitives import Component, format_eng, to_float
+from .primitives import Component
 from .updates import UpdateType
 from .spice_utils import END_LINE_TERM, REPLACE_REGEXS
-from ..log.logfile_data import try_convert_value
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
 
@@ -73,116 +72,76 @@ for prefix, pattern in REPLACE_REGEXS.items():
     # print(f"Compiling regex for {prefix}: {pattern}")
     component_replace_regexs[prefix] = re.compile(pattern, re.IGNORECASE)
 
-def tokenize_line(stream: io.StringIO) -> list[str]:
-    """Tokenizes a line from the stream, handling line continuations and comments.
-    Also removes extra spaces and tabs, condensing them to a single space.
-    When a line starts with a '+', it is considered a continuation of the previous line, and the '+' is removed.        ed.
-    The { ( [ and their respective closing characters will be considered as part of the token, so that parameters
-    like "key={value with spaces and carriage returns}" are correctly tokenized as a single token.
-    Also, if there is a return inside tokens they are removed.
-    There are special cases that are treated as just one token, such as "key=value1, value2", which is common in qspice
-    for parameters like "type=bit, int, etc". In this case the comma is considered part of the token and not a separator.
-    Another case is when there are type qualifiers such as "type key=value", which is also common in qspice containing
-    verilog components.
-    in this case the type is considered part of the key and not a separate token. Finally keywords such as "noiseless"
-    are considered as special tokens.
 
-    The valid type qualifiers for verilog are: bit,bool,boolean,int8_t,int8,char,char,uint8_t,uint8,uchar,uchar,byte,
-    int16_t,int16,uint16_t,uint16,int32_t,int32,int,uint32_t,uint32,uint,int64_t,int64,uint64_t,uint64,shortfloat,
-    float,double.
+#TODO: complete the parser and integrate it in the Spice Editor parser.
+# When writing back to the netlist they should be written in the same format. Also make sure to handle line
+# continuations and comments correctly when parsing and writing back to the netlist.
 
-    The valid keywords are: noiseless.
+def try_value(token: str):
+    """Try to convert a token to an int or float, if it fails return the original string"""
+    try:
+        return int(token)
+    except ValueError:
+        try:
+            return float(token)
+        except ValueError:
+            return token
+    return token
 
-    :param stream: input stream
-    :type stream: io.StringIO
-    :return: list of tokens
-    :rtype: list[str]
-    """
+
+def tokenize_params(params_str: str) -> list[str]:
+    """Split by spaces and special operators (= and ,) but keep the operators as part of the tokens
+    Everything insider {} or "" or '' will be considered as part of the same token, so that parameters like
+    "key={value with spaces and commas}" are correctly parsed as a single token."""
+    in_quotes = None  # To keep track of which quote we are in, if any
+    in_func_decl = False  # Inside {}
     tokens = []
     current_token = ""
-    braces_stack = []
-    in_quotes = False
-    while True:
-        char = stream.read(1)
-        if not char:  # End of stream
-            if current_token:
-                tokens.append(current_token.strip())
-            break
-        if char in ['{', '(', '[']:
-            braces_stack.append(char)
-        elif char in ['}', ')', ']']:
-            if braces_stack:
-                closing = braces_stack.pop()
-                if (char == '}' and closing != '{') or (char == ')' and closing != '(') or (char == ']' and closing != '['):
-                    raise UnrecognizedSyntaxError(f"Mismatched braces: expected {closing} but got {char}")
-            else:
-                raise UnrecognizedSyntaxError(f"Unmatched closing brace: {char}")
-        elif char == '"':
-            in_quotes = not in_quotes
 
-        elif char == '\n' or char == '\r':
-            # if inside a token, ignore the line break and continue, otherwise treat it as a token separator
-            if braces_stack or in_quotes:
-                continue
-            else:
-                next_char = stream.read(1)
-                if next_char == '+':
-                    continue  # line continuation, ignore the newline and the '+'
-                else:
-                    stream.seek(stream.tell() - 1)  # put back the character if it's not a '+'
-                    if current_token:
-                        tokens.append(current_token.strip())
-                        current_token = next_char  # start a new token with the next character
-                    return tokens
+    for char in params_str:
+        # Use structural pattern matching for clearer branching and guards
+        match char:
+            case '"' | "'":
+                if in_quotes is None:
+                    in_quotes = char
+                elif in_quotes == char:
+                    in_quotes = None
+                current_token += char
+            case '{':
+                in_func_decl = True
+                current_token += char
+            case '}':
+                in_func_decl = False
+                current_token += char
+            case c if c in (',', '=') and in_quotes is None and not in_func_decl:
+                if current_token:
+                    tokens.append(current_token.strip())
+                    tokens.append(c)
+                    current_token = ""
+            case c if c.isspace() and in_quotes is None and not in_func_decl:
+                if current_token:
+                    tokens.append(current_token.strip())
+                    current_token = ""
+            case _:
+                current_token += char
 
-        elif char.isspace():
-            # Decide whether to close the current token or to ignore the space
-            if braces_stack or in_quotes:
-                current_token += char  # keep spaces inside braces or quotes
-            elif current_token and current_token.strip() in SPICE_KEYWORDS:
-                # if the current token is a keyword, close it immediately
-                tokens.append(current_token.strip())
-                current_token = ""
-        else:
-            current_token += char
-
+    if current_token:
+        tokens.append(current_token.strip())
     return tokens
 
-TODO: complete the parser and integrate it in the Spice Editor parser. Make a
-parser for the parameters, which can be in the form of "key=value", but the value
-can contain spaces and commas, such as "key=value1, value2". Also handle type qualifiers such
-as "type key=value". The parameters should be stored in a dictionary in the component, and
-when writing back to the netlist they should be written in the same format. Also make sure to handle line
-continuations and comments correctly when parsing and writing back to the netlist.
 
-def _clean_line(line: str) -> str:
-    """remove extra spaces and clean up the line so that the regexes have an easier time matching
-
-    :param line: spice netlist string
-    :type line: str
-    :return: spice netlist string cleaned up
-    :rtype: str
-    """
-    if line is None:
-        return ""
-    # Remove any leading or trailing spaces
-    line = line.strip()
-    # condense all space sequences to a single space
-    line = re.sub(r'\s+', ' ', line).strip()
-    # Remove any spaces before or after the '=' sign
-    line = line.replace(" =", "=")
-    line = line.replace("= ", "=")
-    # Remove any spaces before or after the ',' sign (for constructions like "key=val1, val2")
-    line = line.replace(" ,", ",")
-    line = line.replace(", ", ",")
-    return line
-
+def undress_designator(designator: str) -> str:
+    """Removes any odd characters from the designator, such as §, which is sometimes used in the netlist but not always present. This is needed to compare the designator with the reference of the component, which does not contain these odd characters."""
+    if len(designator) > 2 and designator[1] == '§':
+        return designator[0] + designator[2:]
+    return designator
 
 def _parse_params(params_str: str) -> dict:
     """
     Parses the parameters string and returns a dictionary with the parameters.
-    The parameters are in the form of key=value, separated by spaces.
-    The values may contain spaces or sequences with comma separation
+    The parameters, which can be in the form of "key=value", but the value
+    can contain spaces and commas, such as "key=value1, value2". Also handle type qualifiers such
+    as "type key=value" where the types are the verilog defined types as defined in VERILOG_TYPES.
 
     :param params_str: input
     :type params_str: str
@@ -191,55 +150,64 @@ def _parse_params(params_str: str) -> dict:
     :rtype: dict
     """
     params = OrderedDict()
-    # make sure all spaces are condensed and there are no spaces around the = sign
-    params_str = _clean_line(params_str)
-    if len(params_str) == 0:
-        return params
 
-    # now split in pairs
-    # This will match key=value pairs, where value may contain spaces, but not unescaped '=' signs
+    # Now we have a list of tokens, we can parse them into key-value pairs
+    tokens = tokenize_params(params_str)
+    if not tokens:
+        return params  # empty parameters because there were no tokens
 
-    # TODO in case of a qspice verilog component (Ø), allow "type key=value", but that is not easy to do, as we do not know the component type here
-    # Here are the allowed types, just in case this will be correctly implemented one day:
-    verilog_types = '|'.join([
-        "bit",
-        "bool",
-        "boolean",
-        "int8_t",
-        "int8",
-        "char",
-        "char",
-        "uint8_t",
-        "uint8",
-        "uchar",
-        "uchar",
-        "byte",
-        "int16_t",
-        "int16",
-        "uint16_t",
-        "uint16",
-        "int32_t",
-        "int32",
-        "int",
-        "uint32_t",
-        "uint32",
-        "uint",
-        "int64_t",
-        "int64",
-        "uint64_t",
-        "uint64",
-        "shortfloat",
-        "float",
-        "double",
-    ])
-    pattern = r"(?P<key>(("+ verilog_types +r")\s)?\w+)=(.*?)(?<!\\)(?=\s+\w+=|$)?"
-    matches = re.findall(pattern, params_str)
-    if matches:
-        for key, value in matches:
-            params[key] = try_convert_value(value)
-        return params
-    else:
-        raise ValueError(f"Invalid parameter format: '{params_str}'")
+    key = None # current key being parsed, we expect the next token to be its value
+    last_key = None  # last key parsed, we expect the next token to be a comma if we are parsing a list of values for the same key
+    # var_type = None # if the current token is a type qualifier, we store it here and apply it to the next key we find
+    is_list = False  #
+
+    for token in tokens:
+        if token == '=':
+            if key is None:
+                raise ValueError(f"Unexpected '=' without a key before it in parameters string: {params_str}")
+            continue
+        elif token == ',':
+            if last_key and last_key in params:
+                is_list = True
+            else:
+                raise ValueError(f"Unexpected ',' without a value after it in parameters string: {params_str}")
+        else:
+            value = try_value(token)
+            if is_list:
+                if last_key is None:
+                    raise ValueError(f"Unexpected value '{token}' without a key in parameters string: {params_str}")
+                # already assured that the
+                if isinstance(params[last_key], list):
+                    params[last_key].append(value)
+                else:
+                    params[last_key] = [params[last_key], value]
+                is_list = False
+            elif key is None:
+                if token in SPICE_KEYWORDS:
+                    # if the token is a keyword, we consider it as a key with value True
+                    params[token] = True
+                elif token in VERILOG_TYPES:
+                    # if the token is a verilog type, we consider it as a type qualifier for the next key
+                    var_type = token
+                elif isinstance(value, float | int) and last_key in params:
+                    # if the token can be converted to a value, we consider it as a list of values for the last key
+                    if isinstance(params[last_key], str):
+                        params[last_key] += f" {token}"
+                    else:
+                        params[last_key] = f"{params[last_key]} {token}"
+                else:
+                    key = token
+            else:
+                # if var_type:
+                #    # if there is a type qualifier, we prepend it to the key
+                #    params[key] = (value, var_type)
+                #    var_type = None
+                # else:
+                params[key] = value
+                last_key = key
+                key = None
+
+    return params
 
 def _insert_section(line: str, start: int, end: int, section: str) -> str:
     """
@@ -307,13 +275,12 @@ class SpiceComponent(Component):
         self.attributes.clear()
         for attr in info:
             if attr == 'designator':
-                ref = info[attr]
-                if len(ref) > 2 and ref[1] == '§':
-                    # strip any §, it is not always present and seems optional, so scrap it
-                    ref = ref[0] + ref[2:]
-                self.reference = ref
+                self.reference = undress_designator(info[attr])
             elif attr == 'nodes':
                 self.ports = info[attr].split()
+            elif attr == 'value':
+                if info[attr] is not None:
+                    self.set_value(info[attr].strip())
             elif attr == 'params':
                 if info[attr]:
                     self.set_parameters(**_parse_params(info[attr]))
@@ -349,16 +316,12 @@ class SpiceComponent(Component):
         update_done = False
         for attr in info:
             start, stop = match.span(attr)
+            if start == -1 and stop == -1 and attr not in self.attributes:
+                continue  # this attribute is not present in the line, skip it
             if attr == 'designator':
-                old_ref = info[attr]
-                if len(old_ref) > 2 and old_ref[1] == '§':
-                    # strip any §, it is not always present and seems optional, so scrap it
-                    old_ref = old_ref[0] + old_ref[2:]
-                    add_odd_char = True
-                else:
-                    add_odd_char = False
+                old_ref = undress_designator(info[attr])
                 if self.reference != old_ref:
-                    if add_odd_char:
+                    if '§' in info[attr]:
                         new_ref = self.reference[0] + '§' + self.reference[1:]
                     else:
                         new_ref = self.reference
@@ -367,16 +330,37 @@ class SpiceComponent(Component):
                     update_done = True
             elif attr == 'nodes':
                 old_nodes_str = info[attr]
-                new_nodes_str = ' '+ ' '.join(self.ports)
+                new_nodes_str = ' ' + ' '.join(self.ports)
                 if old_nodes_str != new_nodes_str:
                     new_line = _insert_section(new_line, start + offset, stop + offset, new_nodes_str)
                     offset += len(new_nodes_str) - len(old_nodes_str)
                     update_done = True
             elif attr == 'params':
                 old_params_str = info[attr] or ""  # in case of no params, make it empty string
-                new_params_dict = self.params
-                new_params_str = ' '.join(f"{key}={value}" for key, value in new_params_dict.items())
-                if old_params_str != new_params_str:
+                old_params = _parse_params(old_params_str)
+                # Now compare the old params with the new params, if they are different, we need to update the line
+                differences = False
+                for key in self.params:
+                    if key not in old_params:
+                        differences = True
+                        break
+                    if self.params[key] != old_params[key]:
+                        differences = True
+                        break
+                else:
+                    for key in old_params:
+                        if key not in self.params:
+                            differences = True
+                            break
+                if differences:
+                    new_params = []
+                    for key, value in self.params.items():
+                        if isinstance(value, list):
+                            value_str = ','.join(str(v) for v in value)
+                        else:
+                            value_str = str(value)
+                        new_params.append(f"{key}={value_str}")
+                    new_params_str = ' '.join(new_params)
                     new_line = _insert_section(new_line, start + offset, stop + offset, new_params_str)
                     offset += len(new_params_str) - len(old_params_str)
                     update_done = True
@@ -450,7 +434,3 @@ class SpiceComponent(Component):
         """Informs the netlist that a parameter of the component has changed"""
         super().set_parameter(key, value)
         self.netlist.add_update(self.reference, f"{key}={value}", UpdateType.UpdateComponentParameter)
-
-
-
-

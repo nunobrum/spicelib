@@ -24,7 +24,7 @@ import re
 from .base_subcircuit import BaseSubCircuitInstance
 from .primitives import VALUE_IDs, PARAMS_IDs, Component
 from .updates import UpdateType
-from .spice_components import SpiceComponent, component_replace_regexs, _parse_params
+from .spice_components import SpiceComponent, component_replace_regexs, _parse_params, undress_designator
 
 logger = logging.getLogger("spicelib.SpiceEditor")
 
@@ -46,7 +46,8 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         regex = component_replace_regexs['X']
         match = regex.match(new_line)
         self.attributes.clear()
-        self.reference = match.group('designator')
+        ref = match.group('designator')
+        self.reference = undress_designator(ref)
         self.ports = match.group('nodes').strip().split()
         self.value = match.group('value').strip()
         assert self.value != "", "Sub-circuit name cannot be empty."

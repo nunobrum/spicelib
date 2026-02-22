@@ -20,7 +20,7 @@ import io
 import os
 import re
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Any, Generator
 import logging
 
 
@@ -84,6 +84,68 @@ def _is_unique_instruction(instruction):
     return cmd in UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
+
+
+def separate_lines(stream: io.StringIO) -> Generator[str, None, None]:
+    """Iterator of spice lines from the stream, handling line continuations and comments.
+    When a line starts with a '+', it is considered a continuation of the previous line, and the '+' is removed.
+    The { ( [ and their respective closing characters will be considered as part of the line, so that parameters
+    like "key={value with spaces and carriage returns}" are correctly tokenized as a single line.
+    Also, if there is a return inside tokens they are removed.
+
+    """
+    current_line = ""
+    braces_stack = []
+    in_quotes = False
+    next_char = None
+    while True:
+        if next_char is not None:
+            char = next_char
+            next_char = None
+        else:
+            char = stream.read(1)
+
+        if not char:  # End of stream
+            if current_line:
+                yield current_line
+            break
+
+        if char in ['{', '(', '[']:
+            braces_stack.append(char)
+        elif char in ['}', ')', ']']:
+            if braces_stack:
+                closing = braces_stack.pop()
+                if (char == '}' and closing != '{') or (char == ')' and closing != '(') or (char == ']' and closing != '['):
+                    raise MissingExpectedClauseError(f"Mismatched braces: expected {closing} but got {char}")
+            else:
+                raise MissingExpectedClauseError(f"Unmatched closing brace: {char} in line: {current_line}")
+        elif char == '"':
+            in_quotes = not in_quotes
+
+        elif char == '\n' or char == '\r':
+            # if inside a quotes, ignore the line break and continue, otherwise treat it as a line separator
+            if not (braces_stack or in_quotes):
+                next_char = stream.read(1)
+                if next_char == '+':
+                    next_char = None  # line continuation, ignore the newline and the '+'
+                elif next_char == '\n' and char=='\r' or next_char == '\r' and char=='\n':
+                    # This is a Windows style line break, we need to consume the next character as well
+                    # Next iteration will trigger the end of line, so we just ignore it here
+                    current_line += char
+                else:
+                    yield current_line + char
+                    current_line = ""  # reset the current line after yielding
+                continue
+        elif char =='*' and len(current_line)==0 and not braces_stack and not in_quotes:
+            # This is a comment line, read till the end of the line
+            current_line = char + stream.readline()
+            if current_line:
+                yield current_line
+            current_line = ""  # reset the current line after yielding
+            continue
+
+        current_line += char
+
 
 class SpiceCircuit(BaseSubCircuit):
     """
@@ -885,7 +947,7 @@ class SpiceCircuit(BaseSubCircuit):
             return None
         #  2. scan the file
         with open(library, encoding=encoding) as lib:
-            for line in lib:
+            for line in separate_lines(lib):
                 search = reg_subckt.match(line)
                 if search:
                     sub_circuit = SpiceCircuit()
