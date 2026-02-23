@@ -76,18 +76,18 @@ class Montecarlo(ToleranceDeviations):
             if dev.typ == DeviationType.tolerance:
                 tolstr = ('%g' % dev.tolerance).rstrip('0').rstrip('.')
                 if dev.distribution == 'uniform':
-                    new_val = "{utol(%s,%s)}" % (val, tolstr)  # calculate expression for new value
+                    new_val = f"{{utol({val},{tolstr})}}"  # calculate expression for new value
                     tol_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = "{ntol(%s,%s)}" % (val, tolstr)
+                    new_val = f"{{ntol({val},{tolstr})}}"
                     tol_norm_func = True
             elif dev.typ == DeviationType.minmax:
                 if dev.distribution == 'uniform':
-                    new_val = "{urng(%s,%g,%g)}" % (
+                    new_val = "{{urng({},{:g},{:g})}}".format(
                     val, (dev.max_val + dev.min_val) / 2, (dev.max_val - dev.min_val) / 2)
                     min_max_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = "{nrng(%s,%g,%g)}" % (
+                    new_val = "{{nrng({},{:g},{:g})}}".format(
                     val, (dev.max_val + dev.min_val) / 2, (dev.max_val - dev.min_val) / 6)
 
             if new_val != val:  # Only update the value if it has changed
@@ -99,17 +99,17 @@ class Montecarlo(ToleranceDeviations):
             new_val = val
             if dev.typ == DeviationType.tolerance:
                 if dev.distribution == 'uniform':
-                    new_val = "{utol(%s,%g)}" % (val, dev.tolerance)
+                    new_val = f"{{utol({val},{dev.tolerance:g})}}"
                     tol_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = "{ntol(%g,%g)}" % (val, dev.tolerance)
+                    new_val = f"{{ntol({val:g},{dev.tolerance:g})}}"
                     tol_norm_func = True
             elif dev.typ == DeviationType.minmax:
                 if dev.distribution == 'uniform':
-                    new_val = "{urng(%s,%g,%g)}" % (val, (dev.max_val+dev.min_val)/2, (dev.max_val-dev.min_val)/2)
+                    new_val = f"{{urng({val},{(dev.max_val+dev.min_val)/2:g},{(dev.max_val-dev.min_val)/2:g})}}"
                     min_max_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = "{nrng(%s,%g,%g)}" % (val, (dev.max_val+dev.min_val)/2, (dev.max_val-dev.min_val)/6)
+                    new_val = f"{{nrng({val},{(dev.max_val+dev.min_val)/2:g},{(dev.max_val-dev.min_val)/6:g})}}"
                     min_max_norm_func = True
             else:
                 continue

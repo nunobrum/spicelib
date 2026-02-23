@@ -205,7 +205,7 @@ def convert_asc_to_qsch(asc_file, qsch_file, search_paths=[]):
     # Save the netlist
     qsch_editor.save_netlist(qsch_file)
 
-    print("File {} converted to {}".format(asc_file, qsch_file))
+    print(f"File {asc_file} converted to {qsch_file}")
 
 
 if __name__ == "__main__":

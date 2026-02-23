@@ -201,7 +201,7 @@ def main():
 
         if len(values) == 0:
             encoding = detect_encoding(logfile)
-            print("Loading file '%s' with encoding '%s'" % (logfile, encoding))
+            print(f"Loading file '{logfile}' with encoding '{encoding}'")
             log = open(logfile, 'r', encoding=encoding)
             header = log.readline().rstrip('\r\n')
             for sep in ['\t', ';', ',']:
@@ -216,7 +216,7 @@ def main():
                     sav_col = vars.index(TRACE)
                 except ValueError:
                     log.close()
-                    print("File '%s' doesn't have trace '%s'" % (logfile, TRACE))
+                    print(f"File '{logfile}' doesn't have trace '{TRACE}'")
                     print("LOG FILE contains %s" % vars)
                     exit(-1)
             else:

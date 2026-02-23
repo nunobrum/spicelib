@@ -144,12 +144,12 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
                     for param in step.split():
                         header_keys.append(param.split('=')[0])
                     param_header = "\t".join(header_keys)
-                    msg = "Run\t%s\t%s" % (param_header, headers)
+                    msg = f"Run\t{param_header}\t{headers}"
                     fout.write(msg)
                     _logger.debug(msg)
                     go_header = False
         else:
-            fout.write("%s\t%s\t%s" % (run_no, param_values, line))
+            fout.write(f"{run_no}\t{param_values}\t{line}")
 
     fin.close()
     fout.close()
