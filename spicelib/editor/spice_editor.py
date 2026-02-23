@@ -1694,7 +1694,7 @@ class SpiceEditor(SpiceCircuit):
             if not finished:
                 raise SyntaxError("Netlist with missing .END or .ENDS statements")
         elif self.netlist_file.exists():
-            with open(self.netlist_file, 'r', encoding=self.encoding, errors='replace') as f:
+            with open(self.netlist_file, encoding=self.encoding, errors='replace') as f:
                 lines = iter(f)  # Creates an iterator object to consume the file
                 finished = self._add_lines(lines)
                 if not finished:

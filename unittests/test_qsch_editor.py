@@ -42,9 +42,9 @@ spicelib.set_log_level(logging.INFO)
 
 
 def equalFiles(testcase, file1, file2):
-    with open(file1, 'r', encoding='cp1252') as f1:
+    with open(file1, encoding='cp1252') as f1:
         lines1 = f1.readlines()
-    with open(file2, 'r', encoding='cp1252') as f2:
+    with open(file2, encoding='cp1252') as f2:
         lines2 = f2.readlines()
     testcase.assertEqual(len(lines1), len(lines2), f"Files \"{file1}\" and \"{file2}\" have different number of lines")
     for i in range(len(lines1)):
@@ -70,7 +70,7 @@ class ASC_Editor_Test(unittest.TestCase):
 
     def test_component_editing(self):
         self.assertEqual(self.edt.get_component_value('R1'), '10K', "Tested R1 Value")  # add assertion here
-        self.assertSetEqual(set(self.edt.get_components()), set(('Vin', 'R1', 'R2', 'D1')), "Tested get_components")  # add assertion here
+        self.assertSetEqual(set(self.edt.get_components()), {'Vin', 'R1', 'R2', 'D1'}, "Tested get_components")  # add assertion here
         self.edt.set_component_value('R1', '33k')
         self.check_update('R1', UpdateType.UpdateComponentValue, '33k')
         self.edt.save_netlist(temp_dir + 'test_components_output.qsch')

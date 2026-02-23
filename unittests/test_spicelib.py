@@ -193,7 +193,7 @@ class test_spicelib(unittest.TestCase):
             print(f"Raw file '{raw}' | Log File '{log}'")
         runner.wait_completion()
         # Sim Statistics
-        print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+        print(f"Successful/Total Simulations: {str(runner.okSim)}/{str(runner.runno)}")
         self.assertEqual(runner.okSim, 5)
         self.assertEqual(runner.runno, 5)
 

@@ -106,10 +106,10 @@ class Montecarlo(ToleranceDeviations):
                     tol_norm_func = True
             elif dev.typ == DeviationType.minmax:
                 if dev.distribution == 'uniform':
-                    new_val = f"{{urng({val},{(dev.max_val+dev.min_val)/2:g},{(dev.max_val-dev.min_val)/2:g})}}"
+                    new_val = "{urng(%s,%g,%g)}" % (val, (dev.max_val+dev.min_val)/2, (dev.max_val-dev.min_val)/2)
                     min_max_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = f"{{nrng({val},{(dev.max_val+dev.min_val)/2:g},{(dev.max_val-dev.min_val)/6:g})}}"
+                    new_val = "{nrng(%s,%g,%g)}" % (val, (dev.max_val+dev.min_val)/2, (dev.max_val-dev.min_val)/6)
                     min_max_norm_func = True
             else:
                 continue

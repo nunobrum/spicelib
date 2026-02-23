@@ -202,7 +202,7 @@ def main():
         if len(values) == 0:
             encoding = detect_encoding(logfile)
             print(f"Loading file '{logfile}' with encoding '{encoding}'")
-            log = open(logfile, 'r', encoding=encoding)
+            log = open(logfile, encoding=encoding)
             header = log.readline().rstrip('\r\n')
             for sep in ['\t', ';', ',']:
                 if sep in header:

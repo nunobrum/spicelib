@@ -151,7 +151,7 @@ class test_spicelib(unittest.TestCase):
             print(f"Raw file '{raw}' | Log File '{log}'")
         # Sim Statistics
         runner.wait_completion()
-        print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+        print(f"Successful/Total Simulations: {str(runner.okSim)}/{str(runner.runno)}")
         self.assertEqual(runner.okSim, 5)  # Simulation done with success
 
     @unittest.skipIf(skip_qspice_editor_tests, "Skip if not in windows environment")

@@ -120,7 +120,7 @@ def reformat_LTSpice_export(export_file: str, tabular_file: str):
     :return: Nothing
     """
     encoding = detect_encoding(export_file)
-    fin = open(export_file, 'r', encoding=encoding)
+    fin = open(export_file, encoding=encoding)
     fout = open(tabular_file, 'w', encoding=encoding)
 
     headers = fin.readline()
@@ -179,7 +179,7 @@ class LTSpiceExport:
 
     def __init__(self, export_filename: str):
         self.encoding = detect_encoding(export_filename)
-        fin = open(export_filename, 'r', encoding=self.encoding)
+        fin = open(export_filename, encoding=self.encoding)
         file_header = fin.readline()
 
         self.headers = file_header.split('\t')
@@ -317,7 +317,7 @@ class LTSpiceLogReader(LogfileData):
                 re.IGNORECASE)
 
         _logger.debug(f"Processing LOG file:{log_filename}")
-        with open(log_filename, 'r', encoding=self.encoding) as fin:
+        with open(log_filename, encoding=self.encoding) as fin:
             line = fin.readline()
             # init variables, just in case. Not needed really, but helps debugging
             signal = None

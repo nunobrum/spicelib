@@ -38,7 +38,7 @@ while line_no < len(readme_md):
                 print(f"Updating code on lines {block_start + 1}:{line_no + 1}")
                 include_relpath = m.group("path")
                 include_path = os.path.abspath(os.path.join(os.curdir, include_relpath))
-                include_text = open(include_path, "r", encoding="utf-8").readlines()
+                include_text = open(include_path, encoding="utf-8").readlines()
                 # if there is a localization, isolate only the part identified by loc
                 # the part starts with "# -- Start of <loc> --" and ends with "# -- End of <loc> --"
                 # where <loc> is the text within the square brackets [] in the readme.md

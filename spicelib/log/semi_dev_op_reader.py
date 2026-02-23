@@ -93,7 +93,7 @@ def opLogReader(filename: str) -> dict:
     dataset = {}
     is_title = re.compile(r"^\s*--- (.*) ---\s*$")
     encoding = detect_encoding(filename)
-    log = open(filename, 'r', encoding=encoding)
+    log = open(filename, encoding=encoding)
     where = None
     n_devices = 0
     line = None
