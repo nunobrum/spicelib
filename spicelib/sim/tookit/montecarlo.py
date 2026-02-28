@@ -76,18 +76,18 @@ class Montecarlo(ToleranceDeviations):
             if dev.typ == DeviationType.tolerance:
                 tolstr = ('%g' % dev.tolerance).rstrip('0').rstrip('.')
                 if dev.distribution == 'uniform':
-                    new_val = f"{{utol({val},{tolstr})}}"  # calculate expression for new value
+                    new_val = "{utol(%s,%s)}" % (val, tolstr)  # calculate expression for new value
                     tol_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = f"{{ntol({val},{tolstr})}}"
+                    new_val = "{ntol(%s,%s)}" % (val, tolstr)
                     tol_norm_func = True
             elif dev.typ == DeviationType.minmax:
                 if dev.distribution == 'uniform':
-                    new_val = "{{urng({},{:g},{:g})}}".format(
+                    new_val = "{urng(%s,%g,%g)}" % (
                     val, (dev.max_val + dev.min_val) / 2, (dev.max_val - dev.min_val) / 2)
                     min_max_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = "{{nrng({},{:g},{:g})}}".format(
+                    new_val = "{nrng(%s,%g,%g)}" % (
                     val, (dev.max_val + dev.min_val) / 2, (dev.max_val - dev.min_val) / 6)
 
             if new_val != val:  # Only update the value if it has changed
@@ -99,10 +99,10 @@ class Montecarlo(ToleranceDeviations):
             new_val = val
             if dev.typ == DeviationType.tolerance:
                 if dev.distribution == 'uniform':
-                    new_val = f"{{utol({val},{dev.tolerance:g})}}"
+                    new_val = "{utol(%s,%g)}" % (val, dev.tolerance)
                     tol_uni_func = True
                 elif dev.distribution == 'normal':
-                    new_val = f"{{ntol({val:g},{dev.tolerance:g})}}"
+                    new_val = "{ntol(%g,%g)}" % (val, dev.tolerance)
                     tol_norm_func = True
             elif dev.typ == DeviationType.minmax:
                 if dev.distribution == 'uniform':
