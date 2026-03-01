@@ -41,9 +41,9 @@ temperature to 80 degrees, and update the values of R1 and R2 to 3.3k. ::
 
     runner.wait_completion()  # Waits for the LTSpice simulations to complete
 
-    print("Total Simulations: {}".format(runner.runno))
-    print("Successful Simulations: {}".format(runner.okSim))
-    print("Failed Simulations: {}".format(runner.failSim))
+    print(f"Total Simulations: {runner.runno}")
+    print(f"Successful Simulations: {runner.okSim}")
+    print(f"Failed Simulations: {runner.failSim}")
 
 The first line will create a python class instance that represents the LTSpice file or netlist that is to be
 simulated. This object implements methods that are used to manipulate the spice netlist. For example, the method

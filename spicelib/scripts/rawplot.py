@@ -52,7 +52,7 @@ def main():
 
     LTR = RawRead(raw_filename, trace_names, verbose=True)
     for param, value in LTR.raw_params.items():
-        print("{}: {}{}".format(param, " " * (20 - len(param)), str(value).strip()))
+        print(f"{param}: {' ' * (20 - len(param))}{str(value).strip()}")
 
     if trace_names == '*':
 

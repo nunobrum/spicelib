@@ -72,7 +72,7 @@ def get_line_command(line) -> str:
     elif isinstance(line, Primitive):
         return get_line_command(line._obj)
     else:
-        raise SyntaxError('Unrecognized command in line "{}"'.format(line))
+        raise SyntaxError(f'Unrecognized command in line "{line}"')
 
 
 def _is_unique_instruction(instruction):

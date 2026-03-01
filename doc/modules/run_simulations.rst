@@ -40,7 +40,7 @@ temperature to 80 degrees, and update the values of R1 and R2 to 3.3k.
             netlist.set_component_value('V1', supply_voltage)
             netlist.set_component_value('V2', -supply_voltage)
             # overriding he automatic netlist naming
-            run_netlist_file = "{}_{}_{}.net".format(netlist.netlist_file.name, opamp, supply_voltage)
+            run_netlist_file = f"{netlist.netlist_file.name}_{opamp}_{supply_voltage}.net"
             raw, log = runner.run_now(netlist, run_filename=run_netlist_file)
             # Process here the simulation results
 
@@ -98,7 +98,7 @@ each executing in parallel a simulation. This is exemplified in the modified exa
             netlist.set_component_value('V1', supply_voltage)
             netlist.set_component_value('V2', -supply_voltage)
             # overriding he automatic netlist naming
-            run_netlist_file = "{}_{}_{}.net".format(netlist.netlist_file.name, opamp, supply_voltage)
+            run_netlist_file = f"{netlist.netlist_file.name}_{opamp}_{supply_voltage}.net"
             # This will launch up to 'parallel_sims' simulations in background before waiting for resources
             runner.run(netlist, run_filename=run_netlist_file, callback=processing_data)
 
