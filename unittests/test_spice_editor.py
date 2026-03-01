@@ -215,9 +215,9 @@ class SpiceEditor_Test(unittest.TestCase):
 
 
     def equalFiles(self, file1, file2):
-        with open(file1, 'r') as f1:
+        with open(file1) as f1:
             lines1 = f1.readlines()
-        with open(file2, 'r') as f2:
+        with open(file2) as f2:
             lines2 = f2.readlines()
         self.assertEqual(len(lines1), len(lines2), "Files have different number of lines\n"
                                                    f"File1:{file1} and File2:{file2}")

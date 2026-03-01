@@ -95,12 +95,12 @@ def format_eng(value) -> str:
     :rtype: str
     """
     if value == 0.0:
-        return "{:g}".format(value)  # This avoids a problematic log(0), and the int and float conversions
+        return f"{value:g}"  # This avoids a problematic log(0), and the int and float conversions
     e = floor(log(abs(value), 1000))
     if -5 <= e < 0:
         suffix = "fpnum"[e]
     elif e == 0:
-        return "{:g}".format(value)
+        return f"{value:g}"
     elif e == 1:
         suffix = "k"
     elif e == 2:
@@ -110,8 +110,8 @@ def format_eng(value) -> str:
     elif e == 4:
         suffix = 't'
     else:
-        return '{:E}'.format(value)
-    return '{:g}{:}'.format(value * 1000 ** -e, suffix)
+        return f'{value:E}'
+    return f'{value * 1000 ** -e:g}{suffix}'
 
 
 def scan_eng(value: str) -> float:

@@ -53,7 +53,7 @@ def detect_encoding(file_path: Union[str, Path], expected_pattern: str = '', re_
     """
     for encoding in ('utf-8', 'utf-16', 'utf_16_le', 'windows-1252', 'cp1252', 'cp1250', 'shift_jis'):
         try:
-            with open(file_path, 'r', encoding=encoding) as f:
+            with open(file_path, encoding=encoding) as f:
                 lines = f.read()
                 f.seek(0)
         except UnicodeDecodeError:

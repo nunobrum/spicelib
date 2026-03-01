@@ -216,4 +216,4 @@ class SimAnalysis:
 
     def configure_measurement(self, meas_name: str, meas_expression: str, meas_type: str = 'tran'):
         """Configures a measurement to be done in the simulation"""
-        self.editor.add_instruction(".meas {} {} {}".format(meas_type, meas_name, meas_expression))
+        self.editor.add_instruction(f".meas {meas_type} {meas_name} {meas_expression}")
