@@ -75,7 +75,7 @@ class SpiceEditor_Test(unittest.TestCase):
 
     def test_component_editing_1(self):
         self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here
-        self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")  # add assertion here
+        self.assertListEqual(self.edt.get_components(), ['VIN', 'R1', 'R2', 'D1'], "Tested get_components")  # add assertion here
         self.assertEqual(0, len(self.edt.netlist_updates), "There is no update")
         self.edt.set_component_value('R1', '33k')
         self.check_update(self.edt, 'R1', UpdateType.UpdateComponentValue, '33k')
@@ -99,7 +99,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + 'test_components_output_1.net', golden_dir + 'test_components_output_1.net')
 
     def test_component_editing_1_obj(self):
-        self.assertListEqual(self.edt.get_components(), ['Vin', 'R1', 'R2', 'D1'], "Tested get_components")
+        self.assertListEqual(self.edt.get_components(), ['VIN', 'R1', 'R2', 'D1'], "Tested get_components")
         r1 = self.edt['R1']
         r3 = copy(r1)
         self.assertEqual(r1.value_str, '10k', "Tested R1 Value")
