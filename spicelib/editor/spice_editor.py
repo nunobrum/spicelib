@@ -275,8 +275,8 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
             if not finished:
                 raise SyntaxError("Netlist with missing .END or .ENDS statements")
         elif self.netlist_file.exists():
-            with open(self.netlist_file, 'r', encoding=self.encoding, errors='replace') as f:
-                lines = separate_lines(f)  # Creates an iterator object to consume the file
+            with open(self.netlist_file, encoding=self.encoding, errors='replace') as f:
+                lines = iter(f)  # Creates an iterator object to consume the file
                 finished = self._add_lines(lines)
                 if not finished:
                     raise SyntaxError("Netlist with missing .END or .ENDS statements")
@@ -321,8 +321,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                     if lib_paths:
                         self.set_custom_library_paths(lib_paths)
         else:
-            _logger.error("Netlist file not found: {}".format(self.netlist_file))
-        self.recording_updates = True
+            _logger.error(f"Netlist file not found: {self.netlist_file}")
 
     def run(self, wait_resource: bool = True,
             callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):

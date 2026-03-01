@@ -295,9 +295,9 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertListEqual(["A1", "B1", "E1"], subc.get_components(), "Subcircuit U1 components should be E1, A1, B1")
 
     def equalFiles(self, file1, file2):
-        with open(file1, 'r') as f1:
+        with open(file1) as f1:
             lines1 = f1.readlines()
-        with open(file2, 'r') as f2:
+        with open(file2) as f2:
             lines2 = f2.readlines()
         self.assertEqual(len(lines1), len(lines2), "Number of lines is different")
         for i, lines in enumerate(zip(lines1, lines2)):

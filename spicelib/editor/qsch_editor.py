@@ -226,7 +226,7 @@ class QschTag:
                 i0 = i + 1
             i += 1
         else:
-            raise IOError("Missing » when reading file")
+            raise OSError("Missing » when reading file")
         line = stream[i0:i]
         # Now dividing the
         if ': ' in line:
@@ -833,7 +833,7 @@ class QschEditor(BaseSchematic):
         if not create_blank:
             if not self._qsch_file_path.exists():
                 raise FileNotFoundError(f"File {self._qsch_file_path} not found")
-            with open(self._qsch_file_path, 'r', encoding="cp1252") as qsch_file:
+            with open(self._qsch_file_path, encoding="cp1252") as qsch_file:
                 _logger.info(f"Reading QSCH file {self._qsch_file_path}")
                 stream = qsch_file.read()
             self._parse_qsch_stream(stream)

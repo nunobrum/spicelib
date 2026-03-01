@@ -5,7 +5,7 @@ from spicelib.utils.sweep_iterators import sweep_log
 
 
 def processing_data(raw_file, log_file):
-    print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
+    print(f"Handling the simulation data of {raw_file}, log file {log_file}")
 
 
 # select spice model

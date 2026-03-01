@@ -845,7 +845,7 @@ class PlotData(PlotInterface):
             logfile = filename.with_suffix(".log")
             try:
                 encoding = detect_encoding(logfile, r"^((.*\n)?Circuit:|([\s\S]*)--- Expanded Netlist ---)")
-                log = open(logfile, 'r', errors='replace', encoding=encoding)
+                log = open(logfile, errors='replace', encoding=encoding)
             except OSError:
                 raise SpiceReadException("Log file '%s' not found" % logfile)
             except UnicodeError:
@@ -874,7 +874,7 @@ class PlotData(PlotInterface):
             # it should have a .log file with the same name
             logfile = filename.with_suffix(".log")
             try:
-                log = open(logfile, 'r', errors='replace', encoding='utf-8')
+                log = open(logfile, errors='replace', encoding='utf-8')
             except OSError:
                 raise SpiceReadException("Log file '%s' not found" % logfile)
             except UnicodeError:

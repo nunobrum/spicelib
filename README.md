@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.4.9_
+_current version: 1.5.0_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1130,6 +1130,11 @@ For support and improvement requests please open an Issue
 in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
+* Version 1.5.0
+    * Fixing issue when using LTspice where `.db` files were not cleaned up after a simulation completes.
+    * Removing 3.9 from the supported Python versions and setting 3.10 as the minimum version. 
+    * Using f-strings across the entire codebase.
+    * Removing 'r' from open() calls where it is not needed. Default is already 'r' and it is not needed to specify it.
 * Version 1.4.9
     * Adopting clipin for clipboard operations
     * Adding dialect support to raw_convert
