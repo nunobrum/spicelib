@@ -920,7 +920,7 @@ class SpiceCircuit(BaseEditor):
                 raise MissingExpectedClauseError("Unable to find .SUBCKT clause in subcircuit")
         else:
             # Avoiding exception by creating an empty sub-circuit
-            self.netlist.append("* SpiceEditor Created this sub-circuit")
+            self.netlist.append(f"* SpiceEditor Created this sub-circuit{END_LINE_TERM}")
             self.netlist.append(f'.SUBCKT {new_name}{END_LINE_TERM}')
             self.netlist.append(f'.ENDS {new_name}{END_LINE_TERM}')
 

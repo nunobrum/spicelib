@@ -111,7 +111,7 @@ def format_eng(value) -> str:
         suffix = 't'
     else:
         return f'{value:E}'
-    return f'{value * 1000 ** -e:g}{suffix}'
+    return f'{value * (1000 ** -e):g}{suffix}'
 
 
 def scan_eng(value: str) -> float:
