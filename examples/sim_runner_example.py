@@ -43,7 +43,7 @@ for opamp in ('AD712', 'AD820_ALT'):  # When updating an instance, the instance 
         runner.run(netlist, switches=opts, exe_log=True)  # run, and log console output fo file
         
 for raw, log in runner:
-    print("Raw file: %s, Log file: %s" % (raw, log))
+    print(f"Raw file: {raw}, Log file: {log}")
     # do something with the data
     # raw_data = RawRead(raw)
     # log_data = LTSpiceLogReader(log)

@@ -66,7 +66,7 @@ class QspiceLogReader(LogfileData):
         step_regex = re.compile(r"^\s*(\d+) of \d+ steps:\s+\.step (.*)$")
 
         _logger.debug(f"Processing LOG file:{log_filename}")
-        with open(log_filename, 'r', encoding=self.encoding) as fin:
+        with open(log_filename, encoding=self.encoding) as fin:
             line = fin.readline()
             while line:
                 match = step_regex.match(line)
@@ -151,7 +151,7 @@ class QspiceLogReader(LogfileData):
         meas_name = None
         headers = None
 
-        with open(meas_filename, 'r', encoding=self.encoding) as fin:
+        with open(meas_filename, encoding=self.encoding) as fin:
             line = fin.readline()
             while line:
                 match = meas_regex.match(line)

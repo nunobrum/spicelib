@@ -213,7 +213,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
             if last_no > self.last_run_number:
                 last_no = self.last_run_number
 
-            run_stepping = ".step param run {} {} 1".format(sim_no, last_no)
+            run_stepping = f".step param run {sim_no} {last_no} 1"
             self.editor.add_instruction(run_stepping)
             sim = self.runner.run(self.editor, wait_resource=wait_resource, callback=callback,
                                   callback_args=callback_args, switches=switches, timeout=timeout,

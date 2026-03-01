@@ -39,7 +39,7 @@ if __name__ == "__main__":
             netlist['V1'].value = supply_voltage
             netlist['V2'].value = -supply_voltage
             # overriding the automatic netlist naming
-            run_netlist_file = "{}_{}_{}.net".format(netlist.netlist_file.stem, opamp, supply_voltage)
+            run_netlist_file = f"{netlist.netlist_file.stem}_{opamp}_{supply_voltage}.net"
             runner.run(netlist, run_filename=run_netlist_file, callback=CallbackProc)
 
     for result in runner:

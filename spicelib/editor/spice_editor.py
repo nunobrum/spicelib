@@ -284,7 +284,7 @@ def get_line_command(line) -> str:
     elif isinstance(line, ControlEditor):
         return ".CONTROL"    
     
-    raise SyntaxError('Unrecognized command in line "{}"'.format(line))
+    raise SyntaxError(f'Unrecognized command in line "{line}"')
 
 
 def _first_token_upped(line):
@@ -920,9 +920,9 @@ class SpiceCircuit(BaseEditor):
                 raise MissingExpectedClauseError("Unable to find .SUBCKT clause in subcircuit")
         else:
             # Avoiding exception by creating an empty sub-circuit
-            self.netlist.append("* SpiceEditor Created this sub-circuit")
-            self.netlist.append('.SUBCKT %s%s' % (new_name, END_LINE_TERM))
-            self.netlist.append('.ENDS %s%s' % (new_name, END_LINE_TERM))
+            self.netlist.append(f"* SpiceEditor Created this sub-circuit{END_LINE_TERM}")
+            self.netlist.append(f'.SUBCKT {new_name}{END_LINE_TERM}')
+            self.netlist.append(f'.ENDS {new_name}{END_LINE_TERM}')
 
     def get_component(self, reference: str) -> Union[SpiceComponent, 'SpiceCircuit']:
         """
@@ -1694,7 +1694,7 @@ class SpiceEditor(SpiceCircuit):
             if not finished:
                 raise SyntaxError("Netlist with missing .END or .ENDS statements")
         elif self.netlist_file.exists():
-            with open(self.netlist_file, 'r', encoding=self.encoding, errors='replace') as f:
+            with open(self.netlist_file, encoding=self.encoding, errors='replace') as f:
                 lines = iter(f)  # Creates an iterator object to consume the file
                 finished = self._add_lines(lines)
                 if not finished:
@@ -1703,7 +1703,7 @@ class SpiceEditor(SpiceCircuit):
                 #     for _ in lines:  # Consuming the rest of the file.
                 #         pass  # print("Ignoring %s" % _)
         else:
-            _logger.error("Netlist file not found: {}".format(self.netlist_file))
+            _logger.error(f"Netlist file not found: {self.netlist_file}")
 
     def run(self, wait_resource: bool = True,
             callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):

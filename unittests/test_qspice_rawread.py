@@ -81,7 +81,7 @@ class test_spicelib(unittest.TestCase):
         self.measures = {}
 
         def processing_data(raw_file, log_file):
-            print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
+            print(f"Handling the simulation data of {raw_file}, log file {log_file}")
             self.sim_files.append((raw_file, log_file))
 
         # select spice model
@@ -98,7 +98,7 @@ class test_spicelib(unittest.TestCase):
             editor.set_component_value('V1', supply_voltage)
             editor.set_component_value('V2', -supply_voltage)
             # overriding the automatic netlist naming
-            run_netlist_file = "{}_{}.net".format(editor.circuit_file.name, supply_voltage)
+            run_netlist_file = f"{editor.circuit_file.name}_{supply_voltage}.net"
             runner.run(editor, run_filename=run_netlist_file, callback=processing_data)
 
         runner.wait_completion()
@@ -148,10 +148,10 @@ class test_spicelib(unittest.TestCase):
             # runner.runs_to_do = range(2)
             netlist.set_parameters(ANA=res)
             raw, log = runner.run(netlist).wait_results()
-            print("Raw file '%s' | Log File '%s'" % (raw, log))
+            print(f"Raw file '{raw}' | Log File '{log}'")
         # Sim Statistics
         runner.wait_completion()
-        print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+        print(f"Successful/Total Simulations: {str(runner.okSim)}/{str(runner.runno)}")
         self.assertEqual(runner.okSim, 5)  # Simulation done with success
 
     @unittest.skipIf(skip_qspice_editor_tests, "Skip if not in windows environment")
@@ -160,7 +160,7 @@ class test_spicelib(unittest.TestCase):
         print("Starting test_sim_runner")
         # Old legacy class that merged SpiceEditor and SimRunner
         def callback_function(raw_file, log_file):
-            print("Handling the simulation data of %s, log file %s" % (raw_file, log_file))
+            print(f"Handling the simulation data of {raw_file}, log file {log_file}")
 
         runner = SimRunner(output_folder='temp' + "temp/", simulator=qspice_simulator)
         SE = SpiceEditor(test_dir + "testfile.net")
@@ -169,13 +169,13 @@ class test_spicelib(unittest.TestCase):
         bias_file = ""
         for tstop in (2, 5, 8, 10):
             tduration = tstop - tstart
-            SE.add_instruction(".tran {}".format(tduration), )
+            SE.add_instruction(f".tran {tduration}", )
             if tstart != 0:
-                SE.add_instruction(".loadbias {}".format(bias_file))
+                SE.add_instruction(f".loadbias {bias_file}")
                 # Put here your parameter modifications
                 # runner.set_parameters(param1=1, param2=2, param3=3)
             bias_file = test_dir + "sim_loadbias_%d.txt" % tstop
-            SE.add_instruction(".savebias {} internal time={}".format(bias_file, tduration))
+            SE.add_instruction(f".savebias {bias_file} internal time={tduration}")
             tstart = tstop
             runner.run(SE, callback=callback_function)
 

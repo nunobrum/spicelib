@@ -156,16 +156,16 @@ class RawWrite:
         f = open(filename, 'wb')
         f.write("Title: * spicelib RawWrite\n".encode(self.encoding))
         f.write("Date: {}\n".format(strftime("%a %b %d %H:%M:%S %Y")).encode(self.encoding))
-        f.write("Plotname: {}\n".format(self.plot_name).encode(self.encoding))
-        f.write("Flags: {}\n".format(self._str_flags()).encode(self.encoding))
-        f.write("No. Variables: {}\n".format(len(self._traces)).encode(self.encoding))
-        f.write("No. Points: {:12}\n".format(len(self._traces[0])).encode(self.encoding))
-        f.write("Offset:   {:.16e}\n".format(self.offset).encode(self.encoding))
+        f.write(f"Plotname: {self.plot_name}\n".encode(self.encoding))
+        f.write(f"Flags: {self._str_flags()}\n".encode(self.encoding))
+        f.write(f"No. Variables: {len(self._traces)}\n".encode(self.encoding))
+        f.write(f"No. Points: {len(self._traces[0]):12}\n".encode(self.encoding))
+        f.write(f"Offset:   {self.offset:.16e}\n".encode(self.encoding))
         f.write("Command: Linear Technology Corporation LTspice XVII\n".encode(self.encoding))
         # f.write("Backannotation: \n".encode(self.encoding))
         f.write("Variables:\n".encode(self.encoding))
         for i, trace in enumerate(self._traces):
-            f.write("\t{0}\t{1}\t{2}\n".format(i, trace.name, trace.whattype).encode(self.encoding))
+            f.write(f"\t{i}\t{trace.name}\t{trace.whattype}\n".encode(self.encoding))
         total_bytes = 0
         f.write("Binary:\n".encode(self.encoding))
         if self.flag_fastaccess and self.flag_numtype != 'complex':  # Don't know why, but complex RAW files aren't
