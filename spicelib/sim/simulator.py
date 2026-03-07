@@ -21,7 +21,6 @@
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path, PureWindowsPath
-from typing import Union, Optional
 import subprocess
 import os
 import logging
@@ -164,8 +163,8 @@ class Simulator(ABC):
 
     @classmethod
     @abstractmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None,
-            stdout=None, stderr=None, cwd: Union[str, Path, None] = None, exe_log: bool = False) -> int:
+    def run(cls, netlist_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None,
+            stdout=None, stderr=None, cwd: str | Path | None = None, exe_log: bool = False) -> int:
         """This method implements the call for the simulation of the netlist file. This should be overriden by its
         subclass."""
         raise SpiceSimulatorError("This class should be subclassed and this function should be overridden.")
@@ -218,7 +217,7 @@ class Simulator(ABC):
         return paths
     
     @staticmethod
-    def expand_and_check_local_dir(path: str, exe_path: str = None) -> Optional[str]:
+    def expand_and_check_local_dir(path: str, exe_path: str = None) -> str | None:
         """
         Expands a directory path to become an absolute path, while taking into account a potential use under wine (under MacOS and Linux). 
         Will also check if that directory exists.

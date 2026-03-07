@@ -18,7 +18,7 @@
 # -------------------------------------------------------------------------------
 
 import math
-from typing import Union, Optional, Iterable
+from collections.abc import Iterable
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
@@ -29,7 +29,7 @@ __all__ = ['sweep', 'sweep_n', 'sweep_log', 'sweep_log_n']
 class BaseIterator:
     """Common implementation to all Iterator classes"""
 
-    def __init__(self, start: Union[int, float], stop: Optional[Union[int, float]] = None, step: Union[int, float] = 1):
+    def __init__(self, start: int | float, stop: int | float | None = None, step: int | float = 1):
         if stop is None:
             self.stop = start
             self.start = 0
@@ -59,8 +59,8 @@ class sweep(BaseIterator):
         >>> list(sweep(15, -15, 2.5))
         [15, 12.5, 10.0, 7.5, 5.0, 2.5, 0.0, -2.5, -5.0, -7.5, -10.0, -12.5, -15.0]
     """
-    def __init__(self, start: Union[int, float], stop: Optional[Union[int, float]] = None,
-                 step: Union[int, float] = 1):
+    def __init__(self, start: int | float, stop: int | float | None = None,
+                 step: int | float = 1):
         super().__init__(start, stop, step)
         assert step != 0, "Step cannot be 0"
         if self.step < 0 and self.start < self.stop:
@@ -85,7 +85,7 @@ class sweep(BaseIterator):
             self.finished = True
             raise StopIteration
 
-def sweep_n(start: Union[int, float], stop: Union[int, float], N: int) -> Iterable[float]:
+def sweep_n(start: int | float, stop: int | float, N: int) -> Iterable[float]:
     """Helper function.
     Generator function that generates a 'N' number of points between a start and a stop interval.
     Advantages towards the range python built-in functions
@@ -112,8 +112,8 @@ class sweep_log(BaseIterator):
         >>> list(sweep_log(1000, 1, 2))
         [1000, 500.0, 250.0, 125.0, 62.5, 31.25, 15.625, 7.8125, 3.90625, 1.953125]
     """
-    def __init__(self, start: Union[int, float], stop: Optional[Union[int, float]] = None,
-                 step: Optional[Union[int, float]] = 10):
+    def __init__(self, start: int | float, stop: int | float | None = None,
+                 step: int | float | None = 10):
         if stop is None:
             stop = start
             start = 1
@@ -153,7 +153,7 @@ class sweep_log_n(BaseIterator):
         >>> list(sweep_log_n(10, 1, 5))
         [1.0, 0.5623413251903491, 0.31622776601683794, 0.17782794100389226, 0.09999999999999999]
         """
-    def __init__(self, start: Union[int, float], stop: Optional[Union[int, float]], number_of_elements: int):
+    def __init__(self, start: int | float, stop: int | float | None, number_of_elements: int):
         step = math.exp(math.log(stop / start) / (number_of_elements - 1))
         assert step != 0, "Step cannot be 0"
         super().__init__(start, number_of_elements, step)
