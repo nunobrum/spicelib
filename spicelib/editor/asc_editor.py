@@ -15,10 +15,12 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+
+from __future__ import annotations
+
 import os.path
 import sys
 from pathlib import Path
-from typing import Union
 import io
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
@@ -303,7 +305,7 @@ class AscEditor(BaseSchematic):
         answer = AsyReader(asy_path)
         return answer
 
-    def _get_subcircuit(self, symbol: AsyReader) -> Union[SpiceEditor, 'AscEditor']:
+    def _get_subcircuit(self, symbol: AsyReader) -> SpiceEditor | AscEditor:
         # two main possibilities here:
         # either the symbol refers to a library file,
         # either to a subcircuit in another .asc file. This appears to only happen with BLOCK symbols
@@ -338,7 +340,7 @@ class AscEditor(BaseSchematic):
             answer = SpiceEditor.find_subckt_in_lib(lib_path, model)
         return answer
 
-    def get_subcircuit(self, reference: str) -> 'AscEditor':
+    def get_subcircuit(self, reference: str) -> AscEditor:
         """Returns an AscEditor file corresponding to the symbol"""
         sub = self.get_component(reference)
         if '_SUBCKT' in sub.attributes:
