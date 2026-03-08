@@ -134,7 +134,7 @@ def undress_designator(designator: str) -> str:
     """Removes any odd characters from the designator, such as §, which is sometimes used in the netlist but not always present. This is needed to compare the designator with the reference of the component, which does not contain these odd characters."""
     if len(designator) > 2 and designator[1] == '§':
         return designator[0] + designator[2:]
-    return designator
+    return designator.upper()
 
 def _parse_params(params_str: str) -> dict:
     """

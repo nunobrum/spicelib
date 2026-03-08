@@ -947,13 +947,14 @@ class SpiceCircuit(BaseSubCircuit):
             return None
         #  2. scan the file
         with open(library, encoding=encoding) as lib:
-            for line in separate_lines(lib):
+            line_iterator = separate_lines(lib)
+            for line in line_iterator:
                 search = reg_subckt.match(line)
                 if search:
                     sub_circuit = SpiceCircuit()
                     sub_circuit.netlist.append(Primitive(netlist=sub_circuit, obj=line))
                     # Advance to the next non nested .ENDS
-                    finished = sub_circuit._add_lines(lib)
+                    finished = sub_circuit._add_lines(line_iterator)
                     if finished:
                         # if this is from a lib, don't allow modifications
                         sub_circuit._readonly = True
