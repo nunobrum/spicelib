@@ -434,7 +434,7 @@ class SpiceComponent(Component):
         :meta private:
         """
         self.line = self.parent.netlist[line_no]
-        prefix = self.line[0]
+        prefix = self.line[0].upper()
         regex = component_replace_regexs.get(prefix, None)
         if regex is None:
             error_msg = f"Component must start with one of these letters: {','.join(REPLACE_REGEXS.keys())}\n" \
@@ -731,7 +731,7 @@ class SpiceCircuit(BaseEditor):
 
     def _get_component_line_and_regex(self, reference: str) -> tuple[int, re.Match]:
         """Internal function. Do not use."""
-        prefix = reference[0]
+        prefix = reference[0].upper()
         regex = component_replace_regexs.get(prefix, None)
         if regex is None:
             error_msg = f"Component must start with one of these letters: {','.join(REPLACE_REGEXS.keys())}\n" \
@@ -1202,8 +1202,9 @@ class SpiceCircuit(BaseEditor):
                 continue
             tokens = line.split()
             try:
-                if tokens[0][0] in prefixes:
-                    answer.append(tokens[0])  # Appends only the designators
+                ref = tokens[0].upper()
+                if ref[0] in prefixes:
+                    answer.append(ref)  # Appends only the designators
             except IndexError or TypeError:
                 pass
         return answer
