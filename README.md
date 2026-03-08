@@ -1135,6 +1135,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Removing 3.9 from the supported Python versions and setting 3.10 as the minimum version. 
     * Using f-strings across the entire codebase.
     * Removing 'r' from open() calls where it is not needed. Default is already 'r' and it is not needed to specify it.
+    * Designator access is now case insensiive in the SpiceEditor.
 * Version 1.4.9
     * Adopting clipin for clipboard operations
     * Adding dialect support to raw_convert
