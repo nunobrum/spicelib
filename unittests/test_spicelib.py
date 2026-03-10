@@ -576,6 +576,17 @@ class test_spicelib(unittest.TestCase):
         self.assertAlmostEqual(log.fourier['V(a)'][0].n_periods, n_periods_calc, 5, "Mismatch in calculated number of periods")
         self.assertAlmostEqual(log.fourier['V(a)'][0].dc_component, dc_component, 2, "Mismatch in DC component")
         self.assertEqual(len(log.fourier['V(a)'][0].harmonics), 9, "Mismatch in requested number of harmonics")
+    
+    @unittest.skipIf(False, "Execute All")
+    def test_ltsteps_empty_step(self):
+        """LTSpiceLogReader bare .step line test"""
+        print("Starting test_ltsteps_empty_step")
+        logfile = test_dir + "dc_no_step.log"
+        log = LTSpiceLogReader(logfile)
+
+        self.assertEqual(log.step_count, 0, "Bare .step line should not count as valid step")
+        self.assertDictEqual(log.stepset, {}, "Bare .step line should not populate stepset")
+
 
     # 
     # def test_pathlib(self):
