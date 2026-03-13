@@ -18,9 +18,10 @@
 
 import dataclasses
 import enum
-from typing import Callable, Union
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
+from collections.abc import Callable
+
 from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
@@ -369,7 +370,7 @@ class BaseSchematic(BaseEditor):
         self.updated = True
 
     def scale(self, offset_x, offset_y, scale_x, scale_y: float,
-              round_fun: Callable[[float], Union[int, float]] = None) -> None:
+              round_fun: Callable[[float], int | float] = None) -> None:
         """Scales the schematic"""
         if round_fun is None:
             round_fun = int

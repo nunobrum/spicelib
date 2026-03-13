@@ -39,7 +39,6 @@ import os  # platform independent paths
 import sys  # python path handling
 import unittest  # performs test
 import logging
-from typing import Union
 
 sys.path.append(
     os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../")
@@ -518,7 +517,7 @@ class RawReader_Test(unittest.TestCase):
         # All AC tests use the same circuit as source, and the same simulation configuration
         # As a result, we can reuse the same expected values for all AC tests
 
-        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: Union[str, None] = None):
+        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: str | None = None):
 
             expected_range = (1, 100000)
 
@@ -572,7 +571,7 @@ class RawReader_Test(unittest.TestCase):
         # All TRAN tests use the same circuit as source, and the same simulation configuration
         # As a result, we can reuse the same expected values for all TRAN tests
 
-        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: Union[str, None] = None):
+        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: str | None = None):
             expected_range = (0, 5e-3)
 
             # Check the range of the main axis, if we have it, and method depending on the type
@@ -629,7 +628,7 @@ class RawReader_Test(unittest.TestCase):
 
     def test_rawreaders_noise(self):
 
-        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: Union[str, None] = None):
+        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: str | None = None):
             expected_range = (1000, 10000000)
 
             # Check the range of the main axis, if we have it, and method depending on the type
@@ -645,7 +644,7 @@ class RawReader_Test(unittest.TestCase):
 
     def test_rawreaders_op(self):
 
-        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: Union[str, None] = None):
+        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: str | None = None):
             pass
 
         self._testframe("op", mytest)
@@ -656,7 +655,7 @@ class RawReader_Test(unittest.TestCase):
         # ngspice generation is different: I have a set from a control section, and a set from the regular input
         # The results are comparable
 
-        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: Union[str, None] = None):
+        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: str | None = None):
             expected_range = (0, 5)
 
             if main_axis is not None:
@@ -692,7 +691,7 @@ class RawReader_Test(unittest.TestCase):
 
     def test_rawreaders_sens(self):
 
-        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: Union[str, None] = None):
+        def mytest(raw, expected_tracelen: int, tracelen: int, main_axis: str | None = None):
             pass
 
         self._testframe("sens", mytest)

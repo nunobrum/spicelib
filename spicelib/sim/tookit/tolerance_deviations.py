@@ -17,8 +17,8 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 from abc import abstractmethod, ABC
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Union, Optional, Callable, Type
 
 from ..run_task import RunTask
 from ...editor.base_editor import BaseEditor, scan_eng
@@ -71,7 +71,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
     """Class to automate Monte-Carlo simulations"""
     devices_with_deviation_allowed = ('R', 'C', 'L', 'V', 'I')
 
-    def __init__(self, circuit_file: Union[str, BaseEditor], runner: Optional[AnyRunner] = None):
+    def __init__(self, circuit_file: str | BaseEditor, runner: AnyRunner | None = None):
         super().__init__(circuit_file, runner)
         self.default_tolerance = {prefix: ComponentDeviation.none() for prefix in self.devices_with_deviation_allowed}
         self.device_deviations: dict[str, ComponentDeviation] = {}
@@ -171,8 +171,8 @@ class ToleranceDeviations(SimAnalysis, ABC):
     def run_testbench(self, *,
                       runs_per_sim: int = 512,
                       wait_resource: bool = True,
-                      callback: Union[Type[ProcessCallback], Callable] = None,
-                      callback_args: Union[tuple, dict] = None,
+                      callback: type[ProcessCallback] | Callable = None,
+                      callback_args: tuple | dict = None,
                       switches=None,
                       timeout: float = None,
                       run_filename: str = None,
@@ -226,7 +226,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
         self.testbench_executed = True
         return None
 
-    def add_log(self, run_task: RunTask) -> Union[LogfileData, None]:
+    def add_log(self, run_task: RunTask) -> LogfileData | None:
         """Reads a log file and adds it to the simulation_results. It does so making sure that the run number is
         correctly set."""
         if run_task.retcode != 0:
@@ -280,8 +280,8 @@ class ToleranceDeviations(SimAnalysis, ABC):
 
     @abstractmethod
     def run_analysis(self,
-                     callback: Union[Type[ProcessCallback], Callable] = None,
-                     callback_args: Union[tuple, dict] = None,
+                     callback: type[ProcessCallback] | Callable = None,
+                     callback_args: tuple | dict = None,
                      switches=None,
                      timeout: float = None,
                      exe_log: bool = True,

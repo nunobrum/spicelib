@@ -21,7 +21,6 @@ import sys
 import os
 
 from pathlib import Path
-from typing import Union, Optional
 import logging
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
 import subprocess
@@ -237,8 +236,8 @@ class LTspice(Simulator):
             raise ValueError(f"Invalid Switch '{switch}'")
 
     @classmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None,
-            stdout=None, stderr=None, cwd: Union[str, Path, None] = None, exe_log: bool = False) -> int:
+    def run(cls, netlist_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None,
+            stdout=None, stderr=None, cwd: str | Path | None = None, exe_log: bool = False) -> int:
         """Executes a LTspice simulation run.
         
         A raw file and a log file will be generated, with the same name as the netlist file, 
@@ -307,9 +306,9 @@ class LTspice(Simulator):
         return error
 
     @classmethod
-    def create_netlist(cls, circuit_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None, 
+    def create_netlist(cls, circuit_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None, 
                        stdout=None, stderr=None, 
-                       cwd: Union[str, Path, None] = None, exe_log: bool = False) -> Path:
+                       cwd: str | Path | None = None, exe_log: bool = False) -> Path:
         """Create a netlist out of the circuit file
 
         :param circuit_file: path to the circuit file
