@@ -15,13 +15,16 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+
+from __future__ import annotations
+
 import logging
 import os
 import re
 from collections import OrderedDict
 from collections.abc import Callable
 from pathlib import Path
-from typing import Union, Any, Optional
+from typing import Any
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
@@ -512,7 +515,7 @@ class SpiceCircuit(BaseEditor):
     :meta hide-value:
     """
 
-    def __init__(self, parent: "SpiceCircuit" = None):
+    def __init__(self, parent: SpiceCircuit = None):
         super().__init__()
         self.netlist = []
         self._readonly = False
@@ -663,7 +666,7 @@ class SpiceCircuit(BaseEditor):
                 subckt_names.append(line.name())
         return subckt_names
 
-    def get_subcircuit_named(self, name: str) -> Optional['SpiceCircuit']:
+    def get_subcircuit_named(self, name: str) -> SpiceCircuit | None:
         """
         Returns the sub-circuit object with the given name.
         
@@ -681,7 +684,7 @@ class SpiceCircuit(BaseEditor):
             return self.parent.get_subcircuit_named(name)
         return None
 
-    def get_subcircuit(self, instance_name: str) -> 'SpiceCircuit':
+    def get_subcircuit(self, instance_name: str) -> SpiceCircuit:
         """
         Returns an object representing a Subcircuit. This object can manipulate elements such as the SpiceEditor does.
         
@@ -850,7 +853,7 @@ class SpiceCircuit(BaseEditor):
         super().reset_netlist()
         self.netlist.clear()
 
-    def clone(self, **kwargs) -> 'SpiceCircuit':
+    def clone(self, **kwargs) -> SpiceCircuit:
         """
         Creates a new copy of the SpiceCircuit. Changes done at the new copy do not affect the original.
 
@@ -925,7 +928,7 @@ class SpiceCircuit(BaseEditor):
             self.netlist.append(f'.SUBCKT {new_name}{END_LINE_TERM}')
             self.netlist.append(f'.ENDS {new_name}{END_LINE_TERM}')
 
-    def get_component(self, reference: str) -> Union[SpiceComponent, 'SpiceCircuit']:
+    def get_component(self, reference: str) -> SpiceComponent | SpiceCircuit:
         """
         Returns an object representing the given reference in the schematic file.
 
@@ -1348,7 +1351,7 @@ class SpiceCircuit(BaseEditor):
         return self._readonly    
 
     @staticmethod
-    def find_subckt_in_lib(library: str, subckt_name: str) -> Union['SpiceCircuit', None]:
+    def find_subckt_in_lib(library: str, subckt_name: str) -> SpiceCircuit | None:
         """
         Finds a sub-circuit in a library. The search is case-insensitive.
 
@@ -1383,7 +1386,7 @@ class SpiceCircuit(BaseEditor):
         #  3. Return an instance of SpiceCircuit
         return None
 
-    def find_subckt_in_included_libs(self, subcircuit_name: str) -> Optional["SpiceCircuit"]:
+    def find_subckt_in_included_libs(self, subcircuit_name: str) -> SpiceCircuit | None:
         """Find the subcircuit in the list of libraries
 
         :param subcircuit_name: sub-circuit to search for
@@ -1424,7 +1427,7 @@ class ControlEditor:
     Provides interfaces to manipulate SPICE `.control` instructions.
     """
 
-    def __init__(self, parent: "SpiceCircuit" = None):
+    def __init__(self, parent: SpiceCircuit = None):
         self._content = ""
         self.parent = parent
         
