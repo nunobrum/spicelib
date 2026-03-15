@@ -18,13 +18,11 @@
 # -------------------------------------------------------------------------------
 
 import logging
-from time import sleep
-from typing import Callable, Type
 from enum import IntEnum
 
-from .worst_case import WorstCaseAnalysis, DeviationType, ToleranceDeviations
-from ..process_callback import ProcessCallback, CallbackType, CallbackArgsType
-from ...log.logfile_data import LogfileData
+from .worst_case import WorstCaseAnalysis, DeviationType
+from ..process_callback import CallbackType, CallbackArgsType
+
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
 

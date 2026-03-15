@@ -23,10 +23,10 @@
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
-from pathlib import Path
-from typing import Callable, Type, Iterable
-from functools import wraps
 import logging
+from collections.abc import Callable, Iterable
+from functools import wraps
+from pathlib import Path
 
 from spicelib.sim.process_callback import ProcessCallback
 

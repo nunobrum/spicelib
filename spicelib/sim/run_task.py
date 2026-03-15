@@ -23,14 +23,15 @@ Internal classes not to be used directly by the user
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2023, Fribourg Switzerland"
 
-from copy import copy
-from pathlib import Path
+import logging
 import threading
 import time
 import traceback
+from collections.abc import Callable
+from copy import copy
+from pathlib import Path
 from time import sleep
-from typing import Callable, Any, Type
-import logging
+from typing import Any, Type
 
 from ..editor.updates import Updates, UpdateValueType
 

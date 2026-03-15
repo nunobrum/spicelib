@@ -18,9 +18,10 @@
 
 import dataclasses
 import enum
-from typing import Callable
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
+from collections.abc import Callable
+
 from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"

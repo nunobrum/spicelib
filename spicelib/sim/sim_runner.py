@@ -101,13 +101,13 @@ __copyright__ = "Copyright 2020, Fribourg Switzerland"
 
 __all__ = ['SimRunner', 'SimRunnerTimeoutError', 'AnyRunner', 'ProcessCallback', 'RunTask', 'CallbackType', 'CallbackArgsType']
 
-from pathlib import Path
-import shutil
 import inspect  # Library used to get the arguments of the callback function
-import time
-from time import sleep, thread_time as clock
-from typing import Callable, Type, Protocol, Iterator, Any
 import logging
+import shutil
+import time
+from pathlib import Path
+from time import sleep, thread_time as clock
+from typing import Callable, Type, Protocol, Iterator, Any, TypeAlias
 
 from .process_callback import ProcessCallback, CallbackType, CallbackArgsType
 from ..sim.run_task import RunTask
@@ -126,7 +126,7 @@ class SimRunnerTimeoutError(TimeoutError):
     ...
 
 
-IteratorFilterType = Callable[[RunTask], bool] | dict | None
+IteratorFilterType: TypeAlias = Callable[[RunTask], bool] | dict | None
 """This is the type used for filtering RunTasks. See the TaskIterator.conditions parameter documentation."""
 
 
@@ -385,7 +385,7 @@ class SimRunner(AnyRunner):
             rv[run_no] = v
         return rv
 
-    def set_simulator(self, spice_tool: Type[Simulator]) -> None:
+    def set_simulator(self, spice_tool: type[Simulator]) -> None:
         """
         Manually overriding the simulator to be used.
 

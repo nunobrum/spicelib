@@ -22,7 +22,6 @@ Defines base classes for the RAW file data structures.
 """
 import numpy as np
 from numpy import zeros, complex128, float32, float64
-from typing import Union
 
 
 class DataSet:
@@ -37,7 +36,7 @@ class DataSet:
     Frequency.
     """
 
-    def __init__(self, name, whattype, datalen, numerical_type='real', data: Union[np.ndarray, list] = None):
+    def __init__(self, name, whattype, datalen, numerical_type='real', data: np.ndarray | list = None):
         """Base Class for both Axis and Trace Classes.
         Defines the common operations between both."""
         self.name = name
@@ -91,7 +90,7 @@ class Axis(DataSet):
     """
 
     def __init__(self, name: str, whattype: str, datalen: int, numerical_type: str = 'double',
-                 data: Union[np.ndarray, list] = None):
+                 data: np.ndarray | list = None):
         super().__init__(name, whattype, datalen, numerical_type, data)
         self.step_info = None
 
@@ -173,7 +172,7 @@ class Axis(DataSet):
             "This function is only applicable to transient analysis, where a bug exists on the time signal"
         return self.get_wave(step)
 
-    def get_point(self, n: int, step: int = 0) -> Union[float, complex]:
+    def get_point(self, n: int, step: int = 0) -> float | complex:
         """
         Get a point from the dataset
         
@@ -186,12 +185,12 @@ class Axis(DataSet):
         """
         return self.data[n + self.step_offset(step)]
 
-    def __getitem__(self, item) -> Union[float, complex]:
+    def __getitem__(self, item) -> float | complex:
         """This is only here for compatibility with previous code. """
         assert self.step_info is None, "Indexing should not be used with stepped data. Use get_point or get_wave"
         return self.data.__getitem__(item)
 
-    def get_position(self, t, step: int = 0) -> Union[int, float]:
+    def get_position(self, t, step: int = 0) -> int | float:
         """
         Returns the position of a point in the axis. If the point doesn't exist, an interpolation is done between the
         two closest points.
@@ -249,11 +248,11 @@ class TraceRead(DataSet):
     If numpy is available the get_wave() method will return a numpy array.
     """
 
-    def __init__(self, name, whattype, datalen, axis, numerical_type='real', data: Union[np.ndarray, list] = None):
+    def __init__(self, name, whattype, datalen, axis, numerical_type='real', data: np.ndarray | list = None):
         super().__init__(name, whattype, datalen, numerical_type, data)
         self.axis = axis
 
-    def get_point(self, n: int, step: int = 0) -> Union[float, complex]:
+    def get_point(self, n: int, step: int = 0) -> float | complex:
         """
         Implementation of the [] operator.
 
@@ -272,7 +271,7 @@ class TraceRead(DataSet):
         else:
             return self.data[self.axis.step_offset(step) + n]
 
-    def __getitem__(self, item) -> Union[float, complex]:
+    def __getitem__(self, item) -> float | complex:
         """This is only here for compatibility with previous code. """
         assert self.axis is None or self.axis.step_info is None, \
             "Indexing should not be used with stepped data. Use get_point() method"
@@ -299,7 +298,7 @@ class TraceRead(DataSet):
             else:
                 return self.data[self.axis.step_offset(step):self.axis.step_offset(step + 1)]
 
-    def get_point_at(self, t, step: int = 0) -> Union[float, complex]:
+    def get_point_at(self, t, step: int = 0) -> float | complex:
         """
         Get a point from the trace at the point specified by the /t/ argument.
         If the point doesn't exist on the axis, the data is interpolated using a linear regression between the two

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 
@@ -63,7 +62,7 @@ class PlotInterface(ABC):
 
     @property
     @abstractmethod
-    def steps(self) -> Union[list[dict[str, int]], None]:
+    def steps(self) -> list[dict[str, int]] | None:
         """List of steps in the RAW file, if it exists.
         If the RAW file does not contain stepped data, this will be None.
         If the RAW file contains stepped data, this will be a list of step numbers.
@@ -71,7 +70,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def get_raw_property(self, property_name=None) -> Union[str, dict[str, str]]:
+    def get_raw_property(self, property_name=None) -> str | dict[str, str]:
         """
         Get a property. By default, it returns all properties defined in the RAW file.
 
@@ -104,7 +103,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def get_trace(self, trace_ref: Union[str, int]) -> Union[Axis, TraceRead]:
+    def get_trace(self, trace_ref: str | int) -> Axis | TraceRead:
         """
         Retrieves the trace with the requested name (trace_ref).
 
@@ -117,7 +116,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def get_wave(self, trace_ref: Union[str, int], step: int = 0) -> np.ndarray:
+    def get_wave(self, trace_ref: str | int, step: int = 0) -> np.ndarray:
         """
         Retrieves the trace data with the requested name (trace_ref), optionally providing the step number.
 
@@ -132,7 +131,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def get_axis(self, step: int = 0) -> Union[np.ndarray, list[float]]:
+    def get_axis(self, step: int = 0) -> np.ndarray | list[float]:
         """
         This function is equivalent to get_trace(0).get_wave(step) instruction.
         It also implements a workaround on a LTSpice issue when using 2nd Order compression, where some values on
@@ -159,7 +158,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def get_steps(self, **kwargs) -> Union[list[int], range]:
+    def get_steps(self, **kwargs) -> list[int] | range:
         """Returns the steps that correspond to the query set in the `**kwargs` parameters.
         Example: ::
 
@@ -179,7 +178,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> dict[str, list]:
+    def export(self, columns: list | None = None, step: int | list[int] = -1, **kwargs) -> dict[str, list]:
         """
         Returns a native python class structure with the requested trace data and steps.
         It consists of an ordered dictionary where the columns are the keys and the values are lists with the data.
@@ -198,7 +197,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
+    def to_dataframe(self, columns: list | None = None, step: int | list[int] = -1, **kwargs):
         """
         Returns a pandas DataFrame with the requested data.
 
@@ -215,7 +214,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def to_csv(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1,
+    def to_csv(self, filename: str | Path, columns: list | None = None, step: int | list[int] = -1,
                separator=',', **kwargs):
         """
         Saves the data to a CSV file.
@@ -234,7 +233,7 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1,
+    def to_excel(self, filename: str | Path, columns: list | None = None, step: int | list[int] = -1,
                  **kwargs):
         """
         Saves the data to an Excel file.

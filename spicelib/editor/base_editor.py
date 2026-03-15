@@ -23,6 +23,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from math import floor, log
 from pathlib import Path
+from typing import Union
 import logging
 import os
 import io

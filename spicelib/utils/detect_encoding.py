@@ -23,8 +23,8 @@ International Support functions
 Not using other known unicode detection libraries because we don't need something so complicated. LTSpice only supports
 for the time being a reduced set of encodings.
 """
-from pathlib import Path
 import re
+from pathlib import Path
 
 
 class EncodingDetectError(Exception):

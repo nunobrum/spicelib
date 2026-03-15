@@ -1,8 +1,9 @@
 import dataclasses
 import enum
 from copy import deepcopy
+from typing import TypeAlias
 
-UpdateValueType = str | int | float | None
+UpdateValueType: TypeAlias = str | int | float | None
 
 
 class UpdateType(enum.Enum):
