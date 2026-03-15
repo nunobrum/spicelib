@@ -24,15 +24,15 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
 from pathlib import Path
-from typing import Callable, Union, Type, Iterable
+from typing import Callable, Type, Iterable
 from functools import wraps
 import logging
 
 from spicelib.sim.process_callback import ProcessCallback
 
 _logger = logging.getLogger("spicelib.SimStepper")
-from ..editor.base_editor import BaseEditor
-from .sim_runner import AnyRunner
+from ..editor.base_editor import BaseEditor, ValueType
+from .sim_runner import AnyRunner, CallbackType, CallbackArgsType
 
 
 class StepInfo:
@@ -117,7 +117,7 @@ class SimStepper(AnyRunner):
         self.current_values.update(**kwargs)
 
     @wraps(BaseEditor.set_parameter, updated=())  # updated=() solves conflict between wraps and abstract classes
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: ValueType) -> None:
         self.netlist.set_parameter(param, value)
         self.current_values[param] = value
 
@@ -127,7 +127,7 @@ class SimStepper(AnyRunner):
         self.current_values.update(**kwargs)
 
     @wraps(BaseEditor.set_component_value, updated=())  # updated=() solves conflict between wraps and abstract classes
-    def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, device: str, value: ValueType) -> None:
         self.netlist.set_component_value(device, value)
         self.current_values[device] = value
 
@@ -164,9 +164,9 @@ class SimStepper(AnyRunner):
         return total
 
     def run_all(self,
-                callback: Union[Type[ProcessCallback], Callable] = None,
-                callback_args: Union[tuple, dict] = None,
-                switches=None,
+                callback: CallbackType = None,
+                callback_args: CallbackArgsType = None,
+                switches: list | None = None,
                 timeout: float = None,
                 wait_completion: bool = True,
                 filenamer: Callable[[dict[str, str]], str] = None,
@@ -243,7 +243,7 @@ class SimStepper(AnyRunner):
             # Now waits for the simulations to end
             self.runner.wait_completion()
 
-    def export_step_info(self, export_filename: Union[Path, str], delimiter: str = ";"):
+    def export_step_info(self, export_filename: Path | str, delimiter: str = ";"):
         """
         Exports the stepping values to a CSV file. It writes a row per each simulation done.
         The columns are all the values that were set during the session. The value on each row is the value
@@ -278,17 +278,6 @@ class SimStepper(AnyRunner):
                 row_data_with_id = {'runno': runno}
                 row_data_with_id.update(self.sim_info[runno])
                 writer.writerow(row_data_with_id)
-
-    # def run(self, netlist: Union[str, Path, BaseEditor], *,
-    #         wait_resource: bool = True,
-    #         callback: Union[Type[ProcessCallback], Callable] = None,
-    #         callback_args: Union[tuple, dict] = None,
-    #         switches=None,
-    #         timeout: float = None,
-    #         run_filename: str = None,
-    #         exe_log: bool = False) -> Union[RunTask, None]:
-    #     """Rather uses run_all instead"""
-    #     self.run_all()
 
     @property
     def okSim(self):

@@ -19,11 +19,11 @@
 
 import logging
 from time import sleep
-from typing import Union, Callable, Type
+from typing import Callable, Type
 from enum import IntEnum
 
 from .worst_case import WorstCaseAnalysis, DeviationType, ToleranceDeviations
-from ..process_callback import ProcessCallback
+from ..process_callback import ProcessCallback, CallbackType, CallbackArgsType
 from ...log.logfile_data import LogfileData
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
@@ -73,9 +73,9 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             self, *,
             runs_per_sim: int = None,  # This parameter is ignored
             wait_resource: bool = True, # This parameter is ignored
-            callback: Union[Type[ProcessCallback], Callable] = None,
-            callback_args: Union[tuple, dict] = None,
-            switches=None,
+            callback: CallbackType = None,
+            callback_args: CallbackArgsType = None,
+            switches: list | None = None,
             timeout: float = None,
             run_filename: str = None,
             exe_log: bool = False,
@@ -83,9 +83,9 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
         raise NotImplementedError("run_testbench() is not implemented in this class")
 
     def run_analysis(self,
-                     callback: Union[Type[ProcessCallback], Callable] = None,
-                     callback_args: Union[tuple, dict] = None,
-                     switches=None,
+                     callback: CallbackType = None,
+                     callback_args: CallbackArgsType = None,
+                     switches: list | None = None,
                      timeout: float = None,
                      measure: str = None,
                      exe_log: bool = True,

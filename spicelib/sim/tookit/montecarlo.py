@@ -19,12 +19,11 @@
 
 import logging
 import random
-from typing import Union, Callable, Type
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
 
 from .tolerance_deviations import ToleranceDeviations, DeviationType, ComponentDeviation
-from ..process_callback import ProcessCallback
+from ..process_callback import CallbackType, CallbackArgsType
 from ...log.logfile_data import LogfileData
 
 
@@ -175,9 +174,9 @@ class Montecarlo(ToleranceDeviations):
         return new_val
 
     def run_analysis(self,
-                     callback: Union[Type[ProcessCallback], Callable] = None,
-                     callback_args: Union[tuple, dict] = None,
-                     switches=None,
+                     callback: CallbackType = None,
+                     callback_args: CallbackArgsType = None,
+                     switches: list | None = None,
                      timeout: float = None,
                      num_runs: int = 1000,
                      exe_log: bool = True

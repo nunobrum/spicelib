@@ -20,7 +20,7 @@ import sys
 import io
 from collections import OrderedDict
 from pathlib import Path
-from typing import Union, Optional, TextIO
+from typing import TextIO, Any
 import re
 import logging
 from .base_editor import (
@@ -163,6 +163,8 @@ QSCH_ZIGZAG_LINE_COLOR = 6
 QSCH_ZIGZAG_UNKNOWN1 = 7
 QSCH_ZIGZAG_UNKNOWN2 = 8
 
+ValueType = str | int | float
+
 
 def decap(s: str) -> str:
     """Take the leading < and ending > from the parameter value on a string with the format "param=<value>"
@@ -295,7 +297,7 @@ class QschTag:
                     value = a
             return value
 
-    def set_attr(self, index: int, value: Union[str, int, tuple]):
+    def set_attr(self, index: int, value: str | int | tuple[Any, Any]):
         """Sets the attribute at the given index. The attribute can be a string, an integer or a tuple.
         Integer values are written as integers, strings are written between quotes unless it starts with "0x"
         and tuples are written between parenthesis.
@@ -319,7 +321,7 @@ class QschTag:
             raise ValueError("Object not supported in set_attr")
         self.tokens[index] = value_str
 
-    def get_text(self, label: str, default: Union[str, None] = None) -> str:
+    def get_text(self, label: str, default: str | None = None) -> str:
         """
         Returns the text of the first child tag that matches the given label. The label can have up to 1 space in it.
         It will return the entire text of the tag, after the label.
@@ -382,7 +384,7 @@ class QschEditor(BaseSchematic):
         # docstring inherited from BaseSchematic
         return self._qsch_file_path
 
-    def save_as(self, qsch_filename: Union[str, Path]) -> None:
+    def save_as(self, qsch_filename: str | Path) -> None:
         """
         Saves the schematic to a QSCH file. The file is saved in cp1252 encoding.
         """
@@ -590,7 +592,7 @@ class QschEditor(BaseSchematic):
 
         # Note: the .END or .ENDCKT must be inserted by the calling function
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO], verilog_config: dict[str, list[str]] = {}) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO, verilog_config: dict[str, list[str]] = {}) -> None:
         """
         Saves the current state of the netlist to a .qsh or to a .net or .cir file.
 
@@ -657,7 +659,7 @@ class QschEditor(BaseSchematic):
             raise ValueError(f"Invalid orientation: {orientation}")
         return x, y
 
-    def _find_net_at_position(self, x, y) -> Optional[str]:
+    def _find_net_at_position(self, x, y) -> str | None:
         """Returns the net name at the given position"""
         for net in self.schematic.get_items('net'):  # Connection to ports, grounds and nets
             if net.get_attr(1) == (x, y):
@@ -861,7 +863,7 @@ class QschEditor(BaseSchematic):
                     param_names.append(param_name.upper())
         return sorted(param_names)
 
-    def _qsch_file_find(self, filename: str, work_dir: str = None) -> Optional[str]:
+    def _qsch_file_find(self, filename: str, work_dir: str = None) -> str | None:
         containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
         # '.'  is the directory where the script is located
         if (work_dir is not None) and work_dir != ".":
@@ -884,7 +886,7 @@ class QschEditor(BaseSchematic):
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in QSCH file")
 
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: ValueType) -> None:
         # docstring inherited from BaseEditor
         super().set_parameter(param, value)
         tag, match = self._get_param_named(param)
@@ -925,7 +927,7 @@ class QschEditor(BaseSchematic):
         symbol: QschTag = comp_tag.get_items('symbol')[0]
         return sub_circuit, ref, symbol
 
-    def set_component_value(self, reference: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, reference: str, value: ValueType) -> None:
         # docstring inherited from BaseEditor
         if self.is_read_only():
             raise ValueError("Editor is read-only")
@@ -1046,8 +1048,8 @@ class QschEditor(BaseSchematic):
         return component.position, component.rotation
 
     def set_component_position(self, reference: str,
-                               position: Union[Point, tuple],
-                               rotation: Union[ERotation, int],
+                               position: Point | tuple,
+                               rotation: ERotation | int,
                                mirror: bool = False,
                                ) -> None:
         # docstring inherited from BaseSchematic

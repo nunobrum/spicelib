@@ -29,12 +29,12 @@ import threading
 import time
 import traceback
 from time import sleep
-from typing import Callable, Union, Any, Type, Optional
+from typing import Callable, Any, Type
 import logging
 
 from ..editor.updates import Updates, UpdateValueType
 
-from .process_callback import ProcessCallback
+from .process_callback import ProcessCallback, CallbackType, CallbackArgsType
 from .simulator import Simulator
 
 _logger = logging.getLogger("spicelib.RunTask")
@@ -62,10 +62,12 @@ class RunTask(threading.Thread):
     """This is an internal Class and should not be used directly by the User."""
 
     def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
-                 callback: Optional[Union[Type[ProcessCallback], Callable[[Optional[Path], Optional[Path]], Any]]],
-                 callback_args: Union[dict, None] = None,
-                 switches: Any = None, timeout: Union[float, None] = None, verbose: bool = False,
-                 cwd: Union[str, Path, None] = None,
+                 callback: CallbackType = None,
+                 callback_args: CallbackArgsType = None,
+                 switches: list | None = None,
+                 timeout: float | None = None,
+                 verbose: bool = False,
+                 cwd: str | Path | None = None,
                  callback_on_error: bool = False,
                  exe_log: bool = False):
 
@@ -91,14 +93,14 @@ class RunTask(threading.Thread):
         self._edits = None
 
     @property
-    def edits(self) -> Optional[Updates]:
+    def edits(self) -> Updates | None:
         return self._edits
 
     @edits.setter
     def edits(self, netlist_updates: Updates):
         self._edits = copy(netlist_updates)
 
-    def value(self, reference) -> UpdateValueType:
+    def value(self, reference) -> UpdateValueType | None:
         if not self._edits:
             return None
         return self._edits.value(reference)
@@ -186,7 +188,7 @@ class RunTask(threading.Thread):
             self.print_info(_logger.debug, "Simulation Callback not called.")
             self.callback_return = None
 
-    def get_results(self) -> Union[None, Any, tuple[str, str]]:
+    def get_results(self) -> Any | tuple[str, str] | None:
         """
         Returns the simulation outputs if the simulation and callback function has already finished.
         If the simulation is not finished, it simply returns None. If no callback function is defined, then
@@ -205,7 +207,7 @@ class RunTask(threading.Thread):
         else:
             return self.raw_file, self.log_file
 
-    def wait_results(self) -> Union[Any, tuple[str, str]]:
+    def wait_results(self) -> Any | tuple[str, str]:
         """
         Waits for the completion of the task and returns a tuple with the raw and log files.
         

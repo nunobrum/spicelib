@@ -22,10 +22,10 @@ import re
 import logging
 
 from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent, ValueType
 from .updates import UpdateType
 
-from typing import Union, Callable, Any, Optional
+from typing import Callable, Any
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 from ..utils.file_search import search_file_in_containers
 from ..log.logfile_data import try_convert_value
@@ -470,7 +470,7 @@ class SpiceComponent(Component):
         return self.attributes['value']
 
     @value_str.setter
-    def value_str(self, value: Union[str, int, float]):
+    def value_str(self, value: ValueType):
         # docstring inherited from Component
         if self.parent.is_read_only():
             raise ValueError("Editor is read-only")        
@@ -518,7 +518,7 @@ class SpiceCircuit(BaseEditor):
         self.modified_subcircuits = {}
         self.parent = parent
 
-    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+    def add_update(self, name: str, value: ValueType | None, updates: UpdateType):
         if self.parent is not None:
             # check if on modified subcircuits
             for instance_name, subcircuit in self.parent.modified_subcircuits.items():
@@ -610,7 +610,7 @@ class SpiceCircuit(BaseEditor):
                         sub._write_lines(f)
                 f.write(command)
 
-    def _get_param_named(self, param_name) -> tuple[int, Union[re.Match, None]]:
+    def _get_param_named(self, param_name) -> tuple[int, re.Match | None]:
         """
         Internal function. Do not use. Returns a line starting with command and matching the search with the regular
         expression
@@ -662,7 +662,7 @@ class SpiceCircuit(BaseEditor):
                 subckt_names.append(line.name())
         return subckt_names
 
-    def get_subcircuit_named(self, name: str) -> Optional['SpiceCircuit']:
+    def get_subcircuit_named(self, name: str) -> 'SpiceCircuit | None':
         """
         Returns the sub-circuit object with the given name.
         
@@ -924,7 +924,7 @@ class SpiceCircuit(BaseEditor):
             self.netlist.append(f'.SUBCKT {new_name}{END_LINE_TERM}')
             self.netlist.append(f'.ENDS {new_name}{END_LINE_TERM}')
 
-    def get_component(self, reference: str) -> Union[SpiceComponent, 'SpiceCircuit']:
+    def get_component(self, reference: str) -> 'SpiceComponent | SpiceCircuit':
         """
         Returns an object representing the given reference in the schematic file.
 
@@ -958,7 +958,7 @@ class SpiceCircuit(BaseEditor):
             line_no = self.get_line_starting_with(reference)
             return SpiceComponent(self, line_no)
 
-    def __getitem__(self, item) -> Union[Component, HierarchicalComponent]:
+    def __getitem__(self, item) -> Component | HierarchicalComponent:
         component = super().__getitem__(item)
         if component.parent != self:
             # encapsulate the object in HierarchicalComponent
@@ -1000,7 +1000,7 @@ class SpiceCircuit(BaseEditor):
                 if cmd in REPLACE_REGEXS:
                     yield SpiceComponent(self, line_no)
 
-    def get_component_attribute(self, reference: str, attribute: str) -> Optional[str]:
+    def get_component_attribute(self, reference: str, attribute: str) -> str | None:
         """
         Returns the attribute of a component retrieved from the netlist.
 
@@ -1053,7 +1053,7 @@ class SpiceCircuit(BaseEditor):
         else:
             raise ParameterNotFoundError(param)
 
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: ValueType) -> None:
         """Sets the value of a parameter in the netlist. If the parameter is not found, it is added to the netlist.
 
         Usage: ::
@@ -1092,7 +1092,7 @@ class SpiceCircuit(BaseEditor):
             insert_line = len(self.netlist) - 2
             self.netlist.insert(insert_line, f'.PARAM {param}={value_str}  ; Batch instruction' + END_LINE_TERM)
 
-    def set_component_value(self, reference: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, reference: str, value: ValueType) -> None:
         """
         Changes the value of a component, such as a Resistor, Capacitor or Inductor.
         For components inside sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
@@ -1263,7 +1263,7 @@ class SpiceCircuit(BaseEditor):
             parameters = ''
         component_line = f"{component.reference} {nodes}{model}{value}{parameters}{END_LINE_TERM}"
         self.netlist.insert(line_no, component_line)
-        super().add_component(component.reference)
+        super().add_component(component)
 
     def remove_component(self, designator: str) -> None:
         """
@@ -1316,7 +1316,7 @@ class SpiceCircuit(BaseEditor):
                             circuit_nodes.append(node)
         return circuit_nodes
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         # docstring is in the parent class
         pass
 
@@ -1348,7 +1348,7 @@ class SpiceCircuit(BaseEditor):
         return self._readonly    
 
     @staticmethod
-    def find_subckt_in_lib(library: str, subckt_name: str) -> Union['SpiceCircuit', None]:
+    def find_subckt_in_lib(library: str, subckt_name: str) -> 'SpiceCircuit | None':
         """
         Finds a sub-circuit in a library. The search is case-insensitive.
 
@@ -1383,7 +1383,7 @@ class SpiceCircuit(BaseEditor):
         #  3. Return an instance of SpiceCircuit
         return None
 
-    def find_subckt_in_included_libs(self, subcircuit_name: str) -> Optional["SpiceCircuit"]:
+    def find_subckt_in_included_libs(self, subcircuit_name: str) -> 'SpiceCircuit | None':
         """Find the subcircuit in the list of libraries
 
         :param subcircuit_name: sub-circuit to search for
@@ -1476,7 +1476,7 @@ class SpiceEditor(SpiceCircuit):
     :type create_blank: bool, optional
     """
 
-    def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
+    def __init__(self, netlist_file: str | Path, encoding='autodetect', create_blank=False):
         super().__init__()
         self.netlist_file = Path(netlist_file)
         if create_blank:
@@ -1599,7 +1599,7 @@ class SpiceEditor(SpiceCircuit):
             _logger.error(f'No instruction matching pattern "{search_pattern}" was found')
             return False
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         # docstring is in the parent class
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)

@@ -18,7 +18,6 @@
 import os.path
 import sys
 from pathlib import Path
-from typing import Union, Optional
 import io
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
@@ -26,7 +25,7 @@ import logging
 
 from .ltspice_utils import TEXT_REGEX, TEXT_REGEX_X, TEXT_REGEX_Y, TEXT_REGEX_ALIGN, TEXT_REGEX_SIZE, TEXT_REGEX_TYPE, \
     TEXT_REGEX_TEXT, END_LINE_TERM, ASC_ROTATION_DICT, ASC_INV_ROTATION_DICT, asc_text_align_set, asc_text_align_get
-from .spice_editor import SpiceEditor, SpiceCircuit
+from .spice_editor import SpiceEditor, SpiceCircuit, ValueType
 from ..simulators.ltspice_simulator import LTspice
 from ..utils.file_search import search_file_in_containers
 from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
@@ -57,7 +56,7 @@ class AscEditor(BaseSchematic):
     :meta hide-value:
     """
     
-    def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
+    def __init__(self, asc_file: str | Path, encoding='autodetect'):
         super().__init__()
         self.version = 4
         self.sheet = "1 0 0"  # Three values are present on the SHEET clause
@@ -79,7 +78,7 @@ class AscEditor(BaseSchematic):
     def circuit_file(self) -> Path:
         return self.asc_file_path
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         """
         Saves the current state of the netlist to a .asc file. 
         For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
@@ -303,8 +302,7 @@ class AscEditor(BaseSchematic):
         answer = AsyReader(asy_path)
         return answer
 
-    def _get_subcircuit(self, symbol: AsyReader) -> Union[SpiceEditor, 'AscEditor']:
-        # two main possibilities here:
+    def _get_subcircuit(self, symbol: AsyReader) -> 'SpiceEditor | AscEditor':       # two main possibilities here:
         # either the symbol refers to a library file,
         # either to a subcircuit in another .asc file. This appears to only happen with BLOCK symbols
         
@@ -395,7 +393,7 @@ class AscEditor(BaseSchematic):
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: ValueType) -> None:
         super().set_parameter(param, value)
         match, directive = self._get_param_named(param)
         if isinstance(value, (int, float)):
@@ -418,7 +416,7 @@ class AscEditor(BaseSchematic):
             self.directives.append(directive)
         self.updated = True
 
-    def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, device: str, value: ValueType) -> None:
         """
         Sets the value of the component
 
@@ -634,7 +632,7 @@ class AscEditor(BaseSchematic):
         Adding paths for searching for symbols and libraries"""
         self.set_custom_library_paths(*paths)
 
-    def _lib_file_find(self, filename) -> Optional[str]:
+    def _lib_file_find(self, filename) -> str | None:
         # create list of directories to search, based on the simulator_lib_paths. Just add "/sub" to the path
         my_lib_paths = [os.path.join(x, "sub") for x in self.simulator_lib_paths]
         # find the file
@@ -647,7 +645,7 @@ class AscEditor(BaseSchematic):
                                                )
         return file_found
 
-    def _asy_file_find(self, filename) -> Optional[str]:
+    def _asy_file_find(self, filename) -> str | None:
         if filename in self.symbol_cache:
             return self.symbol_cache[filename]
         _logger.info(f"Searching for symbol {filename}...")

@@ -18,7 +18,7 @@
 
 import dataclasses
 import enum
-from typing import Callable, Union
+from typing import Callable
 from collections import OrderedDict
 import logging
 from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
@@ -81,6 +81,8 @@ class ERotation(enum.IntEnum):
             return "Mirror 270 Rotation"
         elif self.value == 360 + 315:
             return "Mirror 315 Rotation"
+        else:
+            raise ValueError(f"Invalid rotation value: {self.value}")
 
     # def mirror_y_axis(self):
     #     if self == ERotation.R0:
@@ -369,7 +371,7 @@ class BaseSchematic(BaseEditor):
         self.updated = True
 
     def scale(self, offset_x, offset_y, scale_x, scale_y: float,
-              round_fun: Callable[[float], Union[int, float]] = None) -> None:
+              round_fun: Callable[[float], int | float] | None = None) -> None:
         """Scales the schematic"""
         if round_fun is None:
             round_fun = int

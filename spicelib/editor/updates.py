@@ -1,9 +1,8 @@
 import dataclasses
 import enum
 from copy import deepcopy
-from typing import Union
 
-UpdateValueType = Union[str, int, float, None]
+UpdateValueType = str | int | float | None
 
 
 class UpdateType(enum.Enum):
@@ -72,7 +71,7 @@ class Updates:
     def __len__(self):
         return len(self.netlist_updates)
 
-    def __getitem__(self, item: Union[int, slice, str]) -> Union[Update, list[Update]]:
+    def __getitem__(self, item: int | slice | str) -> Update | list[Update]:
         if isinstance(item, (int, slice)):
             return self.netlist_updates[item]  # with item = slice, we could get a list here. Otherwise, it is a single Update
         elif isinstance(item, str):
@@ -108,9 +107,11 @@ class Updates:
         for update in self.netlist_updates:
             if update.updates == UpdateType.UpdateComponentValue and update.name == reference:
                 return update.value
+        return None
 
-    def parameter(self, name):
+    def parameter(self, name) -> UpdateValueType:
         "Get the update done to a parameter. Returns None if there wasn't any update."
         for update in self.netlist_updates:
             if update.updates in (UpdateType.UpdateParameter, UpdateType.AddParameter) and name == update.name:
                 return update.value
+        return None

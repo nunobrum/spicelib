@@ -19,13 +19,10 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-from collections import OrderedDict
-from copy import deepcopy
 from functools import wraps
-from pathlib import Path
-from typing import Union, Optional, Type, Callable
 import logging
-from ..sim_runner import AnyRunner, RunTask, ProcessCallback
+
+from ..sim_runner import AnyRunner, RunTask, CallbackType, CallbackArgsType
 from ...editor.base_editor import BaseEditor
 from ...log.logfile_data import LogfileData
 from ...utils.detect_encoding import EncodingDetectError
@@ -44,7 +41,7 @@ class SimAnalysis:
     will be possible, although, it seems that the later solution is less computing intense.
     """
 
-    def __init__(self, circuit_file: Union[str, BaseEditor], runner: Optional[AnyRunner] = None):
+    def __init__(self, circuit_file: str | BaseEditor, runner: AnyRunner | None = None):
         if isinstance(circuit_file, str):
             from ...editor.spice_editor import SpiceEditor
             self.editor = SpiceEditor(circuit_file)
@@ -74,13 +71,13 @@ class SimAnalysis:
 
     def run(self, *,
             wait_resource: bool = True,
-            callback: Union[Type[ProcessCallback], Callable] = None,
-            callback_args: Union[tuple, dict] = None,
-            switches=None,
-            timeout: float = None,
-            run_filename: str = None,
+            callback: CallbackType = None,
+            callback_args: CallbackArgsType = None,
+            switches: list | None = None,
+            timeout: float | None = None,
+            run_filename: str | None = None,
             exe_log: bool = True,
-            ) -> Union[RunTask, None]:
+            ) -> RunTask | None:
         """
         Runs the simulations. See runner.run() method for details on arguments.
         """
@@ -166,7 +163,7 @@ class SimAnalysis:
         return self.simulations[item]
 
     @staticmethod
-    def read_logfile(run_task: RunTask) -> Union[LogfileData, None]:
+    def read_logfile(run_task: RunTask) -> LogfileData | None:
         """Reads the log file and returns a dictionary with the results"""
         if run_task.simulator.__name__ == "LTspice":
             LogReader = LTSpiceLogReader

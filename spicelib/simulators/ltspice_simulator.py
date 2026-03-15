@@ -21,7 +21,6 @@ import sys
 import os
 
 from pathlib import Path
-from typing import Union, Optional
 import logging
 from ..sim.simulator import Simulator, run_function, SpiceSimulatorError
 import subprocess
@@ -88,7 +87,7 @@ class LTspice(Simulator):
                 # Linux would use this: 
                 #    '/home/myuser/.wine/drive_c/users/myuser/AppData/...'  for _spice_exe_win_paths[0]
                 # or '/home/myuser/.wine/drive_c/Program Files/...'         for _spice_exe_win_paths[2]
-                # MacOS would use this: 
+                # macOS would use this:
                 #    '/Users/myuser/.wine/drive_c/users/myuser/AppData/...' for _spice_exe_win_paths[0]    
                 # or '/Users/myuser/.wine/drive_c/Program Files/...'        for _spice_exe_win_paths[2]  
                 # Note that in the user path versions (_spice_exe_win_paths[0] and [1]), I have 2 expansions of the user name.
@@ -105,7 +104,7 @@ class LTspice(Simulator):
                     break
             else:
                 # The else block will not be executed if the loop is stopped by a break statement.
-                # in case of MacOS, try the native LTspice as last resort
+                # in case of macOS, try the native LTspice as last resort
                 if sys.platform == "darwin":
                     exe = '/Applications/LTspice.app/Contents/MacOS/LTspice'
                     if os.path.exists(exe):
@@ -170,9 +169,9 @@ class LTspice(Simulator):
 
     @classmethod
     def using_macos_native_sim(cls) -> bool:
-        """Tells if the simulator used is the MacOS native LTspice
+        """Tells if the simulator used is the macOS native LTspice
 
-        :return: True if the MacOS native LTspice is used, False otherwise (will also return False on Windows or Linux)
+        :return: True if the macOS native LTspice is used, False otherwise (will also return False on Windows or Linux)
         :rtype: bool
         """
         return sys.platform == "darwin" and cls.spice_exe and "wine" not in cls.spice_exe[0].lower()
@@ -201,7 +200,7 @@ class LTspice(Simulator):
         * `-Run`: Start simulating the schematic opened on the command line without pressing the Run button.
         * `-b`: Run in batch mode.
                 
-        MacOS native LTspice accepts no command line switches (yet), use it under wine for full support.
+        macOS native LTspice accepts no command line switches (yet), use it under wine for full support.
 
         :param switch: switch to be added.
         :type switch: str
@@ -210,7 +209,7 @@ class LTspice(Simulator):
         :return: Nothing
         """
         
-        # See if the MacOS simulator is used. If so, check if I use the native simulator
+        # See if the macOS simulator is used. If so, check if I use the native simulator
         if cls.using_macos_native_sim():
             # this is the native LTspice. It has no useful command line switches (except '-b').
             raise ValueError("MacOS native LTspice does not support command line switches. Use it under wine for full support.")
@@ -237,8 +236,8 @@ class LTspice(Simulator):
             raise ValueError(f"Invalid Switch '{switch}'")
 
     @classmethod
-    def run(cls, netlist_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None,
-            stdout=None, stderr=None, cwd: Union[str, Path, None] = None, exe_log: bool = False) -> int:
+    def run(cls, netlist_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None,
+            stdout=None, stderr=None, cwd: str | Path | None = None, exe_log: bool = False) -> int:
         """Executes a LTspice simulation run.
         
         A raw file and a log file will be generated, with the same name as the netlist file, 
@@ -284,7 +283,7 @@ class LTspice(Simulator):
         
         if sys.platform == "linux" or sys.platform == "darwin":
             if cls.using_macos_native_sim():
-                # native MacOS simulator, which has its limitations
+                # native macOS simulator, which has its limitations
                 if netlist_file.suffix.lower().endswith(".asc"):
                     raise NotImplementedError("MacOS native LTspice cannot run simulations on '.asc' files. Simulate '.net' or '.cir' files or use LTspice under wine.")
                 
@@ -307,9 +306,9 @@ class LTspice(Simulator):
         return error
 
     @classmethod
-    def create_netlist(cls, circuit_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None, 
+    def create_netlist(cls, circuit_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None,
                        stdout=None, stderr=None, 
-                       cwd: Union[str, Path, None] = None, exe_log: bool = False) -> Path:
+                       cwd: str | Path | None = None, exe_log: bool = False) -> Path:
         """Create a netlist out of the circuit file
 
         :param circuit_file: path to the circuit file
