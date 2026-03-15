@@ -149,9 +149,9 @@ class Qspice(Simulator):
         but with `.qraw` and `.log` extension. You can however change the raw file name using the `-r` switch.
 
         :param netlist_file: path to the netlist file
-        :type netlist_file: Union[str, pathlib.Path]
+        :type netlist_file: str | pathlib.Path
         :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
-        :type cmd_line_switches: list, optional
+        :type cmd_line_switches: list | None
         :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
         :type timeout: float, optional
         :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), 
@@ -161,7 +161,7 @@ class Qspice(Simulator):
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
         :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
-        :type cwd: Union[str, pathlib.Path, None], optional
+        :type cwd: str | pathlib.Path | None
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
         :type exe_log: bool, optional            
