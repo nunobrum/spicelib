@@ -1,0 +1,21 @@
+LTspice 24.1.9 for Windows
+Circuit: C:\Users\palco\github_projects\spicelib\examples\testfiles\dc_no_step.net
+Start Time: Sun Mar  8 21:28:04 2026
+Options: plotwinsize=0 numdgt=15 measdgt=15  logopinfo
+solver = Normal
+Maximum thread count: 16
+tnom = 27
+temp = 27
+method = trap
+Instance "M1": Length shorter than recommended for a level 1 MOSFET.
+Instance "M1": Width narrower than recommended for a level 1 MOSFET.
+Instance "M2": Length shorter than recommended for a level 1 MOSFET.
+Instance "M2": Width narrower than recommended for a level 1 MOSFET.
+.step 
+Total elapsed time: 0.054 seconds.
+
+Files loaded:
+C:\Users\palco\github_projects\spicelib\examples\testfiles\dc_no_step.net
+C:\Users\palco\AppData\Local\LTspice\lib\cmp\standard.mos
+
+vs: v(vs)=0 at 0

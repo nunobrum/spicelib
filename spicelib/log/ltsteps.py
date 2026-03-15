@@ -370,9 +370,13 @@ class LTSpiceLogReader(LogfileData):
                         self.fourier[signal] = [fourier_data]
 
                 elif line.startswith(".step"):
-                    self.step_count += 1
+                    valid_step = False
                     tokens = line.strip('\r\n').split(' ')
                     for tok in tokens[1:]:
+                        # Some log files have a .step line without assignments
+                        if "=" not in tok: 
+                            continue
+                        valid_step = True
                         lhs, rhs = tok.split("=")
                         # Try to convert to int or float
                         rhs = try_convert_value(rhs)
@@ -382,6 +386,8 @@ class LTSpiceLogReader(LogfileData):
                             ll.append(rhs)
                         else:
                             self.stepset[lhs] = [rhs]
+                    # Only increment if the .step was valid
+                    if valid_step: self.step_count += 1
 
                 elif line.startswith("Measurement:"):
                     if not read_measures:
