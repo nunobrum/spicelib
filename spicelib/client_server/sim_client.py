@@ -147,7 +147,7 @@ class SimClient:
         # server side method signature: def add_sources(self, session_id: str, zip_data: Binary) -> bool
         return bool(self.server.add_sources(self.session_id, zip_data))
 
-    def run(self, circuit: Union[str, Path], dependencies: Optional[list[Union[str, Path]]] = None) -> int:
+    def run(self, circuit: str | Path, dependencies: list[str | Path] | None = None) -> int:
         """
         Sends the netlist identified with the argument "circuit" to the server, and it receives a run identifier
         (runno). Since the server can receive requests from different machines, this identifier is not guaranteed to be
@@ -191,7 +191,7 @@ class SimClient:
             _logger.error(f"Client: Circuit {circuit} doesn't exit")
             return -1
 
-    def get_runno_data(self, runno: int) -> Union[Path, None]:
+    def get_runno_data(self, runno: int) -> Path | None:
         """
         Returns the simulation output data inside a zip file name.
 

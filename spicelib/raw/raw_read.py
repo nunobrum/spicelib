@@ -563,7 +563,7 @@ class RawRead(PlotInterface):
         :type step: int, optional
         :raises RuntimeError: if the RAW file does not have an axis.
         :return: Array with the X axis
-        :rtype: Union[np.ndarray, list[float]]
+        :rtype: np.ndarray | list[float]
         """
         if len(self._plots) == 0:
             return np.ndarray([])
@@ -666,11 +666,11 @@ class RawRead(PlotInterface):
         Saves the data to an Excel file.
 
         :param filename: Name of the file to save the data to
-        :type filename: Union[str, pathlib.Path]
+        :type filename: str | pathlib.Path
         :param columns: List of traces to use as columns. Default is None, meaning all traces
-        :type columns: list, optional
+        :type columns: list | None
         :param step: Step number to retrieve, defaults to -1
-        :type step: Union[int, list[int]], optional
+        :type step: int | list[int] | None
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
         :type kwargs: ``**dict``
         :raises ImportError: when the 'pandas' module is not installed

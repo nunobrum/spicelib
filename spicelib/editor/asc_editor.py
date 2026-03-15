@@ -18,7 +18,6 @@
 import os.path
 import sys
 from pathlib import Path
-from typing import Union, Optional
 import io
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
@@ -57,7 +56,7 @@ class AscEditor(BaseSchematic):
     :meta hide-value:
     """
     
-    def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
+    def __init__(self, asc_file: str | Path, encoding='autodetect'):
         super().__init__()
         self.version = 4
         self.sheet = "1 0 0"  # Three values are present on the SHEET clause
@@ -79,7 +78,7 @@ class AscEditor(BaseSchematic):
     def circuit_file(self) -> Path:
         return self.asc_file_path
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         """
         Saves the current state of the netlist to a .asc file. 
         For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
@@ -634,7 +633,7 @@ class AscEditor(BaseSchematic):
         Adding paths for searching for symbols and libraries"""
         self.set_custom_library_paths(*paths)
 
-    def _lib_file_find(self, filename) -> Optional[str]:
+    def _lib_file_find(self, filename) -> str | None:
         # create list of directories to search, based on the simulator_lib_paths. Just add "/sub" to the path
         my_lib_paths = [os.path.join(x, "sub") for x in self.simulator_lib_paths]
         # find the file
@@ -647,7 +646,7 @@ class AscEditor(BaseSchematic):
                                                )
         return file_found
 
-    def _asy_file_find(self, filename) -> Optional[str]:
+    def _asy_file_find(self, filename) -> str | None:
         if filename in self.symbol_cache:
             return self.symbol_cache[filename]
         _logger.info(f"Searching for symbol {filename}...")

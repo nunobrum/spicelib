@@ -305,7 +305,7 @@ class QschTag:
         :param index: The index of the attribute to be set
         :type index: int
         :param value: The value to be set
-        :type value: Union[str, int, tuple[Any, Any]]
+        :type value: str | int | tuple[Any, Any]
         :return: Nothing
         """
         if isinstance(value, int):
