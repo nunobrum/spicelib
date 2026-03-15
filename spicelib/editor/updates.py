@@ -1,9 +1,9 @@
 import dataclasses
 import enum
 from copy import deepcopy
-from typing import Union
+from typing import TypeAlias
 
-UpdateValueType = Union[str, int, float, None]
+UpdateValueType: TypeAlias = str | int | float | None
 
 
 class UpdateType(enum.Enum):
@@ -72,7 +72,7 @@ class Updates:
     def __len__(self):
         return len(self.netlist_updates)
 
-    def __getitem__(self, item: Union[int, slice, str]) -> Union[Update, list[Update]]:
+    def __getitem__(self, item: int | slice | str) -> Update | list[Update]:
         if isinstance(item, (int, slice)):
             return self.netlist_updates[item]  # with item = slice, we could get a list here. Otherwise, it is a single Update
         elif isinstance(item, str):

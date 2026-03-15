@@ -23,7 +23,6 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from math import floor, log
 from pathlib import Path
-from typing import Union
 import logging
 import os
 import io
@@ -166,7 +165,7 @@ def scan_eng(value: str) -> float:
     return f
 
 
-def to_float(value, accept_invalid: bool = True) -> Union[float, str]:
+def to_float(value, accept_invalid: bool = True) -> float | str:
     _MULT = {
         'f': 1E-15,
         'p': 1E-12,
@@ -322,7 +321,7 @@ class Component(Primitive):
         self.parent.set_component_parameters(self.reference, **param_dict)
 
     @property
-    def value(self) -> Union[float, int, str]:
+    def value(self) -> float | int | str:
         """The Value
 
         :getter: Returns the value as a number. If the value is not a number, it will return a string.
@@ -348,7 +347,7 @@ class Component(Primitive):
         self.parent.set_element_model(self.reference, model)
 
     @value.setter
-    def value(self, value: Union[str, int, float]):
+    def value(self, value: str | int | float):
         if self.parent.is_read_only():
             raise ValueError("Editor is read-only")
         if isinstance(value, (int, float)):
@@ -390,7 +389,7 @@ class BaseEditor(ABC):
         """Initializing the list that contains all the modifications done to a netlist."""
         self.netlist_updates = Updates()
 
-    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+    def add_update(self, name: str, value: str | int | float | None, updates: UpdateType):
         self.netlist_updates.add_update(name, value, updates)
 
     @property
@@ -409,7 +408,7 @@ class BaseEditor(ABC):
         self.netlist_updates.clear()
 
     @abstractmethod
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         """
         Saves the current state of the netlist to a file or a string.
         :param run_netlist_file: File name of the netlist file, or a StringIO object.
@@ -418,7 +417,7 @@ class BaseEditor(ABC):
         """
         ...
 
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def write_netlist(self, run_netlist_file: str | Path) -> None:
         """
         .. deprecated:: 1.x Use `save_netlist()` instead.
 
@@ -499,7 +498,7 @@ class BaseEditor(ABC):
         ...        
 
     @abstractmethod
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: str | int | float) -> None:
         """Adds a parameter to the SPICE netlist.
 
         Usage: ::
@@ -541,7 +540,7 @@ class BaseEditor(ABC):
             self.set_parameter(param, kwargs[param])
 
     @abstractmethod
-    def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, device: str, value: str | int | float) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
         sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
         Usage: ::

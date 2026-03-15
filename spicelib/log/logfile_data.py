@@ -10,11 +10,11 @@ from __future__ import annotations
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-import re
-from typing import Union, Iterable
-from collections import OrderedDict
-import math
 import logging
+import math
+import re
+from collections import OrderedDict
+from collections.abc import Iterable
 
 _logger = logging.getLogger("spicelib.LTSteps")
 
@@ -73,7 +73,7 @@ class LTComplex(complex):
         return _unit
 
 
-def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list, LTComplex]:
+def try_convert_value(value: str | int | float | list) -> int | float | str | list | LTComplex:
     """
     Tries to convert the string into an integer and if it fails, tries to convert to a float, if it fails, then returns the
     value as string.
@@ -106,7 +106,7 @@ def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, 
     return ans
 
 
-def split_line_into_values(line: str) -> list[Union[int, float, str]]:
+def split_line_into_values(line: str) -> list[int | float | str]:
     """
     Splits a line into values. The values are separated by tabs or spaces. If a value starts with ( and ends with ),
     then it is considered a complex value, and it is returned as a single value. If converting values within () fails,
@@ -193,7 +193,7 @@ class LogfileData:
         """
         return self.step_count > 0
 
-    def steps_with_parameter_equal_to(self, param: str, value: Union[str, int, float]) -> list[int]:
+    def steps_with_parameter_equal_to(self, param: str, value: str | int | float) -> list[int]:
         """
         Returns the steps that contain a given condition.
 
@@ -285,8 +285,8 @@ class LogfileData:
             else:
                 raise TypeError("Step must be an integer or a slice")
 
-    def get_measure_values_at_steps(self, measure: str, steps: Union[None, int, Iterable]) \
-            -> list[Union[float, int, str, LTComplex]]:
+    def get_measure_values_at_steps(self, measure: str, steps: None | int | Iterable) \
+            -> list[float | int | str | LTComplex]:
         """
         Returns the measurements taken at a list of steps provided by the steps list.
 
@@ -305,8 +305,8 @@ class LogfileData:
         else:  # Assuming it is an iterable
             return [self.dataset[measure][step] for step in steps]
 
-    def max_measure_value(self, measure: str, steps: Union[None, int, Iterable] = None) \
-            -> Union[float, int, str]:
+    def max_measure_value(self, measure: str, steps: None | int | Iterable = None) \
+            -> float | int | str:
         """
         Returns the maximum value of a measurement.
 
@@ -319,8 +319,8 @@ class LogfileData:
         """
         return max(self.get_measure_values_at_steps(measure, steps))
 
-    def min_measure_value(self, measure: str, steps: Union[None, int, Iterable] = None) \
-            -> Union[float, int, str]:
+    def min_measure_value(self, measure: str, steps: None | int | Iterable = None) \
+            -> float | int | str:
         """
         Returns the minimum value of a measurement.
 
@@ -333,8 +333,8 @@ class LogfileData:
         """
         return min(self.get_measure_values_at_steps(measure, steps))
 
-    def avg_measure_value(self, measure: str, steps: Union[None, int, Iterable] = None) \
-            -> Union[float, int, str, LTComplex]:
+    def avg_measure_value(self, measure: str, steps: None | int | Iterable = None) \
+            -> float | int | str | LTComplex:
         """
         Returns the average value of a measurement.
 
@@ -477,7 +477,7 @@ class LogfileData:
 
         fout.close()
 
-    def plot_histogram(self, param, steps: Union[None, int, Iterable] = None, bins=50, normalized=True, sigma=3.0, title=None, image_file=None, **kwargs):
+    def plot_histogram(self, param, steps: None | int | Iterable = None, bins=50, normalized=True, sigma=3.0, title=None, image_file=None, **kwargs):
         """
         Plots a histogram of the parameter
         """

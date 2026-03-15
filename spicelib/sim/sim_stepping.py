@@ -23,10 +23,10 @@
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2017, Fribourg Switzerland"
 
-from pathlib import Path
-from typing import Callable, Union, Type, Iterable
-from functools import wraps
 import logging
+from collections.abc import Callable, Iterable
+from functools import wraps
+from pathlib import Path
 
 from spicelib.sim.process_callback import ProcessCallback
 
@@ -117,7 +117,7 @@ class SimStepper(AnyRunner):
         self.current_values.update(**kwargs)
 
     @wraps(BaseEditor.set_parameter, updated=())  # updated=() solves conflict between wraps and abstract classes
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: str | int | float) -> None:
         self.netlist.set_parameter(param, value)
         self.current_values[param] = value
 
@@ -127,7 +127,7 @@ class SimStepper(AnyRunner):
         self.current_values.update(**kwargs)
 
     @wraps(BaseEditor.set_component_value, updated=())  # updated=() solves conflict between wraps and abstract classes
-    def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, device: str, value: str | int | float) -> None:
         self.netlist.set_component_value(device, value)
         self.current_values[device] = value
 
@@ -164,8 +164,8 @@ class SimStepper(AnyRunner):
         return total
 
     def run_all(self,
-                callback: Union[Type[ProcessCallback], Callable] = None,
-                callback_args: Union[tuple, dict] = None,
+                callback: type[ProcessCallback] | Callable = None,
+                callback_args: tuple | dict = None,
                 switches=None,
                 timeout: float = None,
                 wait_completion: bool = True,
@@ -243,7 +243,7 @@ class SimStepper(AnyRunner):
             # Now waits for the simulations to end
             self.runner.wait_completion()
 
-    def export_step_info(self, export_filename: Union[Path, str], delimiter: str = ";"):
+    def export_step_info(self, export_filename: Path | str, delimiter: str = ";"):
         """
         Exports the stepping values to a CSV file. It writes a row per each simulation done.
         The columns are all the values that were set during the session. The value on each row is the value
