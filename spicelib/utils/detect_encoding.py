@@ -41,14 +41,10 @@ def detect_encoding(file_path: str | Path, expected_pattern: str = '', re_flags:
     If an expected string is not given, it will use the second character is null, high chances are that this file has an
     'utf_16_le' encoding, otherwise it is assuming that it is 'utf-8'.
     :param file_path: path to the filename
-    :type file_path: str
     :param expected_pattern: regular expression to match the first line of the file
-    :type expected_pattern: str
     :param re_flags: flags to be used in the regular expression
-    :type re_flags: int
     :return: detected encoding
 
-    :rtype: str
     """
     for encoding in ('utf-8', 'utf-16', 'utf_16_le', 'windows-1252', 'cp1252', 'cp1250', 'shift_jis'):
         try:

@@ -93,7 +93,6 @@ def format_eng(value) -> str:
     :param value: float value to format
     :type value: float
     :return: String with the formatted value
-    :rtype: str
     """
     if value == 0.0:
         return f"{value:g}"  # This avoids a problematic log(0), and the int and float conversions
@@ -133,9 +132,7 @@ def scan_eng(value: str) -> float:
 
 
     :param value: string to be converted to float
-    :type value: str
     :return:
-    :rtype: float
     :raises: ValueError when the value cannot be converted.
     """
     # Search for the last digit on the string. Assuming that all after the last number are SI qualifiers and units.
@@ -414,7 +411,6 @@ class BaseEditor(ABC):
         """
         Saves the current state of the netlist to a file or a string.
         :param run_netlist_file: File name of the netlist file, or a StringIO object.
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :returns: Nothing
         """
         ...
@@ -453,11 +449,8 @@ class BaseEditor(ABC):
         User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
         
         :param reference: Reference of the component
-        :type reference: str
         :param attribute: Name of the attribute to be retrieved
-        :type attribute: str
         :return: Value of the attribute being sought
-        :rtype: str
         :raises: ComponentNotFoundError - In case the component is not found
                  KeyError - In case the attribute is not found
         """
@@ -467,9 +460,7 @@ class BaseEditor(ABC):
         """Returns the value of the port of the component.
         
         :param reference: Reference of the component
-        :type reference: str
         :return: List with the ports of the component
-        :rtype: str
         :raises: ComponentNotFoundError - In case the component is not found
                  KeyError - In case the port is not found
         
@@ -482,9 +473,7 @@ class BaseEditor(ABC):
         Retrieves a Parameter from the Netlist
 
         :param param: Name of the parameter to be retrieved
-        :type param: str
         :return: Value of the parameter being sought
-        :rtype: str
         :raises: ParameterNotFoundError - In case the component is not found
         """
         ...
@@ -495,7 +484,6 @@ class BaseEditor(ABC):
         Returns all parameter names from the netlist.
 
         :return: A list of parameter names found in the netlist
-        :rtype: list[str]
         """
         ...        
 
@@ -515,10 +503,8 @@ class BaseEditor(ABC):
         and allows setting more than one parameter at once.
 
         :param param: Spice Parameter name to be added or updated.
-        :type param: str
 
         :param value: Parameter Value to be set.
-        :type value: str, int or float
 
         :return: Nothing
         """
@@ -551,11 +537,9 @@ class BaseEditor(ABC):
             editor.set_component_value('X1:C1', '10u')
 
         :param device: Reference of the circuit element to be updated.
-        :type device: str
         :param value:
             value to be set on the given circuit element. Float and integer values will automatically
             formated as per the engineering notations 'k' for kilo, 'm', for mili and so on.
-        :type value: str, int or float
         :raises:
             ComponentNotFoundError - In case the component is not found
 
@@ -577,9 +561,7 @@ class BaseEditor(ABC):
             editor.set_element_model('V1' "SINE(0 1 3k 0 0 0)")
 
         :param element: Reference of the circuit element to be updated.
-        :type element: str
         :param model: model name of the device to be updated
-        :type model: str
 
         :raises:
             ComponentNotFoundError - In case the component is not found
@@ -608,7 +590,6 @@ class BaseEditor(ABC):
          editor.set_component_parameters(R1, **value_settings)
 
         :param element: Reference of the circuit element.
-        :type element: str
 
         :key <param_name>:
             The key is the parameter name and the value is the value to be set. Values can either be
@@ -627,11 +608,8 @@ class BaseEditor(ABC):
         User can define whatever attributes they want. The only restriction is that the attribute name must be a string.
         
         :param reference: Reference of the component
-        :type reference: str
         :param attribute: Name of the attribute to be set
-        :type attribute: str
         :param value: Value of the attribute to be set
-        :type value: str
         :return: Nothing
         :raises: ComponentNotFoundError - In case the component is not found
         """
@@ -644,10 +622,8 @@ class BaseEditor(ABC):
         Returns the value of a component retrieved from the netlist.
 
         :param element: Reference of the circuit element to get the value.
-        :type element: str
 
         :return: value of the circuit element .
-        :rtype: str
 
         :raises: ComponentNotFoundError - In case the component is not found
 
@@ -661,10 +637,8 @@ class BaseEditor(ABC):
         Returns the parameters of a component retrieved from the netlist.
 
         :param element: Reference of the circuit element to get the parameters.
-        :type element: str
 
         :return: parameters of the circuit element in dictionary format.
-        :rtype: dict
 
         :raises: ComponentNotFoundError - In case the component is not found
 
@@ -677,10 +651,8 @@ class BaseEditor(ABC):
         Returns the value of a component retrieved from the netlist.
 
         :param element: Reference of the circuit element to get the value in float format.
-        :type element: str
 
         :return: value of the circuit element in float type
-        :rtype: float
 
         :raises: ComponentNotFoundError - In case the component is not found
 
@@ -737,7 +709,6 @@ class BaseEditor(ABC):
         kwargs are implementation specific and can be used to pass additional information to the implementation.
 
         :param component: Component to be added to the design.
-        :type component: Component
 
         :return: Nothing
         """
@@ -750,7 +721,6 @@ class BaseEditor(ABC):
         Note: Current implementation only allows removal of a component from the main netlist, not from a sub-circuit.
 
         :param designator: Component reference in the design. Ex: V1, C1, R1, etc...
-        :type designator: str
 
         :return: Nothing
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
@@ -773,7 +743,6 @@ class BaseEditor(ABC):
         :param instruction:
             Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
             typically just before the .BACKANNO statement
-        :type instruction: str
         :return: Nothing
         """
         logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
@@ -796,9 +765,7 @@ class BaseEditor(ABC):
         `remove_Xinstruction()` is a more flexible way to remove instructions from the netlist.
 
         :param instruction: The instruction to remove.
-        :type instruction: str
         :returns: True if the instruction was found and removed, False otherwise
-        :rtype: bool        
         """
         logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
         self.add_update("INSTRUCTION", logtxt, UpdateType.DeleteInstruction)
@@ -818,9 +785,7 @@ class BaseEditor(ABC):
             editor.remove_Xinstruction(r"\\.AC.*")
 
         :param search_pattern: Pattern for the instruction to remove. In general it is best to use a raw string (r).
-        :type search_pattern: str
         :returns: True if the instruction was found and removed, False otherwise
-        :rtype: bool        
         """
         ...
 
@@ -858,7 +823,6 @@ class BaseEditor(ABC):
             * this method is a class method and will affect all instances of the class
 
         :param simulator: Simulator object from which the library paths will be taken.
-        :type simulator: Simulator
         :returns: Nothing
         """
         if simulator is None:
@@ -904,7 +868,6 @@ class BaseEditor(ABC):
         """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
 
         :return: True if the component is read-only, False otherwise
-        :rtype: bool
         """
         return False
 

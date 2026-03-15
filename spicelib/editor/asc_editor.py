@@ -84,7 +84,6 @@ class AscEditor(BaseSchematic):
         For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
 
         :param run_netlist_file: File name of the netlist file.
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :returns: Nothing
         """
         if isinstance(run_netlist_file, io.StringIO):
@@ -468,12 +467,9 @@ class AscEditor(BaseSchematic):
         That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, plus all contents of SpiceLine, SpiceLine2
 
         :param element: Reference of the circuit element to get the parameters.
-        :type element: str
         :param as_dicts: will report the contents of SpiceLine and SpiceLine2 inside a SpiceLine/SpiceLine2 instead of separately.
-        :type as_dicts: bool
 
         :return: parameters of the circuit element in dictionary format.
-        :rtype: dict
 
         :raises: ComponentNotFoundError - In case the component is not found
 
@@ -518,7 +514,6 @@ class AscEditor(BaseSchematic):
          editor.set_component_parameters(R1, **value_settings)
 
         :param element: Reference of the circuit element.
-        :type element: str
 
         :key <param_name>:
             The key is the parameter name and the value is the value to be set. Values can either be

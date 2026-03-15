@@ -198,7 +198,6 @@ class RunTask(threading.Thread):
         the simulation failed, and `callback_on_error` is False (default), in which case it returns None.
 
         :returns: Tuple with the path to the raw file and the path to the log file
-        :rtype: tuple(str, str) or None
         """
         if self.is_alive() or self.start_time is None:  # running or not yet started
             return None
@@ -213,7 +212,6 @@ class RunTask(threading.Thread):
         Waits for the completion of the task and returns a tuple with the raw and log files.
         
         :returns: Tuple with the path to the raw file and the path to the log file. See get_results() for more details.
-        :rtype: tuple(str, str)
         """
         while self.is_alive() or self.start_time is None or self.retcode == -1:
             sleep(0.1)

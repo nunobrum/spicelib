@@ -108,9 +108,7 @@ class QspiceLogReader(LogfileData):
 
         :param meas_filename: This optional parameter specifies the measurement file name. If not given, it will
             assume the name of the log file but with the extension '.meas'.
-        :type meas_filename: Optional str or pathlib.Path
         :returns: The .meas file path
-        :rtype: pathlib.Path
         """
         if meas_filename is None:
             meas_filename = self.logname.with_suffix(".meas")

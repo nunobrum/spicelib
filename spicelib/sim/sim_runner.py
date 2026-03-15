@@ -365,7 +365,6 @@ class SimRunner(AnyRunner):
         Example: ```{ 1: {'netlist_file': 'circuit1.net', 'raw_file': 'circuit1.raw', 'log_file': 'circuit1.log'```, etc....
             
         :return: Dictionary with detailed information of all completed tasks.
-        :rtype: dict
         """
         rv = {}
         for task in self.completed_tasks:
@@ -391,7 +390,6 @@ class SimRunner(AnyRunner):
 
         :param spice_tool: String containing the path to the spice tool to be used, or alternatively the Simulator
             object.
-        :type spice_tool: Simulator type
         :return: Nothing
         """
         if issubclass(spice_tool, Simulator):
@@ -527,7 +525,6 @@ class SimRunner(AnyRunner):
         :param netlist:
             The name of the netlist can be optionally overridden if the user wants to have a better control of how the
             simulations files are generated.
-        :type netlist: SpiceEditor or a pathlib.Path to the file
         :param wait_resource:
             Setting this parameter to False will force the simulation to start immediately, irrespective of the number
             of simulations already active.
@@ -535,7 +532,6 @@ class SimRunner(AnyRunner):
             the parameter ´parallel_sims´ to a different number.
             If there are more than ´parallel_sims´ simulations being done, the new one will be placed on hold till one
             of the other simulations are finished.
-        :type wait_resource: bool, optional
         :param callback:
             The user can optionally give a callback function for when the simulation finishes so that processing can
             be done immediately. The callback can either be a function or a class derived from ProcessCallback.
@@ -547,27 +543,19 @@ class SimRunner(AnyRunner):
             function, the first two parameters are the raw and log files. The other parameters are passed as dictionary
             in the callback_args parameter.
 
-        :type callback: function(raw_file: pathlib.Path, log_file: pathlib.Path, ...), optional
         :param callback_args:
             The callback function arguments. This parameter is passed as keyword arguments to the callback function.
-        :type callback_args: dict or tuple, optional
         :param switches: Command line switches override
-        :type switches: list
         :param timeout:
             Timeout to be used in waiting for resources. Default time is value defined in this class constructor.
-        :type timeout: float, optional
         :param run_filename: Name to be used for the log and raw file.
-        :type run_filename: str or pathlib.Path
         :param callback_on_error: If False (default), the callback function is not called if the simulation fails.
             If True, the callback function is called even if the simulation fails.
             Know that in that case it is not guaranteed that the raw and log files will be available.
-        :type callback_on_error: bool, optional
         :param exe_log: If True, the simulator's execution console messages will be written to a log file
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running
             simultaneous tasks.
-        :type exe_log: bool, optional        
         :returns: The task object of type RunTask. For internal use only.
-        :rtype: RunTask
         """
         callback_kwargs = self.validate_callback_args(callback, callback_args)
         if switches is None:
@@ -611,17 +599,13 @@ class SimRunner(AnyRunner):
         :param netlist:
             The name of the netlist can be optionally overridden if the user wants to have a better control of how the
             simulations files are generated.
-        :type netlist: SpiceEditor or a pathlib.Path to the file
         :param switches: Command line switches override
         :type switches: list
         :param run_filename: Name to be used for the log and raw file.
-        :type run_filename: str or pathlib.Path
         :param timeout: Timeout to be used in waiting for resources. Default time is value defined in this class
             constructor.
-        :type timeout: float, optional
         :param exe_log: If True, the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
-        :type exe_log: bool, optional
         :returns: the raw and log filenames
         """
         if switches is None:
@@ -730,11 +714,8 @@ class SimRunner(AnyRunner):
             This timeout is reset everytime that a simulation is completed. The difference between this timeout and the
             one defined in the SimRunner instance, is that the latter is implemented by the subprocess class, and
             this one just cancels the wait.
-        :type timeout: int
         :param abort_all_on_timeout: attempts to stop all LTSpice processes if timeout is expired.
-        :type abort_all_on_timeout: bool
         :returns: True if all simulations were executed successfully
-        :rtype: bool
         """
         self.update_completed()
         if timeout is not None:
@@ -759,7 +740,6 @@ class SimRunner(AnyRunner):
         """
         Deletes a file if it exists.
         :param workfile: File to be deleted
-        :type workfile: pathlib.Path
         :return: Nothing
         """
         if workfile is not None and workfile.exists():
@@ -771,9 +751,7 @@ class SimRunner(AnyRunner):
         """
         Deletes a file extension if it exists.
         :param workfile: File to be deleted
-        :type workfile: pathlib.Path
         :param ext: Extension to be deleted
-        :type ext: str
         :return: Nothing
         """
         sim_file = workfile.with_suffix(ext)
@@ -821,7 +799,6 @@ class SimRunner(AnyRunner):
         Returns an iterator which iterates all completed tasks
 
         :param conditions: Filter to be used in the iterator. See TaskIterator conditions parameter documentation.
-        :type conditions: Optional or dict or func(RunTask) -> bool
         :return: Iterator[RunTask]
         """
         return TaskIterator(self, lambda x: x, True, conditions)
@@ -833,13 +810,9 @@ class SimRunner(AnyRunner):
         the first raw file that is matching the conditions. See filter_completed_tasks() method.
 
         :param raw_filename: The new RAW filename
-        :type raw_filename: str or pathlib.Path
         :param save: A list with traces that are going to be saved in the new raw file
-        :type save: list[str]
         :param conditions: A filter as specified on the TaskIterator class
-        :type conditions: dict
         :return: True if the raw file was created successfully and includes ALL runs, False otherwise
-        :rtype: bool
         """
         
         retval = True
@@ -878,7 +851,6 @@ class SimRunner(AnyRunner):
         """Exports the simulation log to a file.
 
         :param logfile: The path to the log file
-        :type logfile: Path | str
         """
         import pprint
         logfile = self._on_output_folder(logfile)

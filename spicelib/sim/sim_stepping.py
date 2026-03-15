@@ -184,22 +184,15 @@ class SimStepper(AnyRunner):
         wait_completion parameters.
 
         :param callback: See the SimRunner run method.
-        :type callback: function(raw_file: pathlib.Path, log_file: pathlib.Path, ...), optional
         :param callback_args: See the SimRunner run method.
-        :type callback_args: dict or tuple, optional
         :param switches: Command line switches override
-        :type switches: list
         :param timeout: See the SimRunner run method.
-        :type timeout: float, optional
         :param wait_completion:  See the SimRunner run method.
-        :type wait_completion: bool, optional
         :param filenamer:
             A function that receives a dictionary in keyword form (``**dict``) and returns a string. This string will be
             passed to the run_filename parameter on the SimRunner run method. It is important that the function assures
             a unique filename per simulation.
-        :type filenamer: Callable receiving keyword parameters.
         :param exe_log: See the SimRunner run method.
-        :type exe_log: bool, optional
         :returns: Nothing
         """
         iter_no = 0
@@ -253,9 +246,7 @@ class SimStepper(AnyRunner):
         there were set for that simulation.
 
         :param export_filename: export file path
-        :type export_filename: str or pathlib.Path
         :param delimiter: delimiter character on the CSV
-        :type delimiter: str
         """
         import csv
 

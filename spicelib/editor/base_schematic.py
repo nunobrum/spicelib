@@ -352,11 +352,8 @@ class BaseSchematic(BaseEditor):
         """Sets the position and rotation of the component.
 
         :param reference: The reference of the component
-        :type reference: str
         :param position: The new position of the component
-        :type position: Point
         :param rotation: The new rotation of the component
-        :type rotation: ERotation
         """
         comp = self.get_component(reference)
         comp.position = position

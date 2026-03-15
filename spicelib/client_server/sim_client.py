@@ -154,12 +154,9 @@ class SimClient:
         sequential.
 
         :param circuit: path to the netlist file containing the simulation directives.
-        :type circuit: pathlib.Path or str
         :param dependencies: list of files that the netlist depends on. This is used to ensure that the netlist is
          transferred to the server with all the necessary files.
-        :type dependencies: list of pathlib.Path or str
         :returns: identifier on the server of the simulation.
-        :rtype: int
         """
         circuit_path = Path(circuit)
         circuit_name = circuit_path.name
@@ -198,7 +195,6 @@ class SimClient:
         :return: The name of the zip file containing the simulation output data, or None if not found.
                  The zip file is not guaranteed to hold both a `.raw` file and a `.log` file.
                  It can hold a `.fail` file in case of a simulation error.
-        :rtype: pathlib.Path
         """
         if runno not in self.stored_jobs:
             raise SimClientInvalidRunId(f"Invalid Job id {runno}")

@@ -53,7 +53,6 @@ def search_file_in_containers(filename, *containers) -> str | None:
     :param containers: list of paths to search in (posix strings)
     :type containers: list[str]
     :return: path to the file if found, or None if not found.
-    :rtype: Optional[str]
     """
     for container in containers:
         _logger.debug(f"Searching for '{filename}' in '{container}'")

@@ -277,7 +277,6 @@ class QschTag:
         Otherwise, it returns an integer.
 
         :param index: The index of the attribute to be read
-        :type index: int
         :return: The attribute at the given index
         """
         a = self.tokens[index]
@@ -303,9 +302,7 @@ class QschTag:
         and tuples are written between parenthesis.
 
         :param index: The index of the attribute to be set
-        :type index: int
         :param value: The value to be set
-        :type value: str | int | tuple[Any, Any]
         :return: Nothing
         """
         if isinstance(value, int):
@@ -328,12 +325,9 @@ class QschTag:
         If the label is not found, it returns the default value.
 
         :param label: label to be found. Can have up to 1 space (e.g. "library file" or "shorted pins")
-        :type label: str
         :param default: Default value, defaults to None
-        :type default: str, optional
         :raises IndexError: When the label is not found and the default value is None
         :return: the found text or the default value
-        :rtype: str
         """
         a = self.get_items(label + ':')
         if len(a) != 1:
@@ -412,9 +406,7 @@ class QschEditor(BaseSchematic):
         Appends the netlist to a file buffer.
 
         :param netlist_file: The file buffer to save the netlist
-        :type netlist_file: TextIO
         :param verilog_config: Mandatory when using Ø components: Verilog modules in a DLL. Details: see `save_netlist()`
-        :type verilog_config: dict
         :return: Nothing
         """
         libraries_to_include = []
@@ -597,7 +589,6 @@ class QschEditor(BaseSchematic):
         Saves the current state of the netlist to a .qsh or to a .net or .cir file.
 
         :param run_netlist_file: File name of the netlist file. Can be .qsch, .net or .cir
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :param verilog_config: Mandatory when using Ø components: Verilog modules in a DLL.
                                 A dictionary with the component reference designators as keys and a 
                                 list of pin configurations as values, starting at the first pin (port).
@@ -608,7 +599,6 @@ class QschEditor(BaseSchematic):
                                 
                                 Example: `{"X1": ["in,b", "in,b", "in,uc", "out,uc", "out,b"]}`
                                 Here the component "X1" has 5 pins, pin 1 is an input of type "bit" and pin 4 is an output of type "unsigned char".
-        :type verilog_config: dict[str, list[str]]
         :returns: Nothing
         """
         if self.schematic is None:
@@ -965,9 +955,7 @@ class QschEditor(BaseSchematic):
         dictionary. The key of the dictionary is the line number where the parameter was found.
 
         :param element: The reference of the component
-        :type element: str
         :return: A dictionary with the parameters of the component
-        :rtype: dict
         """
         _, _, symbol = self._get_component_symbol(element)
         texts = symbol.get_items('text')

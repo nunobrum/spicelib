@@ -172,7 +172,6 @@ class LTspice(Simulator):
         """Tells if the simulator used is the macOS native LTspice
 
         :return: True if the macOS native LTspice is used, False otherwise (will also return False on Windows or Linux)
-        :rtype: bool
         """
         return sys.platform == "darwin" and cls.spice_exe and "wine" not in cls.spice_exe[0].lower()
 
@@ -203,9 +202,7 @@ class LTspice(Simulator):
         macOS native LTspice accepts no command line switches (yet), use it under wine for full support.
 
         :param switch: switch to be added.
-        :type switch: str
         :param path: path to the file related to the switch being given.
-        :type path: str, optional
         :return: Nothing
         """
         
@@ -244,11 +241,8 @@ class LTspice(Simulator):
         but with `.raw` and `.log` extension.        
 
         :param netlist_file: path to the netlist file
-        :type netlist_file: str | pathlib.Path
         :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
-        :type cmd_line_switches: list, optional
         :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
-        :type timeout: float, optional
         :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), 
             and an existing file object with a valid file descriptor. 
             With the default settings of None, no redirection will occur. Also see `exe_log` for a simpler form of control.
@@ -256,14 +250,11 @@ class LTspice(Simulator):
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
         :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
-        :type cwd: str | pathlib.Path | None
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
-        :type exe_log: bool, optional            
         :raises SpiceSimulatorError: when the executable is not found.
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :return: return code from the process
-        :rtype: int
         """
         if not cls.is_available():
             _logger.error("================== ALERT! ====================")
@@ -312,11 +303,8 @@ class LTspice(Simulator):
         """Create a netlist out of the circuit file
 
         :param circuit_file: path to the circuit file
-        :type circuit_file: str | pathlib.Path
         :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
-        :type cmd_line_switches: list, optional
         :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
-        :type timeout: float, optional        
         :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), 
             and an existing file object with a valid file descriptor. 
             With the default settings of None, no redirection will occur. Also see `exe_log` for a simpler form of control.
@@ -324,14 +312,11 @@ class LTspice(Simulator):
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
         :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
-        :type cwd: str | pathlib.Path | None
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
-        :type exe_log: bool, optional            
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :raises RuntimeError: when the netlist cannot be created
         :return: path to the netlist produced
-        :rtype: pathlib.Path
         """
         if not cls.is_available():
             _logger.error("================== ALERT! ====================")

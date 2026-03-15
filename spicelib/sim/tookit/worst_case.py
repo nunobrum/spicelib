@@ -226,9 +226,7 @@ class WorstCaseAnalysis(ToleranceDeviations):
         Returns None, if no data still exists for the sensitivity analysis.
 
         :param measure: measurement name. See SPICE .MEAS primitive
-        :type measure: str
         :param ref: Optional component reference in the netlist
-        :type ref: str
         :returns: Tuple with sensitivity and a standard deviation or dictionary of tuples.
         """
         if self.testbench_prepared and self.testbench_executed or self.analysis_executed:

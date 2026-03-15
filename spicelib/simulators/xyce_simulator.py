@@ -156,11 +156,8 @@ class XyceSimulator(Simulator):
         * `-r <file>`: generate a rawfile named <file> in binary format
 
         :param switch: switch to be added.
-        :type switch: str
         :param parameter: parameter for the switch
-        :type parameter: str, optional
         :return: the correct formatting for the switch
-        :rtype: list
         """
         ret = []  # This is an empty switch
         
@@ -226,11 +223,8 @@ class XyceSimulator(Simulator):
         but with `.raw` and `.log` extension.
         
         :param netlist_file: path to the netlist file
-        :type netlist_file: str | pathlib.Path
         :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
-        :type cmd_line_switches: list, optional
         :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
-        :type timeout: float, optional
         :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), 
             and an existing file object with a valid file descriptor. 
             With the default settings of None, no redirection will occur. Also see `exe_log` for a simpler form of control.
@@ -238,14 +232,11 @@ class XyceSimulator(Simulator):
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
         :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
-        :type cwd: str | pathlib.Path | None, optional
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
-        :type exe_log: bool, optional            
         :raises SpiceSimulatorError: when the executable is not found.
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :return: return code from the process
-        :rtype: int
         """
         if not cls.is_available():
             _logger.error("================== ALERT! ====================")
