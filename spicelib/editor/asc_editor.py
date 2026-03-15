@@ -30,7 +30,7 @@ from .spice_editor import SpiceEditor, SpiceCircuit
 from ..simulators.ltspice_simulator import LTspice
 from ..utils.file_search import search_file_in_containers
 from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, ValueType
 from .base_schematic import (BaseSchematic, Point, Line, Shape, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
 from .asy_reader import AsyReader
 
