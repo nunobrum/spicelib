@@ -107,7 +107,9 @@ import shutil
 import time
 from pathlib import Path
 from time import sleep, thread_time as clock
-from typing import Callable, Type, Protocol, Iterator, Any, TypeAlias
+from typing import Protocol, Any, TypeAlias
+
+from collections.abc import Callable, Iterator
 
 from .process_callback import ProcessCallback, CallbackType, CallbackArgsType
 from ..sim.run_task import RunTask

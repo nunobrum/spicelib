@@ -25,7 +25,7 @@ import re
 import logging
 from .base_editor import (
     format_eng, ComponentNotFoundError, ParameterNotFoundError,
-    PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+    PARAM_REGEX, UNIQUE_SIMULATION_DOT_INSTRUCTIONS, ValueType
 )
 from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
                              LineStyle, Shape)
@@ -163,7 +163,6 @@ QSCH_ZIGZAG_LINE_COLOR = 6
 QSCH_ZIGZAG_UNKNOWN1 = 7
 QSCH_ZIGZAG_UNKNOWN2 = 8
 
-ValueType = str | int | float
 
 
 def decap(s: str) -> str:

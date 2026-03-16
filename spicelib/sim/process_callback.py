@@ -23,7 +23,9 @@
 from __future__ import annotations
 
 from multiprocessing import Process, Queue
-from typing import Any, Type, Callable
+from typing import Any, TypeAlias
+
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -51,5 +53,5 @@ class ProcessCallback(Process):
         ...
 
 
-CallbackType = Type[ProcessCallback] | Callable[[Path | None, Path | None], Any] | None
-CallbackArgsType = tuple | dict | None
+CallbackType : TypeAlias = type[ProcessCallback] | Callable[[Path | None, Path | None], Any] | None
+CallbackArgsType : TypeAlias = tuple | dict | None

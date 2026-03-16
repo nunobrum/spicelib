@@ -30,7 +30,7 @@ from .base_editor import BaseEditor, format_eng, ComponentNotFoundError, Paramet
     UNIQUE_SIMULATION_DOT_INSTRUCTIONS, Component, SUBCKT_DIVIDER, HierarchicalComponent, ValueType
 from .updates import UpdateType
 
-from typing import Callable, Any
+
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 from ..utils.file_search import search_file_in_containers
 from ..log.logfile_data import try_convert_value
@@ -414,7 +414,7 @@ class SpiceComponent(Component):
         self.parent = parent
         self.update_attributes_from_line_no(line_no)
 
-    def update_attributes_from_line_no(self, line_no: int) -> re.match:
+    def update_attributes_from_line_no(self, line_no: int) -> re.Match:
         """Update attributes of a component at a specific line in the netlist
 
         :param line_no: line in the netlist
@@ -652,7 +652,7 @@ class SpiceCircuit(BaseEditor):
                 subckt_names.append(line.name())
         return subckt_names
 
-    def get_subcircuit_named(self, name: str) -> 'SpiceCircuit | None':
+    def get_subcircuit_named(self, name: str) -> SpiceCircuit | None:
         """
         Returns the sub-circuit object with the given name.
         
@@ -906,7 +906,7 @@ class SpiceCircuit(BaseEditor):
             self.netlist.append(f'.SUBCKT {new_name}{END_LINE_TERM}')
             self.netlist.append(f'.ENDS {new_name}{END_LINE_TERM}')
 
-    def get_component(self, reference: str) -> 'SpiceComponent | SpiceCircuit':
+    def get_component(self, reference: str) -> SpiceComponent | SpiceCircuit:
         """
         Returns an object representing the given reference in the schematic file.
 
@@ -1309,7 +1309,7 @@ class SpiceCircuit(BaseEditor):
         return self._readonly    
 
     @staticmethod
-    def find_subckt_in_lib(library: str, subckt_name: str) -> 'SpiceCircuit | None':
+    def find_subckt_in_lib(library: str, subckt_name: str) -> SpiceCircuit | None:
         """
         Finds a sub-circuit in a library. The search is case-insensitive.
 
@@ -1341,7 +1341,7 @@ class SpiceCircuit(BaseEditor):
         #  3. Return an instance of SpiceCircuit
         return None
 
-    def find_subckt_in_included_libs(self, subcircuit_name: str) -> 'SpiceCircuit | None':
+    def find_subckt_in_included_libs(self, subcircuit_name: str) -> SpiceCircuit | None:
         """Find the subcircuit in the list of libraries
 
         :param subcircuit_name: sub-circuit to search for

@@ -18,7 +18,6 @@
 # -------------------------------------------------------------------------------
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Callable, Type
 
 from ..run_task import RunTask, CallbackType, CallbackArgsType
 from ...editor.base_editor import BaseEditor, scan_eng

@@ -21,6 +21,7 @@ __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from typing import TypeAlias
 from math import floor, log
 from pathlib import Path
 import logging
@@ -33,7 +34,7 @@ from ..sim.simulator import Simulator
 
 _logger = logging.getLogger("spicelib.BaseEditor")
 
-ValueType = str | float | int | complex
+ValueType: TypeAlias = str | float | int | complex
 
 SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
 # Ex: Editor.set_component_value('XU1:R1', '1k')
@@ -479,7 +480,7 @@ class BaseEditor(ABC):
         ...
         
     @abstractmethod
-    def get_all_parameter_names(self, param: str) -> list[str]:
+    def get_all_parameter_names(self) -> list[str]:
         """
         Returns all parameter names from the netlist.
 

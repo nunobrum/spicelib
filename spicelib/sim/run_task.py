@@ -31,7 +31,7 @@ from collections.abc import Callable
 from copy import copy
 from pathlib import Path
 from time import sleep
-from typing import Any, Type
+from typing import Any
 
 from ..editor.updates import Updates, UpdateValueType
 
@@ -62,7 +62,7 @@ def format_time_difference(time_diff):
 class RunTask(threading.Thread):
     """This is an internal Class and should not be used directly by the User."""
 
-    def __init__(self, simulator: Type[Simulator], runno, netlist_file: Path,
+    def __init__(self, simulator: type[Simulator], runno, netlist_file: Path,
                  callback: CallbackType = None,
                  callback_args: CallbackArgsType = None,
                  switches: list | None = None,
