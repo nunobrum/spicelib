@@ -39,7 +39,7 @@ ValueType: TypeAlias = str | float | int | complex
 SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
 # Ex: Editor.set_component_value('XU1:R1', '1k')
 
-UNIQUE_SIMULATION_DOT_INSTRUCTIONS = ('.AC', '.DC', '.TRAN', '.NOISE', '.DC', '.TF')
+UNIQUE_SIMULATION_DOT_INSTRUCTIONS = ('.AC', '.DC', '.TRAN', '.NOISE', '.TF')
 SPICE_DOT_INSTRUCTIONS = (
     '.BACKANNO',
     '.END',
