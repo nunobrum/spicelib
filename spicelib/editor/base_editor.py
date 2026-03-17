@@ -21,7 +21,7 @@ __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import TypeAlias
+from typing import Final, TypeAlias
 from math import floor, log
 from pathlib import Path
 import logging
@@ -36,11 +36,11 @@ _logger = logging.getLogger("spicelib.BaseEditor")
 
 ValueType: TypeAlias = str | float | int | complex
 
-SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
+SUBCKT_DIVIDER: Final[str] = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
 # Ex: Editor.set_component_value('XU1:R1', '1k')
 
-UNIQUE_SIMULATION_DOT_INSTRUCTIONS = ('.AC', '.DC', '.TRAN', '.NOISE', '.DC', '.TF')
-SPICE_DOT_INSTRUCTIONS = (
+UNIQUE_SIMULATION_DOT_INSTRUCTIONS: Final[tuple[str, ...]] = ('.AC', '.DC', '.TRAN', '.NOISE', '.TF')
+SPICE_DOT_INSTRUCTIONS: Final[tuple[str, ...]] = (
     '.BACKANNO',
     '.END',
     '.ENDS',
