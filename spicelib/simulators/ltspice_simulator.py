@@ -87,7 +87,7 @@ class LTspice(Simulator):
                 # Linux would use this: 
                 #    '/home/myuser/.wine/drive_c/users/myuser/AppData/...'  for _spice_exe_win_paths[0]
                 # or '/home/myuser/.wine/drive_c/Program Files/...'         for _spice_exe_win_paths[2]
-                # MacOS would use this: 
+                # macOS would use this:
                 #    '/Users/myuser/.wine/drive_c/users/myuser/AppData/...' for _spice_exe_win_paths[0]    
                 # or '/Users/myuser/.wine/drive_c/Program Files/...'        for _spice_exe_win_paths[2]  
                 # Note that in the user path versions (_spice_exe_win_paths[0] and [1]), I have 2 expansions of the user name.
@@ -104,7 +104,7 @@ class LTspice(Simulator):
                     break
             else:
                 # The else block will not be executed if the loop is stopped by a break statement.
-                # in case of MacOS, try the native LTspice as last resort
+                # in case of macOS, try the native LTspice as last resort
                 if sys.platform == "darwin":
                     exe = '/Applications/LTspice.app/Contents/MacOS/LTspice'
                     if os.path.exists(exe):
@@ -169,10 +169,9 @@ class LTspice(Simulator):
 
     @classmethod
     def using_macos_native_sim(cls) -> bool:
-        """Tells if the simulator used is the MacOS native LTspice
+        """Tells if the simulator used is the macOS native LTspice
 
-        :return: True if the MacOS native LTspice is used, False otherwise (will also return False on Windows or Linux)
-        :rtype: bool
+        :return: True if the macOS native LTspice is used, False otherwise (will also return False on Windows or Linux)
         """
         return sys.platform == "darwin" and cls.spice_exe and "wine" not in cls.spice_exe[0].lower()
 
@@ -200,16 +199,14 @@ class LTspice(Simulator):
         * `-Run`: Start simulating the schematic opened on the command line without pressing the Run button.
         * `-b`: Run in batch mode.
                 
-        MacOS native LTspice accepts no command line switches (yet), use it under wine for full support.
+        macOS native LTspice accepts no command line switches (yet), use it under wine for full support.
 
         :param switch: switch to be added.
-        :type switch: str
         :param path: path to the file related to the switch being given.
-        :type path: str, optional
         :return: Nothing
         """
         
-        # See if the MacOS simulator is used. If so, check if I use the native simulator
+        # See if the macOS simulator is used. If so, check if I use the native simulator
         if cls.using_macos_native_sim():
             # this is the native LTspice. It has no useful command line switches (except '-b').
             raise ValueError("MacOS native LTspice does not support command line switches. Use it under wine for full support.")
@@ -244,11 +241,8 @@ class LTspice(Simulator):
         but with `.raw` and `.log` extension.        
 
         :param netlist_file: path to the netlist file
-        :type netlist_file: Union[str, pathlib.Path]
         :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
-        :type cmd_line_switches: list, optional
         :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
-        :type timeout: float, optional
         :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), 
             and an existing file object with a valid file descriptor. 
             With the default settings of None, no redirection will occur. Also see `exe_log` for a simpler form of control.
@@ -256,14 +250,11 @@ class LTspice(Simulator):
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
         :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
-        :type cwd: Union[str, pathlib.Path, None], optional
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
-        :type exe_log: bool, optional            
         :raises SpiceSimulatorError: when the executable is not found.
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :return: return code from the process
-        :rtype: int
         """
         if not cls.is_available():
             _logger.error("================== ALERT! ====================")
@@ -283,7 +274,7 @@ class LTspice(Simulator):
         
         if sys.platform == "linux" or sys.platform == "darwin":
             if cls.using_macos_native_sim():
-                # native MacOS simulator, which has its limitations
+                # native macOS simulator, which has its limitations
                 if netlist_file.suffix.lower().endswith(".asc"):
                     raise NotImplementedError("MacOS native LTspice cannot run simulations on '.asc' files. Simulate '.net' or '.cir' files or use LTspice under wine.")
                 
@@ -306,17 +297,14 @@ class LTspice(Simulator):
         return error
 
     @classmethod
-    def create_netlist(cls, circuit_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None, 
+    def create_netlist(cls, circuit_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None,
                        stdout=None, stderr=None, 
                        cwd: str | Path | None = None, exe_log: bool = False) -> Path:
         """Create a netlist out of the circuit file
 
         :param circuit_file: path to the circuit file
-        :type circuit_file: Union[str, pathlib.Path]
         :param cmd_line_switches: additional command line options. Best to have been validated by valid_switch(), defaults to None
-        :type cmd_line_switches: list, optional
         :param timeout: If timeout is given, and the process takes too long, a TimeoutExpired exception will be raised, defaults to None
-        :type timeout: float, optional        
         :param stdout: control redirection of the command's stdout. Valid values are None, subprocess.PIPE, subprocess.DEVNULL, an existing file descriptor (a positive integer), 
             and an existing file object with a valid file descriptor. 
             With the default settings of None, no redirection will occur. Also see `exe_log` for a simpler form of control.
@@ -324,14 +312,11 @@ class LTspice(Simulator):
         :param stderr: Like stdout, but affecting the command's error output. Also see `exe_log` for a simpler form of control.
         :type stderr: _FILE, optional
         :param cwd: The current working directory to run the command in. If None, no change will be done of the working directory. This may not work as wanted when using the simulator under wine.
-        :type cwd: Union[str, pathlib.Path, None], optional
         :param exe_log: If True, stdout and stderr will be ignored, and the simulator's execution console messages will be written to a log file 
             (named ...exe.log) instead of console. This is especially useful when running under wine or when running simultaneous tasks.
-        :type exe_log: bool, optional            
         :raises NotImplementedError: when the requested execution is not possible on this platform.
         :raises RuntimeError: when the netlist cannot be created
         :return: path to the netlist produced
-        :rtype: pathlib.Path
         """
         if not cls.is_available():
             _logger.error("================== ALERT! ====================")

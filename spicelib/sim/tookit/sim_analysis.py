@@ -19,11 +19,10 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-import logging
-from collections.abc import Callable
 from functools import wraps
+import logging
 
-from ..sim_runner import AnyRunner, RunTask, ProcessCallback
+from ..sim_runner import AnyRunner, RunTask, CallbackType, CallbackArgsType
 from ...editor.base_editor import BaseEditor
 from ...log.logfile_data import LogfileData
 from ...utils.detect_encoding import EncodingDetectError
@@ -72,11 +71,11 @@ class SimAnalysis:
 
     def run(self, *,
             wait_resource: bool = True,
-            callback: type[ProcessCallback] | Callable = None,
-            callback_args: tuple | dict = None,
-            switches=None,
-            timeout: float = None,
-            run_filename: str = None,
+            callback: CallbackType = None,
+            callback_args: CallbackArgsType = None,
+            switches: list | None = None,
+            timeout: float | None = None,
+            run_filename: str | None = None,
             exe_log: bool = True,
             ) -> RunTask | None:
         """

@@ -31,8 +31,8 @@ from pathlib import Path
 from spicelib.sim.process_callback import ProcessCallback
 
 _logger = logging.getLogger("spicelib.SimStepper")
-from ..editor.base_editor import BaseEditor
-from .sim_runner import AnyRunner
+from ..editor.base_editor import BaseEditor, ValueType
+from .sim_runner import AnyRunner, CallbackType, CallbackArgsType
 
 
 class StepInfo:
@@ -117,7 +117,7 @@ class SimStepper(AnyRunner):
         self.current_values.update(**kwargs)
 
     @wraps(BaseEditor.set_parameter, updated=())  # updated=() solves conflict between wraps and abstract classes
-    def set_parameter(self, param: str, value: str | int | float) -> None:
+    def set_parameter(self, param: str, value: ValueType) -> None:
         self.netlist.set_parameter(param, value)
         self.current_values[param] = value
 
@@ -127,7 +127,7 @@ class SimStepper(AnyRunner):
         self.current_values.update(**kwargs)
 
     @wraps(BaseEditor.set_component_value, updated=())  # updated=() solves conflict between wraps and abstract classes
-    def set_component_value(self, device: str, value: str | int | float) -> None:
+    def set_component_value(self, device: str, value: ValueType) -> None:
         self.netlist.set_component_value(device, value)
         self.current_values[device] = value
 
@@ -164,9 +164,9 @@ class SimStepper(AnyRunner):
         return total
 
     def run_all(self,
-                callback: type[ProcessCallback] | Callable = None,
-                callback_args: tuple | dict = None,
-                switches=None,
+                callback: CallbackType = None,
+                callback_args: CallbackArgsType = None,
+                switches: list | None = None,
                 timeout: float = None,
                 wait_completion: bool = True,
                 filenamer: Callable[[dict[str, str]], str] = None,
@@ -184,22 +184,15 @@ class SimStepper(AnyRunner):
         wait_completion parameters.
 
         :param callback: See the SimRunner run method.
-        :type callback: function(raw_file: pathlib.Path, log_file: pathlib.Path, ...), optional
         :param callback_args: See the SimRunner run method.
-        :type callback_args: dict or tuple, optional
         :param switches: Command line switches override
-        :type switches: list
         :param timeout: See the SimRunner run method.
-        :type timeout: float, optional
         :param wait_completion:  See the SimRunner run method.
-        :type wait_completion: bool, optional
         :param filenamer:
             A function that receives a dictionary in keyword form (``**dict``) and returns a string. This string will be
             passed to the run_filename parameter on the SimRunner run method. It is important that the function assures
             a unique filename per simulation.
-        :type filenamer: Callable receiving keyword parameters.
         :param exe_log: See the SimRunner run method.
-        :type exe_log: bool, optional
         :returns: Nothing
         """
         iter_no = 0
@@ -253,9 +246,7 @@ class SimStepper(AnyRunner):
         there were set for that simulation.
 
         :param export_filename: export file path
-        :type export_filename: str or pathlib.Path
         :param delimiter: delimiter character on the CSV
-        :type delimiter: str
         """
         import csv
 
@@ -278,17 +269,6 @@ class SimStepper(AnyRunner):
                 row_data_with_id = {'runno': runno}
                 row_data_with_id.update(self.sim_info[runno])
                 writer.writerow(row_data_with_id)
-
-    # def run(self, netlist: Union[str, Path, BaseEditor], *,
-    #         wait_resource: bool = True,
-    #         callback: Union[Type[ProcessCallback], Callable] = None,
-    #         callback_args: Union[tuple, dict] = None,
-    #         switches=None,
-    #         timeout: float = None,
-    #         run_filename: str = None,
-    #         exe_log: bool = False) -> Union[RunTask, None]:
-    #     """Rather uses run_all instead"""
-    #     self.run_all()
 
     @property
     def okSim(self):

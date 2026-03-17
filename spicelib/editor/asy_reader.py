@@ -56,7 +56,7 @@ class AsyReader:
         else:
             self.encoding = encoding
             
-        with open(self._asy_file_path, 'r', encoding=self.encoding) as asc_file:
+        with open(self._asy_file_path, encoding=self.encoding) as asc_file:
             _logger.info(f"Parsing ASY file {self._asy_file_path}")
             for line in asc_file:
                 if line.startswith("WINDOW"):

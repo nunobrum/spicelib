@@ -34,11 +34,8 @@ def zip_files(raw_filename: Path | None, log_filename: Path | None) -> Path | No
     """Zips the raw and log files into a single zip file.
 
     :param raw_filename: The path to the raw file.
-    :type raw_filename: Optional[pathlib.Path]
     :param log_filename: The path to the log file.
-    :type log_filename: Optional[pathlib.Path]
     :return: The path to the zip file or None if no files were provided.
-    :rtype: Optional[Path]
     """
     zip_filename = None
     if isinstance(raw_filename, Path) and raw_filename.exists():

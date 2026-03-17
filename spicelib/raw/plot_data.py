@@ -30,9 +30,7 @@ def dtype_from_string(dtype_str: str) -> np.dtype:
     """Converts a string representation of a data type to a numpy dtype.
 
     :param dtype_str: The string representation of the data type
-    :type dtype_str: str
     :return: The numpy dtype
-    :rtype: np.dtype
     :raises ValueError: if the string representation is not recognized
     """
     if dtype_str in dtype_map:
@@ -74,10 +72,8 @@ def raw_detect_encoding(raw_file: io.IOBase, header_offset=0) -> str:
     """Detects the encoding of the RAW file.
 
     :param raw_file: The file object to read from
-    :type raw_file: io.BufferedReader
     :param header_offset: If applicable the offset on the file where the header is located
     :return: The encoding of the RAW file
-    :rtype: str
     :raises EncodingDetectError: if the encoding cannot be detected
     """
     # I cannot use detectencoding() here, as that only works on real text files.
@@ -505,7 +501,6 @@ class PlotData(PlotInterface):
         :param property_name: name of the property to retrieve. If None, all properties are returned.
         :type property_name: str
         :returns: Property object
-        :rtype: str
         :raises: ValueError if the property doesn't exist
         """
         # the property name is case-insensitive, but the keys are stored in title case.
@@ -521,7 +516,6 @@ class PlotData(PlotInterface):
         Get all raw properties.
 
         :return: Dictionary of all raw properties
-        :rtype: dict[str, str]
         """
         return self._raw_params
 
@@ -540,7 +534,6 @@ class PlotData(PlotInterface):
         * 'Integrated Noise'
 
         :return: plot name
-        :rtype: str
         """
         property_name = "Plotname"
         if property_name in self._raw_params.keys():
@@ -553,7 +546,6 @@ class PlotData(PlotInterface):
         Returns a list of exiting trace names of the RAW file.
 
         :return: trace names
-        :rtype: list[str]
         """
         # parsing the aliases needs to be done before implementing this.
         return self.raw_params['Variables'] + list(self._aliases.keys())
@@ -597,11 +589,8 @@ class PlotData(PlotInterface):
         """Reads a specific number of bytes from a file.
 
         :param raw_file: The file object to read from
-        :type raw_file: io.BufferedReader
         :param num_bytes: The number of bytes to read
-        :type num_bytes: int
         :return: The bytes read from the file
-        :rtype: bytes
         :raises SpiceReadException: if the number of bytes read is less than requested
         """
         data = raw_file.read(num_bytes)
@@ -718,9 +707,7 @@ class PlotData(PlotInterface):
         Retrieves the trace with the requested name (trace_ref).
 
         :param trace_ref: Name of the trace or the index of the trace
-        :type trace_ref: str or int
         :return: An object containing the requested trace
-        :rtype: DataSet subclass
         :raises IndexError: When a trace is not found
         """
         if isinstance(trace_ref, str):
@@ -763,11 +750,8 @@ class PlotData(PlotInterface):
         Retrieves the trace data with the requested name (trace_ref), optionally providing the step number.
 
         :param trace_ref: Name of the trace or the index of the trace
-        :type trace_ref: str or int
         :param step: Optional parameter specifying which step to retrieve.
-        :type step: int
         :return: A numpy array containing the requested waveform.
-        :rtype: numpy.array
         :raises IndexError: When a trace is not found
         """
         trace = self.get_trace(trace_ref)
@@ -799,10 +783,8 @@ class PlotData(PlotInterface):
         the time trace have a negative value.
 
         :param step: Step number, defaults to 0
-        :type step: int, optional
         :raises RuntimeError: if the RAW file does not have an axis.
         :return: Array with the X axis
-        :rtype: Union[np.ndarray, list[float]]
         """
         if self._axis:
             axis = self.get_trace(0)
@@ -816,9 +798,7 @@ class PlotData(PlotInterface):
         Returns the length of the data at the give step index.
 
         :param step: the step index, defaults to 0
-        :type step: int, optional
         :return: The number of data points
-        :rtype: int
         """
         if self._axis is None:
             # If there is no axis, the length is the number of points
@@ -922,7 +902,6 @@ class PlotData(PlotInterface):
          stepped value.
 
         :return: The steps that match the query
-        :rtype: list[int]
         """
         if self._steps is None:
             return [0]  # returns a single step
@@ -952,13 +931,10 @@ class PlotData(PlotInterface):
         This function is used by the export functions.
 
         :param step: Step number to retrieve. If not given, it will return all steps
-        :type step: int
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
         :type kwargs: ``**dict``
         :return: A pandas DataFrame
-        :rtype: pandas.DataFrame
         """
         if columns is None:
             columns = self.get_trace_names()  # if no columns are given, use all traces
@@ -1001,9 +977,7 @@ class PlotData(PlotInterface):
         Returns a pandas DataFrame with the requested data.
 
         :param step: Step number to retrieve. If not given, it
-        :type step: int
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
         :type kwargs: ``**dict``
         :return: A pandas DataFrame
@@ -1024,11 +998,8 @@ class PlotData(PlotInterface):
         Saves the data to a CSV file.
 
         :param filename: Name of the file to save the data to
-        :type filename: str
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param step: Step number to retrieve. If not given, it
-        :type step: int
         :param separator: separator to use in the CSV file
         :type separator: str
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_csv function
@@ -1058,11 +1029,8 @@ class PlotData(PlotInterface):
         Saves the data to an Excel file.
 
         :param filename: Name of the file to save the data to
-        :type filename: Union[str, pathlib.Path]
         :param columns: List of traces to use as columns. Default is None, meaning all traces
-        :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1
-        :type step: Union[int, list[int]], optional
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
         :type kwargs: ``**dict``
         :raises ImportError: when the 'pandas' module is not installed

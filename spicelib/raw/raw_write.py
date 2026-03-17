@@ -110,7 +110,6 @@ class RawWrite:
         was defined, it will automatically assign a name.
         
         :param trace: Needs to be of the
-        :type trace: Trace
         :return: Nothing
         """
         assert isinstance(trace, Trace), "The trace needs to be of the type ""Trace"""
@@ -147,7 +146,6 @@ class RawWrite:
         in this version.
         
         :param filename: filename to where the RAW file is going to be written. Make sure that the extension of the file is .RAW.
-        :type filename: str or pathlib.Path
         :return: Nothing
         """
         if len(self._imported_data):
@@ -213,9 +211,7 @@ class RawWrite:
         Merge two RawWrite classes together resulting in a new instance
         
         :param other: an instance of the RawRead class where the traces are going to be copied from.
-        :type other: RawRead
         :param trace_filter: A list of signals that should be imported into the new file
-        :type trace_filter: list, tuple, or just a string for one trace
 
         :keyword force_axis_alignment: If two raw files don't have the same axis, an attempt is made to sync the two
 

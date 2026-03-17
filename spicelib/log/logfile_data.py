@@ -79,9 +79,7 @@ def try_convert_value(value: str | int | float | list) -> int | float | str | li
     value as string.
 
     :param value: value to convert
-    :type value: str, int or float
     :return: converted value, if applicable
-    :rtype: int, float, str
     """
     if isinstance(value, (int, float)):
         return value
@@ -198,11 +196,8 @@ class LogfileData:
         Returns the steps that contain a given condition.
 
         :param param: parameter identifier on a stepped simulation. This is case insensitive.
-        :type param: str
         :param value:
-        :type value:
         :return: List of positions that respect the condition of equality with parameter value
-        :rtype: list[int]
         """
         param = param.lower()
         if param in self.stepset:
@@ -223,7 +218,6 @@ class LogfileData:
         :key conditions: parameters within the Spice simulation. Values are the matches to be found.
         :type conditions: dict
         :return: List of steps that respect all the given conditions
-        :rtype: list[int]
         """
         current_set = None
         for param, value in conditions.items():
@@ -240,7 +234,6 @@ class LogfileData:
         """
         Returns the stepped variable names on the log file.
         :return: List of step variables.
-        :rtype: list[str]
         """
         return list(self.stepset.keys())
 
@@ -248,7 +241,6 @@ class LogfileData:
         """
         Returns the names of the measurements read from the log file.
         :return: List of measurement names.
-        :rtype: list[str]
         """
         return list(self.dataset.keys())
 
@@ -257,12 +249,9 @@ class LogfileData:
         Returns a measure value on a given step.
 
         :param measure: name of the measurement to get. This is case insensitive.
-        :type measure: str
         :param step: optional step number or slice if the simulation has no steps.
-        :type step: int or slice
         :param kwargs: additional arguments that can be translated into step conditions
         :return: measurement value
-        :rtype: int, float, Complex or str
         """
         measure = measure.lower()
         if step is None:
@@ -375,15 +364,12 @@ class LogfileData:
         be done. And in this case, the user must provide a string that will identify the LTSpice batch run.
 
         :param export_file: path to the file containing the information
-        :type export_file: str
         :param optional encoding: encoding to be used in the file
         :type encoding: str
         :param optional append_with_line_prefix: user information to be written in the file in case an append is to be made.
         :type append_with_line_prefix: str
         :param optional value_separator: character to be used to separate values
-        :type value_separator: str
         :param optional line_terminator: Line terminator character
-        :type line_terminator: str
         :return: Nothing
         """
         if append_with_line_prefix is None:

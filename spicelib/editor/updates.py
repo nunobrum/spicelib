@@ -108,9 +108,11 @@ class Updates:
         for update in self.netlist_updates:
             if update.updates == UpdateType.UpdateComponentValue and update.name == reference:
                 return update.value
+        return None
 
-    def parameter(self, name):
+    def parameter(self, name) -> UpdateValueType:
         "Get the update done to a parameter. Returns None if there wasn't any update."
         for update in self.netlist_updates:
             if update.updates in (UpdateType.UpdateParameter, UpdateType.AddParameter) and name == update.name:
                 return update.value
+        return None

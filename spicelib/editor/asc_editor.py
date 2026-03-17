@@ -15,9 +15,6 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
-
-from __future__ import annotations
-
 import os.path
 import sys
 from pathlib import Path
@@ -32,7 +29,7 @@ from .spice_editor import SpiceEditor, SpiceCircuit
 from ..simulators.ltspice_simulator import LTspice
 from ..utils.file_search import search_file_in_containers
 from .base_editor import format_eng, ComponentNotFoundError, ParameterNotFoundError, PARAM_REGEX, \
-    UNIQUE_SIMULATION_DOT_INSTRUCTIONS
+    UNIQUE_SIMULATION_DOT_INSTRUCTIONS, ValueType
 from .base_schematic import (BaseSchematic, Point, Line, Shape, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
 from .asy_reader import AsyReader
 
@@ -87,7 +84,6 @@ class AscEditor(BaseSchematic):
         For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
 
         :param run_netlist_file: File name of the netlist file.
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :returns: Nothing
         """
         if isinstance(run_netlist_file, io.StringIO):
@@ -305,7 +301,7 @@ class AscEditor(BaseSchematic):
         answer = AsyReader(asy_path)
         return answer
 
-    def _get_subcircuit(self, symbol: AsyReader) -> SpiceEditor | AscEditor:
+    def _get_subcircuit(self, symbol: AsyReader) -> 'SpiceEditor | AscEditor':
         # two main possibilities here:
         # either the symbol refers to a library file,
         # either to a subcircuit in another .asc file. This appears to only happen with BLOCK symbols
@@ -340,7 +336,7 @@ class AscEditor(BaseSchematic):
             answer = SpiceEditor.find_subckt_in_lib(lib_path, model)
         return answer
 
-    def get_subcircuit(self, reference: str) -> AscEditor:
+    def get_subcircuit(self, reference: str) -> 'AscEditor':
         """Returns an AscEditor file corresponding to the symbol"""
         sub = self.get_component(reference)
         if '_SUBCKT' in sub.attributes:
@@ -397,7 +393,7 @@ class AscEditor(BaseSchematic):
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
-    def set_parameter(self, param: str, value: str | int | float) -> None:
+    def set_parameter(self, param: str, value: ValueType) -> None:
         super().set_parameter(param, value)
         match, directive = self._get_param_named(param)
         if isinstance(value, (int, float)):
@@ -420,7 +416,7 @@ class AscEditor(BaseSchematic):
             self.directives.append(directive)
         self.updated = True
 
-    def set_component_value(self, device: str, value: str | int | float) -> None:
+    def set_component_value(self, device: str, value: ValueType) -> None:
         """
         Sets the value of the component
 
@@ -471,12 +467,9 @@ class AscEditor(BaseSchematic):
         That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, plus all contents of SpiceLine, SpiceLine2
 
         :param element: Reference of the circuit element to get the parameters.
-        :type element: str
         :param as_dicts: will report the contents of SpiceLine and SpiceLine2 inside a SpiceLine/SpiceLine2 instead of separately.
-        :type as_dicts: bool
 
         :return: parameters of the circuit element in dictionary format.
-        :rtype: dict
 
         :raises: ComponentNotFoundError - In case the component is not found
 
@@ -521,7 +514,6 @@ class AscEditor(BaseSchematic):
          editor.set_component_parameters(R1, **value_settings)
 
         :param element: Reference of the circuit element.
-        :type element: str
 
         :key <param_name>:
             The key is the parameter name and the value is the value to be set. Values can either be

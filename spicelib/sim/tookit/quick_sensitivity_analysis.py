@@ -17,10 +17,9 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import logging
-from collections.abc import Callable
 
 from .tolerance_deviations import ToleranceDeviations, DeviationType
-from ..sim_runner import AnyRunner, ProcessCallback
+from ..sim_runner import AnyRunner, CallbackType, CallbackArgsType
 from ...editor.base_editor import BaseEditor
 from ...log.logfile_data import LogfileData
 
@@ -94,11 +93,11 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
             return None
 
     def run_analysis(self,
-                     callback: type[ProcessCallback] | Callable = None,
-                     callback_args: tuple | dict = None,
-                     switches=None,
-                     timeout: float = None,
-                     exe_log: bool = True,
+                     callback: CallbackType = None,
+                     callback_args: CallbackArgsType = None,
+                     switches: list | None = None,
+                     timeout: float | None = None,
+                     exe_log: bool | None = True,
                      ):
         self.clear_simulation_data()
         self.elements_analysed.clear()

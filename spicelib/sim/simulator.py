@@ -73,8 +73,8 @@ class Simulator(ABC):
     .. code-block:: python
         
         @classmethod
-        def run(cls, netlist_file: Union[str, Path], cmd_line_switches: Optional[list] = None, timeout: Optional[float] = None,
-            stdout=None, stderr=None, cwd: Union[str, Path, None] = None, exe_log: bool = False) -> int:
+        def run(cls, netlist_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None,
+            stdout=None, stderr=None, cwd: str | Path | None = None, exe_log: bool = False) -> int:
             '''This method implements the call for the simulation of the netlist file. '''
             cmd_run = cls.spice_exe + ['-Run'] + ['-b'] + [netlist_file] + cmd_line_switches
             return run_function(cmd_run, timeout=timeout, stdout=stdout, stderr=stderr, cwd=cwd)
@@ -163,7 +163,7 @@ class Simulator(ABC):
 
     @classmethod
     @abstractmethod
-    def run(cls, netlist_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None = None,
+    def run(cls, netlist_file: str | Path, cmd_line_switches: list | None = None, timeout: float | None= None,
             stdout=None, stderr=None, cwd: str | Path | None = None, exe_log: bool = False) -> int:
         """This method implements the call for the simulation of the netlist file. This should be overriden by its
         subclass."""
@@ -198,7 +198,6 @@ class Simulator(ABC):
         This is companion with `set_custom_library_paths()`
 
         :return: the list of paths where the libraries should be located.
-        :rtype: list[str]
         """
         paths = []
         myexe = None
@@ -239,11 +238,8 @@ class Simulator(ABC):
           * ~/mydir -> /mywineroot/.wine/drive_c/users/myuser/mydir
         
         :param path: The path to expand. Must be in posix format, use `PureWindowsPath(path).as_posix()` to transform a windows path to a posix path.
-        :type path: str
         :param exe_path: path to a related executable that may or may not be under wine, defaults to None, ignored on Windows
-        :type exe_path: str, optional
         :return: the fully expanded path, as posix path, will return None if the path does not exist.
-        :rtype: Optional[str]
         """
         c_drive = None
         # See if I'm under wine

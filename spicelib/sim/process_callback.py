@@ -23,7 +23,9 @@
 from __future__ import annotations
 
 from multiprocessing import Process, Queue
-from typing import Any
+from typing import Any, TypeAlias
+from collections.abc import Callable
+from pathlib import Path
 
 
 class ProcessCallback(Process):
@@ -46,5 +48,9 @@ class ProcessCallback(Process):
 
     @staticmethod
     def callback(raw_file, log_file, **kwargs) -> Any:
-        """This function needs to be overriden"""
+        """This function needs to be overridden"""
         ...
+
+
+CallbackType: TypeAlias = type[ProcessCallback] | Callable[[Path | None, Path | None], Any] | None
+CallbackArgsType: TypeAlias = tuple | dict | None

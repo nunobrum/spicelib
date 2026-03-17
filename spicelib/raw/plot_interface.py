@@ -77,7 +77,6 @@ class PlotInterface(ABC):
         :param property_name: name of the property to retrieve. If None, all properties are returned.
         :type property_name: str
         :returns: Property object
-        :rtype: str
         :raises: ValueError if the property doesn't exist
         """
         ...
@@ -88,7 +87,6 @@ class PlotInterface(ABC):
         Get all raw properties.
 
         :return: Dictionary of all raw properties
-        :rtype: dict[str, str]
         """
         ...
 
@@ -108,9 +106,7 @@ class PlotInterface(ABC):
         Retrieves the trace with the requested name (trace_ref).
 
         :param trace_ref: Name of the trace or the index of the trace
-        :type trace_ref: str or int
         :return: An object containing the requested trace
-        :rtype: DataSet subclass
         :raises IndexError: When a trace is not found
         """
         ...
@@ -121,11 +117,8 @@ class PlotInterface(ABC):
         Retrieves the trace data with the requested name (trace_ref), optionally providing the step number.
 
         :param trace_ref: Name of the trace or the index of the trace
-        :type trace_ref: str or int
         :param step: Optional parameter specifying which step to retrieve.
-        :type step: int
         :return: A numpy array containing the requested waveform.
-        :rtype: numpy.array
         :raises IndexError: When a trace is not found
         """
         ...
@@ -138,10 +131,8 @@ class PlotInterface(ABC):
         the time trace have a negative value.
 
         :param step: Step number, defaults to 0
-        :type step: int, optional
         :raises RuntimeError: if the RAW file does not have an axis.
         :return: Array with the X axis
-        :rtype: Union[np.ndarray, list[float]]
         """
         ...
 
@@ -151,9 +142,7 @@ class PlotInterface(ABC):
         Returns the length of the data at the give step index.
 
         :param step: the step index, defaults to 0
-        :type step: int, optional
         :return: The number of data points
-        :rtype: int
         """
         ...
 
@@ -173,7 +162,6 @@ class PlotInterface(ABC):
          stepped value.
 
         :return: The steps that match the query
-        :rtype: list[int]
         """
         ...
 
@@ -186,13 +174,10 @@ class PlotInterface(ABC):
         This function is used by the export functions.
 
         :param step: Step number to retrieve. If not given, it will return all steps
-        :type step: int
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
         :type kwargs: ``**dict``
         :return: A pandas DataFrame
-        :rtype: pandas.DataFrame
         """
         ...
 
@@ -202,9 +187,7 @@ class PlotInterface(ABC):
         Returns a pandas DataFrame with the requested data.
 
         :param step: Step number to retrieve. If not given, it
-        :type step: int
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
         :type kwargs: ``**dict``
         :return: A pandas DataFrame
@@ -220,11 +203,8 @@ class PlotInterface(ABC):
         Saves the data to a CSV file.
 
         :param filename: Name of the file to save the data to
-        :type filename: str
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param step: Step number to retrieve. If not given, it
-        :type step: int
         :param separator: separator to use in the CSV file
         :type separator: str
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_csv function
@@ -239,11 +219,8 @@ class PlotInterface(ABC):
         Saves the data to an Excel file.
 
         :param filename: Name of the file to save the data to
-        :type filename: Union[str, pathlib.Path]
         :param columns: List of traces to use as columns. Default is None, meaning all traces
-        :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1
-        :type step: Union[int, list[int]], optional
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
         :type kwargs: ``**dict``
         :raises ImportError: when the 'pandas' module is not installed

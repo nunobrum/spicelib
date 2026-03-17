@@ -78,7 +78,6 @@ class SimServer:
         folder.
         
         :return: True if the sources were added, False otherwise
-        :rtype: bool
         """
         _logger.info(f"Server: Add sources {session_id}")
         if session_id not in self.sessions:
@@ -100,13 +99,9 @@ class SimServer:
         """Runs a simulation for the given circuit.
 
         :param session_id: The ID of the session to run the simulation in
-        :type session_id: str
         :param circuit_name: The name of the circuit to simulate
-        :type circuit_name: str
         :param zip_data: The zip file containing the circuit files
-        :type zip_data: bytes
         :return: The run number of the simulation
-        :rtype: int
         """
         _logger.info(f"Server: Run {session_id} : {circuit_name}")
         if not self.add_sources(session_id, zip_data):
@@ -124,7 +119,6 @@ class SimServer:
         to the session.
 
         :return: A unique key that represents the session
-        :rtype: str
         """
         session_id = str(uuid.uuid4())  # Needs to be a string, otherwise the rpc client can't handle it
         _logger.info(f"Server: Starting session {session_id}")
@@ -136,9 +130,7 @@ class SimServer:
         Returns a list with the task numbers that are completed for that session
 
         :param session_id: The ID of the session to check
-        :type session_id: str
         :return: A list of completed task numbers for the session
-        :rtype: list[int]
         """
         _logger.debug(f"Server: status({session_id})")
         ret = []
@@ -155,11 +147,8 @@ class SimServer:
         """Returns the files associated with a specific run number of a completed task in a session.
 
         :param session_id: The ID of the session to check
-        :type session_id: str
         :param runno: The run number to check
-        :type runno: int
         :return: file name and content of the file
-        :rtype: tuple[str, Binary]
         """
         _logger.debug(f"Server: get_files({session_id}, {runno})")
         if runno in self.sessions[session_id]:
@@ -185,7 +174,6 @@ class SimServer:
         """Cleans all the pending sim_tasks with the session_id.
 
         :return: True if the session was closed successfully, False otherwise
-        :rtype: bool
         """
         _logger.info(f"Closing session {session_id}")
         if session_id not in self.sessions:
@@ -205,7 +193,6 @@ class SimServer:
         """Stops the server and cleans up resources.
 
         :return: True if the server was stopped successfully, False otherwise
-        :rtype: bool
         """
         _logger.debug("Server: stopping...ServerInterface")
         self.simulation_manager.stop()
@@ -217,6 +204,5 @@ class SimServer:
         """Checks if the server is currently running.
 
         :return: True if the server is running, False otherwise
-        :rtype: bool
         """
         return self.simulation_manager.running()

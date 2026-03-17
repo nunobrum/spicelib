@@ -18,11 +18,11 @@
 # -------------------------------------------------------------------------------
 
 import logging
-from collections.abc import Callable
 from enum import IntEnum
 
 from .worst_case import WorstCaseAnalysis, DeviationType
-from ..process_callback import ProcessCallback
+from ..process_callback import CallbackType, CallbackArgsType
+
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
 
@@ -71,9 +71,9 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
             self, *,
             runs_per_sim: int = None,  # This parameter is ignored
             wait_resource: bool = True, # This parameter is ignored
-            callback: type[ProcessCallback] | Callable = None,
-            callback_args: tuple | dict = None,
-            switches=None,
+            callback: CallbackType = None,
+            callback_args: CallbackArgsType = None,
+            switches: list | None = None,
             timeout: float = None,
             run_filename: str = None,
             exe_log: bool = False,
@@ -81,9 +81,9 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
         raise NotImplementedError("run_testbench() is not implemented in this class")
 
     def run_analysis(self,
-                     callback: type[ProcessCallback] | Callable = None,
-                     callback_args: tuple | dict = None,
-                     switches=None,
+                     callback: CallbackType = None,
+                     callback_args: CallbackArgsType = None,
+                     switches: list | None = None,
                      timeout: float = None,
                      measure: str = None,
                      exe_log: bool = True,
