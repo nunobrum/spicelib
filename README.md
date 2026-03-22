@@ -1132,8 +1132,9 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 ## History
 * Version 1.5.1
     * Completing the Python 3.10+ migration. 
-    * Handle LTSpice logs with bare `.step` lines
+    * Handle LTSpice logs with bare `.step` lines.
     * Removing the types from the docstrings where there are already type hints, to avoid redundancy and possible inconsistencies.
+    * Fixing issue #297 - Support for values with the format 2k7 in the Spice Toolkit.
 * Version 1.5.0
     * Fixing issue when using LTspice where `.db` files were not cleaned up after a simulation completes.
     * Removing 3.9 from the supported Python versions and setting 3.10 as the minimum version. 
