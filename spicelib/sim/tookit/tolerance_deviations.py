@@ -20,7 +20,7 @@ from abc import abstractmethod, ABC
 from dataclasses import dataclass
 
 from ..run_task import RunTask, CallbackType, CallbackArgsType
-from ...editor.base_editor import BaseEditor, scan_eng
+from ...editor.base_editor import BaseEditor, to_float
 from .sim_analysis import SimAnalysis, AnyRunner
 from enum import Enum
 
@@ -136,7 +136,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
             return value, ComponentDeviation.none()
         # The value needs to be able to be computed, otherwise it can't be used
         try:
-            value = scan_eng(value)
+            value = to_float(value, accept_invalid=False)
         except ValueError:
             return value, ComponentDeviation.none()
         if ref in self.device_deviations:
