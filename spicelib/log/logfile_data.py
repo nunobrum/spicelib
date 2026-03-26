@@ -244,7 +244,7 @@ class LogfileData:
         """
         return list(self.dataset.keys())
 
-    def get_measure_value(self, measure: str, step: int | slice = None, **kwargs) -> float | int | str | LTComplex:
+    def get_measure_value(self, measure: str, step: int | slice = None, **kwargs) -> float | int | str | LTComplex | None:
         """
         Returns a measure value on a given step.
 
@@ -253,7 +253,13 @@ class LogfileData:
         :param kwargs: additional arguments that can be translated into step conditions
         :return: measurement value
         """
-        measure = measure.lower()
+        for m in self.dataset.keys():
+            if m.lower() == measure.lower():
+                measure = m
+                break
+        else:
+            raise IndexError("Measurement \"%s\" not found" % measure)
+
         if step is None:
             if kwargs:
                 step = self.steps_with_conditions(**kwargs)
@@ -274,17 +280,14 @@ class LogfileData:
             else:
                 raise TypeError("Step must be an integer or a slice")
 
-    def get_measure_values_at_steps(self, measure: str, steps: None | int | Iterable) \
+    def get_measure_values_at_steps(self, measure: str, steps: int | Iterable | None) \
             -> list[float | int | str | LTComplex]:
         """
         Returns the measurements taken at a list of steps provided by the steps list.
 
-        :param measure: name of the measurement to get. This is case insensitive.
-        :type measure: str
+        :param measure: name of the measurement to get. This is case-insensitive.
         :param steps: step number, or list of step numbers.
-        :type steps: Optional: int or list
-        :return: measurement or list of measurements
-        :rtype: list with the values converted to either integer (int) or floating point (float)
+        :return: measurement or list of measurements.
         """
         measure = measure.lower()
         if steps is None:
