@@ -5,6 +5,11 @@ Installing LTspice
 LTspice can be downloaded from :
 https://www.analog.com/en/design-center/design-tools-and-calculators/ltspice-simulator.html
 
+Windows
++++++++
+
+LTspice will be installed in C:\Program Files\LTC\LTspiceXVII
+
 Linux
 +++++
 You can use wine to run the windows version of LTspice on Linux. This library will support it.

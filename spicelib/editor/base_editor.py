@@ -77,7 +77,7 @@ def PARAM_REGEX(pname):
     return r"(?P<name>" + pname + r")\s*[= ]\s*(?P<value>(?P<cb>\{)?(?(cb)[^\}]*\}|(?P<st>\")?(?(st)[^\"]*\"|[\d\.\+\-Ee]+[a-zA-Z%]*)))"
 
 
-def format_eng(value) -> str:
+def format_eng(value: float) -> str:
     """
     Helper function for formatting value with the SI qualifiers.  That is, it will use
 
@@ -92,7 +92,6 @@ def format_eng(value) -> str:
 
 
     :param value: float value to format
-    :type value: float
     :return: String with the formatted value
     """
     if value == 0.0:
@@ -133,7 +132,7 @@ def scan_eng(value: str) -> float:
 
 
     :param value: string to be converted to float
-    :return:
+    :return: float value of the string considering the SI multipliers
     :raises: ValueError when the value cannot be converted.
     """
     # Search for the last digit on the string. Assuming that all after the last number are SI qualifiers and units.
@@ -686,7 +685,7 @@ class BaseEditor(ABC):
             self.set_component_value(value, kwargs[value])
 
     @abstractmethod
-    def get_components(self, prefixes='*') -> list:
+    def get_components(self, prefixes: str = '*') -> list:
         """
         Returns a list of components that match the list of prefixes indicated on the parameter prefixes.
         In case prefixes is left empty, it returns all the ones that are defined by the REPLACE_REGEXES.
@@ -696,7 +695,6 @@ class BaseEditor(ABC):
             Type of prefixes to search for. Examples: 'C' for capacitors; 'R' for Resistors; etc... See prefixes
             in SPICE documentation for more details.
             The default prefix is '*' which is a special case that returns all components.
-        :type prefixes: str
 
         :return:
             A list of components matching the prefixes demanded.

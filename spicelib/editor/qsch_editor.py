@@ -353,7 +353,6 @@ class QschEditor(BaseSchematic):
     update the netlist and the parameters of the simulation. It can also be used to update the components.
 
     :param qsch_file: Path to the QSCH file to be edited
-    :type qsch_file: str
     :keyword create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
     """
 

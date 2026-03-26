@@ -1141,7 +1141,7 @@ class SpiceCircuit(BaseEditor):
         nodes = self.get_component(reference).ports
         return nodes
 
-    def get_components(self, prefixes='*') -> list:
+    def get_components(self, prefixes: str = '*') -> list:
         """
         Returns a list of components that match the list of prefixes indicated on the parameter prefixes.
         In case prefixes is left empty, it returns all the ones that are defined by the REPLACE_REGEXES.
@@ -1151,7 +1151,6 @@ class SpiceCircuit(BaseEditor):
             Type of prefixes to search for. Examples: 'C' for capacitors; 'R' for Resistors; etc... See prefixes
             in SPICE documentation for more details.
             The default prefix is '*' which is a special case that returns all components.
-        :type prefixes: str
 
         :return:
             A list of components matching the prefixes demanded.
@@ -1423,15 +1422,12 @@ class SpiceEditor(SpiceCircuit):
     netlist file.
 
     :param netlist_file: Name of the .NET file to parse
-    :type netlist_file: str or pathlib.Path
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This, however, is not 100% foolproof.
-    :type encoding: str, optional
     :param create_blank: Create a blank '.net' file when 'netlist_file' not exist. False by default
-    :type create_blank: bool, optional
     """
 
-    def __init__(self, netlist_file: str | Path, encoding='autodetect', create_blank=False):
+    def __init__(self, netlist_file: str | Path, encoding: str = 'autodetect', create_blank: bool = False):
         super().__init__()
         self.netlist_file = Path(netlist_file)
         if create_blank:

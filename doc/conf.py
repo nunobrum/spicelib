@@ -20,7 +20,7 @@ print(sys.path)
 # -- Project information -----------------------------------------------------
 
 project = 'spicelib'
-copyright = '2024, Nuno Brum'
+copyright = '2026, Nuno Brum'
 author = 'Nuno Brum'
 
 # The full version, including alpha/beta/rc tags

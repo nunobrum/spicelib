@@ -43,23 +43,21 @@ class SimServer:
     The server can be stopped by the client by calling the stop_server method.
 
     :param simulator: The simulator to be used. It must be a class that derives from the BaseSimulator class.
-    :type simulator: class
     :param parallel_sims: The maximum number of parallel simulations that the server can run. Default is 4.
-    :type parallel_sims: int
     :param output_folder: The folder where the results of the simulations will be stored. Default is './temp'
-    :type output_folder: str
     :param timeout: The maximum time that a simulation can run. Default is None, which means that there is no timeout.
-    :type timeout: float
     :param port: The port where the server will listen for requests. Default is 9000
-    :type port: int
     :param host: The IP address where the server will listen for requests. 
                  Default is 'localhost', which might mean that the server will only accept requests from the local machine.
                  Use '0.0.0.0' to accept requests from any IP address (if your firewall allows it).
-    :type host: str
     """
 
-    def __init__(self, simulator, parallel_sims=4, output_folder='./temp', timeout: float = 300, port=9000,
-                 host='localhost'):
+    def __init__(self, simulator: type | None = None, *,
+                 parallel_sims: int = 4,
+                 output_folder: str = './temp',
+                 timeout: float = 300,
+                 port: int = 9000,
+                 host: str = 'localhost'):
         self.output_folder = output_folder
         self.simulation_manager = ServerSimRunner(parallel_sims=parallel_sims, timeout=timeout, verbose=False,
                                                   output_folder=output_folder, simulator=simulator)
