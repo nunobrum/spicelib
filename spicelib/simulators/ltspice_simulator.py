@@ -63,18 +63,20 @@ class LTspice(Simulator):
         # Anything specified in environment variables?
         spice_folder = os.environ.get("LTSPICEFOLDER")
         spice_executable = os.environ.get("LTSPICEEXECUTABLE")
+        wine_folder = os.environ.get("WINEFOLDER", ".wine")
+        wine_executable = os.environ.get("WINEEXECUTABLE", "wine")
 
         if spice_folder and spice_executable:
-            spice_exe = ["wine", os.path.join(spice_folder, spice_executable)]
+            spice_exe = [wine_executable, os.path.join(spice_folder, spice_executable)]
             process_name = spice_executable
         elif spice_folder:
-            spice_exe = ["wine", os.path.join(spice_folder, "/XVIIx64.exe")]
+            spice_exe = [wine_executable, os.path.join(spice_folder, "/XVIIx64.exe")]
             process_name = "XVIIx64.exe"
         elif spice_executable:
             default_folder = os.path.expanduser(
-                "~/.wine/drive_c/Program Files/LTC/LTspiceXVII"
+                f"~/{wine_folder}/drive_c/Program Files/LTC/LTspiceXVII"
             )
-            spice_exe = ["wine", os.path.join(default_folder, spice_executable)]
+            spice_exe = [wine_executable, os.path.join(default_folder, spice_executable)]
             process_name = spice_executable
         else:
             # This is still "linux or darwin"
@@ -94,10 +96,10 @@ class LTspice(Simulator):
                 if exe.startswith("~"):
                     exe = "C:/users/" + os.path.expandvars("${USER}" + exe[1:])
                 # Now I have a "windows" path (but with forward slashes). Make it into a path under wine.
-                exe = os.path.expanduser(exe.replace("C:/", "~/.wine/drive_c/"))
+                exe = os.path.expanduser(exe.replace("C:/", f"~/{wine_folder}/drive_c/"))
                 
                 if os.path.exists(exe):
-                    spice_exe = ["wine", exe]
+                    spice_exe = [wine_executable, exe]
                     # Note that one easy method of killing a wine process is to run "wineserver -k", 
                     # but we kill via psutil....kill(), as that would also fit non-wine executions.
                     
@@ -126,6 +128,10 @@ class LTspice(Simulator):
         del spice_folder
     if 'spice_executable' in locals():
         del spice_executable
+    if 'wine_folder' in locals():
+        del wine_folder
+    if 'wine_executable' in locals():
+        del wine_executable
             
     # fall through        
     if len(spice_exe) == 0:
