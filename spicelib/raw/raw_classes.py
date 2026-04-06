@@ -22,7 +22,6 @@ Defines base classes for the RAW file data structures.
 """
 import numpy as np
 from numpy import zeros, complex128, float32, float64
-from typing import Union
 
 
 class DataSet:
@@ -37,7 +36,7 @@ class DataSet:
     Frequency.
     """
 
-    def __init__(self, name, whattype, datalen, numerical_type='real', data: Union[np.ndarray, list] = None):
+    def __init__(self, name, whattype, datalen, numerical_type='real', data: np.ndarray | list = None):
         """Base Class for both Axis and Trace Classes.
         Defines the common operations between both."""
         self.name = name
@@ -72,7 +71,6 @@ class DataSet:
     def get_wave(self) -> np.ndarray:
         """
         :return: Internal data array
-        :rtype: numpy.array
         """
         return self.data
 
@@ -91,7 +89,7 @@ class Axis(DataSet):
     """
 
     def __init__(self, name: str, whattype: str, datalen: int, numerical_type: str = 'double',
-                 data: Union[np.ndarray, list] = None):
+                 data: np.ndarray | list = None):
         super().__init__(name, whattype, datalen, numerical_type, data)
         self.step_info = None
 
@@ -119,9 +117,7 @@ class Axis(DataSet):
         offset within the binary stream where each step starts.
 
         :param step: Number of the step within the RAW file
-        :type step: int
         :return: The offset within the RAW file
-        :rtype: int
         """
         if self.step_info is None:
             if step > 0:
@@ -143,9 +139,7 @@ class Axis(DataSet):
         will return all available steps concatenated together.
 
         :param step: Optional step in stepped data raw files.
-        :type step: int
         :return: The trace values
-        :rtype: numpy.array
         """
         if step == 0:
             wave = self.data[:self.step_offset(1)]
@@ -165,33 +159,28 @@ class Axis(DataSet):
         the parts where more time accuracy is needed.
 
         :param step: Optional step number if reading a raw file with stepped data.
-        :type step: int
         :return: time axis
-        :rtype: numpy.array
         """
         assert self.name == 'time', \
             "This function is only applicable to transient analysis, where a bug exists on the time signal"
         return self.get_wave(step)
 
-    def get_point(self, n: int, step: int = 0) -> Union[float, complex]:
+    def get_point(self, n: int, step: int = 0) -> float | complex:
         """
         Get a point from the dataset
         
         :param n: position on the vector
-        :type n: int
         :param step: step index, defaults to 0
-        :type step: int, optional
         :returns: Value of the data point
-        :rtype: float, complex
         """
         return self.data[n + self.step_offset(step)]
 
-    def __getitem__(self, item) -> Union[float, complex]:
+    def __getitem__(self, item) -> float | complex:
         """This is only here for compatibility with previous code. """
         assert self.step_info is None, "Indexing should not be used with stepped data. Use get_point or get_wave"
         return self.data.__getitem__(item)
 
-    def get_position(self, t, step: int = 0) -> Union[int, float]:
+    def get_position(self, t, step: int = 0) -> int | float:
         """
         Returns the position of a point in the axis. If the point doesn't exist, an interpolation is done between the
         two closest points.
@@ -201,9 +190,7 @@ class Axis(DataSet):
         :param t: point in axis to search for
         :type t: float
         :param step: step number
-        :type step: int
         :returns: The position of parameter /t/ in the axis
-        :rtype: int, float
         """
         if self.name == 'time':
             timex = self.get_time_axis(step)
@@ -224,9 +211,7 @@ class Axis(DataSet):
         Returns the length of the axis.
         
         :param step: Optional parameter the step index.
-        :type step: int
         :return: The number of data points
-        :rtype: int
         """
         return self.step_offset(step + 1) - self.step_offset(step)
 
@@ -249,20 +234,17 @@ class TraceRead(DataSet):
     If numpy is available the get_wave() method will return a numpy array.
     """
 
-    def __init__(self, name, whattype, datalen, axis, numerical_type='real', data: Union[np.ndarray, list] = None):
+    def __init__(self, name, whattype, datalen, axis, numerical_type='real', data: np.ndarray | list = None):
         super().__init__(name, whattype, datalen, numerical_type, data)
         self.axis = axis
 
-    def get_point(self, n: int, step: int = 0) -> Union[float, complex]:
+    def get_point(self, n: int, step: int = 0) -> float | complex:
         """
         Implementation of the [] operator.
 
         :param n: item in the array
-        :type n: int
         :param step: Optional step number
-        :type step: int
         :return: float value of the item
-        :rtype: float, complex
         """
         if self.axis is None:
             if n != 0:
@@ -272,7 +254,7 @@ class TraceRead(DataSet):
         else:
             return self.data[self.axis.step_offset(step) + n]
 
-    def __getitem__(self, item) -> Union[float, complex]:
+    def __getitem__(self, item) -> float | complex:
         """This is only here for compatibility with previous code. """
         assert self.axis is None or self.axis.step_info is None, \
             "Indexing should not be used with stepped data. Use get_point() method"
@@ -287,9 +269,7 @@ class TraceRead(DataSet):
         If numpy is available the get_wave() method will return a numpy array.
 
         :param step: To be used when stepped data exist on the RAW file.
-        :type step: int
         :return: a List or numpy array (if installed) containing the data contained in this object.
-        :rtype: numpy.array
         """
         if self.axis is None:
             return super().get_wave()
@@ -299,7 +279,7 @@ class TraceRead(DataSet):
             else:
                 return self.data[self.axis.step_offset(step):self.axis.step_offset(step + 1)]
 
-    def get_point_at(self, t, step: int = 0) -> Union[float, complex]:
+    def get_point_at(self, t, step: int = 0) -> float | complex:
         """
         Get a point from the trace at the point specified by the /t/ argument.
         If the point doesn't exist on the axis, the data is interpolated using a linear regression between the two
@@ -308,7 +288,6 @@ class TraceRead(DataSet):
         :param t: point in the axis where to find the point.
         :type t: float, float32(numpy) or float64(numpy)
         :param step: step index
-        :type step: int
         """
         pos = self.axis.get_position(t, step)
         if isinstance(pos, (float, float32, float64)):
@@ -330,9 +309,7 @@ class TraceRead(DataSet):
         Returns the length of the axis.
         
         :param step: Optional parameter the step index.
-        :type step: int
         :return: The number of data points
-        :rtype: int
         """
         return self.axis.step_offset(step + 1)
 

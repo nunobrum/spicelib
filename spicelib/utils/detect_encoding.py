@@ -23,9 +23,8 @@ International Support functions
 Not using other known unicode detection libraries because we don't need something so complicated. LTSpice only supports
 for the time being a reduced set of encodings.
 """
-from pathlib import Path
-from typing import Union
 import re
+from pathlib import Path
 
 
 class EncodingDetectError(Exception):
@@ -35,21 +34,17 @@ class EncodingDetectError(Exception):
     pass
 
 
-def detect_encoding(file_path: Union[str, Path], expected_pattern: str = '', re_flags: re.RegexFlag = 0) -> str:
+def detect_encoding(file_path: str | Path, expected_pattern: str = '', re_flags: re.RegexFlag = 0) -> str:
     """
     Simple strategy to detect file encoding.  If an expected_str is given the function will scan through the possible
     encodings and return a match.
     If an expected string is not given, it will use the second character is null, high chances are that this file has an
     'utf_16_le' encoding, otherwise it is assuming that it is 'utf-8'.
     :param file_path: path to the filename
-    :type file_path: str
     :param expected_pattern: regular expression to match the first line of the file
-    :type expected_pattern: str
     :param re_flags: flags to be used in the regular expression
-    :type re_flags: int
     :return: detected encoding
 
-    :rtype: str
     """
     for encoding in ('utf-8', 'utf-16', 'utf_16_le', 'windows-1252', 'cp1252', 'cp1250', 'shift_jis'):
         try:

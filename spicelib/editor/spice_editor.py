@@ -15,8 +15,13 @@
 #
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
-from pathlib import Path
+
+from __future__ import annotations
+
+import logging
 import re
+
+from pathlib import Path
 import io
 from typing import Union, Callable, Any
 
@@ -27,7 +32,6 @@ from .spice_utils import END_LINE_TERM
 from .updates import UpdateType, UpdatePermission
 from .spice_subcircuit import SpiceCircuit, SpiceCircuitInstance, get_line_command, ControlEditor, \
     _is_unique_instruction, separate_lines
-import logging
 
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
@@ -63,9 +67,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
     :param netlist_file: Name of the .NET file to parse
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This, however, is not 100% foolproof.
-    :type encoding: str, optional
     :param create_blank: Create a blank '.net' file when 'netlist_file' not exist. False by default
-    :type create_blank: bool, optional
     """
 
     def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
@@ -98,7 +100,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         :param instruction:
             Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
             typically just before the .BACKANNO statement
-        :type instruction: str
         :return: Nothing
         """
         permission = self.begin_update()
@@ -195,7 +196,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
             _logger.error(f'No instruction matching pattern "{search_pattern}" was found')
             return False
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         # docstring is in the parent class
         if isinstance(run_netlist_file, str):
             run_netlist_file = Path(run_netlist_file)
@@ -217,7 +218,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         They are also not parsed, they are just a list of strings (with embedded newlines).
 
         :return: list of control section strings. These strings have each multiple lines, start with ``.CONTROL`` and end with ``.ENDC``.
-        :rtype: list[str]
         """
         control_sections = []
         for line in self.netlist:
@@ -233,7 +233,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         You can also use the `add_instruction()` method, but that method has less checking of the format.
         
         :param instruction: control section instruction
-        :type instruction: str
         :raises ValueError: if the instruction does not start with ``.CONTROL`` or does not end with ``.ENDC``
         """
         instruction = instruction.strip()
@@ -247,9 +246,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         You can also use `remove_instruction()`, but there, the given text must match the entire control section.
         
         :param index: index of the control section to remove, according to `get_control_sections()`
-        :type index: int
         :returns: True if the control section was found and removed, False otherwise
-        :rtype: bool
         """
         permission = self.begin_update()
         if permission == UpdatePermission.Deny:

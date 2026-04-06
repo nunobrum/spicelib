@@ -10,11 +10,11 @@ from __future__ import annotations
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
-import re
-from typing import Union, Iterable
-from collections import OrderedDict
-import math
 import logging
+import math
+import re
+from collections import OrderedDict
+from collections.abc import Iterable
 
 _logger = logging.getLogger("spicelib.LTSteps")
 
@@ -73,15 +73,13 @@ class LTComplex(complex):
         return _unit
 
 
-def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, str, list, LTComplex]:
+def try_convert_value(value: str | int | float | list) -> int | float | str | list | LTComplex:
     """
     Tries to convert the string into an integer and if it fails, tries to convert to a float, if it fails, then returns the
     value as string.
 
     :param value: value to convert
-    :type value: str, int or float
     :return: converted value, if applicable
-    :rtype: int, float, str
     """
     if isinstance(value, (int, float)):
         return value
@@ -106,7 +104,7 @@ def try_convert_value(value: Union[str, int, float, list]) -> Union[int, float, 
     return ans
 
 
-def split_line_into_values(line: str) -> list[Union[int, float, str]]:
+def split_line_into_values(line: str) -> list[int | float | str]:
     """
     Splits a line into values. The values are separated by tabs or spaces. If a value starts with ( and ends with ),
     then it is considered a complex value, and it is returned as a single value. If converting values within () fails,
@@ -193,16 +191,13 @@ class LogfileData:
         """
         return self.step_count > 0
 
-    def steps_with_parameter_equal_to(self, param: str, value: Union[str, int, float]) -> list[int]:
+    def steps_with_parameter_equal_to(self, param: str, value: str | int | float) -> list[int]:
         """
         Returns the steps that contain a given condition.
 
         :param param: parameter identifier on a stepped simulation. This is case insensitive.
-        :type param: str
         :param value:
-        :type value:
         :return: List of positions that respect the condition of equality with parameter value
-        :rtype: list[int]
         """
         param = param.lower()
         if param in self.stepset:
@@ -223,7 +218,6 @@ class LogfileData:
         :key conditions: parameters within the Spice simulation. Values are the matches to be found.
         :type conditions: dict
         :return: List of steps that respect all the given conditions
-        :rtype: list[int]
         """
         current_set = None
         for param, value in conditions.items():
@@ -240,7 +234,6 @@ class LogfileData:
         """
         Returns the stepped variable names on the log file.
         :return: List of step variables.
-        :rtype: list[str]
         """
         return list(self.stepset.keys())
 
@@ -248,23 +241,25 @@ class LogfileData:
         """
         Returns the names of the measurements read from the log file.
         :return: List of measurement names.
-        :rtype: list[str]
         """
         return list(self.dataset.keys())
 
-    def get_measure_value(self, measure: str, step: int | slice = None, **kwargs) -> float | int | str | LTComplex:
+    def get_measure_value(self, measure: str, step: int | slice = None, **kwargs) -> float | int | str | LTComplex | None:
         """
         Returns a measure value on a given step.
 
         :param measure: name of the measurement to get. This is case insensitive.
-        :type measure: str
         :param step: optional step number or slice if the simulation has no steps.
-        :type step: int or slice
         :param kwargs: additional arguments that can be translated into step conditions
         :return: measurement value
-        :rtype: int, float, Complex or str
         """
-        measure = measure.lower()
+        for m in self.dataset.keys():
+            if m.lower() == measure.lower():
+                measure = m
+                break
+        else:
+            raise IndexError("Measurement \"%s\" not found" % measure)
+
         if step is None:
             if kwargs:
                 step = self.steps_with_conditions(**kwargs)
@@ -285,17 +280,14 @@ class LogfileData:
             else:
                 raise TypeError("Step must be an integer or a slice")
 
-    def get_measure_values_at_steps(self, measure: str, steps: Union[None, int, Iterable]) \
-            -> list[Union[float, int, str, LTComplex]]:
+    def get_measure_values_at_steps(self, measure: str, steps: int | Iterable | None) \
+            -> list[float | int | str | LTComplex]:
         """
         Returns the measurements taken at a list of steps provided by the steps list.
 
-        :param measure: name of the measurement to get. This is case insensitive.
-        :type measure: str
+        :param measure: name of the measurement to get. This is case-insensitive.
         :param steps: step number, or list of step numbers.
-        :type steps: Optional: int or list
-        :return: measurement or list of measurements
-        :rtype: list with the values converted to either integer (int) or floating point (float)
+        :return: measurement or list of measurements.
         """
         measure = measure.lower()
         if steps is None:
@@ -305,8 +297,8 @@ class LogfileData:
         else:  # Assuming it is an iterable
             return [self.dataset[measure][step] for step in steps]
 
-    def max_measure_value(self, measure: str, steps: Union[None, int, Iterable] = None) \
-            -> Union[float, int, str]:
+    def max_measure_value(self, measure: str, steps: None | int | Iterable = None) \
+            -> float | int | str:
         """
         Returns the maximum value of a measurement.
 
@@ -319,8 +311,8 @@ class LogfileData:
         """
         return max(self.get_measure_values_at_steps(measure, steps))
 
-    def min_measure_value(self, measure: str, steps: Union[None, int, Iterable] = None) \
-            -> Union[float, int, str]:
+    def min_measure_value(self, measure: str, steps: None | int | Iterable = None) \
+            -> float | int | str:
         """
         Returns the minimum value of a measurement.
 
@@ -333,8 +325,8 @@ class LogfileData:
         """
         return min(self.get_measure_values_at_steps(measure, steps))
 
-    def avg_measure_value(self, measure: str, steps: Union[None, int, Iterable] = None) \
-            -> Union[float, int, str, LTComplex]:
+    def avg_measure_value(self, measure: str, steps: None | int | Iterable = None) \
+            -> float | int | str | LTComplex:
         """
         Returns the average value of a measurement.
 
@@ -375,15 +367,12 @@ class LogfileData:
         be done. And in this case, the user must provide a string that will identify the LTSpice batch run.
 
         :param export_file: path to the file containing the information
-        :type export_file: str
         :param optional encoding: encoding to be used in the file
         :type encoding: str
         :param optional append_with_line_prefix: user information to be written in the file in case an append is to be made.
         :type append_with_line_prefix: str
         :param optional value_separator: character to be used to separate values
-        :type value_separator: str
         :param optional line_terminator: Line terminator character
-        :type line_terminator: str
         :return: Nothing
         """
         if append_with_line_prefix is None:
@@ -477,7 +466,7 @@ class LogfileData:
 
         fout.close()
 
-    def plot_histogram(self, param, steps: Union[None, int, Iterable] = None, bins=50, normalized=True, sigma=3.0, title=None, image_file=None, **kwargs):
+    def plot_histogram(self, param, steps: None | int | Iterable = None, bins=50, normalized=True, sigma=3.0, title=None, image_file=None, **kwargs):
         """
         Plots a histogram of the parameter
         """

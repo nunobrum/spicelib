@@ -20,7 +20,7 @@ print(sys.path)
 # -- Project information -----------------------------------------------------
 
 project = 'spicelib'
-copyright = '2024, Nuno Brum'
+copyright = '2026, Nuno Brum'
 author = 'Nuno Brum'
 
 # The full version, including alpha/beta/rc tags
@@ -48,6 +48,7 @@ extensions = [
     'sphinx.ext.todo', 
     'sphinx.ext.viewcode', 
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
     'myst_parser',
     "sphinx_markdown_builder"
     # 'sphinx.ext.autosummary',
@@ -56,6 +57,14 @@ extensions = [
 
 # autodoc_default_flags = ['members']
 # autosummary_generate = True
+
+# Use type hints from function signatures in the generated documentation.
+# 'description' merges them into the parameter/return description blocks.
+# 'both' additionally shows them in the function signature line.
+autodoc_typehints = 'description'
+# Only add type info for parameters/returns that are already documented with :param:/:returns:
+autodoc_typehints_description_target = 'documented'
+
 myst_all_links_external = True
 
 # Add any paths that contain templates here, relative to this directory.

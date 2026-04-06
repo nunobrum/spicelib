@@ -20,7 +20,7 @@ import sys
 import io
 from collections import OrderedDict
 from pathlib import Path
-from typing import Union, Optional, TextIO
+from typing import TextIO, Any
 import re
 import logging
 
@@ -167,6 +167,7 @@ QSCH_ZIGZAG_UNKNOWN1 = 7
 QSCH_ZIGZAG_UNKNOWN2 = 8
 
 
+
 def decap(s: str) -> str:
     """Take the leading < and ending > from the parameter value on a string with the format "param=<value>"
     If they are not there, the string is returned unchanged."""
@@ -278,7 +279,6 @@ class QschTag:
         Otherwise, it returns an integer.
 
         :param index: The index of the attribute to be read
-        :type index: int
         :return: The attribute at the given index
         """
         a = self.tokens[index]
@@ -298,15 +298,13 @@ class QschTag:
                     value = a
             return value
 
-    def set_attr(self, index: int, value: Union[str, int, tuple]):
+    def set_attr(self, index: int, value: str | int | tuple[Any, Any]):
         """Sets the attribute at the given index. The attribute can be a string, an integer or a tuple.
         Integer values are written as integers, strings are written between quotes unless it starts with "0x"
         and tuples are written between parenthesis.
 
         :param index: The index of the attribute to be set
-        :type index: int
         :param value: The value to be set
-        :type value: Union[str, int, tuple[Any, Any]]
         :return: Nothing
         """
         if isinstance(value, int):
@@ -322,19 +320,16 @@ class QschTag:
             raise ValueError("Object not supported in set_attr")
         self.tokens[index] = value_str
 
-    def get_text(self, label: str, default: Union[str, None] = None) -> str:
+    def get_text(self, label: str, default: str | None = None) -> str:
         """
         Returns the text of the first child tag that matches the given label. The label can have up to 1 space in it.
         It will return the entire text of the tag, after the label.
         If the label is not found, it returns the default value.
 
         :param label: label to be found. Can have up to 1 space (e.g. "library file" or "shorted pins")
-        :type label: str
         :param default: Default value, defaults to None
-        :type default: str, optional
         :raises IndexError: When the label is not found and the default value is None
         :return: the found text or the default value
-        :rtype: str
         """
         a = self.get_items(label + ':')
         if len(a) != 1:
@@ -565,9 +560,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         Appends the netlist to a file buffer.
 
         :param netlist_file: The file buffer to save the netlist
-        :type netlist_file: TextIO
         :param verilog_config: Mandatory when using Ø components: Verilog modules in a DLL. Details: see `save_netlist()`
-        :type verilog_config: dict
         :return: Nothing
         """
         libraries_to_include = []
@@ -745,12 +738,11 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
         # Note: the .END or .ENDCKT must be inserted by the calling function
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO], verilog_config: dict[str, list[str]] = {}) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO, verilog_config: dict[str, list[str]] = {}) -> None:
         """
         Saves the current state of the netlist to a .qsh or to a .net or .cir file.
 
         :param run_netlist_file: File name of the netlist file. Can be .qsch, .net or .cir
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :param verilog_config: Mandatory when using Ø components: Verilog modules in a DLL.
                                 A dictionary with the component reference designators as keys and a 
                                 list of pin configurations as values, starting at the first pin (port).
@@ -761,7 +753,6 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                                 
                                 Example: `{"X1": ["in,b", "in,b", "in,uc", "out,uc", "out,b"]}`
                                 Here the component "X1" has 5 pins, pin 1 is an input of type "bit" and pin 4 is an output of type "unsigned char".
-        :type verilog_config: dict[str, list[str]]
         :returns: Nothing
         """
         if self.schematic is None:
@@ -812,7 +803,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             raise ValueError(f"Invalid orientation: {orientation}")
         return x, y
 
-    def _find_net_at_position(self, x, y) -> Optional[str]:
+    def _find_net_at_position(self, x, y) -> str | None:
         """Returns the net name at the given position"""
         for net in self.schematic.get_items('net'):  # Connection to ports, grounds and nets
             if net.get_attr(1) == (x, y):
@@ -1015,7 +1006,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                     param_names.append(param_name.upper())
         return sorted(param_names)
 
-    def _qsch_file_find(self, filename: str, work_dir: str = None) -> Optional[str]:
+    def _qsch_file_find(self, filename: str, work_dir: str = None) -> str | None:
         containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
         # '.'  is the directory where the script is located
         if (work_dir is not None) and work_dir != ".":
@@ -1041,7 +1032,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in QSCH file")
 
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: ValueType) -> None:
         # docstring inherited from BaseEditor
         permission = self.begin_update()
         if permission == UpdatePermission.Deny:
@@ -1086,7 +1077,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
     #     symbol: QschTag = component.symbol_tag
     #     return sub_circuit, ref, symbol
 
-    def set_component_value(self, reference: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, reference: str, value: ValueType) -> None:
         # docstring inherited from BaseEditor
         if self.is_read_only():
             raise ValueError("Editor is read-only")
@@ -1111,9 +1102,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         dictionary. The key of the dictionary is the line number where the parameter was found.
 
         :param reference: The reference of the component
-        :type reference: str
         :return: A dictionary with the parameters of the component
-        :rtype: dict
         """
         component = self.get_component(reference)
         return component.get_parameters()
@@ -1133,8 +1122,8 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         return component.position, component.rotation
 
     def set_component_position(self, reference: str,
-                               position: Union[Point, tuple],
-                               rotation: Union[ERotation, int],
+                               position: Point | tuple,
+                               rotation: ERotation | int,
                                mirror: bool = False,
                                ) -> None:
         # docstring inherited from BaseSchematic

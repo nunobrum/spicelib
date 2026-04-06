@@ -17,10 +17,9 @@
 # Licence:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import logging
-from typing import Union, Optional, Type, Callable
 
 from .tolerance_deviations import ToleranceDeviations, DeviationType
-from ..sim_runner import AnyRunner, ProcessCallback
+from ..sim_runner import AnyRunner, CallbackType, CallbackArgsType
 from ...editor.base_editor import BaseEditor
 from ...log.logfile_data import LogfileData
 
@@ -29,7 +28,7 @@ _logger = logging.getLogger("spicelib.SimAnalysis")
 
 class QuickSensitivityAnalysis(ToleranceDeviations):
     """Class to automate Sensitivity simulations"""
-    def __init__(self, circuit_file: Union[str, BaseEditor], runner: Optional[AnyRunner] = None):
+    def __init__(self, circuit_file: str | BaseEditor, runner: AnyRunner | None = None):
         super().__init__(circuit_file, runner)
 
     def prepare_testbench(self, **kwargs):
@@ -61,7 +60,7 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
         self.editor.set_parameter('run', -1)  # in case the step is commented.
         self.testbench_prepared = True
 
-    def get_sensitivity_data(self, ref: str, measure: str) -> Union[float, dict, None]:
+    def get_sensitivity_data(self, ref: str, measure: str) -> float | dict | None:
         """
         Returns the sensitivity data for a given component and measurement in terms of percentage of the total error.
         This quick approach is not very accurate, but it is fast. It assumes that the system is linear and that the
@@ -94,11 +93,11 @@ class QuickSensitivityAnalysis(ToleranceDeviations):
             return None
 
     def run_analysis(self,
-                     callback: Union[Type[ProcessCallback], Callable] = None,
-                     callback_args: Union[tuple, dict] = None,
-                     switches=None,
-                     timeout: float = None,
-                     exe_log: bool = True,
+                     callback: CallbackType = None,
+                     callback_args: CallbackArgsType = None,
+                     switches: list | None = None,
+                     timeout: float | None = None,
+                     exe_log: bool | None = True,
                      ):
         self.clear_simulation_data()
         self.elements_analysed.clear()

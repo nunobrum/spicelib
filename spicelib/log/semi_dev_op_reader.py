@@ -86,9 +86,7 @@ def opLogReader(filename: str) -> dict:
 
 
     :param filename: path to the log file containing the Semiconductor Device Operating Points
-    :type filename: str
     :return: Dictionary containing the information as described above.
-    :rtype: dict
     """
     dataset = {}
     is_title = re.compile(r"^\s*--- (.*) ---\s*$")

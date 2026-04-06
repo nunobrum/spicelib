@@ -19,7 +19,7 @@
 # -------------------------------------------------------------------------------
 import threading
 import time
-from typing import Union, Any, Optional
+from typing import Any
 from pathlib import Path
 import zipfile
 import logging
@@ -30,15 +30,12 @@ from ..editor.base_editor import BaseEditor
 _logger = logging.getLogger("spicelib.ServerSimRunner")
 
 
-def zip_files(raw_filename: Optional[Path], log_filename: Optional[Path]) -> Optional[Path]:
+def zip_files(raw_filename: Path | None, log_filename: Path | None) -> Path | None:
     """Zips the raw and log files into a single zip file.
 
     :param raw_filename: The path to the raw file.
-    :type raw_filename: Optional[pathlib.Path]
     :param log_filename: The path to the log file.
-    :type log_filename: Optional[pathlib.Path]
     :return: The path to the zip file or None if no files were provided.
-    :rtype: Optional[Path]
     """
     zip_filename = None
     if isinstance(raw_filename, Path) and raw_filename.exists():
@@ -71,7 +68,7 @@ class ServerSimRunner(threading.Thread):
     """
 
     def __init__(self, parallel_sims: int = 4, timeout: float = 600.0, verbose=False,
-                 output_folder: Optional[str] = None, simulator=None):
+                 output_folder: str | None = None, simulator=None):
         super().__init__(name="SimManager")
         self.runner = SimRunner(simulator=simulator, parallel_sims=parallel_sims, timeout=timeout,
                                 verbose=verbose, output_folder=output_folder)
@@ -113,7 +110,7 @@ class ServerSimRunner(threading.Thread):
         self.runner.wait_completion()
         self.runner.cleanup_files()  # Delete things that have been left behind
 
-    def add_simulation(self, netlist: Union[str, Path, BaseEditor], *, timeout: Optional[float] = None) -> int:
+    def add_simulation(self, netlist: str | Path | BaseEditor, *, timeout: float | None = None) -> int:
         """
         Adding a simulation to the list of simulations to be run. The function will return the runno of the simulation
         or -1 if the simulation could not be started.

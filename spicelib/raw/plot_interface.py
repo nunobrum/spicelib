@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 
@@ -63,7 +62,7 @@ class PlotInterface(ABC):
 
     @property
     @abstractmethod
-    def steps(self) -> Union[list[dict[str, int]], None]:
+    def steps(self) -> list[dict[str, int]] | None:
         """List of steps in the RAW file, if it exists.
         If the RAW file does not contain stepped data, this will be None.
         If the RAW file contains stepped data, this will be a list of step numbers.
@@ -71,14 +70,13 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def get_raw_property(self, property_name=None) -> Union[str, dict[str, str]]:
+    def get_raw_property(self, property_name=None) -> str | dict[str, str]:
         """
         Get a property. By default, it returns all properties defined in the RAW file.
 
         :param property_name: name of the property to retrieve. If None, all properties are returned.
         :type property_name: str
         :returns: Property object
-        :rtype: str
         :raises: ValueError if the property doesn't exist
         """
         ...
@@ -89,7 +87,6 @@ class PlotInterface(ABC):
         Get all raw properties.
 
         :return: Dictionary of all raw properties
-        :rtype: dict[str, str]
         """
         ...
 
@@ -104,45 +101,38 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def get_trace(self, trace_ref: Union[str, int]) -> Union[Axis, TraceRead]:
+    def get_trace(self, trace_ref: str | int) -> Axis | TraceRead:
         """
         Retrieves the trace with the requested name (trace_ref).
 
         :param trace_ref: Name of the trace or the index of the trace
-        :type trace_ref: str or int
         :return: An object containing the requested trace
-        :rtype: DataSet subclass
         :raises IndexError: When a trace is not found
         """
         ...
 
     @abstractmethod
-    def get_wave(self, trace_ref: Union[str, int], step: int = 0) -> np.ndarray:
+    def get_wave(self, trace_ref: str | int, step: int = 0) -> np.ndarray:
         """
         Retrieves the trace data with the requested name (trace_ref), optionally providing the step number.
 
         :param trace_ref: Name of the trace or the index of the trace
-        :type trace_ref: str or int
         :param step: Optional parameter specifying which step to retrieve.
-        :type step: int
         :return: A numpy array containing the requested waveform.
-        :rtype: numpy.array
         :raises IndexError: When a trace is not found
         """
         ...
 
     @abstractmethod
-    def get_axis(self, step: int = 0) -> Union[np.ndarray, list[float]]:
+    def get_axis(self, step: int = 0) -> np.ndarray | list[float]:
         """
         This function is equivalent to get_trace(0).get_wave(step) instruction.
         It also implements a workaround on a LTSpice issue when using 2nd Order compression, where some values on
         the time trace have a negative value.
 
         :param step: Step number, defaults to 0
-        :type step: int, optional
         :raises RuntimeError: if the RAW file does not have an axis.
         :return: Array with the X axis
-        :rtype: Union[np.ndarray, list[float]]
         """
         ...
 
@@ -152,14 +142,12 @@ class PlotInterface(ABC):
         Returns the length of the data at the give step index.
 
         :param step: the step index, defaults to 0
-        :type step: int, optional
         :return: The number of data points
-        :rtype: int
         """
         ...
 
     @abstractmethod
-    def get_steps(self, **kwargs) -> Union[list[int], range]:
+    def get_steps(self, **kwargs) -> list[int] | range:
         """Returns the steps that correspond to the query set in the `**kwargs` parameters.
         Example: ::
 
@@ -174,12 +162,11 @@ class PlotInterface(ABC):
          stepped value.
 
         :return: The steps that match the query
-        :rtype: list[int]
         """
         ...
 
     @abstractmethod
-    def export(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs) -> dict[str, list]:
+    def export(self, columns: list | None = None, step: int | list[int] = -1, **kwargs) -> dict[str, list]:
         """
         Returns a native python class structure with the requested trace data and steps.
         It consists of an ordered dictionary where the columns are the keys and the values are lists with the data.
@@ -187,25 +174,20 @@ class PlotInterface(ABC):
         This function is used by the export functions.
 
         :param step: Step number to retrieve. If not given, it will return all steps
-        :type step: int
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
         :type kwargs: ``**dict``
         :return: A pandas DataFrame
-        :rtype: pandas.DataFrame
         """
         ...
 
     @abstractmethod
-    def to_dataframe(self, columns: Union[list, None] = None, step: Union[int, list[int]] = -1, **kwargs):
+    def to_dataframe(self, columns: list | None = None, step: int | list[int] = -1, **kwargs):
         """
         Returns a pandas DataFrame with the requested data.
 
         :param step: Step number to retrieve. If not given, it
-        :type step: int
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param kwargs: Additional arguments to pass to the pandas.DataFrame constructor
         :type kwargs: ``**dict``
         :return: A pandas DataFrame
@@ -215,17 +197,14 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def to_csv(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1,
+    def to_csv(self, filename: str | Path, columns: list | None = None, step: int | list[int] = -1,
                separator=',', **kwargs):
         """
         Saves the data to a CSV file.
 
         :param filename: Name of the file to save the data to
-        :type filename: str
         :param columns: List of traces to use as columns. Default is all traces
-        :type columns: list
         :param step: Step number to retrieve. If not given, it
-        :type step: int
         :param separator: separator to use in the CSV file
         :type separator: str
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_csv function
@@ -234,17 +213,14 @@ class PlotInterface(ABC):
         ...
 
     @abstractmethod
-    def to_excel(self, filename: Union[str, Path], columns: Union[list, None] = None, step: Union[int, list[int]] = -1,
+    def to_excel(self, filename: str | Path, columns: list | None = None, step: int | list[int] = -1,
                  **kwargs):
         """
         Saves the data to an Excel file.
 
         :param filename: Name of the file to save the data to
-        :type filename: Union[str, pathlib.Path]
         :param columns: List of traces to use as columns. Default is None, meaning all traces
-        :type columns: list, optional
         :param step: Step number to retrieve, defaults to -1
-        :type step: Union[int, list[int]], optional
         :param kwargs: Additional arguments to pass to the pandas.DataFrame.to_excel function
         :type kwargs: ``**dict``
         :raises ImportError: when the 'pandas' module is not installed

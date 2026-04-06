@@ -224,7 +224,6 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
 
         :param run_netlist_file: File name of the netlist file.
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :returns: Nothing
         """
         if isinstance(run_netlist_file, io.StringIO):
@@ -442,7 +441,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         answer = AsyReader(asy_path)
         return answer
 
-    def _get_subcircuit(self, symbol: AsyReader) -> Union[SpiceEditor, 'AscEditor']:
+    def _get_subcircuit(self, symbol: AsyReader) -> 'SpiceEditor | AscEditor':
         # two main possibilities here:
         # either the symbol refers to a library file,
         # either to a subcircuit in another .asc file. This appears to only happen with BLOCK symbols
@@ -562,7 +561,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
 
             self.end_update(param, value_str, UpdateType.AddParameter)
 
-    def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, device: str, value: ValueType) -> None:
         """
         Sets the value of the component
 
@@ -596,12 +595,9 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, plus all contents of SpiceLine, SpiceLine2
 
         :param element: Reference of the circuit element to get the parameters.
-        :type element: str
         :param as_dicts: will report the contents of SpiceLine and SpiceLine2 inside a SpiceLine/SpiceLine2 instead of separately.
-        :type as_dicts: bool
 
         :return: parameters of the circuit element in dictionary format.
-        :rtype: dict
 
         :raises: ComponentNotFoundError - In case the component is not found
 
@@ -628,7 +624,6 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
          editor.set_component_parameters(R1, **value_settings)
 
         :param element: Reference of the circuit element.
-        :type element: str
 
         :key <param_name>:
             The key is the parameter name and the value is the value to be set. Values can either be
@@ -693,7 +688,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         Adding paths for searching for symbols and libraries"""
         self.set_custom_library_paths(*paths)
 
-    def _lib_file_find(self, filename) -> Optional[str]:
+    def _lib_file_find(self, filename) -> str | None:
         # create list of directories to search, based on the simulator_lib_paths. Just add "/sub" to the path
         my_lib_paths = [os.path.join(x, "sub") for x in self.simulator_lib_paths]
         # find the file
@@ -706,7 +701,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                                                )
         return file_found
 
-    def _asy_file_find(self, filename) -> Optional[str]:
+    def _asy_file_find(self, filename) -> str | None:
         if filename in self.symbol_cache:
             return self.symbol_cache[filename]
         _logger.info(f"Searching for symbol {filename}...")

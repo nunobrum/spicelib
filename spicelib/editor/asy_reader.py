@@ -19,7 +19,6 @@
 import logging
 from collections import OrderedDict
 from pathlib import Path
-from typing import Union
 
 from .base_schematic import Point, Text, TextTypeEnum, Line, Shape, HorAlign, ERotation, VerAlign
 from .ltspice_utils import asc_text_align_set
@@ -35,7 +34,7 @@ SCALE_Y = - 6.25
 class AsyReader:
     """Symbol parser"""
 
-    def __init__(self, asy_file: Union[Path, str], encoding='autodetect'):
+    def __init__(self, asy_file: Path | str, encoding='autodetect'):
         super().__init__()
         self.version = 4
         self.symbol_type = None
@@ -57,7 +56,7 @@ class AsyReader:
         else:
             self.encoding = encoding
             
-        with open(self._asy_file_path, 'r', encoding=self.encoding) as asc_file:
+        with open(self._asy_file_path, encoding=self.encoding) as asc_file:
             _logger.info(f"Parsing ASY file {self._asy_file_path}")
             for line in asc_file:
                 if line.startswith("WINDOW"):
@@ -289,7 +288,7 @@ class AsyReader:
                 return self.attributes[attr]
         raise ValueError("No Value or Value2 attribute found")
 
-    def get_value(self) -> Union[int, float, str]:
+    def get_value(self) -> int | float | str:
         """
         Returns the value of the component. If not found, returns None.
         If found it tries to convert the value to a number. If it fails, it returns the string.

@@ -18,7 +18,6 @@
 # -------------------------------------------------------------------------------
 import os
 import zipfile
-from typing import Optional
 import logging
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
@@ -44,7 +43,7 @@ def find_file_in_directory(directory, filename):
     return None
 
 
-def search_file_in_containers(filename, *containers) -> Optional[str]:
+def search_file_in_containers(filename, *containers) -> str | None:
     """
     Searches for a file with the given filename in the specified containers.
     Returns the path to the file if found, or None if not found.
@@ -54,7 +53,6 @@ def search_file_in_containers(filename, *containers) -> Optional[str]:
     :param containers: list of paths to search in (posix strings)
     :type containers: list[str]
     :return: path to the file if found, or None if not found.
-    :rtype: Optional[str]
     """
     for container in containers:
         _logger.debug(f"Searching for '{filename}' in '{container}'")

@@ -21,7 +21,6 @@ __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import Union
 import logging
 import os
 import io
@@ -31,7 +30,9 @@ from .updates import Updates, UpdateType, UpdatePermission
 
 _logger = logging.getLogger("spicelib.BaseEditor")
 
-SUBCKT_DIVIDER = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
+ValueType: TypeAlias = str | float | int | complex
+
+SUBCKT_DIVIDER: Final[str] = ':'  #: This controls the sub-circuit divider when setting component values inside sub-circuits.
 # Ex: Editor.set_component_value('XU1:R1', '1k')
 
 def PARAM_REGEX(pname):
@@ -78,16 +79,15 @@ class BaseEditor(ABC):
         self.netlist_updates.clear()
 
     @abstractmethod
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         """
         Saves the current state of the netlist to a file or a string.
         :param run_netlist_file: File name of the netlist file, or a StringIO object.
-        :type run_netlist_file: pathlib.Path or str or io.StringIO
         :returns: Nothing
         """
         ...
 
-    def write_netlist(self, run_netlist_file: Union[str, Path]) -> None:
+    def write_netlist(self, run_netlist_file: str | Path) -> None:
         """
         .. deprecated:: 1.x Use `save_netlist()` instead.
 
@@ -110,7 +110,6 @@ class BaseEditor(ABC):
             * this method is a class method and will affect all instances of the class
 
         :param simulator: Simulator object from which the library paths will be taken.
-        :type simulator: Simulator
         :returns: Nothing
         """
         if simulator is None:
@@ -156,7 +155,6 @@ class BaseEditor(ABC):
         """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
 
         :return: True if the component is read-only, False otherwise
-        :rtype: bool
         """
         return self.update_permission == UpdatePermission.Deny
 
