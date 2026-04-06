@@ -18,6 +18,8 @@
 
 import dataclasses
 import enum
+from typing import Callable
+from collections import OrderedDict
 import logging
 from .base_editor import BaseEditor, SUBCKT_DIVIDER
 from .primitives import Component
@@ -404,7 +406,7 @@ class BaseSchematic(BaseEditor):
         """Returns the update permission for the schematic. This is used to determine if the schematic can be updated or not."""
         return self.update_permission
 
-    def end_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+    def end_update(self, name: str, value: str | int | float | None, updates: UpdateType):
         """Adds an update to the netlist updates list"""
         self.netlist_updates.add_update(name, value, updates)
         self.canvas_updated = True

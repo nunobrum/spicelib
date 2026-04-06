@@ -24,6 +24,7 @@ from pathlib import Path
 import logging
 import os
 import io
+from typing import TypeAlias, Final
 
 from ..sim.simulator import Simulator
 from .updates import Updates, UpdateType, UpdatePermission

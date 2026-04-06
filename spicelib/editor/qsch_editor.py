@@ -27,7 +27,7 @@ import logging
 from .base_subcircuit import BaseSubCircuit
 from .primitives import format_eng
 from .editor_errors import ComponentNotFoundError, ParameterNotFoundError
-from .base_editor import PARAM_REGEX
+from .base_editor import PARAM_REGEX, ValueType
 from .spice_utils import UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
                              LineStyle, Shape)
@@ -367,7 +367,7 @@ class QschComponent(SchematicComponent):
     def reset_attributes(self):
         pass # TODO: Place here the code that is below on the _parse_qsch_stream function
 
-    def set_value(self, value: Union[str, int, float]) -> None:
+    def set_value(self, value: str | int | float) -> None:
         # docstring inherited from BaseEditor
         if isinstance(value, str):
             value_str = value
@@ -482,8 +482,8 @@ class QschComponent(SchematicComponent):
         return self.position, self.rotation
 
     def set_position(self,
-         position: Union[Point, tuple],
-         rotation: Union[ERotation, int],
+         position: Point | tuple,
+         rotation: ERotation | int,
          mirror: bool = False,
          ) -> None:
         # docstring inherited from BaseSchematic
@@ -526,13 +526,13 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
     :meta hide-value:
     """    
 
-    def __init__(self, qsch_filename: str|Path, create_blank: bool = False):
+    def __init__(self, qsch_filename: str | Path, create_blank: bool = False):
         super().__init__(qsch_filename)
         self.schematic = None
         # read the file into memory
         self.reset_netlist(create_blank)
 
-    def save_as(self, qsch_filename: Union[str, Path]) -> None:
+    def save_as(self, qsch_filename: str | Path) -> None:
         """
         Saves the schematic to a QSCH file. The file is saved in cp1252 encoding.
 

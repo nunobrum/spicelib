@@ -35,7 +35,7 @@ from ..simulators.ltspice_simulator import LTspice
 from ..utils.file_search import search_file_in_containers
 from .primitives import format_eng
 from .editor_errors import ComponentNotFoundError, ParameterNotFoundError
-from .base_editor import PARAM_REGEX
+from .base_editor import PARAM_REGEX, ValueType
 from .base_schematic import (BaseSchematic, Point, Line, Shape, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
 from .asy_reader import AsyReader
 
