@@ -19,20 +19,49 @@
 from abc import ABC, abstractmethod
 from typing import Union
 
-from spicelib.editor.primitives import Component, scan_eng
-from .updates import UpdateType, Updates
+from .primitives import Component, scan_eng
+from .base_editor import BaseEditor
+from .updates import UpdateType, UpdatePermission
 
 
 class BaseSubCircuit(ABC):
 
-    def __init__(self):
-        """Initializing the list that contains all the modifications done to a netlist."""
-        self.netlist_updates = Updates()
-        self.recording_updates = False
+    def __init__(self, parent: "BaseSubCircuit" = None):
+        self.parent = parent
+        self._modified = False
 
-    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
-        if self.recording_updates:
-            self.netlist_updates.add_update(name, value, updates)
+    @property
+    def editor(self) -> BaseEditor | None:
+        """
+        Returns the editor object representing the netlist.
+        If the current object is a sub-circuit, it returns the parent
+        """
+        if isinstance(self, BaseEditor):
+            return self
+        elif self.parent is not None:
+            return self.parent.editor
+        else:
+            return None
+
+    def begin_update(self) -> UpdatePermission:
+        if isinstance(self, BaseEditor):
+            return self.update_permission
+        elif self.parent is not None:
+            return self.parent.begin_update()
+        else:
+            return UpdatePermission.Initializing
+
+    def end_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+        self._modified = True
+        if isinstance(self, BaseEditor):
+            if self.update_permission == UpdatePermission.Inform:
+                self.netlist_updates.add_update(name, value, updates)
+        elif self.parent is not None:
+            self.parent.end_update(name, value, updates)
+
+    @property
+    def was_modified(self) -> bool:
+        return self._modified
 
     @abstractmethod
     def reset_netlist(self, create_blank: bool = False) -> None:
@@ -44,8 +73,13 @@ class BaseSubCircuit(ABC):
         ...
 
     @abstractmethod
-    def get_subcircuit(self, reference: str) -> 'BaseEditor':
+    def get_subcircuit(self, reference: str) -> 'BaseSubCircuit':
         """Returns a hierarchical subdesign"""
+        ...
+
+    @abstractmethod
+    def get_subcircuit_named(self, name: str) -> 'BaseSubCircuit':
+        """Returns a hierarchical subdesign by its name"""
         ...
 
     def __getitem__(self, item) -> Component:
@@ -123,7 +157,7 @@ class BaseSubCircuit(ABC):
 
          .PARAM TEMP=80
 
-        This is an alternative to the set_parameters which is more pythonic in it's usage,
+        This is an alternative to the set_parameters which is more pythonic in its usage,
         and allows setting more than one parameter at once.
 
         :param param: Spice Parameter name to be added or updated.
@@ -134,7 +168,7 @@ class BaseSubCircuit(ABC):
 
         :return: Nothing
         """
-        self.add_update(f'PARAM {param}', value, UpdateType.UpdateParameter)
+        ...
 
     def set_parameters(self, **kwargs):
         """Adds one or more parameters to the netlist.
@@ -178,7 +212,7 @@ class BaseSubCircuit(ABC):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        self.add_update(device, value, UpdateType.UpdateComponentValue)
+        ...
 
     @abstractmethod
     def set_element_model(self, element: str, model: str) -> None:
@@ -202,7 +236,7 @@ class BaseSubCircuit(ABC):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        self.add_update(element, model, UpdateType.UpdateComponentValue)
+        ...
 
     @abstractmethod
     def set_component_parameters(self, element: str, **kwargs) -> None:
@@ -229,9 +263,7 @@ class BaseSubCircuit(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
-        for param, value in kwargs.items():
-            update_type = UpdateType.DeleteComponentParameter if value is None else UpdateType.UpdateComponentParameter
-            self.add_update(f"{element}:{param}", value, update_type)
+        ...
 
     def set_component_attribute(self, reference: str, attribute: str, value: str) -> None:
         """Sets the value of the attribute of the component. Attributes are the values that are not related with
@@ -247,8 +279,8 @@ class BaseSubCircuit(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - In case the component is not found
         """
-        self.add_update(reference, value, UpdateType.UpdateComponentParameter)
-        self.get_component(reference).set_attribute(attribute, value)
+        component = self.get_component(reference)
+        setattr(component, attribute, value)
 
     @abstractmethod
     def get_component_value(self, element: str) -> str:
@@ -353,8 +385,7 @@ class BaseSubCircuit(ABC):
 
         :return: Nothing
         """
-        value_or_model = component.value if component.value is not None else component.model
-        self.add_update(component.reference, value_or_model, UpdateType.AddComponent)
+        ...
 
     @abstractmethod
     def remove_component(self, designator: str) -> None:
@@ -368,101 +399,8 @@ class BaseSubCircuit(ABC):
         :return: Nothing
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
-        self.add_update(designator, "delete", UpdateType.DeleteComponent)
-
-    @abstractmethod
-    def is_read_only(self):
-        """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
-
-        :return: True if the component is read-only, False otherwise
-        :rtype: bool
-        """
         ...
 
-    @abstractmethod
-    def add_instruction(self, instruction: str) -> None:
-        """
-        Adds a SPICE instruction to the netlist.
-
-        For example:
-
-            .. code-block:: text
-
-                .tran 10m ; makes a transient simulation
-                .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms" ; Establishes a measuring
-                .step run 1 100, 1 ; makes the simulation run 100 times
-
-        :param instruction:
-            Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
-            typically just before the .BACKANNO statement
-        :type instruction: str
-        :return: Nothing
-        """
-        logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
-        self.add_update("INSTRUCTION", logtxt, UpdateType.AddInstruction)
-
-    @abstractmethod
-    def remove_instruction(self, instruction: str) -> bool:
-        """
-        Removes a SPICE instruction from the netlist.
-
-        Example:
-
-        .. code-block:: python
-
-            editor.remove_instruction(".STEP run -1 1023 1")
-
-        This only works if the entire given instruction is contained in a line on the netlist.
-        It uses the 'in' comparison, and is case sensitive.
-        It will remove 1 instruction at most, even if more than one could be found.
-        `remove_Xinstruction()` is a more flexible way to remove instructions from the netlist.
-
-        :param instruction: The instruction to remove.
-        :type instruction: str
-        :returns: True if the instruction was found and removed, False otherwise
-        :rtype: bool
-        """
-        logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
-        self.add_update("INSTRUCTION", logtxt, UpdateType.DeleteInstruction)
-
-    @abstractmethod
-    def remove_Xinstruction(self, search_pattern: str) -> bool:
-        """
-        Removes a SPICE instruction from the netlist based on a search pattern. This is a more flexible way to remove
-        instructions from the netlist. The search pattern is a regular expression that will be used to match the
-        instructions to be removed. The search pattern is case insensitive, and will be applied to each line of the netlist.
-        All matching lines will be removed.
-
-        Example: The code below will remove all AC analysis instructions from the netlist.
-
-        .. code-block:: python
-
-            editor.remove_Xinstruction(r"\\.AC.*")
-
-        :param search_pattern: Pattern for the instruction to remove. In general it is best to use a raw string (r).
-        :type search_pattern: str
-        :returns: True if the instruction was found and removed, False otherwise
-        :rtype: bool
-        """
-        ...
-
-    def add_instructions(self, *instructions) -> None:
-        """
-        Adds a list of instructions to the SPICE NETLIST.
-
-        Example:
-
-        .. code-block:: python
-
-            editor.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")
-
-        :param instructions: Argument list of instructions to add
-        :type instructions: argument list
-        :returns: Nothing
-        """
-
-        for instruction in instructions:
-            self.add_instruction(instruction)
 
 
 class BaseSubCircuitInstance(BaseSubCircuit):
@@ -474,7 +412,8 @@ class BaseSubCircuitInstance(BaseSubCircuit):
 
     def get_component(self, reference: str) -> Component:
         """Returns the Component object representing the given reference in the netlist."""
-        return self.subcircuit.get_component(reference)
+        component = self.subcircuit.get_component(reference)
+        return component
 
     def get_subcircuit(self, reference: str) -> BaseSubCircuit:
         """Returns a hierarchical subdesign"""

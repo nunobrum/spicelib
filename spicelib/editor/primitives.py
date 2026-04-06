@@ -262,9 +262,7 @@ class Component(Primitive):
     def __hasattr__(self, item):
         if item in self.__dict__:
             return True
-        if not self.__dict__.get('attributes'):
-            return False
-        attr_dict = self.__dict__['attributes']
+        attr_dict = self.__dict__.get('attributes', {})
         if not attr_dict:
             # Populate attributes from _obj if empty
             self.reset_attributes()
@@ -364,7 +362,7 @@ class Component(Primitive):
         return self
 
     def __str__(self):
-        return f"{self.reference} = {self.value}"
+        return f"{self.reference}[{','.join(self.ports)}] = {self.value}"
 
     def __getitem__(self, item):
         return self.__getattr__(item)
@@ -437,9 +435,9 @@ class Component(Primitive):
         """Clears all parameters"""
         self.attributes['params'] = OrderedDict()
 
-    def clear_paramemter(self, key: str):
+    def clear_parameter(self, key: str):
         """Clears a parameter
-        :param key: Parameter name
+        :param key:  name
         """
         params = self.attributes.get('params', OrderedDict())
         if key in params:

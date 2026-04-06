@@ -23,13 +23,15 @@ from pathlib import Path
 from typing import Union, Optional, TextIO
 import re
 import logging
+
+from .base_subcircuit import BaseSubCircuit
 from .primitives import format_eng
 from .editor_errors import ComponentNotFoundError, ParameterNotFoundError
 from .base_editor import PARAM_REGEX
 from .spice_utils import UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
                              LineStyle, Shape)
-from .updates import UpdateType
+from .updates import UpdateType, UpdatePermission
 from ..simulators.qspice_simulator import Qspice
 from ..utils.file_search import search_file_in_containers
 
@@ -372,8 +374,6 @@ class QschComponent(SchematicComponent):
 
     def set_value(self, value: Union[str, int, float]) -> None:
         # docstring inherited from BaseEditor
-        if self.parent.is_read_only():
-            raise ValueError("Editor is read-only")
         if isinstance(value, str):
             value_str = value
         else:
@@ -381,12 +381,16 @@ class QschComponent(SchematicComponent):
         self.set_model(value_str)
 
     def set_model(self, model: str) -> None:
+        permission = self.parent.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError("Editor is read-only")
         texts = self.symbol_tag.get_items('text')
         assert texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) == self.reference
         texts[QSCH_SYMBOL_TEXT_VALUE].set_attr(QSCH_TEXT_STR_ATTR, model)
         self.attributes['value'] = model
         _logger.info(f"Component {self.reference} updated to {model}")
-        self.parent.add_update(self.reference, model, UpdateType.UpdateComponentValue)
+        if permission == UpdatePermission.Inform:
+            self.parent.end_update(self.reference, model, UpdateType.UpdateComponentValue)
 
     def get_value(self) -> str:
         return self.attributes["value"]
@@ -420,6 +424,9 @@ class QschComponent(SchematicComponent):
         where the parameter was found. If the key is a string, it represents the parameter name. If the parameter name
         already exists, it will be replaced. If not found, it will be added as a new text line.
         """
+        permission = self.parent.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError("Editor is read-only")
         symbol = self.symbol_tag
         texts = symbol.get_items('text')
 
@@ -436,7 +443,8 @@ class QschComponent(SchematicComponent):
 
                 else:
                     texts[key].set_attr(QSCH_TEXT_STR_ATTR, value)
-                self.parent.add_update(self.reference, value, UpdateType.UpdateComponentParameter)
+                if permission == UpdateType.Inform:
+                    self.parent.end_update(self.reference, value, UpdateType.UpdateComponentParameter)
             else:
                 found = False
                 search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
@@ -448,7 +456,8 @@ class QschComponent(SchematicComponent):
                             start, stop = match.span("value")
                             text_value = text_value[:start] + value + text_value[stop:]
                             text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
-                            self.parent.add_update(self.reference, value, UpdateType.UpdateComponentParameter)
+                            if permission == UpdatePermission.Inform:
+                                self.parent.end_update(self.reference, value, UpdateType.UpdateComponentParameter)
                             found = True
                             break
                         if found:
@@ -470,7 +479,8 @@ class QschComponent(SchematicComponent):
                         symbol.items.insert(last_text, new_tag)
                     else:
                         symbol.items.append(new_tag)
-                    self.parent.add_update(self.reference, value, UpdateType.AddComponentParameter)
+                    if permission == UpdatePermission.Inform:
+                        self.parent.end_update(self.reference, value, UpdateType.AddComponentParameter)
                     self.parent.canvas_updated = True
 
     def get_position(self) -> tuple[Point, ERotation]:
@@ -505,12 +515,11 @@ class QschComponent(SchematicComponent):
         self.rotation = rotation
 
 
-class QschEditor(BaseSchematic):
+class QschEditor(BaseSchematic, BaseSubCircuit):
     """Class made to update directly QSCH files. It is a subclass of BaseSchematic, so it can be used to
     update the netlist and the parameters of the simulation. It can also be used to update the components.
 
-    :param qsch_file: Path to the QSCH file to be edited
-    :type qsch_file: str
+    :param qsch_filename: Path to the QSCH file to be edited
     :keyword create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
     """
 
@@ -522,26 +531,22 @@ class QschEditor(BaseSchematic):
     :meta hide-value:
     """    
 
-    def __init__(self, qsch_file: str, create_blank: bool = False):
-        super().__init__()
-        self._qsch_file_path = Path(qsch_file)
+    def __init__(self, qsch_filename: str|Path, create_blank: bool = False):
+        super().__init__(qsch_filename)
         self.schematic = None
         # read the file into memory
         self.reset_netlist(create_blank)
 
-    @property
-    def circuit_file(self) -> Path:
-        # docstring inherited from BaseSchematic
-        return self._qsch_file_path
-
     def save_as(self, qsch_filename: Union[str, Path]) -> None:
         """
         Saves the schematic to a QSCH file. The file is saved in cp1252 encoding.
+
+        :param qsch_filename: The path to the QSCH file to be saved
         """
         if not self.schematic:
             _logger.error("Empty Schematic information")
             return
-        if self.updated() or Path(qsch_filename) != self._qsch_file_path:
+        if self.updated() or Path(qsch_filename) != self._circuit_filepath:
             with open(qsch_filename, 'w', encoding="cp1252") as qsch_file:
                 _logger.info(f"Writing QSCH file {qsch_file}")
                 for c in QSCH_HEADER:
@@ -553,7 +558,7 @@ class QschEditor(BaseSchematic):
             if "_SUBCKT" in component.attributes:
                 sub_circuit = component.attributes['_SUBCKT']
                 if sub_circuit is not None and sub_circuit.updated():
-                    sub_circuit.save_as(sub_circuit._qsch_file_path)
+                    sub_circuit.save_as(sub_circuit._circuit_filepath)
 
     def write_spice_to_file(self, netlist_file: TextIO, verilog_config: dict[str, list[str]] = {}):
         """
@@ -778,7 +783,7 @@ class QschEditor(BaseSchematic):
 
         try:
             _logger.info(f"Writing NET file {run_netlist_file}")
-            netlist_file.write(f'* {os.path.abspath(self._qsch_file_path.as_posix())}\n')
+            netlist_file.write(f'* {os.path.abspath(self.circuit_file.as_posix())}\n')
             self.write_spice_to_file(netlist_file, verilog_config)
             netlist_file.write('.end\n')
         finally:
@@ -831,10 +836,10 @@ class QschEditor(BaseSchematic):
         """
         super().reset_netlist(create_blank)
         if not create_blank:
-            if not self._qsch_file_path.exists():
-                raise FileNotFoundError(f"File {self._qsch_file_path} not found")
-            with open(self._qsch_file_path, encoding="cp1252") as qsch_file:
-                _logger.info(f"Reading QSCH file {self._qsch_file_path}")
+            if not self.circuit_file.exists():
+                raise FileNotFoundError(f"File {self.circuit_file} not found")
+            with open(self.circuit_file, encoding="cp1252") as qsch_file:
+                _logger.info(f"Reading QSCH file {self.circuit_file}")
                 stream = qsch_file.read()
             self._parse_qsch_stream(stream)
 
@@ -1024,6 +1029,9 @@ class QschEditor(BaseSchematic):
             return subcircuit.attributes['_SUBCKT']
         raise AttributeError(f"An associated subcircuit was not found for {reference}")
 
+    def get_subcircuit_named(self, name: str) -> 'BaseSubCircuit':
+        pass
+
     def get_parameter(self, param: str) -> str:
         # docstring inherited from BaseEditor
 
@@ -1035,7 +1043,9 @@ class QschEditor(BaseSchematic):
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         # docstring inherited from BaseEditor
-        super().set_parameter(param, value)
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError(f"Permission denied for editing {param}")
         tag, match = self._get_param_named(param)
         if match:
             _logger.debug(f"Parameter {param} found in QSCH file, updating it")
@@ -1051,7 +1061,8 @@ class QschEditor(BaseSchematic):
             tag.set_attr(QSCH_TEXT_STR_ATTR, text)
             _logger.info(f"Parameter {param} updated to {value_str}")
             _logger.debug(f"Text at {tag.get_attr(QSCH_TEXT_POS)} Updated to {text}")
-            self.add_update(param, value, UpdateType.UpdateParameter)
+            if permission == UpdatePermission.Inform:
+                self.end_update(param, value, UpdateType.UpdateParameter)
         else:
             # Was not found so we need to add it,
             _logger.debug(f"Parameter {param} not found in QSCH file, adding it")
@@ -1062,7 +1073,8 @@ class QschEditor(BaseSchematic):
             self.schematic.items.append(tag)
             _logger.info(f"Parameter {param} added with value {value}")
             _logger.debug(f"Text added to {tag.get_attr(QSCH_TEXT_POS)} Added: {tag.get_attr(QSCH_TEXT_STR_ATTR)}")
-            self.add_update(param, value, UpdateType.AddParameter)
+            if permission == UpdatePermission.Inform:
+                self.end_update(param, value, UpdateType.AddParameter)
 
     # def _get_component_symbol(self, reference: str) -> tuple["BaseSchematic", str, QschTag]:
     #     sub_circuit, ref = self._get_parent(reference)

@@ -19,16 +19,15 @@ __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __version__ = "0.1.0"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from pathlib import Path
 from typing import Union
 import logging
 import os
 import io
 
-from .base_subcircuit import BaseSubCircuit
 from ..sim.simulator import Simulator
-
+from .updates import Updates, UpdateType, UpdatePermission
 
 _logger = logging.getLogger("spicelib.BaseEditor")
 
@@ -39,7 +38,7 @@ def PARAM_REGEX(pname):
     return r"(?P<name>" + pname + r")\s*[= ]\s*(?P<value>(?P<cb>\{)?(?(cb)[^\}]*\}|(?P<st>\")?(?(st)[^\"]*\"|[\d\.\+\-Ee]+[a-zA-Z%]*)))"
 
 
-class BaseEditor(BaseSubCircuit):
+class BaseEditor(ABC):
     """
     This defines the primitives (protocol) to be used for both SpiceEditor and AscEditor
     classes.
@@ -57,11 +56,17 @@ class BaseEditor(BaseSubCircuit):
     :meta hide-value:
     """
 
+    def __init__(self, circuit_filepath) -> None:
+        self._circuit_filepath: Path = Path(circuit_filepath)
+        self.netlist_updates = Updates()  # Keep track of updates
+        self.update_permission: UpdatePermission = UpdatePermission.Initializing   # Whether to record updates or not.
+        # This is useful when we want to make changes to the netlist without recording them as updates
+        # (e.g. when resetting the netlist)
+
     @property
-    @abstractmethod
     def circuit_file(self) -> Path:
         """Returns the path of the circuit file."""
-        ...
+        return self._circuit_filepath
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """
@@ -153,7 +158,80 @@ class BaseEditor(BaseSubCircuit):
         :return: True if the component is read-only, False otherwise
         :rtype: bool
         """
-        return False
+        return self.update_permission == UpdatePermission.Deny
 
+    @abstractmethod
+    def add_instruction(self, instruction: str) -> None:
+        """
+        Adds a SPICE instruction to the netlist.
 
+        For example:
 
+            .. code-block:: text
+
+                .tran 10m ; makes a transient simulation
+                .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms ; Establishes a measuring
+                .step run 1 100, 1 ; makes the simulation run 100 times
+
+        :param instruction:
+            Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
+            typically just before the .BACKANNO statement
+        :return: Nothing
+        """
+        ...
+
+    @abstractmethod
+    def remove_instruction(self, instruction: str) -> bool:
+        """
+        Removes a SPICE instruction from the netlist.
+
+        Example:
+
+        .. code-block:: python
+
+            editor.remove_instruction(".STEP run -1 1023 1")
+
+        This only works if the entire given instruction is contained in a line on the netlist.
+        It uses the 'in' comparison, and is case-sensitive.
+        It will remove 1 instruction at most, even if more than one could be found.
+        `remove_Xinstruction()` is a more flexible way to remove instructions from the netlist.
+
+        :param instruction: The instruction to remove.
+        :returns: True if the instruction was found and removed, False otherwise
+        """
+        ...
+
+    @abstractmethod
+    def remove_Xinstruction(self, search_pattern: str) -> bool:
+        """
+        Removes a SPICE instruction from the netlist based on a search pattern. This is a more flexible way to remove
+        instructions from the netlist. The search pattern is a regular expression that will be used to match the
+        instructions to be removed. The search pattern is case-insensitive, and will be applied to each line of the netlist.
+        All matching lines will be removed.
+
+        Example: The code below will remove all AC analysis instructions from the netlist.
+
+        .. code-block:: python
+
+            editor.remove_Xinstruction(r"\\.AC.*")
+
+        :param search_pattern: Pattern for the instruction to remove. In general, it is best to use a raw string (r).
+        :returns: True if the instruction was found and removed, False otherwise
+        """
+        ...
+
+    def add_instructions(self, *instructions) -> None:
+        """
+        Adds a list of instructions to the SPICE NETLIST.
+
+        Example:
+
+        .. code-block:: python
+
+            editor.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")
+
+        :param instructions: Argument list of instructions to add
+        :returns: Nothing
+        """
+        for instruction in instructions:
+            self.add_instruction(instruction)

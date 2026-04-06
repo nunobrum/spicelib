@@ -21,9 +21,10 @@ from typing import Union
 import logging
 import re
 
-from .base_subcircuit import BaseSubCircuitInstance
+from .base_editor import BaseEditor
+from .base_subcircuit import BaseSubCircuitInstance, BaseSubCircuit
 from .primitives import VALUE_IDs, PARAMS_IDs, Component
-from .updates import UpdateType
+from .updates import UpdateType, UpdatePermission
 from .spice_components import SpiceComponent, component_replace_regexs, _parse_params, undress_designator
 
 logger = logging.getLogger("spicelib.SpiceEditor")
@@ -44,12 +45,12 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         """Resets the sub-circuit instance to its original state."""
         new_line = re.sub(r'[\n\r]+\s*', ' ', self._obj)  # cleans up line breaks and extra spaces and tabs
         regex = component_replace_regexs['X']
-        match = regex.match(new_line)
+        match: re.Match = regex.match(new_line)
         self.attributes.clear()
         ref = match.group('designator')
         self.reference = undress_designator(ref)
         self.ports = match.group('nodes').strip().split()
-        self.value = match.group('value').strip()
+        self.set_value(match.group('value').strip())
         assert self.value != "", "Sub-circuit name cannot be empty."
         if match.group('params'):
             self.set_parameters(**_parse_params(match.group('params')))
@@ -59,7 +60,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
     def write_lines(self, stream: io.StringIO) -> int:
         """If the subcircuit was modified it needs to update the reference to the subcircuit"""
         if self.was_modified:
-            self.value = self.shadow_subcircuit.name()
+            self.value = self.shadow_subcircuit.name()  # needed so that the instance is named with the new name
         return super().write_lines(stream)
 
     @property
@@ -69,23 +70,47 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         if self._subcircuit is None:
             # Try to get it from the parent netlist
             self._subcircuit = self._netlist.get_subcircuit_named(self.value)
+            if self._subcircuit is None:
+                raise AssertionError(f"Couldn't find the subcircuit named \"{self.value}\"")
             self.shadow_subcircuit = None
         if self.shadow_subcircuit is None:
             # In all cases it creates a new copy of the subcircuit, it is only writen to the netlist if it was modified.
             new_name = self.value + '_' + self.reference
-            self.shadow_subcircuit = self._subcircuit.clone(self.parent, new_name=new_name)
+            self.shadow_subcircuit = self._subcircuit.clone(self, new_name=new_name)
         return self.shadow_subcircuit
+
+    def get_subcircuit_named(self, name: str) -> BaseSubCircuit | None:
+        """Returns the sub-circuit instance with the given name. This is used to get the sub-circuit instance of a sub-circuit instance."""
+        if self.parent:
+            return self.parent.get_subcircuit_named(name)
+        else:
+            return None
 
     @property
     def was_modified(self):
         """Returns True if the sub-circuit was modified, False otherwise."""
         return self.shadow_subcircuit is not None and self.shadow_subcircuit.was_modified
 
-    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
-        self._netlist.add_update(f"{self.reference}:{name}", value, updates)
+    def begin_update(self) -> UpdatePermission:
+        permission = self._netlist.begin_update()
+        if permission == UpdatePermission.Inform and self.was_modified is False:
+            # First update => Also update the subcircuit
+            if permission == UpdatePermission.Inform:
+                old_name = self.value
+                self._netlist.end_update(f'CLONE({old_name})', old_name, UpdateType.CloneSubcircuit)
+                name = self.subcircuit.name()
+                Component.set_value(self, name)  # Jumps the update tracking
+                self._netlist.end_update(self.reference, name, UpdateType.UpdateComponentValue)
+        return permission
+
+    def end_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+        # Make sure the modification is registered
+        self.shadow_subcircuit._modified = True
+        # Redirect the update to the parent
+        self._netlist.end_update(f"{self.reference}:{name}", value, updates)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
-        raise NotImplementedError("Resetting the netlist is not supported for sub-circuit instances.")
+        self.shadow_subcircuit = None
 
     def __setattr__(self, key, value):
         if key in VALUE_IDs:
@@ -148,9 +173,11 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
         :return: Nothing
         """
+        if p := self.begin_update() == UpdatePermission.Deny:
+            logger.warning(f'Parameter "{param}" is already set to "Deny".')
+            return
         logger.debug(f'Setting parameter "{param}" to value "{value}"')
-        SpiceComponent.set_param(self, param, value)
-        self.add_update(param, value, UpdateType.UpdateComponentParameter)
+        SpiceComponent.set_parameter(self, param, value)
 
     def set_parameters(self, **kwargs):
         """Adds one or more parameters to the netlist.
@@ -166,10 +193,9 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
         :returns: Nothing
         """
+        self.begin_update()
         logger.debug(f'Setting parameters: {kwargs}')
         SpiceComponent.set_parameters(self, **kwargs)
-        for key, value in kwargs.items():
-            self.add_update(f"PARAMETERS.{key}", str(value), UpdateType.UpdateComponentParameter)
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
@@ -195,9 +221,9 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
+        self.begin_update()
         logger.debug(f'Setting component "{device}" to value "{value}"')
-        self.subcircuit.set_component_value(device, value)
-        self.add_update(device, value, UpdateType.UpdateComponentValue)
+        self.get_component(device).set_component(value)
 
     def set_element_model(self, element: str, model: str) -> None:
         """Changes the value of a circuit element, such as a diode model or a voltage supply.
@@ -220,9 +246,9 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
+        self.begin_update()
         logger.debug(f'Setting element "{element}" to model "{model}"')
-        self.subcircuit.set_element_model(element, model)
-        self.add_update(element, model, UpdateType.UpdateComponentValue)
+        self.get_component(element).set_component(model)
 
     def set_component_parameters(self, element: str, **kwargs) -> None:
         """
@@ -248,11 +274,9 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
+        self.begin_update()
         logger.debug(f'Setting parameters for component "{element}": {kwargs}')
-        self.subcircuit.set_component_parameters(element, **kwargs)
-        for param, value in kwargs.items():
-            update_type = UpdateType.DeleteComponentParameter if value is None else UpdateType.UpdateComponentParameter
-            self.add_update(f"{element}:{param}", value, update_type)
+        self.get_component(element).set_component_parameters(**kwargs)
 
     def set_component_attribute(self, reference: str, attribute: str, value: str) -> None:
         """Sets the value of the attribute of the component. Attributes are the values that are not related with
@@ -268,9 +292,11 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: Nothing
         :raises: ComponentNotFoundError - In case the component is not found
         """
+        self.begin_update()
         logger.debug(f'Setting attribute "{attribute}" of component "{reference}" to value "{value}"')
-        self.subcircuit.set_component_attribute(reference, attribute, value)
-        self.add_update(reference, value, UpdateType.UpdateComponentParameter)
+        component  = self.get_component(reference).set_component(attribute, value)
+        setattr(component, attribute, value)
+        # self.end_update(reference, value, UpdateType.UpdateComponentParameter)
 
 
     def set_component_values(self, **kwargs):
@@ -294,9 +320,13 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise ValueError("Editor is read-only")
         self.subcircuit.set_component_values(**kwargs)
-        for device, value in kwargs.items():
-            self.add_update(device, value, UpdateType.UpdateComponentValue)
+        if permission == UpdatePermission.Inform:
+            for device, value in kwargs.items():
+                self.add_update(device, value, UpdateType.UpdateComponentValue)
 
 
     def add_component(self, component: SpiceComponent, **kwargs) -> None:
@@ -309,8 +339,8 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
         :return: Nothing
         """
+        self.begin_update()
         self.subcircuit.add_component(component, **kwargs)
-        self.add_update(component.reference, component.value, UpdateType.AddComponent)
 
     def remove_component(self, designator: str) -> None:
         """
@@ -323,8 +353,8 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: Nothing
         :raises: ComponentNotFoundError - When the component doesn't exist on the netlist.
         """
+        self.begin_update()
         self.subcircuit.remove_component(designator)
-        self.add_update(designator, "delete", UpdateType.DeleteComponent)
 
     def is_read_only(self):
         """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
@@ -332,98 +362,4 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         :return: True if the component is read-only, False otherwise
         :rtype: bool
         """
-        return self._netlist.is_read_only()
-
-    def add_instruction(self, instruction: str) -> None:
-        """
-        Adds a SPICE instruction to the netlist.
-
-        For example:
-
-            .. code-block:: text
-
-                .tran 10m ; makes a transient simulation
-                .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms" ; Establishes a measuring
-                .step run 1 100, 1 ; makes the simulation run 100 times
-
-        :param instruction:
-            Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
-            typically just before the .BACKANNO statement
-        :type instruction: str
-        :return: Nothing
-        """
-        logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
-        logger.info(f"Adding instruction: {logtxt}")
-        self.subcircuit.add_instruction(instruction)
-        self.add_update("INSTRUCTION", logtxt, UpdateType.AddInstruction)
-
-    def remove_instruction(self, instruction: str) -> bool:
-        """
-        Removes a SPICE instruction from the netlist.
-
-        Example:
-
-        .. code-block:: python
-
-            editor.remove_instruction(".STEP run -1 1023 1")
-
-        This only works if the entire given instruction is contained in a line on the netlist.
-        It uses the 'in' comparison, and is case sensitive.
-        It will remove 1 instruction at most, even if more than one could be found.
-        `remove_Xinstruction()` is a more flexible way to remove instructions from the netlist.
-
-        :param instruction: The instruction to remove.
-        :type instruction: str
-        :returns: True if the instruction was found and removed, False otherwise
-        :rtype: bool
-        """
-        result = self.subcircuit.remove_instruction(instruction)
-        if result:
-            logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
-            self.add_update("INSTRUCTION", logtxt, UpdateType.DeleteInstruction)
-        else:
-            logger.warning(f'Instruction to remove not found: {instruction}')
-        return result
-
-    def remove_Xinstruction(self, search_pattern: str) -> bool:
-        """
-        Removes a SPICE instruction from the netlist based on a search pattern. This is a more flexible way to remove
-        instructions from the netlist. The search pattern is a regular expression that will be used to match the
-        instructions to be removed. The search pattern is case insensitive, and will be applied to each line of the netlist.
-        All matching lines will be removed.
-
-        Example: The code below will remove all AC analysis instructions from the netlist.
-
-        .. code-block:: python
-
-            editor.remove_Xinstruction(r"\\.AC.*")
-
-        :param search_pattern: Pattern for the instruction to remove. In general it is best to use a raw string (r).
-        :type search_pattern: str
-        :returns: True if the instruction was found and removed, False otherwise
-        :rtype: bool
-        """
-        result, removed_instruction = self.subcircuit.remove_Xinstruction(search_pattern)
-        if result:
-            logtxt = removed_instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
-            self.add_update("INSTRUCTION", logtxt, UpdateType.DeleteInstruction)
-        else:
-            logger.warning(f'Instruction to remove not found with pattern: {search_pattern}')
-        return result
-
-    def add_instructions(self, *instructions) -> None:
-        """
-        Adds a list of instructions to the SPICE NETLIST.
-
-        Example:
-
-        .. code-block:: python
-
-            editor.add_instructions(".STEP run -1 1023 1", ".dc V1 -5 5")
-
-        :param instructions: Argument list of instructions to add
-        :type instructions: argument list
-        :returns: Nothing
-        """
-        for instruction in instructions:
-            self.add_instruction(instruction)
+        return self.editor is None or self.editor.is_read_only()

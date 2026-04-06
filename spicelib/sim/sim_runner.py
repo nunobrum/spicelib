@@ -588,7 +588,7 @@ class SimRunner(AnyRunner):
                     switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
                     cwd=self.cwd, callback_on_error=callback_on_error, exe_log=exe_log
                 )
-                if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
+                if isinstance(netlist, BaseEditor) and len(netlist.netlist_updates) > 0:
                     t.edits = netlist.netlist_updates  # Copy is made in this assignment
                 self.active_tasks.append(t)
                 t.start()
@@ -643,7 +643,7 @@ class SimRunner(AnyRunner):
             switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
             cwd=self.cwd, callback_on_error=False, exe_log=exe_log
         )
-        if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
+        if isinstance(netlist, BaseEditor) and len(netlist.netlist_updates) > 0:
             t.edits = netlist.netlist_updates  # Copy is made in this assignment
         t.start()
         sleep(0.01)  # Give slack for the thread to start

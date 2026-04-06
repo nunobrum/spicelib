@@ -69,7 +69,6 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt3 = spicelib.SpiceEditor(test_dir + "/amp3/amp3.net")
 
     def check_update(self, editor: SpiceCircuit, name, update, value=None, index=-1):
-        return  # TODO: remove this line to enable checks
         self.assertEqual(name, editor.netlist_updates[index].name, "Name mismatch")
         self.assertEqual(update, editor.netlist_updates[index].updates, "Update Type mismatch")
         if update not in (UpdateType.DeleteParameter, UpdateType.DeleteComponent, UpdateType.DeleteComponentParameter):
@@ -86,7 +85,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + 'test_components_output.net', golden_dir + 'test_components_output.net')
         self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
         self.edt.set_component_parameters('R1', Tc1=0, Tc2=0, pwr=None)
-        # self.assertEqual(4, len(self.edt.netlist_updates)) # TODO: remove this line to check updates
+        self.assertEqual(4, len(self.edt.netlist_updates))
         self.check_update(self.edt, 'R1:Tc1', UpdateType.AddComponentParameter, 0, 1)
         self.check_update(self.edt, 'R1:Tc2', UpdateType.AddComponentParameter, 0, 2)
         self.check_update(self.edt, 'R1:pwr', UpdateType.DeleteComponentParameter, 0, 3)
@@ -96,7 +95,7 @@ class SpiceEditor_Test(unittest.TestCase):
         for key, value in {'Tc1': 0, 'Tc2': 0}.items():
             self.assertEqual(r1_params[key], value, f"Tested R1 {key} Parameter")
         self.edt.remove_component('R1')
-        # self.assertEqual(5, len(self.edt.netlist_updates), "Updated existing update") TODO: remove this line to check updates
+        self.assertEqual(5, len(self.edt.netlist_updates), "Updated existing update")
         self.check_update(self.edt, 'R1', UpdateType.DeleteComponent)
         self.edt.save_netlist(temp_dir + 'test_components_output_1.net')
         self.equalFiles(temp_dir + 'test_components_output_1.net', golden_dir + 'test_components_output_1.net')
@@ -117,7 +116,7 @@ class SpiceEditor_Test(unittest.TestCase):
         r1['Tc1'] = 0
         r1['Tc2'] = 0
         r1['pwr'] = None  # delete parameter
-        # self.assertEqual(4, len(self.edt.netlist_updates)) TODO: remove this line to check updates
+        self.assertEqual(4, len(self.edt.netlist_updates))
         self.check_update(self.edt, 'R1:Tc1', UpdateType.AddComponentParameter, 0, 1)
         self.check_update(self.edt, 'R1:Tc2', UpdateType.AddComponentParameter, 0, 2)
         self.check_update(self.edt, 'R1:pwr', UpdateType.DeleteComponentParameter, 0, 3)
@@ -147,7 +146,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(self.edt2.get_component_value('XU2'), 'AD549', "Tested U2 Value")  # no parameters
         self.assertListEqual(self.edt2.get_components(), ['V1', 'V2', 'V3', 'XU1', 'XU2'], "Tested get_components")
         self.edt2.set_component_value('V3', 'PWL(2u 0 +1p 1 +1m 1)')
-        # self.assertEqual(1, len(self.edt2.netlist_updates)) TODO: remove this line to check updates
+        self.assertEqual(1, len(self.edt2.netlist_updates))
         self.check_update(self.edt2, 'V3', UpdateType.UpdateComponentValue, 'PWL(2u 0 +1p 1 +1m 1)')
         self.edt2.set_component_parameters('V3', Rser=1)  # first in the list
         self.check_update(self.edt2, 'V3:Rser', UpdateType.UpdateComponentParameter, 1)
@@ -162,17 +161,17 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(self.edt.get_all_parameter_names(), ['RES', 'TEMP'])
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameter('TEMP', 25)
-        # self.check_update(self.edt, 'TEMP', UpdateType.UpdateParameter, 25)
+        self.check_update(self.edt, 'TEMP', UpdateType.UpdateParameter, 25)
         self.assertEqual(self.edt.get_parameter('TEMP'), '25', "Tested TEMP Parameter")  # add assertion here
         self.edt.save_netlist(temp_dir + 'test_parameter_output.net')
         self.equalFiles(temp_dir + 'test_parameter_output.net', golden_dir + 'test_parameter_output.net')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
-        # self.check_update(self.edt, 'TEMP', UpdateType.UpdateParameter, 0)
+        self.check_update(self.edt, 'TEMP', UpdateType.UpdateParameter, 0)
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameters(floatpparam=1.23, signed_param=-0.99, expparam=-1E-34)
-        # self.check_update(self.edt, 'floatpparam', UpdateType.UpdateParameter, 1.23, 1)
-        # self.check_update(self.edt, 'signed_param', UpdateType.UpdateParameter, -0.99, 2)
-        # self.check_update(self.edt, 'expparam', UpdateType.UpdateParameter, -1E-34, 3)
+        self.check_update(self.edt, 'floatpparam', UpdateType.AddParameter, 1.23, 1)
+        self.check_update(self.edt, 'signed_param', UpdateType.AddParameter, -0.99, 2)
+        self.check_update(self.edt, 'expparam', UpdateType.AddParameter, -1E-34, 3)
         self.edt.save_netlist(temp_dir + 'test_parameter_output_1.net')
         self.equalFiles(temp_dir + 'test_parameter_output_1.net', golden_dir + 'test_parameter_output_1.net')
         # String parameters
@@ -192,7 +191,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt.add_instruction('.save I(R1)')
         self.edt.add_instruction('.save I(R2)')
         self.edt.add_instruction('.save I(D1)')
-        self.check_update(self.edt, 'INSTRUCTION', UpdateType.AddInstruction, '.ac dec 10 1 100k', 0)
+        self.check_update(self.edt, 'INSTRUCTION', UpdateType.UpdateInstruction, '.ac dec 10 1 100k', 0)
         self.check_update(self.edt, 'INSTRUCTION', UpdateType.AddInstruction, '.save V(vout)', 1)
         self.check_update(self.edt, 'INSTRUCTION', UpdateType.AddInstruction, '.save I(R1)', 2)
         self.check_update(self.edt, 'INSTRUCTION', UpdateType.AddInstruction, '.save I(R2)', 3)
@@ -413,8 +412,8 @@ class SpiceEditor_Test(unittest.TestCase):
         actual_width = params['W']
         self.edt3["XOPAMP:M11"].params = dict(W=2 * actual_width)
         self.edt3["XOPAMP:M12"].set_params(L=4E-6)
-        # self.assertEqual(4, len(self.edt3.netlist_updates)) TODO: remove this line to check updates
-        self.check_update(self.edt3, "CLONE(PFC.SUB)", UpdateType.CloneSubcircuit, "PFC.SUB_XOPAMP", 0)
+        self.assertEqual(4, len(self.edt3.netlist_updates))
+        self.check_update(self.edt3, "CLONE(PFC.SUB)", UpdateType.CloneSubcircuit, "PFC.SUB", 0)
         self.check_update(self.edt3, "XOPAMP", UpdateType.UpdateComponentValue, "PFC.SUB_XOPAMP", 1)
         self.check_update(self.edt3, "XOPAMP:M11:W", UpdateType.UpdateComponentParameter, 2 * actual_width, 2)
         self.check_update(self.edt3, "XOPAMP:M12:L", UpdateType.UpdateComponentParameter, 4E-6, 3)

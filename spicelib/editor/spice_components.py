@@ -24,7 +24,7 @@ import logging
 
 from .editor_errors import UnrecognizedSyntaxError
 from .primitives import Component
-from .updates import UpdateType
+from .updates import UpdateType, UpdatePermission
 from .spice_utils import END_LINE_TERM, REPLACE_REGEXS
 
 _logger = logging.getLogger("spicelib.SpiceEditor")
@@ -280,10 +280,10 @@ class SpiceComponent(Component):
                 self.ports = info[attr].split()
             elif attr == 'value':
                 if info[attr] is not None:
-                    self.set_value(info[attr].strip())
+                    super().set_value(info[attr].strip())
             elif attr == 'params':
                 if info[attr]:
-                    self.set_parameters(**_parse_params(info[attr]))
+                    super().set_parameters(**_parse_params(info[attr]))
             elif attr in ('number', 'formula1', 'formula2', 'formula3'):
                 continue  # these are subgroups of VALUE, ignore
             else:
@@ -422,15 +422,37 @@ class SpiceComponent(Component):
 
     def set_value(self, value):
         """Informs the netlist that the value of the component has changed"""
+        perm = self.begin_update()
+        if perm == UpdatePermission.Deny:
+            raise PermissionError("Updates are currently not allowed.")
         super().set_value(value)
-        self.netlist.add_update(self.reference, value, UpdateType.UpdateComponentValue)
+        if perm == UpdatePermission.Inform:
+            self.end_update(self.reference, value, UpdateType.UpdateComponentValue)
 
     def set_parameters(self, **params):
         """Informs the netlist that the parameters of the component have changed"""
-        super().set_parameters(**params)
-        self.netlist.add_update(self.reference,  str(params), UpdateType.UpdateComponentParameter)
+        for key, value in params.items():
+            self.set_parameter(key, value)
 
     def set_parameter(self, key: str, value):
         """Informs the netlist that a parameter of the component has changed"""
+        perm = self.begin_update()
+        if perm == UpdatePermission.Deny:
+            raise PermissionError("Updates are currently not allowed")
+        old_params = self.params
+        if value is None:
+            update = UpdateType.DeleteComponentParameter
+        elif key not in old_params:
+            update = UpdateType.AddComponentParameter
+        else:
+            update = UpdateType.UpdateComponentParameter
         super().set_parameter(key, value)
-        self.netlist.add_update(self.reference, f"{key}={value}", UpdateType.UpdateComponentParameter)
+        if perm == UpdatePermission.Inform:
+            self.end_update(f'{self.reference}:{key}', value, update)
+
+    def begin_update(self) -> UpdatePermission:
+        return self._netlist.begin_update() if self._netlist else UpdatePermission.Initializing
+
+    def end_update(self, reference, value, update_type: UpdateType):
+        if self._netlist:
+            self._netlist.end_update(reference, value, update_type)

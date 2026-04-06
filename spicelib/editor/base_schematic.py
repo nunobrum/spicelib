@@ -29,7 +29,7 @@ from .editor_errors import ComponentNotFoundError
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
 
-from .updates import UpdateType
+from .updates import UpdateType, UpdatePermission
 
 _logger = logging.getLogger("spicelib.BaseSchematic")
 
@@ -279,8 +279,8 @@ class BaseSchematic(BaseEditor):
     classes.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, filename):
+        super().__init__(filename)
         self.components: OrderedDict[str, SchematicComponent] = OrderedDict()
         self.wires: list[Line] = []
         self.labels: list[Text] = []
@@ -403,11 +403,14 @@ class BaseSchematic(BaseEditor):
                 point.Y = round_fun(point.Y * scale_y + offset_y)
         self.canvas_updated = True
 
-    def add_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+    def begin_update(self) -> UpdatePermission:
+        """Returns the update permission for the schematic. This is used to determine if the schematic can be updated or not."""
+        return self.update_permission
+
+    def end_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
         """Adds an update to the netlist updates list"""
-        update = super().add_update(name, value, updates)
+        self.netlist_updates.add_update(name, value, updates)
         self.canvas_updated = True
-        return update
 
     def updated(self):
         return self.canvas_updated or len(self.netlist_updates) > 0

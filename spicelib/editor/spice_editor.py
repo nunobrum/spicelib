@@ -24,7 +24,7 @@ from .base_editor import BaseEditor
 from .primitives import Primitive
 from .spice_components import SpiceComponent
 from .spice_utils import END_LINE_TERM
-from .updates import UpdateType
+from .updates import UpdateType, UpdatePermission
 from .spice_subcircuit import SpiceCircuit, SpiceCircuitInstance, get_line_command, ControlEditor, \
     _is_unique_instruction, separate_lines
 import logging
@@ -61,7 +61,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
     netlist file.
 
     :param netlist_file: Name of the .NET file to parse
-    :type netlist_file: str or pathlib.Path
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This, however, is not 100% foolproof.
     :type encoding: str, optional
@@ -70,26 +69,19 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
     """
 
     def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
-        BaseEditor.__init__(self)
+        BaseEditor.__init__(self, netlist_file)
         SpiceCircuit.__init__(self)
-        self.netlist_file = Path(netlist_file)
-        self._readonly = False
         if create_blank:
             self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
         else:
             if encoding == 'autodetect':
                 try:
-                    self.encoding = detect_encoding(self.netlist_file, r'^\*')  # Normally, the file will start with a '*'
+                    self.encoding = detect_encoding(self.circuit_file, r'^\*')  # Normally, the file will start with a '*'
                 except EncodingDetectError as err:
                     raise err
             else:
                 self.encoding = encoding
         self.reset_netlist(create_blank)
-
-    @property
-    def circuit_file(self) -> Path:
-        # docstring inherited from BaseSchematic
-        return self.netlist_file
 
     def add_instruction(self, instruction: str) -> None:
         """Adds a SPICE instruction to the netlist.
@@ -109,6 +101,10 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         :type instruction: str
         :return: Nothing
         """
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError('The .NET file is read-only')
+
         if not instruction.endswith(END_LINE_TERM):
             instruction += END_LINE_TERM
 
@@ -120,6 +116,8 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                 line = self.netlist[i]
                 if isinstance(line, Primitive) and _is_unique_instruction(line._obj):
                     self.netlist[i] = Primitive(netlist=self, obj=instruction)
+                    if permission == UpdatePermission.Inform:
+                        self.end_update("INSTRUCTION", instruction.strip(), UpdateType.UpdateInstruction)
                     return
                 else:
                     i += 1
@@ -142,14 +140,17 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                     line = nr
                     break
 
-        BaseEditor.add_instruction(self, instruction)
-
         primitive = self.class_for_instruction(instruction, cmd)
         self.netlist.insert(line, primitive)
 
+        if permission == UpdatePermission.Inform:
+            self.end_update("INSTRUCTION", instruction.strip(), UpdateType.AddInstruction)
+
     def remove_instruction(self, instruction) -> bool:
         # docstring is in the parent class
-
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError('The .NET file is read-only')
         # TODO: Make it more intelligent so it recognizes .models, .param and .subckt
 
         i = 0
@@ -158,7 +159,8 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                 del self.netlist[i]
                 logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
                 _logger.info(f'Instruction "{logtxt}" removed')
-                self.add_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
+                if permission == UpdatePermission.Inform:
+                    self.end_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
                 return True
             # All other cases are ignored
             i += 1
@@ -168,6 +170,10 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
 
     def remove_Xinstruction(self, search_pattern: str) -> bool:
         # docstring is in the parent class
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError('The .NET file is read-only')
+
         regex = re.compile(search_pattern, re.IGNORECASE)
         i = 0
         instr_removed = False
@@ -178,7 +184,8 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
             if isinstance(line, str) and (match := regex.match(line)):
                 del self.netlist[i]
                 instr_removed = True
-                self.add_update('INSTRUCTION', match.string.strip(), UpdateType.DeleteInstruction)
+                if  permission == UpdatePermission.Inform:
+                    self.end_update('INSTRUCTION', match.string.strip(), UpdateType.DeleteInstruction)
                 _logger.info(f'Instruction "{line}" removed')
             else:
                 i += 1
@@ -244,6 +251,9 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         :returns: True if the control section was found and removed, False otherwise
         :rtype: bool
         """
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError('The .NET file is read-only')
         if index < 0:
             raise IndexError("Control section index out of range")
         i = 0
@@ -252,7 +262,8 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                 if i == index:
                     del self.netlist[nr]
                     logtxt = line.content.replace("\r", "\\r").replace("\n", "\\n")
-                    self.add_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
+                    if permission == UpdatePermission.Inform:
+                        self.end_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
                     _logger.info(f"Control section {index} removed")
                     return True
                 i += 1
@@ -268,15 +279,16 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         # For some reason, the MRO is not working well here. Need to explicitly call each super class individually.
         SpiceCircuit.reset_netlist(self, create_blank)
         BaseEditor.reset_netlist(self, create_blank)
-        self.recording_updates = False
+        self.netlist_updates.clear()
+        self.update_permission = UpdatePermission.Initializing
         if create_blank:
             lines = ['* netlist generated from spicelib', '.end']
             finished = self._add_lines(lines)
             if not finished:
-                raise SyntaxError("Netlist with missing .END or .ENDS statements")
-        elif self.netlist_file.exists():
-            with open(self.netlist_file, encoding=self.encoding, errors='replace') as f:
-                lines = iter(f)  # Creates an iterator object to consume the file
+                raise SyntaxError("Netlist with missing .END or re.ENDS statements")
+        elif self.circuit_file.exists():
+            with open(self.circuit_file, encoding=self.encoding, errors='replace') as f:
+                lines = separate_lines(f)  # Creates an iterator object to consume the file
                 finished = self._add_lines(lines)
                 if not finished:
                     raise SyntaxError("Netlist with missing .END or .ENDS statements")
@@ -322,6 +334,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                         self.set_custom_library_paths(lib_paths)
         else:
             _logger.error(f"Netlist file not found: {self.netlist_file}")
+        self.update_permission = UpdatePermission.Inform
 
     def run(self, wait_resource: bool = True,
             callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):

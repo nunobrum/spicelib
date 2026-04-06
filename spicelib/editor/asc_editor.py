@@ -21,7 +21,8 @@ from pathlib import Path
 from typing import Union, Optional
 import io
 
-from .updates import UpdateType
+from .base_subcircuit import BaseSubCircuit
+from .updates import UpdateType, UpdatePermission
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 import re
 import logging
@@ -64,7 +65,7 @@ class AscComponent(SchematicComponent):
                 value_str = format_eng(value)
             self.attributes["Value"] = value_str
             _logger.info(f"Component {self.reference} updated to {value_str}")
-            self.parent.add_update(self.reference, value_str, UpdateType.UpdateComponentParameter)
+            self.parent.end_update(self.reference, value_str, UpdateType.UpdateComponentParameter)
         else:
             _logger.error(f"Component {self.reference} does not have a Value attribute")
             raise ComponentNotFoundError(f"Component {self.reference} does not have a Value attribute")
@@ -187,7 +188,7 @@ class AscComponent(SchematicComponent):
                             _logger.info(f"Component {self.reference} updated with parameter {key}:{value_str}")
 
 
-class AscEditor(BaseSchematic):
+class AscEditor(BaseSchematic, BaseSubCircuit):
     """Class made to update directly the LTspice ASC files"""
     symbol_cache = {}  # This is a class variable, so it can be shared between all instances.
     """:meta private:"""
@@ -200,27 +201,22 @@ class AscEditor(BaseSchematic):
     :meta hide-value:
     """
     
-    def __init__(self, asc_file: Union[str, Path], encoding='autodetect'):
-        super().__init__()
+    def __init__(self, asc_filename: str|Path, encoding='autodetect'):
+        super().__init__(asc_filename)
         self.version = 4
         self.sheet = "1 0 0"  # Three values are present on the SHEET clause
-        self.asc_file_path = Path(asc_file)
-        if not self.asc_file_path.exists():
-            raise FileNotFoundError(f"File {asc_file} not found")
+        if not self._circuit_filepath.exists():
+            raise FileNotFoundError(f"File {asc_filename} not found")
         # determine encoding
         if encoding == 'autodetect':
             try:
-                self.encoding = detect_encoding(self.asc_file_path, r'^VERSION ', re_flags=re.IGNORECASE)  # Normally the file will start with 'VERSION '
+                self.encoding = detect_encoding(self.circuit_file, r'^VERSION ', re_flags=re.IGNORECASE)  # Normally the file will start with 'VERSION '
             except EncodingDetectError as err:
                 raise err
         else:
             self.encoding = encoding  
         # read the file into memory
         self.reset_netlist()
-
-    @property
-    def circuit_file(self) -> Path:
-        return self.asc_file_path
 
     def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
         """
@@ -270,7 +266,7 @@ class AscEditor(BaseSchematic):
                     # writing the sub-circuit if it was updated
                     sub_circuit: AscEditor = component.attributes['_SUBCKT']
                     if sub_circuit is not None and sub_circuit.updated():
-                        sub_circuit.save_netlist(sub_circuit.asc_file_path)
+                        sub_circuit.save_netlist(sub_circuit.circuit_file)
                 for attr, value in component.attributes.items():
                     if not attr.startswith('_'):  # All these are not exported since they are only used internally
                         asc.write(f"SYMATTR {attr} {value}" + END_LINE_TERM)
@@ -298,8 +294,8 @@ class AscEditor(BaseSchematic):
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()
-        with open(self.asc_file_path, encoding=self.encoding) as asc_file:
-            _logger.info(f"Parsing ASC file {self.asc_file_path}")
+        with open(self.circuit_file, encoding=self.encoding) as asc_file:
+            _logger.info(f"Parsing ASC file {self.circuit_file}")
             component = None
             for line in asc_file:
                 if line.startswith("SYMBOL"):
@@ -462,7 +458,7 @@ class AscEditor(BaseSchematic):
             else:
                 # TODO: should we add simulator_lib_paths to the search?
                 asc_path = search_file_in_containers(asc_filename.stem + os.path.extsep + "asc",  # file to search
-                                                     os.path.split(self.asc_file_path)[0],  # The current script directory
+                                                     os.path.split(self.circuit_file)[0],  # The current script directory
                                                      os.path.curdir,  # The directory where the script is located
                                                      *self.custom_lib_paths  # The custom library paths. They are last here, contrary to other places... Why?
                                                      )
@@ -487,6 +483,9 @@ class AscEditor(BaseSchematic):
         if '_SUBCKT' in sub.attributes:
             return sub.attributes['_SUBCKT']
         raise AttributeError(f"An associated subcircuit was not found for {reference}")
+
+    def get_subcircuit_named(self, name: str) -> 'BaseSubCircuit':
+        pass
 
     def get_component_info(self, reference) -> dict:
         """Returns the reference information as a dictionary"""
@@ -539,6 +538,7 @@ class AscEditor(BaseSchematic):
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+        permission = self.begin_update()
         match, directive = self._get_param_named(param)
         if isinstance(value, (int, float)):
             value_str = format_eng(value)
@@ -549,7 +549,7 @@ class AscEditor(BaseSchematic):
             start, stop = match.span('value')
             directive.text = f"{directive.text[:start]}{value_str}{directive.text[stop:]}"
             _logger.info(f"Parameter {param} updated to {value_str}")
-            self.add_update(param, value_str, UpdateType.UpdateParameter)
+            self.end_update(param, value_str, UpdateType.UpdateParameter)
         else:
             # Was not found so we need to add it,
             _logger.debug(f"Parameter {param} not found in ASC file, adding it")
@@ -559,7 +559,8 @@ class AscEditor(BaseSchematic):
             directive = Text(coord=coord, text=text, size=2, type=TextTypeEnum.DIRECTIVE)
             _logger.info(f"Parameter {param} added with value {value_str}")
             self.directives.append(directive)
-            self.add_update(param, value_str, UpdateType.AddParameter)
+
+            self.end_update(param, value_str, UpdateType.AddParameter)
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         """
@@ -646,10 +647,10 @@ class AscEditor(BaseSchematic):
         return [k for k in self.components.keys() if k[0] in prefixes]
 
     def remove_component(self, designator: str):
-        super().remove_component(designator)
+        self.begin_update()
         sub_circuit, ref = self._get_parent(designator)
         del sub_circuit.components[ref]
-        sub_circuit.add_update(designator, "", UpdateType.DeleteComponent)
+        sub_circuit.end_update(designator, "", UpdateType.DeleteComponent)
 
     def _get_text_space(self):
         """
@@ -697,7 +698,7 @@ class AscEditor(BaseSchematic):
         my_lib_paths = [os.path.join(x, "sub") for x in self.simulator_lib_paths]
         # find the file
         file_found = search_file_in_containers(filename, 
-                                               os.path.split(self.asc_file_path)[0],  # The directory where the file is located
+                                               os.path.split(self.circuit_file)[0],  # The directory where the file is located
                                                os.path.curdir,  # The current script directory,
                                                *my_lib_paths,  # The simulator's library paths, adapted for the occasion
                                                *self.custom_lib_paths,
@@ -713,7 +714,7 @@ class AscEditor(BaseSchematic):
         my_lib_paths = [os.path.join(x, "sym") for x in self.simulator_lib_paths]
         # find the file            
         file_found = search_file_in_containers(filename, 
-                                               os.path.split(self.asc_file_path)[0],  # The directory where the file is located
+                                               os.path.split(self.circuit_file)[0],  # The directory where the file is located
                                                os.path.curdir,  # The current script directory,
                                                *my_lib_paths,  # The simulator's library paths, adapted for the occasion
                                                *self.custom_lib_paths
