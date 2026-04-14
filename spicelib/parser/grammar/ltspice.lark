@@ -1,0 +1,7 @@
+%import "base.lark"
+
+# LTspice extensions can be added here. For now this file imports base.lark
+# so the 'ltspice' dialect is identical to 'base' and can be extended later.
+
+start: line*
+

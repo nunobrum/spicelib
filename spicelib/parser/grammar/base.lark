@@ -1,0 +1,23 @@
+%import common.NEWLINE
+%import common.WS_INLINE
+%ignore /[ \t]+/
+
+start: line*
+
+line: component_line NEWLINE?
+    | directive_line NEWLINE?
+    | comment_line NEWLINE?
+    | NEWLINE
+
+component_line: DESIGNATOR nodes value?
+directive_line: DIRECTIVE ARGUMENTS?
+comment_line: COMMENT
+
+DESIGNATOR: /[A-Za-zÃ¥Ã¤Ã¶¥£€ØÖ§†][A-Za-z0-9_\.+:\-]*/
+NODE: /[^\s;]+/
+nodes: NODE+
+value: /[^\n;]+/
+ARGUMENTS: /[^\n;]+/
+DIRECTIVE: /\.[A-Za-z]+/
+COMMENT: /;[^\n]*/
+
