@@ -509,7 +509,7 @@ class PlotData(PlotInterface):
         elif property_name.title() in self._raw_params.keys():
             return self._raw_params[property_name.title()]
         else:
-            raise ValueError("Invalid property. Use %s" % str(self._raw_params.keys()))
+            raise ValueError(f"Invalid property. Use {list(self._raw_params.keys())}")
 
     def get_raw_properties(self) -> dict[str, str]:
         """

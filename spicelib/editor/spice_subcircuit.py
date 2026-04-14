@@ -144,6 +144,13 @@ def separate_lines(stream: io.StringIO) -> Generator[str, None, None]:
             current_line = ""  # reset the current line after yielding
             continue
 
+        elif char == ';' and not braces_stack and not in_quotes:
+            # This is a comment and the rest of the line can be consumed.
+            current_line += char + stream.readline()
+            yield current_line
+            current_line = ""
+            continue
+
         current_line += char
 
 
