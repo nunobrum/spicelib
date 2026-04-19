@@ -106,7 +106,7 @@ class SpiceEditor_Test(unittest.TestCase):
         r3 = r1.clone()
         self.assertEqual(r1.value_str, '10k', "Tested R1 Value")
         self.assertEqual(r1.value, 10000, "Tested R1 Numeric Value")
-        self.assertListEqual(r1.ports, ['in', 'out'], "Tested R1 Nodes")
+        self.assertListEqual(r1.port_names(None), ['in', 'out'], "Tested R1 Nodes")
         r1.value = '33k'
         self.assertEqual(r1.value_str, '33k', "Tested R1 Value")
         self.check_update(self.edt, 'R1', UpdateType.UpdateComponentValue, '33k')
@@ -565,7 +565,7 @@ class SpiceEditor_Test(unittest.TestCase):
             if len(value) > 0:
                 if el[0] in new_values.keys():
                     new_value = new_values[el[0]]
-                # print(f"Modifying {el}")
+                print(f"Modifying {el}")
                 edt.set_component_value(el, new_value)
                 self.assertEqual(edt.get_component_value(el).casefold(), new_value.casefold(), f"Test reading back {el} Value")
             # modfy parameter

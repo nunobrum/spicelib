@@ -301,7 +301,6 @@ class BaseSchematic(BaseEditor):
         self.directives.clear()
         self.lines.clear()
         self.shapes.clear()
-        self.netlist_updates.clear()
         self.canvas_updated = False
 
     def copy_from(self, editor: 'BaseSchematic') -> None:

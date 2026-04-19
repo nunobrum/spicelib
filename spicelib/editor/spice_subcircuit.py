@@ -211,9 +211,9 @@ class SpiceCircuit(BaseSubCircuit):
                 self.netlist.append(primitive)
                 if cmd[:4] == '.END':  # True for either .END, .ENDS and .ENDC primitives
                     # Now construct the sub-circuit object
-                    for component in self.netlist:
-                        if isinstance(component, (SpiceComponent, SpiceCircuitInstance)):
-                            component.reset_attributes()
+                    # for component in self.netlist:
+                    #     if isinstance(component, (SpiceComponent, SpiceCircuitInstance)):
+                    #         component.reset_attributes()
                     self.update_permission = UpdatePermission.Inform
                     return True  # If a sub-circuit is ended correctly, returns True
         return False  # If a sub-circuit ends abruptly, returns False

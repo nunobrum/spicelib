@@ -21,8 +21,9 @@ from dataclasses import dataclass
 
 from ..run_task import RunTask
 from ...editor.base_editor import BaseEditor
-from ...editor.primitives import scan_eng
-from .sim_analysis import SimAnalysis, AnyRunner, ProcessCallback
+from ...editor.primitives import scan_eng, to_float
+from ..process_callback import CallbackType, CallbackArgsType
+from .sim_analysis import SimAnalysis, AnyRunner
 from enum import Enum
 
 from ...log.logfile_data import LTComplex, LogfileData

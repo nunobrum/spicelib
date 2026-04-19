@@ -23,7 +23,7 @@ from functools import wraps
 import logging
 
 from ..sim_runner import AnyRunner, RunTask, CallbackType, CallbackArgsType
-from ...editor.base_editor import BaseEditor
+from ...editor.base_subcircuit import BaseEditor, BaseSubCircuit
 from ...log.logfile_data import LogfileData
 from ...utils.detect_encoding import EncodingDetectError
 
@@ -31,6 +31,9 @@ from ...log.ltsteps import LTSpiceLogReader
 from ...log.qspice_log_reader import QspiceLogReader
 
 _logger = logging.getLogger("spicelib.SimAnalysis")
+
+class Editor(BaseEditor, BaseSubCircuit):
+    ...
 
 class SimAnalysis:
     """
@@ -41,7 +44,7 @@ class SimAnalysis:
     will be possible, although, it seems that the later solution is less computing intense.
     """
 
-    def __init__(self, circuit_file: str | BaseEditor, runner: AnyRunner | None = None):
+    def __init__(self, circuit_file: str | Editor, runner: AnyRunner | None = None):
         if isinstance(circuit_file, str):
             from ...editor.spice_editor import SpiceEditor
             self.editor = SpiceEditor(circuit_file)

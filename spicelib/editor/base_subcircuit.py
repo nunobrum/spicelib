@@ -49,7 +49,7 @@ class BaseSubCircuit(ABC):
         elif self.parent is not None:
             return self.parent.begin_update()
         else:
-            return UpdatePermission.Initializing
+            return UpdatePermission.Deny
 
     def end_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
         self._modified = True

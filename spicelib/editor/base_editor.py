@@ -78,6 +78,7 @@ class BaseEditor(ABC):
                              reset to the original state.
         """
         self.netlist_updates.clear()
+        self.update_permission = UpdatePermission.Initializing
 
     @abstractmethod
     def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:

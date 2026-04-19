@@ -23,7 +23,7 @@ import io
 import logging
 
 from .editor_errors import UnrecognizedSyntaxError
-from .primitives import Component
+from .primitives import Component, scan_eng, format_eng
 from .updates import UpdateType, UpdatePermission
 from .spice_utils import END_LINE_TERM, REPLACE_REGEXS
 
@@ -272,12 +272,12 @@ class SpiceComponent(Component):
             raise UnrecognizedSyntaxError(self._obj, regex.pattern)
 
         info = match.groupdict()
-        self.attributes.clear()
+        self._attributes.clear()
         for attr in info:
             if attr == 'designator':
                 self.reference = undress_designator(info[attr])
             elif attr == 'nodes':
-                self.ports = info[attr].split()
+                self._set_ports(info[attr].split())
             elif attr == 'value':
                 if info[attr] is not None:
                     super().set_value(info[attr].strip())
@@ -316,7 +316,7 @@ class SpiceComponent(Component):
         update_done = False
         for attr in info:
             start, stop = match.span(attr)
-            if start == -1 and stop == -1 and attr not in self.attributes:
+            if start == -1 and stop == -1 and attr not in self._attributes:
                 continue  # this attribute is not present in the line, skip it
             if attr == 'designator':
                 old_ref = undress_designator(info[attr])
@@ -330,7 +330,7 @@ class SpiceComponent(Component):
                     update_done = True
             elif attr == 'nodes':
                 old_nodes_str = info[attr]
-                new_nodes_str = ' ' + ' '.join(self.ports)
+                new_nodes_str = ' ' + self.port_names(' ')
                 if old_nodes_str != new_nodes_str:
                     new_line = _insert_section(new_line, start + offset, stop + offset, new_nodes_str)
                     offset += len(new_nodes_str) - len(old_nodes_str)
@@ -367,9 +367,9 @@ class SpiceComponent(Component):
             else:
                 if hasattr(self, attr):
                     old_attr_value = info[attr]
-                    if attr == 'value':
-                        attr = 'value_str'
-                    new_attr_value = self[attr]
+                    new_attr_value = self._attributes[attr]
+                    if isinstance(new_attr_value, (float, int)):
+                        new_attr_value = format_eng(new_attr_value)
                     if old_attr_value != new_attr_value:
                         new_line = _insert_section(new_line, start + offset, stop + offset, new_attr_value)
                         offset += len(new_attr_value) - len(old_attr_value)
@@ -399,9 +399,9 @@ class SpiceComponent(Component):
         for port in self.ports:
             count += stream.write(f" {port}")
         # Write value if present
-        if 'value' in self.attributes:
+        if 'value' in self._attributes:
             count += stream.write(f" {self.value_str}")
-        if 'model' in self.attributes:
+        if 'model' in self._attributes:
             count += stream.write(f" {self.model}")
         # Write parameters
         line_size = count

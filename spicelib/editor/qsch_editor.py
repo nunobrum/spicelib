@@ -387,9 +387,6 @@ class QschComponent(SchematicComponent):
         if permission == UpdatePermission.Inform:
             self.parent.end_update(self.reference, model, UpdateType.UpdateComponentValue)
 
-    def get_value(self) -> str:
-        return self.attributes["value"]
-
     def get_parameters(self) -> dict:
         """
         Returns the parameters of the component in a dictionary. Since QSpice stores attributes by their order of

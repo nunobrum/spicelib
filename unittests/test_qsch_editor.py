@@ -70,13 +70,13 @@ class QschEditor_Test(unittest.TestCase):
             self.assertEqual(value, self.edt.netlist_updates[index].value, "Value mismatch")
 
     def test_component_editing(self):
-        self.assertEqual(self.edt.get_component_value('R1'), '10K', "Tested R1 Value")  # add assertion here
+        self.assertEqual(self.edt.get_component_value('R1'), 10000, "Tested R1 Value")  # add assertion here
         self.assertSetEqual(set(self.edt.get_components()), {'Vin', 'R1', 'R2', 'D1'}, "Tested get_components")  # add assertion here
         self.edt.set_component_value('R1', '33k')
         self.check_update('R1', UpdateType.UpdateComponentValue, '33k')
         self.edt.save_netlist(temp_dir + 'test_components_output.qsch')
         equalFiles(self, temp_dir + 'test_components_output.qsch', golden_dir + 'test_components_output.qsch')
-        self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
+        self.assertEqual(self.edt.get_component_value('R1'), 33000, "Tested R1 Value")  # add assertion here
         self.edt.set_component_parameters('R1', Tc1=0, Tc2=0)
         self.check_update('R1:Tc1', UpdateType.UpdateComponentParameter, 0, -2)
         self.check_update('R1:Tc2', UpdateType.UpdateComponentParameter, 0, -1)
@@ -97,7 +97,7 @@ class QschEditor_Test(unittest.TestCase):
         self.check_update('R1', UpdateType.UpdateComponentValue, '33k')
         self.edt.save_netlist(temp_dir + 'test_components_output_obj.qsch')
         equalFiles(self, temp_dir + 'test_components_output_obj.qsch', golden_dir + 'test_components_output_obj.qsch')
-        self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
+        self.assertEqual(self.edt.get_component_value('R1'), 33000, "Tested R1 Value")  # add assertion here
         self.assertEqual(r1.value_str, '33k', "Tested R1 Value")
         r1.set_params(Tc1='0', Tc2='0', pwr=None)
         self.check_update('R1:Tc1', UpdateType.UpdateComponentParameter, '0', -3)
@@ -253,8 +253,8 @@ class QschEditorEmbeddedSubckt(unittest.TestCase):
         sub = self.edt.get_subcircuit("X2")
         sub_desc = self.edt.get_component_value('X2')
         self.assertEqual("sub_circuit2", sub_desc, "Value mismatch")
-        self.assertEqual('10K', sub.get_component_value("R1"))
-        self.assertEqual('22K', sub.get_component_value("R4"))
+        self.assertEqual(10000, sub.get_component_value("R1"))
+        self.assertEqual(22000, sub.get_component_value("R4"))
         sub.set_component_value('R5', 220)
         self.edt.save_netlist(temp_dir + 'Qspice_top_edit.net')
         equalFiles(self, golden_dir + 'Qspice_top_edit.net', temp_dir + 'Qspice_top_edit.net')

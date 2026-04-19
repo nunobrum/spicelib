@@ -45,7 +45,6 @@ class ASC_Editor_Test(unittest.TestCase):
         self.edt = spicelib.editor.asc_editor.AscEditor(test_dir + "DC sweep.asc")
 
     def check_update(self, editor, name, update, value=None, index=-1):
-        return  # Temporarily disable checks TODO: remove this line when done
         self.assertEqual(name, editor.netlist_updates[index].name, "Name mismatch")
         self.assertEqual(update, editor.netlist_updates[index].updates, "Update Type mismatch")
         if update not in (UpdateType.DeleteParameter, UpdateType.DeleteComponent, UpdateType.DeleteComponentParameter):
@@ -62,8 +61,8 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
         self.assertEqual(r1.value_str, '33k', "Tested R1 Value")  # add assertion here
         r1.set_params(Tc1='0', Tc2='0', pwr=None)
-        self.check_update(self.edt, 'R1:Tc1', UpdateType.UpdateComponentParameter, '0', -3)
-        self.check_update(self.edt, 'R1:Tc2', UpdateType.UpdateComponentParameter, '0', -2)
+        self.check_update(self.edt, 'R1:Tc1', UpdateType.AddComponentParameter, '0', -3)
+        self.check_update(self.edt, 'R1:Tc2', UpdateType.AddComponentParameter, '0', -2)
         self.check_update(self.edt, 'R1:pwr', UpdateType.DeleteComponentParameter, None, -1)
         # self.edt.set_component_parameters('R1', Tc1='0', Tc2='0', pwr=None)
         self.edt.save_netlist(temp_dir + 'test_components_output_2.asc')
@@ -71,6 +70,7 @@ class ASC_Editor_Test(unittest.TestCase):
         for key, value in {'Tc1': 0, 'Tc2': 0}.items():
             self.assertEqual(r1.params[key], value, f"Tested R1 {key} Parameter")
         self.edt.remove_component('R1')
+        self.check_update(self.edt, 'R1', UpdateType.DeleteComponent, None, -1)
         self.edt.save_netlist(temp_dir + 'test_components_output_1.asc')
         self.equalFiles(temp_dir + 'test_components_output_1.asc', golden_dir + 'test_components_output_1.asc')
 
@@ -83,8 +83,8 @@ class ASC_Editor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + 'test_components_output.asc', golden_dir + 'test_components_output.asc')
         self.assertEqual(self.edt.get_component_value('R1'), '33k', "Tested R1 Value")  # add assertion here
         self.edt.set_component_parameters('R1', Tc1='0', Tc2='0', pwr=None)
-        self.check_update(self.edt, 'R1:Tc1', UpdateType.UpdateComponentParameter, '0', -3)
-        self.check_update(self.edt, 'R1:Tc2', UpdateType.UpdateComponentParameter, '0', -2)
+        self.check_update(self.edt, 'R1:Tc1', UpdateType.AddComponentParameter, '0', -3)
+        self.check_update(self.edt, 'R1:Tc2', UpdateType.AddComponentParameter, '0', -2)
         self.check_update(self.edt, 'R1:pwr', UpdateType.DeleteComponentParameter, '0', -1)
         self.edt.save_netlist(temp_dir + 'test_components_output_2.asc')
         self.equalFiles(temp_dir + 'test_components_output_2.asc', golden_dir + 'test_components_output_2.asc')
@@ -110,10 +110,10 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertEqual(update_size, len(self.edt.netlist_updates), "The number of updates was not changed")
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameters(ttotal="{ton + toff}")
-        self.check_update(self.edt, 'ttotal', UpdateType.UpdateParameter, "{ton + toff}")
+        self.check_update(self.edt, 'ttotal', UpdateType.AddParameter, "{ton + toff}")
         self.edt.set_parameters(ton="34n", toff="{10p + 50p}")
-        self.check_update(self.edt, 'ton', UpdateType.UpdateParameter, "34n", -2)
-        self.check_update(self.edt, 'toff', UpdateType.UpdateParameter, "{10p + 50p}", -1)
+        self.check_update(self.edt, 'ton', UpdateType.AddParameter, "34n", -2)
+        self.check_update(self.edt, 'toff', UpdateType.AddParameter, "{10p + 50p}", -1)
         self.assertEqual("34n", self.edt.get_parameter("ton"), "ton test 1")
         self.edt.set_parameters(ton="{sin(0.22)}", toff="{10p + 50p}")
         self.check_update(self.edt, 'ton', UpdateType.UpdateParameter, "{sin(0.22)}", -2)
@@ -175,28 +175,28 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertEqual(my_edt.get_subcircuit(sc).get_components(), ['C1', 'C2', 'L1'], "Subcircuit component list")
 
         # START identical part with test_spice_editor.py:test_subcircuits_edit()
-        self.assertEqual(my_edt.get_component_value(sc + ":L1"), "1µ", "Subcircuit Value for X1:L1, direct")
-        self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "1µ", "Subcircuit Value for X1:L1, indirect")
-        self.assertAlmostEqual(my_edt[sc + ":L1"].value, 1e-6, msg="Subcircuit Value for X1:L1, float comparison")
+        self.assertEqual(my_edt.get_component_value(sc + ":L1"), "4uH", "Subcircuit Value for X1:L1, direct")
+        self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "4uH", "Subcircuit Value for X1:L1, indirect")
+        self.assertAlmostEqual(my_edt[sc + ":L1"].value, 4e-6, msg="Subcircuit Value for X1:L1, float comparison")
         
         my_edt.set_component_value(sc + ":L1", 2e-6)  # set float value, on compound component name
         self.assertEqual(my_edt[sc + ":L1"].value_str, "2u", "Subcircuit Value_str for X1:L1, after 1st change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "2u", "Subcircuit Value for X1:L1, after 1st change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 2e-6, msg="Subcircuit Value for X1:L1, after 1st change, float comparison")
-        self.check_update(my_edt, "X1:L1", UpdateType.UpdateComponentValue, 2e-6, 0)
+        self.check_update(my_edt['X1'].attributes['_SUBCKT'], "L1", UpdateType.UpdateComponentValue, "2u", 0)
         
         my_edt[sc + ":L1"].value = "3µH"  # set string value via compound method
         self.assertEqual(my_edt[sc + ":L1"].value_str, "3µH", "Subcircuit Value_str for X1:L1, after 2nd change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "3µH", "Subcircuit Value for X1:L1, after 2nd change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 3e-6, msg="Subcircuit Value for X1:L1, after 2nd change, float comparison")
-        self.check_update(my_edt, "X1:L1", UpdateType.UpdateComponentValue, "3µH", 0)
+        self.check_update(my_edt['X1'].attributes['_SUBCKT'], "L1", UpdateType.UpdateComponentValue, "3µH", 0)
         
         # now change the value to 4uH, because I don't want to deal with the µ character in equalFiles(). 
         my_edt.get_subcircuit(sc)["L1"].value = "4uH"  # set string value via indirect method
         self.assertEqual(my_edt[sc + ":L1"].value_str, "4uH", "Subcircuit Value_str for X1:L1, after 3rd change, direct")
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_value("L1"), "4uH", "Subcircuit Value for X1:L1, after 3rd change, indirect")
         self.assertAlmostEqual(my_edt[sc + ":L1"].value, 4e-6, msg="Subcircuit Value for X1:L1, after 3rd change, float comparison")
-        self.check_update(my_edt, "X1:L1", UpdateType.UpdateComponentValue, "4uH", 0)
+        self.check_update(my_edt['X1'].attributes['_SUBCKT'], "L1", UpdateType.UpdateComponentValue, "4uH", 0)
         
         my_edt[sc + ":C1"].value = 22e-9
         self.assertEqual(my_edt[sc + ":C1"].value_str, "22n", "Subcircuit Value_str for X1:C1, after change")
@@ -211,11 +211,11 @@ class ASC_Editor_Test(unittest.TestCase):
             test_exiting_param_set4=27,
             test_add_parameter=34.45, )
         # END identical part with test_spice_editor.py:test_subcircuits_edit()
-        self.check_update(my_edt, "X1:C1", UpdateType.UpdateComponentValue, 22e-9, 1)
-        self.check_update(my_edt, "R1", UpdateType.UpdateComponentValue, '11', 1)
-        self.check_update(my_edt, "V1", UpdateType.UpdateComponentValue, "PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)", 2)
-        self.check_update(my_edt, "freq", UpdateType.UpdateParameter, 1e6, 3)
-        self.check_update(my_edt, "test_exiting_param_set1", UpdateType.UpdateParameter, 24, 4)
+        self.check_update(my_edt['X1'].attributes['_SUBCKT'], "C1", UpdateType.UpdateComponentValue, "22n", 1)
+        self.check_update(my_edt, "R1", UpdateType.UpdateComponentValue, '11', 0)
+        self.check_update(my_edt, "V1", UpdateType.UpdateComponentValue, "PULSE(0 1 1n 1n 1n {0.5/freq} {1/freq} 10)", 1)
+        self.check_update(my_edt, "freq", UpdateType.AddParameter, 1e6, 2)
+        self.check_update(my_edt, "test_exiting_param_set1", UpdateType.AddParameter, 24, 3)
 
         # Set component parameter 
         my_edt.get_subcircuit(sc).set_component_parameters("C1", Rser=1)  # set string value via indirect method
@@ -241,6 +241,8 @@ class ASC_Editor_Test(unittest.TestCase):
             my_edt["U1:R1"].value = 330
         except:
             pass
+        else:
+            self.fail("Subcircuit U1 should be read-only and an attempt to modify it should have raised an exception")
         self.assertAlmostEqual(my_edt["U1:R1"].value, 320, msg="Subcircuit Value for U1:R1, modification should have been rejected")
         
         # my_edt.save_netlist(temp_dir + "testcomp2_edit.asc")

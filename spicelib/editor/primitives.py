@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from math import floor, log
-from typing import Union, List
 import copy
 from spicelib.editor.editor_errors import ParameterNotFoundError
 
@@ -78,7 +77,7 @@ def scan_eng(value: str) -> float:
     f = float(value[:x])  # this is the numeric part. Can raise ValueError.
     if suffix:
         suffix = suffix.lower()
-        # By industry convention, SPICE is not case sensitive
+        # By industry convention, SPICE is not case-sensitive
         if suffix.startswith("meg"):
             return f * 1E+6
         elif suffix[0] in "fpnuµmkgt":
@@ -96,7 +95,7 @@ def scan_eng(value: str) -> float:
     return f
 
 
-def to_float(value, accept_invalid: bool = True) -> Union[float, str]:
+def to_float(value, accept_invalid: bool = True) -> float | str:
     _MULT = {
         'f': 1E-15,
         'p': 1E-12,
@@ -191,10 +190,9 @@ class CallMe(object):
 class Net(object):
     """Holds net information"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, **kwargs):
         self._netlist = kwargs.get('netlist', None)
-        self.pointer = kwargs.get('pointer', None)
-        self.name = ""
+        self.name = name
         self.nodes = []
 
     def __str__(self):
@@ -235,243 +233,234 @@ class Component(Primitive):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.attributes = OrderedDict()
-        self.ports : List[Net]= []
-        self.reference = None
+        self._attributes = {}
+        self._reference = None
 
         self._netlist = self._netlist or self.default_netlist  # This allows to create components without specifying the netlist every time
         for i, arg in enumerate(args):
             if i == 0 and isinstance(arg, (int, float, str)):
                 if isinstance(arg, str):
-                    self.attributes['value_str'] = to_float(arg, accept_invalid=True)
+                    self._attributes['value_str'] = to_float(arg, accept_invalid=True)
                 else:
-                    self.attributes['value'] = arg
+                    self._attributes['value'] = arg
             elif isinstance(arg, Net):
                 self.ports.append(arg)
 
         for key, value in kwargs.items():
             if key in  PORTS_IDs:
-                self.ports = value
+                self._set_ports(*value)  # This allows to set the ports with the "ports" keyword argument. Ex: R('R1', ports=['n1', 'n2'], value=10) or R('R1', p=['n1', 'n2'], value=10)
             elif key in PARAMS_IDs:
-                self.attributes['params'] = value
+                self._attributes['params'] = value
             elif key in VALUE_IDs:
-                self.attributes['value'] = to_float(value, accept_invalid=True)
+                self._attributes['value'] = to_float(value, accept_invalid=True)
             elif key in REF_IDs:
-                self.reference = value
+                self._reference = value
 
-    def __hasattr__(self, item):
-        if item in self.__dict__:
-            return True
-        attr_dict = self.__dict__.get('attributes', {})
-        if not attr_dict:
-            # Populate attributes from _obj if empty
+    @property
+    def attributes(self):
+        if not self._attributes:
             self.reset_attributes()
-        if item in attr_dict:
-            return True
-        elif item in VALUE_IDs:
-            return 'value' in attr_dict
-        elif item == 'model':
-            return 'model' in attr_dict
-        elif item in REF_IDs:
-            return True
-        elif item == 'parent' or item == '_parent':
-            return True
-        elif item in PORTS_IDs:
-            return True
-        elif item in PARAMS_IDs:
-            return 'params' in attr_dict
-        else:
-            return False
+        return self._attributes
 
-    def __getattr__(self, item):
-        if item in self.__dict__:
-            return self.__dict__[item]
-        attr_dict = self.__dict__.get('attributes', {})
-        if not attr_dict:
-            # Populate attributes from _obj if empty
+    @property
+    def reference(self):
+        if not self._reference:
             self.reset_attributes()
-        if item in VALUE_IDs:
-            value = self.get_value()
-            if item == 'value_str' and isinstance(value, (int, float)):
-                return format_eng(value)
-            elif item == 'value' and isinstance(value, str):
-                return to_float(value, accept_invalid=True)
-            else:
-                return value
-        elif item == 'model':
-            if 'model' not in attr_dict:
-                raise ParameterNotFoundError('model')
-            return attr_dict['model']
-        elif item in REF_IDs:
-            if self.reference is None or self.reference == "":
-                # self assigns to an attribute of the netlist?
-                if self._netlist is not None:
-                    for name, value in self._netlist.get_components().items():
-                        if value is self:
-                            self.reference = name
-                            break
-                else:
-                    # Tries to find its name from locals
-                    for name, value in locals().items():
-                        if value is self:
-                            self.reference = name
-                            break
+        return self._reference
 
-            return self.reference
-        elif item == 'parent' or item == 'netlist':
-            return self._netlist
-        elif item in PORTS_IDs:
-            return CallMe(self, Component.set_ports)
-        elif item in PARAMS_IDs:
-            return self.get_parameters()
-        elif item in attr_dict:
-            return attr_dict[item]
-        elif item in attr_dict.get('params', {}):
-            return attr_dict['params'][item]
+    @reference.setter
+    def reference(self, value):
+        self._reference = value
+
+    @property
+    def parent(self):
+        return self._netlist
+
+    @property
+    def ports(self) -> list[Net]:
+        """Gets the ports of the component
+        :return: List of Net objects
+        """
+        if 'ports' in self.attributes:
+            return self._attributes['ports']
         else:
-            return super().__getattribute__(item)
+            return []
 
-    def __setattr__(self, key, value):
-        if key in VALUE_IDs:
-            if self._netlist is None:
-                raise ValueError("Component has no parent editor")
-            if self._netlist.is_read_only():
-                raise ValueError("Editor is read-only")
-            if isinstance(value, (int, float)):
-                value = format_eng(value)
-            self.set_value(value)
-        elif key in PARAMS_IDs:
-            if self._netlist is None:
-                raise ValueError("Component has no parent editor")
-            if self._netlist.is_read_only():
-                raise ValueError("Editor is read-only")
-            self.set_parameters(**value)
-        elif key in REF_IDs:
-            super().__setattr__('reference', value)
-        else:
-            super().__setattr__(key, value)
+    @ports.setter
+    def ports(self, value):
+        self._set_ports(value)
 
-    def set_ports(self, *args):
+    def port_names(self, sep=' '):
+        """Gets the port names of the component
+        :return: List of port names
+        """
+        if sep is None:
+            return [port.name for port in self.ports]
+        return sep.join(port.name for port in self.ports)
+
+    @property
+    def params(self):
+        return self.get_parameters()
+
+    @params.setter
+    def params(self, params):
+        self.set_parameters(**params)
+
+    @property
+    def value(self):
+        return self.get_value()
+
+    @value.setter
+    def value(self, value):
+        self.set_value(value)
+
+    @property
+    def value_str(self):
+        return self.get_value_str()
+
+    def _set_ports(self, ports):
         """Sets the ports of the component
         :param args: List of Net objects
         """
-        for arg in args:
-            if not isinstance(arg, Net):
-                arg = Net(arg)
-            self.ports.append(arg)
-        return self
+        self._attributes['ports'] = []
+        for arg in ports:
+            if isinstance(arg, Net):
+                net = arg
+                self._attributes['ports'].append(net)
+            elif isinstance(arg, str):
+                net = Net(arg, netlist=self._netlist)
+                self._attributes['ports'].append(net)
+            else:
+                raise ValueError(f"Invalid port value: {arg}. Must be a string or a Net object.")
+            net.nodes.append(self)
 
     def __str__(self):
-        return f"{self.reference}[{','.join(self.ports)}] = {self.value}"
+        return f"{self.reference}({','.join(self.ports)}) = {self.value}"
 
     def __getitem__(self, item):
-        return self.__getattr__(item)
+        if item in VALUE_IDs:
+            return self.get_value()
+        else:
+            try:
+                return self.get_parameter(item)
+            except IndexError:
+                pass
 
     def __setitem__(self, key, value):
         if key in VALUE_IDs:
             if isinstance(value, str):
                 value = to_float(value, accept_invalid=True)
             self.attributes['value'] = value
-            self.set_value(value)
         else:
-            self.set_param(key, value)
+            self.set_parameter(key, value)
 
-    def set_value(self, value: Union[float, str]):
-        """Sets the component value
-        :param value: Component value
+    def set_value(self, value: float | int | str):
+        """
+        :param value: Component value to set
         """
         self.attributes['value'] = value
 
-    def get_value(self) -> Union[float, str]:
-        """Gets the component value
+    def get_value_str(self) -> str | None:
+        """
+        :return: Component value in string format
+        """
+        value = self.attributes.get('value')
+        if isinstance(value, (int, float)):
+            return format_eng(value)
+        return value
+
+    def get_value(self) -> float | str | None:
+        """
         :return: Component value
         """
-        return self.attributes.get('value', float('nan'))
+        value = self.get_value_str()
+        if isinstance(value, str):
+            return to_float(value, accept_invalid=True)
+        return value
 
     def get_parameters(self) -> OrderedDict:
         """Gets all parameter values
         :return: Dictionary with parameter names and values
         """
-        return self.attributes.get('params', OrderedDict())
+        if 'params' in self.attributes:
+            return self._attributes['params']
+        else:
+            return OrderedDict()
 
-    def get_parameter(self, key: str) -> Union[float, str]:
+    def get_parameter(self, key: str) -> float | str:
         """Gets a parameter value
         :param key: Parameter name
         :return: Parameter value
         :raises: ParameterNotFoundError when the parameter is not found
         """
-        params = self.attributes.get('params', OrderedDict())
-        if key not in params:
-            raise ParameterNotFoundError(key)
-        return params[key]
+        params = self.get_parameters()
+        if key in params:
+            return params[key]
+        else:
+            raise ParameterNotFoundError(f"Parameter '{key}' not found in component '{self.reference}'")
 
-    def set_parameter(self, key: str, value: Union[float, str]):
+    def set_parameter(self, key: str, value: float | str):
         """Sets a parameter value
         :param key: Parameter name
         :param value: Parameter value
         """
-        params = self.attributes.get('params', OrderedDict())
+        params = self.get_parameters()
         if value is None:
             if key in params:
                 del params[key]
         else:
             params[key] = value
-        self.attributes['params'] = params
+        self._attributes['params'] = params
 
     def set_parameters(self, **params):
         """Sets multiple parameter values
         :param params: Dictionary with parameter names and values
         """
-        current_params = self.attributes.get('params', OrderedDict())
-        for key, value in params.items():
-            if value is None:
-                if key in current_params:
-                    del current_params[key]
-            else:
-                current_params[key] = value
-        self.attributes['params'] = current_params  # This instruction is only needed if params was empty before
+        self.attributes['params'] = params  # This instruction is only needed if params was empty before
 
     def clear_parameters(self):
-        """Clears all parameters"""
-        self.attributes['params'] = OrderedDict()
+        """Clears all parameters. It will set all existing parameters to None. This will delete them when writing
+        back to file."""
+        params = self.get_parameters()
+        if params:
+            for key in params:
+                params[key] = None
+
 
     def clear_parameter(self, key: str):
-        """Clears a parameter
+        """Clears a parameter.
         :param key:  name
         """
-        params = self.attributes.get('params', OrderedDict())
-        if key in params:
-            del params[key]
-        self.attributes['params'] = params
+        if 'params' not in self._attributes:
+            self._attributes['params'] = OrderedDict()
+        self._attributes['params'][key] = None
 
     ## Aliases for parameter functions
     def clear_param(self):
         self.clear_parameters()
 
-    def set_param(self, key: str, value: Union[float, str]):
+    def set_param(self, key: str, value: float| str):
         self.set_parameter(key, value)
 
     def set_params(self, **params):
         self.set_parameters(**params)
-
 
     def clone(self, new_parent=None):
         """Clones the component"""
         newone = type(self)()
         newone._netlist = new_parent or self._netlist
         newone._obj = copy.deepcopy(self._obj)
-        newone.attributes = copy.deepcopy(self.attributes)
-        newone.ports = self.ports.copy()
+        newone._attributes = copy.deepcopy(self._attributes)
         newone.reference = self.reference
         return newone
 
-    def reset_attributes(self):
+    def reset_attributes(self) -> dict:
         """Abstract function. Populates the attributes with the contents of the _obj attribute"""
-        raise NotImplementedError("reset_attributes not implemented in base Component class")
+        raise NotImplementedError(f"get_attributes not implemented in {self.__class__} class")
 
 if __name__ == "__main__":  # TODO: Delete this test code
     V = R = Component
 
-    V1 = V(10).p('Vin', 'GND')
+    V1 = V(10, ports=('Vin', 'GND'))
     print(R)
 

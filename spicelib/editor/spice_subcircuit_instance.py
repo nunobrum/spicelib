@@ -46,14 +46,13 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         new_line = re.sub(r'[\n\r]+\s*', ' ', self._obj)  # cleans up line breaks and extra spaces and tabs
         regex = component_replace_regexs['X']
         match: re.Match = regex.match(new_line)
-        self.attributes.clear()
+        self._attributes.clear()
         ref = match.group('designator')
-        self.reference = undress_designator(ref)
-        self.ports = match.group('nodes').strip().split()
-        self.set_value(match.group('value').strip())
-        assert self.value != "", "Sub-circuit name cannot be empty."
+        self._reference = undress_designator(ref)
+        self._set_ports(match.group('nodes').strip().split())
+        self._attributes['value'] =match.group('value').strip()
         if match.group('params'):
-            self.set_parameters(**_parse_params(match.group('params')))
+            self._attributes['params'] = _parse_params(match.group('params'))
         # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
         self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
 

@@ -18,7 +18,6 @@
 import os.path
 import sys
 from pathlib import Path
-from typing import Union, Optional
 import io
 
 from .base_subcircuit import BaseSubCircuit
@@ -51,9 +50,9 @@ LTSPICE_ATTRIBUTES = ("InstName", "Def_Sub")
 class AscComponent(SchematicComponent):
     """Class made to represent a component in an ASC file"""
     def reset_attributes(self):
-        pass  # TODO: implement here the reset of attributes if needed
+        return self._attributes
 
-    def set_value(self, value: Union[float, str]):
+    def set_value(self, value: float | int | str):
         """Sets the value of the component
 
         :param value: The new value
@@ -63,14 +62,18 @@ class AscComponent(SchematicComponent):
                 value_str = value
             else:
                 value_str = format_eng(value)
+            permission = self.parent.begin_update()
+            if permission == UpdatePermission.Deny:
+                _logger.warning(f"Update denied when trying to set value of component {self.reference} to {value_str}")
+                raise PermissionError(f"Update of Component {self.reference} Value {value_str} denied")
             self.attributes["Value"] = value_str
             _logger.info(f"Component {self.reference} updated to {value_str}")
-            self.parent.end_update(self.reference, value_str, UpdateType.UpdateComponentParameter)
+            self.parent.end_update(self.reference, value_str, UpdateType.UpdateComponentValue)
         else:
             _logger.error(f"Component {self.reference} does not have a Value attribute")
             raise ComponentNotFoundError(f"Component {self.reference} does not have a Value attribute")
 
-    def get_value(self) -> Union[float, str]:
+    def get_value_str(self) -> str:
         values = [self.attributes[param_name] for param_name in ["Value", "Value2"]
                   if param_name in self.attributes]
         if len(values) == 0:
@@ -136,6 +139,11 @@ class AscComponent(SchematicComponent):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
+        permission = self.parent.begin_update()
+        if permission == UpdatePermission.Deny:
+            _logger.warning(f"Update denied when trying to set parameter of component {self.reference}")
+            raise PermissionError(f"Update of Component {self.reference} Parameter denied")
+
         for key, value in kwargs.items():
             # format the value
             if value is None:
@@ -150,6 +158,7 @@ class AscComponent(SchematicComponent):
                 # I do not support delete here, as some of the keys are mandatory
                 self.attributes[key] = value_str
                 _logger.info(f"Component {self.reference} updated with parameter {key}:{value}")
+                update_type = UpdateType.UpdateComponentParameter
             else:
                 foundme = False
                 # not found: look in the second level dicts
@@ -161,8 +170,10 @@ class AscComponent(SchematicComponent):
                             if value_str is None:
                                 # remove if empty
                                 params[param_key].pop(key)
+                                update_type = UpdateType.DeleteComponentParameter
                             else:
                                 params[param_key][key] = value_str
+                                update_type = UpdateType.UpdateComponentParameter
                             # and make the line out of the dict
                             self.attributes[param_key] = ' '.join([f'{p_key}={p_value}' for p_key, p_value in params[param_key].items()])
                             _logger.info(f"Component {self.reference} updated with parameter {key}:{value_str}")
@@ -174,6 +185,7 @@ class AscComponent(SchematicComponent):
                             # known parameter, set the value
                             self.attributes[key] = value_str
                             _logger.info(f"Component {self.reference} updated with parameter {key}:{value_str}")
+                            update_type = UpdateType.UpdateComponentParameter
                         else:
                             # nothing found, and not a known parameter, put it in SpiceLine
                             param_key = LTSPICE_PARAMETERS_REDUCED[0]
@@ -185,7 +197,9 @@ class AscComponent(SchematicComponent):
                             else:
                                 # if SpiceLine does not exist: create the line
                                 self.attributes[param_key] = f'{key}={value_str}'
-                            _logger.info(f"Component {self.reference} updated with parameter {key}:{value_str}")
+                            update_type = UpdateType.AddComponentParameter
+                            _logger.info(f"Component {self.reference} added parameter {key}:{value_str}")
+            self.parent.end_update(f"{self.reference}:{key}", value_str, update_type)
 
 
 class AscEditor(BaseSchematic, BaseSubCircuit):
@@ -218,7 +232,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         # read the file into memory
         self.reset_netlist()
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         """
         Saves the current state of the netlist to a .asc file. 
         For writing to a .net or .cir file, use the `LTspice.create_netlist()` method instead.
@@ -417,6 +431,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
             if component is not None:
                 assert component.reference is not None, "Component InstName was not given"
                 self.components[component.reference] = component
+        self.update_permission = UpdatePermission.Inform
 
     def _get_symbol(self, symbol: str) -> AsyReader:
         asy_filename = symbol + os.path.extsep + "asy"
@@ -486,13 +501,6 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
     def get_subcircuit_named(self, name: str) -> 'BaseSubCircuit':
         pass
 
-    def get_component_info(self, reference) -> dict:
-        """Returns the reference information as a dictionary"""
-        component = self.get_component(reference)
-        info = {name: value for name, value in component.attributes.items() if not name.startswith("WINDOW ")}
-        info["InstName"] = reference  # For legacy purposes
-        return info
-
     def get_component_position(self, reference: str) -> tuple[Point, ERotation]:
         component = self.get_component(reference)
         return component.position, component.rotation
@@ -536,7 +544,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         else:
             raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
 
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: str | int | float) -> None:
         permission = self.begin_update()
         match, directive = self._get_param_named(param)
         if isinstance(value, (int, float)):
@@ -548,7 +556,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
             start, stop = match.span('value')
             directive.text = f"{directive.text[:start]}{value_str}{directive.text[stop:]}"
             _logger.info(f"Parameter {param} updated to {value_str}")
-            self.end_update(param, value_str, UpdateType.UpdateParameter)
+            self.end_update(param, value, UpdateType.UpdateParameter)
         else:
             # Was not found so we need to add it,
             _logger.debug(f"Parameter {param} not found in ASC file, adding it")
@@ -558,8 +566,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
             directive = Text(coord=coord, text=text, size=2, type=TextTypeEnum.DIRECTIVE)
             _logger.info(f"Parameter {param} added with value {value_str}")
             self.directives.append(directive)
-
-            self.end_update(param, value_str, UpdateType.AddParameter)
+            self.end_update(param, value, UpdateType.AddParameter)
 
     def set_component_value(self, device: str, value: ValueType) -> None:
         """
@@ -586,7 +593,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
 
     def get_component_value(self, element: str) -> str:
         component = self.get_component(element)
-        return component.get_value()
+        return component.get_value_str()
 
 
     def get_component_parameters(self, element: str, as_dicts: bool = False) -> dict:
@@ -730,22 +737,25 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                 if directive.type == TextTypeEnum.COMMENT:
                     i += 1
                     continue  # this is a comment
-                directive_command = directive.text.split()[0].upper()
+                directive_text = directive.text.strip()
+                directive_command = directive_text.split()[0].upper()
                 if directive_command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
-                    super().remove_instruction(self.directives[i].text)
+                    self.begin_update()
                     self.directives[i].text = instruction
-                    super().add_instruction(instruction)
+                    _logger.info(f"Instruction {directive_text} updated to {instruction}")
+                    self.end_update("INSTRUCTION", directive_text, UpdateType.DeleteInstruction)
+                    self.end_update("INSTRUCTION", instruction, UpdateType.AddInstruction)
                     return  # Job done, can exit this method
                 i += 1
         elif set_command.startswith('.PARAM'):
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
-        else:
-            super().add_instruction(instruction)
+        self.begin_update()
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()
         coord = Point(x, y)
         directive = Text(coord=coord, text=instruction, size=2, type=TextTypeEnum.DIRECTIVE)
         self.directives.append(directive)
+        self.end_update("INSTRUCTION", instruction, UpdateType.AddInstruction)
         self.canvas_updated = True
 
     def remove_instruction(self, instruction: str) -> bool:
@@ -754,11 +764,12 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
             if self.directives[i].type == TextTypeEnum.COMMENT:
                 i += 1
                 continue  # this is a comment   
-            if instruction in self.directives[i].text:                    
+            if instruction in self.directives[i].text:
+                self.begin_update()
                 text = self.directives[i].text
                 del self.directives[i]
                 _logger.info(f"Instruction {text} removed")
-                super().remove_instruction(instruction)
+                self.end_update("INSTRUCTION", text, UpdateType.DeleteInstruction)
                 return True  # Job done, can exit this method
             i += 1
 
@@ -776,9 +787,10 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                 continue  # this is a comment            
             instruction = self.directives[i].text
             if regex.match(instruction) is not None:
+                self.begin_update()
                 instr_removed = True
                 del self.directives[i]
-                super().remove_instruction(instruction)
+                self.end_update("INSTRUCTION", instruction, UpdateType.DeleteInstruction)
                 _logger.info(f"Instruction {instruction} removed")
             else:
                 i += 1
