@@ -150,8 +150,8 @@ class SpiceEditor_Test(unittest.TestCase):
         self.check_update(self.edt2, 'V3', UpdateType.UpdateComponentValue, 'PWL(2u 0 +1p 1 +1m 1)')
         self.edt2.set_component_parameters('V3', Rser=1)  # first in the list
         self.check_update(self.edt2, 'V3:Rser', UpdateType.UpdateComponentParameter, 1)
-        self.edt2.set_component_value('XU1', 'level3')
-        self.check_update(self.edt2, 'XU1', UpdateType.UpdateComponentValue, 'level3')
+        self.edt2.set_component_value('XU1', 'AD820_ALT')
+        self.check_update(self.edt2, 'XU1', UpdateType.UpdateComponentValue, 'AD820_ALT')
         self.edt2.set_component_parameters('XU1', GBW='1Meg')  # somewhere in the list
         self.check_update(self.edt2, 'XU1:GBW', UpdateType.UpdateComponentParameter, '1Meg')
         self.edt2.save_netlist(temp_dir + 'opamptest_output_1.net')

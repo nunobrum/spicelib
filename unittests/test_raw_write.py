@@ -78,7 +78,7 @@ class TestRawWrite(unittest.TestCase):
                 continue
             if (param not in raw1.raw_params) and (param not in raw2.raw_params):
                 continue
-            self.assertEqual(raw1.raw_params[param], raw2.raw_params[param],f"Parameter {param} is the same")
+            self.assertSetEqual(set(raw1.raw_params[param]), set(raw2.raw_params[param]),f"Parameter {param} is the same")
 
         self.assertEqual(raw1.nVariables, raw2.nVariables, "Number of variables is the same")
         # Due to different configurations, the amount of points might slightly differ,

@@ -335,7 +335,7 @@ class Component(Primitive):
             net.nodes.append(self)
 
     def __str__(self):
-        return f"{self.reference}({','.join(self.ports)}) = {self.value}"
+        return self._obj or self._reference
 
     def __getitem__(self, item):
         if item in VALUE_IDs:
@@ -451,7 +451,7 @@ class Component(Primitive):
         newone._netlist = new_parent or self._netlist
         newone._obj = copy.deepcopy(self._obj)
         newone._attributes = copy.deepcopy(self._attributes)
-        newone.reference = self.reference
+        newone._reference = self._reference
         return newone
 
     def reset_attributes(self) -> dict:

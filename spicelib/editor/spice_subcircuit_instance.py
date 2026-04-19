@@ -85,6 +85,12 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         else:
             return None
 
+    def set_value(self, value):
+        """Makes sure the copies are invalidated"""
+        super().set_value(value)
+        self._subcircuit = None
+        self.shadow_subcircuit = None
+
     @property
     def was_modified(self):
         """Returns True if the sub-circuit was modified, False otherwise."""

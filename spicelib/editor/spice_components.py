@@ -268,22 +268,22 @@ class SpiceComponent(Component):
             raise NotImplementedError(error_msg)
         new_line = re.sub(r'[\n\r]+\s*', ' ', self._obj) # cleans up line breaks and extra spaces and tabs
         match = regex.match(new_line)
-        if match is None:
+        if match is None or match.span() == (0, 0):
             raise UnrecognizedSyntaxError(self._obj, regex.pattern)
 
         info = match.groupdict()
         self._attributes.clear()
         for attr in info:
             if attr == 'designator':
-                self.reference = undress_designator(info[attr])
+                self._reference = undress_designator(info[attr])
             elif attr == 'nodes':
                 self._set_ports(info[attr].split())
             elif attr == 'value':
                 if info[attr] is not None:
-                    super().set_value(info[attr].strip())
+                    self._attributes['value'] = info[attr].strip()
             elif attr == 'params':
                 if info[attr]:
-                    super().set_parameters(**_parse_params(info[attr]))
+                    self.attributes['params'] = _parse_params(info[attr])
             elif attr in ('number', 'formula1', 'formula2', 'formula3'):
                 continue  # these are subgroups of VALUE, ignore
             else:
@@ -422,12 +422,12 @@ class SpiceComponent(Component):
 
     def set_value(self, value):
         """Informs the netlist that the value of the component has changed"""
-        perm = self.begin_update()
+        perm = SpiceComponent.begin_update(self)
         if perm == UpdatePermission.Deny:
             raise PermissionError("Updates are currently not allowed.")
         super().set_value(value)
         if perm == UpdatePermission.Inform:
-            self.end_update(self.reference, value, UpdateType.UpdateComponentValue)
+            SpiceComponent.end_update(self, self.reference, value, UpdateType.UpdateComponentValue)
 
     def set_parameters(self, **params):
         """Informs the netlist that the parameters of the component have changed"""
