@@ -393,18 +393,18 @@ class SpiceEditor_Test(unittest.TestCase):
         my_edt[sc + ":X2:R1"].value = 99
         my_edt.save_netlist(temp_dir + "top_circuit_edit2.net")
         self.equalFiles(temp_dir + "top_circuit_edit2.net", golden_dir + "top_circuit_edit2.net")
-        print("Updates:")
-        for update in my_edt.netlist_updates:
-            print(update)
+        # print("Updates:")
+        # for update in my_edt.netlist_updates:
+        #     print(update)
 
     def test_semiconductor_edits(self):
         # inspecting W/L parameters
         params = self.edt3["XOPAMP:M11"].params
-        print(params)
+        # print(params)
         self.assertAlmostEqual(2.5175e-05, params['W'])
         self.assertAlmostEqual(3.675e-06, params['L'])
         params = self.edt3["XOPAMP:M30"].params
-        print(params)
+        # print(params)
         self.assertAlmostEqual(2.5175e-05, params['W'])
         self.assertAlmostEqual(3.675e-06, params['L'])
         self.assertEqual(22, params['M'])
@@ -418,7 +418,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.check_update(self.edt3, "XOPAMP:M11:W", UpdateType.UpdateComponentParameter, 2 * actual_width, 2)
         self.check_update(self.edt3, "XOPAMP:M12:L", UpdateType.UpdateComponentParameter, 4E-6, 3)
         updated_params = self.edt3["XOPAMP:M11"].params
-        print(updated_params)
+        # print(updated_params)
         self.assertAlmostEqual(2 * actual_width, updated_params['W'])
         self.edt3.save_netlist(temp_dir + "amp3_instance_edits.net")
         self.equalFiles(golden_dir + "amp3_instance_edits.net", temp_dir + "amp3_instance_edits.net")
@@ -565,7 +565,7 @@ class SpiceEditor_Test(unittest.TestCase):
             if len(value) > 0:
                 if el[0] in new_values.keys():
                     new_value = new_values[el[0]]
-                print(f"Modifying {el}")
+                # print(f"Modifying {el}")
                 edt.set_component_value(el, new_value)
                 self.assertEqual(edt.get_component_value(el).casefold(), new_value.casefold(), f"Test reading back {el} Value")
             # modfy parameter
