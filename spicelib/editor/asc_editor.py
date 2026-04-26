@@ -503,7 +503,9 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         raise AttributeError(f"An associated subcircuit was not found for {reference}")
 
     def get_subcircuit_named(self, name: str) -> 'BaseSubCircuit':
-        pass
+        raise NotImplementedError(
+            f"Named subcircuit lookup is not implemented for AscEditor: {name}"
+        )
 
     def get_component_position(self, reference: str) -> tuple[Point, ERotation]:
         component = self.get_component(reference)

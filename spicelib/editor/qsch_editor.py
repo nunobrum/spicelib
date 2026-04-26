@@ -435,7 +435,7 @@ class QschComponent(SchematicComponent):
 
                 else:
                     texts[key].set_attr(QSCH_TEXT_STR_ATTR, value)
-                if permission == UpdateType.Inform:
+                if permission == UpdatePermission.Inform:
                     self.parent.end_update(self.reference, value, UpdateType.UpdateComponentParameter)
             else:
                 found = False
@@ -1018,7 +1018,10 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         raise AttributeError(f"An associated subcircuit was not found for {reference}")
 
     def get_subcircuit_named(self, name: str) -> 'BaseSubCircuit':
-        pass
+        raise NotImplementedError(
+            f"QschEditor.get_subcircuit_named({name!r}) is not implemented; "
+            "named subcircuit lookup is not currently supported for QSCH files."
+        )
 
     def get_parameter(self, param: str) -> str:
         # docstring inherited from BaseEditor
