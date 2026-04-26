@@ -222,7 +222,7 @@ class ASC_Editor_Test(unittest.TestCase):
         self.assertEqual(my_edt.get_subcircuit(sc).get_component_parameters("C1"), {'Value': '22n', 'SpiceLine': 'Rser=1', 'Rser': 1}, "Subcircuit parameters for X1:C1")
         
         S = my_edt.get_subcircuit(sc)
-        S.asc_file_path = temp_dir + "subcircuit_edit.asc"  # Only for test purposes
+        S.save_netlist(temp_dir + "subcircuit_edit.asc")  # This redirects the save file.
         my_edt.save_netlist(temp_dir + "top_circuit_edit.asc")
         self.equalFiles(temp_dir + "top_circuit_edit.asc", golden_dir + "top_circuit_edit.asc")
         self.equalFiles(temp_dir + "subcircuit_edit.asc", golden_dir + "subcircuit_edit.asc")

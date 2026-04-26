@@ -249,6 +249,10 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                 raise ValueError("Use the `LTspice.create_netlist()` method instead")
             if run_netlist_file.suffix != '.asc':
                 run_netlist_file = run_netlist_file.with_suffix(".asc")
+            else:
+                # Stores the new file path for further use, so that we can update the same file when saving again.
+                # This is useful for sub-circuits, which need to know where to save themselves.
+                self._circuit_filepath = run_netlist_file
             asc = open(run_netlist_file, 'w', encoding=self.encoding)
 
         try:
