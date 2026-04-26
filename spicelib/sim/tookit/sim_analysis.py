@@ -23,7 +23,8 @@ from functools import wraps
 import logging
 
 from ..sim_runner import AnyRunner, RunTask, CallbackType, CallbackArgsType
-from ...editor.base_subcircuit import BaseEditor, BaseSubCircuit
+from ...editor.base_editor import BaseEditor
+from ...editor.base_subcircuit import BaseSubCircuit
 from ...log.logfile_data import LogfileData
 from ...utils.detect_encoding import EncodingDetectError
 
