@@ -209,11 +209,7 @@ class SpiceCircuit(BaseSubCircuit):
             else:
                 primitive = Primitive(netlist=self, obj=line)
                 self.netlist.append(primitive)
-                if cmd[:4] == '.END':  # True for either .END, .ENDS and .ENDC primitives
-                    # Now construct the sub-circuit object
-                    # for component in self.netlist:
-                    #     if isinstance(component, (SpiceComponent, SpiceCircuitInstance)):
-                    #         component.reset_attributes()
+                if cmd.startswith('.END'):  # True for either .END, .ENDS and .ENDC primitives
                     self.update_permission = UpdatePermission.Inform
                     return True  # If a sub-circuit is ended correctly, returns True
         return False  # If a sub-circuit ends abruptly, returns False
@@ -223,13 +219,6 @@ class SpiceCircuit(BaseSubCircuit):
         # This helper function writes the contents of sub-circuit to the file stream
         for primitive in self.netlist:
             if isinstance(primitive, str):
-                line = primitive
-                # TODO: All dot instructions should be Primitives. Only comments and blank lines should be strings.
-                # Writes the modified sub-circuits at the end just before the .END clause
-                if line.upper().startswith(".END"):
-                    # write here the modified sub-circuits
-                    for sub in self.modified_subcircuits():
-                        sub.write_lines(stream)
                 stream.write(primitive)
             elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
                 primitive.write_lines(stream)
@@ -420,10 +409,9 @@ class SpiceCircuit(BaseSubCircuit):
             while line_no < lines:
                 line = self.netlist[line_no]
                 if isinstance(line, Primitive):
-                    line = line._obj
-                if get_line_command(line) == '.ENDS':
-                    self.netlist[line_no] = '.ENDS ' + new_name + END_LINE_TERM
-                    break
+                    if get_line_command(line._obj) == '.ENDS':
+                        line._obj = '.ENDS ' + new_name + END_LINE_TERM
+                        break
                 line_no += 1
             else:
                 raise MissingExpectedClauseError("Unable to find .SUBCKT clause in subcircuit")

@@ -56,12 +56,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
         self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
 
-    def write_lines(self, stream: io.StringIO) -> int:
-        """If the subcircuit was modified it needs to update the reference to the subcircuit"""
-        if self.was_modified:
-            self.value = self.shadow_subcircuit.name()  # needed so that the instance is named with the new name
-        return super().write_lines(stream)
-
     @property
     def subcircuit(self):
         """Makes a copy of the target sub-circuit in order to manage updates done to instances. This is only
@@ -94,7 +88,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
     @property
     def was_modified(self):
         """Returns True if the sub-circuit was modified, False otherwise."""
-        return self.shadow_subcircuit is not None and self.shadow_subcircuit.was_modified
+        return self.shadow_subcircuit is not None and self.shadow_subcircuit._modified
 
     def begin_update(self) -> UpdatePermission:
         permission = self._netlist.begin_update()
