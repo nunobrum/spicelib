@@ -21,7 +21,7 @@ import re
 from typing import Dict
 
 
-UNIQUE_SIMULATION_DOT_INSTRUCTIONS = ('.AC', '.DC', '.TRAN', '.NOISE', '.DC', '.TF')
+UNIQUE_SIMULATION_DOT_INSTRUCTIONS = ('.AC', '.DC', '.TRAN', '.NOISE', '.TF')
 SPICE_DOT_INSTRUCTIONS = (
     '.BACKANNO',
     '.END',
