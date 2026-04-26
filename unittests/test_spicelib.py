@@ -141,7 +141,7 @@ class test_spicelib(unittest.TestCase):
 
         # check
         editor.reset_netlist()
-        editor.set_element_model('XU1', 'AD712')  # this is needed with the newer LTspice versions, as AD820 has been defined in the file and in a lib
+        editor.set_element_model('XU1', 'AD820_ALT')  # this is needed with the newer LTspice versions, as AD820 has been defined in the file and in a lib
         editor.remove_instruction('.meas TRAN period FIND time WHEN V(out)=0 RISE=1')  # not in TRAN now
         editor.remove_instruction('.meas Vout1m FIND V(OUT) AT 1m')  # old style, not working on AC with these frequencies
         

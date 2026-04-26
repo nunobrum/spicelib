@@ -123,7 +123,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         elif key in PARAMS_IDs:
             self.set_parameters(**value)
         else:
-            super().__setattr__(key, value)
+            SpiceComponent.__setattr__(self, key, value)
 
     def __getitem__(self, item) -> Union[SpiceComponent, str]:
         """
@@ -149,58 +149,12 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         If the key is not found, and if there is a parameter with the same name, it will set the parameter value instead.
         """
         if key in self.subcircuit.get_components():
-            self.set_component_attribute(key, 'value', value)
+            self.set_component_value(key, value)
         elif key in self.subcircuit.get_all_parameter_names():
             self.set_parameter(key, value)
         else:
             raise KeyError(f'Key "{key}" not found as component or parameter in subcircuit "{self.reference}".')
 
-
-    def set_parameter(self, param, value):
-        """Adds a parameter to the SPICE netlist.
-
-        Usage: ::
-
-         editor.set_parameter("TEMP", 80)
-
-        This adds onto the netlist the following line: ::
-
-         .PARAM TEMP=80
-
-        This is an alternative to the set_parameters which is more pythonic in it's usage,
-        and allows setting more than one parameter at once.
-
-        :param param: Spice Parameter name to be added or updated.
-        :type param: str
-
-        :param value: Parameter Value to be set.
-        :type value: str, int or float
-
-        :return: Nothing
-        """
-        if p := self.begin_update() == UpdatePermission.Deny:
-            logger.warning(f'Parameter "{param}" is already set to "Deny".')
-            return
-        logger.debug(f'Setting parameter "{param}" to value "{value}"')
-        SpiceComponent.set_parameter(self, param, value)
-
-    def set_parameters(self, **kwargs):
-        """Adds one or more parameters to the netlist.
-        Usage: ::
-
-            for temp in (-40, 25, 125):
-                for freq in sweep_log(1, 100E3,):
-                    editor.set_parameters(TEMP=80, freq=freq)
-
-        :key param_name:
-            Key is the parameter to be set. values the ther corresponding values. Values can either be a str; an int or
-            a float.
-
-        :returns: Nothing
-        """
-        self.begin_update()
-        logger.debug(f'Setting parameters: {kwargs}')
-        SpiceComponent.set_parameters(self, **kwargs)
 
     def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
@@ -226,7 +180,6 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        self.begin_update()
         logger.debug(f'Setting component "{device}" to value "{value}"')
         self.get_component(device).set_component(value)
 

@@ -436,7 +436,7 @@ class SpiceComponent(Component):
 
     def set_parameter(self, key: str, value):
         """Informs the netlist that a parameter of the component has changed"""
-        perm = self.begin_update()
+        perm = SpiceComponent.begin_update(self)
         if perm == UpdatePermission.Deny:
             raise PermissionError("Updates are currently not allowed")
         old_params = self.params
@@ -448,7 +448,7 @@ class SpiceComponent(Component):
             update = UpdateType.UpdateComponentParameter
         super().set_parameter(key, value)
         if perm == UpdatePermission.Inform:
-            self.end_update(f'{self.reference}:{key}', value, update)
+            SpiceComponent.end_update(self, f'{self.reference}:{key}', value, update)
 
     def begin_update(self) -> UpdatePermission:
         return self._netlist.begin_update() if self._netlist else UpdatePermission.Initializing
