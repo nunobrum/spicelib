@@ -63,7 +63,6 @@ class QschEditor_Test(unittest.TestCase):
         self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "DC sweep.qsch")
 
     def check_update(self, name, update, value=None, index=-1):
-        return  # Temporarily disable checks TODO: remove this line when done testing
         self.assertEqual(name, self.edt.netlist_updates[index].name, "Name mismatch")
         self.assertEqual(update, self.edt.netlist_updates[index].updates, "Update Type mismatch")
         if update not in (UpdateType.DeleteParameter, UpdateType.DeleteComponent, UpdateType.DeleteComponentParameter):
@@ -78,8 +77,8 @@ class QschEditor_Test(unittest.TestCase):
         equalFiles(self, temp_dir + 'test_components_output.qsch', golden_dir + 'test_components_output.qsch')
         self.assertEqual(self.edt.get_component_value('R1'), 33000, "Tested R1 Value")  # add assertion here
         self.edt.set_component_parameters('R1', Tc1=0, Tc2=0)
-        self.check_update('R1:Tc1', UpdateType.UpdateComponentParameter, 0, -2)
-        self.check_update('R1:Tc2', UpdateType.UpdateComponentParameter, 0, -1)
+        self.check_update('R1:Tc1', UpdateType.AddComponentParameter, '0', -2)
+        self.check_update('R1:Tc2', UpdateType.AddComponentParameter, '0', -1)
         self.edt.save_netlist(temp_dir + 'test_components_output_2.qsch')
         equalFiles(self, temp_dir + 'test_components_output_2.qsch', golden_dir + 'test_components_output_2.qsch')
         r1_params = self.edt.get_component_parameters('R1')
@@ -95,13 +94,15 @@ class QschEditor_Test(unittest.TestCase):
         self.assertEqual(r1.value_str, '10K', "Tested R1 Value")  # add assertion here
         r1.value = 33000
         self.check_update('R1', UpdateType.UpdateComponentValue, '33k')
+        r1['pwr'] = 0.1
+        self.check_update('R1:pwr', UpdateType.AddComponentParameter, '100m')
         self.edt.save_netlist(temp_dir + 'test_components_output_obj.qsch')
         equalFiles(self, temp_dir + 'test_components_output_obj.qsch', golden_dir + 'test_components_output_obj.qsch')
         self.assertEqual(self.edt.get_component_value('R1'), 33000, "Tested R1 Value")  # add assertion here
         self.assertEqual(r1.value_str, '33k', "Tested R1 Value")
         r1.set_params(Tc1='0', Tc2='0', pwr=None)
-        self.check_update('R1:Tc1', UpdateType.UpdateComponentParameter, '0', -3)
-        self.check_update('R1:Tc2', UpdateType.UpdateComponentParameter, '0', -2)
+        self.check_update('R1:Tc1', UpdateType.AddComponentParameter, '0', -3)
+        self.check_update('R1:Tc2', UpdateType.AddComponentParameter, '0', -2)
         self.check_update('R1:pwr', UpdateType.DeleteComponentParameter, None, -1)
         self.edt.save_netlist(temp_dir + 'test_components_output_2_obj.qsch')
         equalFiles(self, temp_dir + 'test_components_output_2_obj.qsch', golden_dir + 'test_components_output_2_obj.qsch')
@@ -115,9 +116,9 @@ class QschEditor_Test(unittest.TestCase):
         self.edt.set_parameter('TEMP', 25)
         self.check_update('TEMP', UpdateType.UpdateParameter, 25)
         self.assertEqual(self.edt.get_parameter('TEMP'), '25', "Tested TEMP Parameter")  # add assertion here
-        self.edt.set_parameters(new_param=120, other_param="voila")
-        self.check_update("new_param", UpdateType.UpdateParameter, 120, -2)
-        self.check_update("other_param", UpdateType.UpdateParameter, "voila", -1)
+        self.edt.set_parameters(new_param=120, other_param="{voila}")
+        self.check_update("new_param", UpdateType.AddParameter, 120, -2)
+        self.check_update("other_param", UpdateType.AddParameter, "{voila}", -1)
         self.edt.save_as(temp_dir + 'test_parameter_output.qsch')
         equalFiles(self, golden_dir + 'test_parameter_output.qsch', temp_dir + 'test_parameter_output.qsch')
         self.edt.save_netlist(temp_dir + 'test_parameter_output_qsch.net')
@@ -126,8 +127,8 @@ class QschEditor_Test(unittest.TestCase):
         self.edt.set_parameter('TEMP', 0)  # reset to 0
         self.check_update('TEMP', UpdateType.UpdateParameter, 0, 0)
         self.assertEqual(update_size, len(self.edt.netlist_updates), "The number of updates was not changed")
-        self.edt.set_parameter('other_param', "Pronto")
-        self.check_update('other_param', UpdateType.UpdateParameter, "Pronto")
+        self.edt.set_parameter('other_param', "{Pronto}")
+        self.check_update('other_param', UpdateType.UpdateParameter, "{Pronto}")
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.save_as(temp_dir + 'test_parameter_output1.qsch')
         equalFiles(self, golden_dir + 'test_parameter_output1.qsch', temp_dir + 'test_parameter_output1.qsch')

@@ -9,7 +9,6 @@ Vin N01 0 1
 .op
 .param temp=0
 .param new_param=120
-.param other_param=voila
-.param other_param=Pronto
+.param other_param={Pronto}
 .lib C:\PROGRA~1\QSPICE\Diode.txt
 .end

@@ -90,6 +90,6 @@
   «text (50,-1200) 1 7 0 0x1000000 -1 -1 "ï»¿.param temp=25"»
   «text (2700,-300) 1 0 1 0x1000000 -1 -1 "ï»¿Some graphics"»
   «text (-1200,-1590) 1 0 0 0x1000000 -1 -1 "ï»¿.param new_param=120"»
-  «text (-1200,-1830) 1 0 0 0x1000000 -1 -1 "ï»¿.param other_param=voila"»
+  «text (-1200,-1830) 1 0 0 0x1000000 -1 -1 "ï»¿.param other_param={voila}"»
 »
 

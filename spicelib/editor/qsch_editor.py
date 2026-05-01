@@ -350,6 +350,31 @@ class QschTag:
         else:
             return a
 
+    def get_xy_for_new_text(self):
+        """Returns a coordinate for a new text."""
+        X = None
+        Y = None
+        for tag in self.items:
+            if tag.tag == "text":
+                pos = tag.get_attr(QSCH_TEXT_POS)
+                if X is None:
+                    X = int(pos[0])
+                else:
+                    X = min(int(pos[0]), X)
+
+                if Y is None:
+                    Y = int(pos[1])
+                else:
+                    Y = max(int(pos[1]), Y)
+        if X is None:
+            X = 0
+        if Y is None:
+            Y = 0
+        else:
+            Y += 150
+        return (X, Y)
+
+
 class QschComponent(SchematicComponent):
     """Class to represent a component in a QSCH file. It is a subclass of SchematicComponent."""
 
@@ -410,6 +435,9 @@ class QschComponent(SchematicComponent):
 
         return parameters
 
+    def set_parameter(self, key: str, value: float | str):
+        self.set_parameters(**{key: value})
+
     def set_parameters(self, **kwargs) -> None:
         """
         Sets the parameters of the component. If key parameters that are integers, they represent the line number
@@ -423,6 +451,10 @@ class QschComponent(SchematicComponent):
         texts = symbol.get_items('text')
 
         for key, value in kwargs.items():
+            if isinstance(value, str) or value is None:
+                value_str = value
+            else:
+                value_str = format_eng(value)
             if isinstance(key, int):
                 if key < 2 or key > len(texts):
                     raise ValueError(f"Invalid line number {key} for component {self.reference}")
@@ -434,9 +466,9 @@ class QschComponent(SchematicComponent):
                     symbol.items.append(tag)
 
                 else:
-                    texts[key].set_attr(QSCH_TEXT_STR_ATTR, value)
+                    texts[key].set_attr(QSCH_TEXT_STR_ATTR, value_str)
                 if permission == UpdatePermission.Inform:
-                    self.parent.end_update(self.reference, value, UpdateType.UpdateComponentParameter)
+                    self.parent.end_update(self.reference, value_str, UpdateType.UpdateComponentParameter)
             else:
                 found = False
                 search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
@@ -445,19 +477,33 @@ class QschComponent(SchematicComponent):
 
                     for match in search_expression.finditer(text_value):
                         if match.group("name") == key:
-                            start, stop = match.span("value")
-                            text_value = text_value[:start] + value + text_value[stop:]
-                            text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
+                            if value is None:
+                                # Remove the entire parameter definition from the text
+                                start, stop = match.span()
+                                if stop - start == len(text_value):
+                                    # The whole tag needs to be deleted
+                                    symbol.items.remove(text)
+                                else:
+                                    # delete only the parameter definition
+                                    del text_value[start:stop]
+                                    text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
+                                update = UpdateType.DeleteComponentParameter
+                            else:
+                                start, stop = match.span("value")
+                                text_value = text_value[:start] + value_str + text_value[stop:]
+                                text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
+                                update = UpdateType.UpdateComponentParameter
                             if permission == UpdatePermission.Inform:
-                                self.parent.end_update(self.reference, value, UpdateType.UpdateComponentParameter)
+                                self.parent.end_update(f'{self.reference}:{key}', value_str, update)
                             found = True
-                            break
                         if found:
                             break
-                if not found:
-                    x, y = 0, 0  # TODO: Find a way to get the position of the last text
+                    if found:
+                        break
+                if not found and value is not None:
+                    x, y = symbol.get_xy_for_new_text()
                     new_tag, _ = QschTag.parse(
-                        f'«text ({x},{y}) 0.5 0 0 0x1000000 -1 -1 "{key}={value}"»'
+                        f'«text ({x},{y}) 0.5 0 0 0x1000000 -1 -1 "{key}={value_str}"»'
                     )
                     # Inserting the new tag just after the last text and the first pin
                     last_text = 0
@@ -472,7 +518,7 @@ class QschComponent(SchematicComponent):
                     else:
                         symbol.items.append(new_tag)
                     if permission == UpdatePermission.Inform:
-                        self.parent.end_update(self.reference, value, UpdateType.AddComponentParameter)
+                        self.parent.end_update(f'{self.reference}:{key}', value_str, UpdateType.AddComponentParameter)
                     self.parent.canvas_updated = True
 
     def get_position(self) -> tuple[Point, ERotation]:
@@ -833,6 +879,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
     def _parse_qsch_stream(self, stream):
         """Parses the QSCH file stream"""
+        self.update_permission = UpdatePermission.Initializing
         self.components.clear()
         _logger.debug("Parsing QSCH file")
         header = tuple(ord(c) for c in stream[:4])
@@ -969,6 +1016,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             line = Line(Point(x1, y1), Point(x2, y2))
             line.style = LineStyle(width, line_type, color)
             self.lines.append(line)
+        self.update_permission = UpdatePermission.Inform
 
     def _get_param_named(self, param_name):
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
@@ -1138,10 +1186,13 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
     def remove_component(self, designator: str):
         # docstring inherited from BaseEditor
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError(f"Permission denied for removing component {designator}")
         component = self.get_component(designator)
         comp_tag: QschTag = component.attributes['tag']
         self.schematic.items.remove(comp_tag)
-        super().remove_component(designator)
+        self.end_update(designator, None, UpdateType.DeleteComponent)
 
     def _get_text_space(self):
         """
@@ -1176,6 +1227,9 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
     def add_instruction(self, instruction: str) -> None:
         # docstring inherited from BaseEditor
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError(f"Permission denied for adding instruction {instruction}")
         instruction = instruction.strip()  # Clean any end of line terminators
         command = instruction.split()[0].upper()
 
@@ -1188,15 +1242,15 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                 text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
                 command = text.split()[0].upper()
                 if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
-                    super().remove_instruction(text)
                     text_tag.set_attr(QSCH_TEXT_STR_ATTR, QSCH_TEXT_INSTR_QUALIFIER + instruction)
-                    super().add_instruction(instruction)
+                    self.end_update("INSTRUCTION", text, UpdateType.DeleteInstruction)
+                    self.end_update("INSTRUCTION" ,instruction, UpdateType.AddInstruction)
                     return  # Job done, can exit this method
 
         elif command.startswith('.PARAM'):
             raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
         else:
-            super().add_instruction(instruction)
+            self.end_update("INSTRUCTION", instruction, UpdateType.AddInstruction)
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()
         tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{QSCH_TEXT_INSTR_QUALIFIER}{instruction}"»')
@@ -1204,13 +1258,16 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
     def remove_instruction(self, instruction: str) -> bool:
         # docstring inherited from BaseEditor
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError(f"Permission denied for removing instruction {instruction}")
         for text_tag in self.schematic.get_items('text'):
             if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
                 continue
             text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
             if instruction in text:
                 self.schematic.items.remove(text_tag)
-                super().remove_instruction(instruction)
+                self.end_update("INSTRUCTION", instruction, UpdateType.DeleteInstruction)
                 _logger.info(f'Instruction "{instruction}" removed')
                 return True  # Job done, can exit this method
 
@@ -1220,6 +1277,9 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
     def remove_Xinstruction(self, search_pattern: str) -> bool:
         # docstring inherited from BaseEditor
+        permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError(f"Permission denied for removing instructions with pattern '{search_pattern}'")
         regex = re.compile(search_pattern, re.IGNORECASE)
         instr_removed = False
         for text_tag in self.schematic.get_items('text'):
@@ -1229,7 +1289,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if regex.match(text):
                 self.schematic.items.remove(text_tag)
-                super().remove_instruction(text)
+                self.end_update("INSTRUCTION" ,text, UpdateType.DeleteInstruction)
                 _logger.info(f'Instruction "{text}" removed')
                 instr_removed = True
         if instr_removed:
