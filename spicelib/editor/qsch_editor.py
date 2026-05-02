@@ -1078,7 +1078,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         if match:
             return match.group('value')
         else:
-            raise ParameterNotFoundError(f"Parameter {param} not found in QSCH file")
+            raise ParameterNotFoundError(param, f"QSCH file")
 
     def set_parameter(self, param: str, value: ValueType) -> None:
         # docstring inherited from BaseEditor

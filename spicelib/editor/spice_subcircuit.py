@@ -372,10 +372,9 @@ class SpiceCircuit(BaseSubCircuit):
                 m = subckt_regex.search(line)
                 if m:
                     return m.group('name')
-            else:
-                raise RuntimeError("Unable to find .SUBCKT clause in subcircuit")
-        else:
-            raise RuntimeError("Empty Subcircuit")
+        if self.editor and self.editor.circuit_file:
+            return self.editor.circuit_file.name
+        return "Netlist"
 
     def setname(self, new_name: str):
         """
@@ -551,7 +550,7 @@ class SpiceCircuit(BaseSubCircuit):
         if match:
             return match.group('value')
         else:
-            raise ParameterNotFoundError(param)
+            raise ParameterNotFoundError(param, f"circuit {self.name()}")
 
     def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
         """Sets the value of a parameter in the netlist. If the parameter is not found, it is added to the netlist.

@@ -29,9 +29,9 @@ class ComponentNotFoundError(Exception):
 
 class ParameterNotFoundError(Exception):
     """ParameterNotFound Error"""
-    def __init__(self, parameter):
-        _logger.error(f'Parameter "{parameter}" not found')
-        super().__init__(f'Parameter "{parameter}" not found')
+    def __init__(self, parameter, context):
+        _logger.error(f'Parameter "{parameter}" not found in {context}')
+        super().__init__(f'Parameter "{parameter}" not found in {context}')
 
 
 class UnrecognizedSyntaxError(Exception):

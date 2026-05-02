@@ -397,7 +397,7 @@ class Component(Primitive):
         if key in params:
             return params[key]
         else:
-            raise ParameterNotFoundError(f"Parameter '{key}' not found in component '{self.reference}'")
+            raise ParameterNotFoundError(key, f"component '{self.reference}'")
 
     def set_parameter(self, key: str, value: float | str):
         """Sets a parameter value

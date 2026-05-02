@@ -548,7 +548,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         if match:
             return match.group('value')
         else:
-            raise ParameterNotFoundError(f"Parameter {param} not found in ASC file")
+            raise ParameterNotFoundError(param, "ASC file")
 
     def set_parameter(self, param: str, value: str | int | float) -> None:
         permission = self.begin_update()
