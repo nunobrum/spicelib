@@ -161,7 +161,14 @@ class Montecarlo(ToleranceDeviations):
             if dev.distribution == 'uniform':
                 new_val = f"{random.Random().uniform(value * (1- dev.tolerance), value * (1 + dev.tolerance)):g}"
             elif dev.distribution == 'normal':
-                new_val = f"{random.Random().gauss(value, dev.tolerance / 3):g}"
+                # Match the prepare_testbench `ntol` macro on line 123:
+                #   .func ntol(nom,tol) if(run<0, nom, nom*(1+gauss(tol/3)))
+                # i.e. tolerance is a multiplicative fraction with ±tol at ±3σ.
+                # The previous implementation passed `tolerance/3` as an absolute
+                # σ to random.gauss, which collapsed for value << tolerance/3
+                # (e.g. L=1mH, tol=5% → σ=0.0167, ~17× the mean) and frequently
+                # produced negative values.
+                new_val = f"{value * (1 + random.Random().gauss(0, dev.tolerance / 3)):g}"
         elif dev.typ == DeviationType.minmax:
             if dev.distribution == 'uniform':
                 new_val = f"{random.Random().uniform(dev.min_val, dev.max_val):g}"
