@@ -115,7 +115,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
             i = 0
             while i < len(self.netlist):
                 line = self.netlist[i]
-                if isinstance(line, Primitive) and _is_unique_instruction(line._obj):
+                if isinstance(line, Primitive) and _is_unique_instruction(line.obj):
                     self.netlist[i] = Primitive(netlist=self, obj=instruction)
                     if permission == UpdatePermission.Inform:
                         self.end_update("INSTRUCTION", instruction.strip(), UpdateType.UpdateInstruction)
@@ -127,7 +127,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         
         # check whether the instruction is already there (dummy proofing)
         for line in self.netlist:
-            if isinstance(line, Primitive) and line._obj.strip() == instruction.strip():
+            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip():
                 _logger.warning(f'Instruction "{instruction.strip()}" is already present in the netlist. Ignoring addition.')
                 return
         # TODO: if adding a .MODEL or .SUBCKT it should verify if it already exists and update it.
@@ -137,7 +137,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         # If there is .backanno, then it will be added just before that statement
         for nr, linecontent in enumerate(self.netlist):
             if isinstance(linecontent, Primitive): # only Primitive can have .backanno
-                if linecontent._obj.lower().startswith('.backanno'):
+                if linecontent.obj.lower().startswith('.backanno'):
                     line = nr
                     break
 
@@ -156,7 +156,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
 
         i = 0
         for line in self.netlist:
-            if isinstance(line, Primitive) and line._obj.strip() == instruction.strip():
+            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip():
                 del self.netlist[i]
                 logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
                 _logger.info(f'Instruction "{logtxt}" removed')
@@ -181,7 +181,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         while i < len(self.netlist):
             line = self.netlist[i]
             if isinstance(line, Primitive):
-                line = line._obj
+                line = line.obj
             if isinstance(line, str) and (match := regex.match(line)):
                 del self.netlist[i]
                 instr_removed = True

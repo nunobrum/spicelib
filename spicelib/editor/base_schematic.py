@@ -362,7 +362,7 @@ class BaseSchematic(BaseEditor):
 
     def add_component(self, component: SchematicComponent, **kwargs) -> None:
         self.components[component.reference] = component
-        component.parent = self
+        component._netlist = self
         if kwargs:
             # Update attributes
             component.attributes.update(kwargs)

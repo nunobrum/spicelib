@@ -92,6 +92,7 @@ class Axis(DataSet):
                  data: np.ndarray | list = None):
         super().__init__(name, whattype, datalen, numerical_type, data)
         self.step_info = None
+        self.step_offsets = None
 
     def set_steps(self, step_info: list[dict]):
         self.step_info = step_info

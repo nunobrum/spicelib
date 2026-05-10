@@ -175,6 +175,7 @@ def to_float(value, accept_invalid: bool = True) -> float | str:
             raise err
     return value
 
+
 class CallMe(object):
     """Used to create callable objects to set properties back on the parent object"""
 
@@ -221,6 +222,11 @@ class Primitive(object):
         self._obj += other
         return self
 
+    @property
+    def obj(self):
+        return self._obj
+
+
 PORTS_IDs = ['ports', 'p', 'pins']
 VALUE_IDs = ['value', 'val', 'v', 'value_str', 'model', 'Value']
 PARAMS_IDs = ['params', 'parameters', 'param']
@@ -247,7 +253,7 @@ class Component(Primitive):
                 self.ports.append(arg)
 
         for key, value in kwargs.items():
-            if key in  PORTS_IDs:
+            if key in PORTS_IDs:
                 self._set_ports(*value)  # This allows to set the ports with the "ports" keyword argument. Ex: R('R1', ports=['n1', 'n2'], value=10) or R('R1', p=['n1', 'n2'], value=10)
             elif key in PARAMS_IDs:
                 self._attributes['params'] = value
@@ -426,7 +432,6 @@ class Component(Primitive):
             for key in params:
                 params[key] = None
 
-
     def clear_parameter(self, key: str):
         """Clears a parameter.
         :param key:  name
@@ -435,11 +440,11 @@ class Component(Primitive):
             self._attributes['params'] = OrderedDict()
         self._attributes['params'][key] = None
 
-    ## Aliases for parameter functions
+    # Aliases for parameter functions
     def clear_param(self):
         self.clear_parameters()
 
-    def set_param(self, key: str, value: float| str):
+    def set_param(self, key: str, value: float | str):
         self.set_parameter(key, value)
 
     def set_params(self, **params):
@@ -458,9 +463,9 @@ class Component(Primitive):
         """Abstract function. Populates the attributes with the contents of the _obj attribute"""
         raise NotImplementedError(f"get_attributes not implemented in {self.__class__} class")
 
+
 if __name__ == "__main__":  # TODO: Delete this test code
     V = R = Component
 
     V1 = V(10, ports=('Vin', 'GND'))
     print(R)
-

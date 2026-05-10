@@ -62,7 +62,7 @@ class AsyReader:
                 if line.startswith("WINDOW"):
                     tag, num_ref, posX, posY, alignment, size = line.split()
                     coord = Point(int(posX), int(posY))
-                    text = Text(coord=coord, text=num_ref, size=size, type=TextTypeEnum.ATTRIBUTE)
+                    text = Text(coord=coord, text=num_ref, size=int(size), type=TextTypeEnum.ATTRIBUTE)
                     text = asc_text_align_set(text, alignment)
                     self.windows.append(text)
                 elif line.startswith("SYMATTR"):

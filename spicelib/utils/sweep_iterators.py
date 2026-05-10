@@ -44,7 +44,7 @@ class BaseIterator:
         return self
 
     def __next__(self):
-        raise NotImplemented("This function needs to be overriden")
+        raise NotImplementedError("This function needs to be overridden")
 
 
 class sweep(BaseIterator):

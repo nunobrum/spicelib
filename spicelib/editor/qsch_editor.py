@@ -412,7 +412,7 @@ class QschComponent(SchematicComponent):
         if permission == UpdatePermission.Inform:
             self.parent.end_update(self.reference, model, UpdateType.UpdateComponentValue)
 
-    def get_parameters(self) -> dict:
+    def get_parameters(self) -> OrderedDict:
         """
         Returns the parameters of the component in a dictionary. Since QSpice stores attributes by their order of
         appearance on the QSCH file, some parameters may not be found if they are not in the standard format.
@@ -594,9 +594,9 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         # now checks if there are subcircuits that need to be saved
         for component in self.components.values():
             if "_SUBCKT" in component.attributes:
-                sub_circuit = component.attributes['_SUBCKT']
+                sub_circuit: QschEditor = component.attributes['_SUBCKT']
                 if sub_circuit is not None and sub_circuit.updated():
-                    sub_circuit.save_as(sub_circuit._circuit_filepath)
+                    sub_circuit.save_as(sub_circuit.circuit_file)
 
     def write_spice_to_file(self, netlist_file: TextIO, verilog_config: dict[str, list[str]] = {}):
         """
@@ -667,7 +667,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                 # make a regular expression that will prefix the model or subcircuit with {refdes}•{model}
                 new_line = re.sub(r"^\|\.(model|subckt) (\w+) (.*)",
                                   fr".\1 {refdes}•\2 \3",
-                                  library_name, re.MULTILINE)
+                                  library_name, flags=re.MULTILINE)
                 new_line = new_line.replace("\\n", "\n")
                 netlist_file.write(new_line + '\n')
                 model = f"{refdes}•{model}"

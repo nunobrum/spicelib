@@ -68,9 +68,9 @@ def get_line_command(line) -> str:
     elif isinstance(line, ControlEditor):
         return ".CONTROL"
     elif isinstance(line, (SpiceComponent, SpiceCircuitInstance)):
-        return line._obj[0]
+        return line.obj[0]
     elif isinstance(line, Primitive):
-        return get_line_command(line._obj)
+        return get_line_command(line.obj)
     else:
         raise SyntaxError(f'Unrecognized command in line "{line}"')
 
@@ -223,7 +223,7 @@ class SpiceCircuit(BaseSubCircuit):
             elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
                 primitive.write_lines(stream)
             elif isinstance(primitive, Primitive):
-                line = primitive._obj
+                line = primitive.obj
                 # Writes the modified sub-circuits at the end just before the .END clause
                 if line.upper().startswith(".END"):
                     # write here the modified sub-circuits
@@ -250,7 +250,7 @@ class SpiceCircuit(BaseSubCircuit):
                 line_no += 1
                 continue
             elif isinstance(line, Primitive):
-                line = line._obj
+                line = line.obj
             cmd = get_line_command(line)
             if cmd == '.PARAM':
                 matches = search_expression.finditer(line)
@@ -266,7 +266,7 @@ class SpiceCircuit(BaseSubCircuit):
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for line in self.netlist:
             if isinstance(line, Primitive):
-                line = line._obj
+                line = line.obj
             cmd = get_line_command(line)
             if cmd == '.PARAM':
                 matches = search_expression.finditer(line)
@@ -349,7 +349,7 @@ class SpiceCircuit(BaseSubCircuit):
             elif isinstance(primitive, SpiceComponent):
                 clone.netlist.append(primitive.clone(clone))
             elif isinstance(primitive, Primitive):
-                clone.netlist.append(Primitive(netlist=clone, obj=primitive._obj))
+                clone.netlist.append(Primitive(netlist=clone, obj=primitive.obj))
             else:
                 clone.netlist.append(primitive)
         clone.netlist.append("***** ENDS SpiceEditor ****" + END_LINE_TERM)
@@ -368,7 +368,7 @@ class SpiceCircuit(BaseSubCircuit):
         if len(self.netlist):
             for line in self.netlist:
                 if isinstance(line, Primitive):
-                    line = line._obj
+                    line = line.obj
                 m = subckt_regex.search(line)
                 if m:
                     return m.group('name')
@@ -391,7 +391,7 @@ class SpiceCircuit(BaseSubCircuit):
             while line_no < lines:
                 line = self.netlist[line_no]
                 if isinstance(line, Primitive):
-                    line = line._obj
+                    line = line.obj
                 m = subckt_regex.search(line)
                 if m:
                     # Replacing the name in the SUBCKT Clause
@@ -408,7 +408,7 @@ class SpiceCircuit(BaseSubCircuit):
             while line_no < lines:
                 line = self.netlist[line_no]
                 if isinstance(line, Primitive):
-                    if get_line_command(line._obj) == '.ENDS':
+                    if get_line_command(line.obj) == '.ENDS':
                         line._obj = '.ENDS ' + new_name + END_LINE_TERM
                         break
                 line_no += 1
@@ -586,7 +586,7 @@ class SpiceCircuit(BaseSubCircuit):
         if match:
             start, stop = match.span('value')
             if isinstance(self.netlist[param_line], Primitive):
-                self.netlist[param_line]._obj = _insert_section(self.netlist[param_line]._obj, start, stop,
+                self.netlist[param_line]._obj = _insert_section(self.netlist[param_line].obj, start, stop,
                                                                f"{value_str}") + END_LINE_TERM
             else:
                 self.netlist[param_line] = _insert_section(self.netlist[param_line], start, stop,
@@ -823,7 +823,7 @@ class SpiceCircuit(BaseSubCircuit):
 
         # check whether the instruction is already there (dummy proofing)
         for line in self.netlist:
-            if isinstance(line, Primitive) and line._obj.strip() == instruction.strip():
+            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip():
                 _logger.warning(
                     f'Instruction "{instruction.strip()}" is already present in the netlist. Ignoring addition.')
                 return
@@ -847,7 +847,7 @@ class SpiceCircuit(BaseSubCircuit):
             return False
         i = 0
         for line in self.netlist:
-            if isinstance(line, Primitive) and line._obj.strip() == instruction.strip():
+            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip():
                 del self.netlist[i]
                 logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
                 _logger.info(f'Instruction "{logtxt}" removed')
@@ -870,7 +870,7 @@ class SpiceCircuit(BaseSubCircuit):
         while i < len(self.netlist):
             line = self.netlist[i]
             if isinstance(line, Primitive):
-                line = line._obj
+                line = line.obj
             if isinstance(line, str) and (match := regex.match(line)):
                 del self.netlist[i]
                 instr_removed = True
@@ -945,7 +945,7 @@ class SpiceCircuit(BaseSubCircuit):
             elif isinstance(line, ControlEditor):  # same for control editor
                 continue
             elif isinstance(line, Primitive):
-                line = line._obj
+                line = line.obj
             m = lib_inc_regex.match(line)
             if m:  # If it is a library include
                 lib = m.group(2)
