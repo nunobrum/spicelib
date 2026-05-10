@@ -17,7 +17,7 @@ runner = SimRunner(output_folder='./temp', simulator=Qspice.create_from('C:/Prog
 netlist = SpiceEditor('./testfiles/testfile.net')
 # set default arguments
 netlist['R1'].value = '4k'
-netlist['V1'].model = "SINE(0 1 3k 0 0 0)"  # Modifying the behavior of the voltage source
+netlist['V1'].value = "SINE(0 1 3k 0 0 0)"  # Modifying the behavior of the voltage source
 netlist.add_instruction(".tran 1n 3m")
 netlist.add_instruction(".plot V(out)")
 netlist.add_instruction(".save V(*?*) I*(*?*))")  # Saves just the first level currents and voltages

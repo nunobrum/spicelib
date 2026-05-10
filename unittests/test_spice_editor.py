@@ -106,7 +106,7 @@ class SpiceEditor_Test(unittest.TestCase):
         r3 = r1.clone()
         self.assertEqual(r1.value_str, '10k', "Tested R1 Value")
         self.assertEqual(r1.value, 10000, "Tested R1 Numeric Value")
-        self.assertListEqual(r1.port_names(None), ['in', 'out'], "Tested R1 Nodes")
+        self.assertListEqual(r1.port_list(), ['in', 'out'], "Tested R1 Nodes")
         r1.value = '33k'
         self.assertEqual(r1.value_str, '33k', "Tested R1 Value")
         self.check_update(self.edt, 'R1', UpdateType.UpdateComponentValue, '33k')

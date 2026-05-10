@@ -23,7 +23,7 @@ import io
 import logging
 
 from .editor_errors import UnrecognizedSyntaxError
-from .primitives import Component, scan_eng, format_eng
+from .primitives import Component, scan_eng, format_eng, try_value
 from .updates import UpdateType, UpdatePermission
 from .spice_utils import END_LINE_TERM, REPLACE_REGEXS
 
@@ -76,17 +76,6 @@ for prefix, pattern in REPLACE_REGEXS.items():
 #TODO: complete the parser and integrate it in the Spice Editor parser.
 # When writing back to the netlist they should be written in the same format. Also make sure to handle line
 # continuations and comments correctly when parsing and writing back to the netlist.
-
-def try_value(token: str):
-    """Try to convert a token to an int or float, if it fails return the original string"""
-    try:
-        return int(token)
-    except ValueError:
-        try:
-            return float(token)
-        except ValueError:
-            return token
-    return token
 
 
 def tokenize_params(params_str: str) -> list[str]:
@@ -259,6 +248,8 @@ class SpiceComponent(Component):
 
         :meta private:
         """
+        if self._obj is None:
+            return
         prefix = self._obj[0]
         regex = component_replace_regexs.get(prefix, None)
         if regex is None:
@@ -310,7 +301,10 @@ class SpiceComponent(Component):
         if match is None:
             raise UnrecognizedSyntaxError(self._obj, regex.pattern)
         info = match.groupdict()
-        new_line = self._obj[:]  # make a copy
+        if self._obj is not None:
+            new_line: str = self._obj[:]  # make a copy
+        else:
+            new_line = ''
         new_line = re.sub(r'[\n\r]+\s*', ' ', new_line)
         offset = 0
         update_done = False
@@ -378,7 +372,7 @@ class SpiceComponent(Component):
                     pass  # attribute not present, do nothing
         if not update_done:
             # nothing changed, write original line
-            new_line = self._obj
+            new_line = self.obj or ""
         else:
             new_line += END_LINE_TERM
         stream.write(new_line)
@@ -402,7 +396,7 @@ class SpiceComponent(Component):
         if 'value' in self._attributes:
             count += stream.write(f" {self.value_str}")
         if 'model' in self._attributes:
-            count += stream.write(f" {self.model}")
+            count += stream.write(f" {self.value_str}")
         # Write parameters
         line_size = count
         for key, value in self.params.items():

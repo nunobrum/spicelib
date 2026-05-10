@@ -1,10 +1,14 @@
 from collections import OrderedDict
 from math import floor, log
 import copy
+from typing import TypeAlias
 from spicelib.editor.editor_errors import ParameterNotFoundError
 
 
-def format_eng(value) -> str:
+ValueType: TypeAlias = str | float | int | complex
+           
+
+def format_eng(value: float | int) -> str:
     """
     Helper function for formatting value with the SI qualifiers.  That is, it will use
 
@@ -176,6 +180,20 @@ def to_float(value, accept_invalid: bool = True) -> float | str:
     return value
 
 
+def try_value(token: str) -> ValueType:
+    """Try to convert a token to an int or float, if it fails return the original string"""
+    try:
+        return complex(token)
+    except ValueError:  
+        try:
+            value = to_float(token, accept_invalid=False)
+            if isinstance(value, float) and value.is_integer():
+                return int(value)
+            return value
+        except ValueError:
+            return token
+ 
+
 class CallMe(object):
     """Used to create callable objects to set properties back on the parent object"""
 
@@ -216,7 +234,7 @@ class Primitive(object):
         self._obj = kwargs.get('obj', None)
 
     def __str__(self):
-        return str(getattr(self._netlist, self._obj, ''))
+        return str(self._obj)
 
     def __iadd__(self, other):
         self._obj += other
@@ -240,7 +258,7 @@ class Component(Primitive):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._attributes = {}
-        self._reference = None
+        self._reference = ''
 
         self._netlist = self._netlist or self.default_netlist  # This allows to create components without specifying the netlist every time
         for i, arg in enumerate(args):
@@ -296,13 +314,17 @@ class Component(Primitive):
     def ports(self, value):
         self._set_ports(value)
 
-    def port_names(self, sep=' '):
+    def port_names(self, sep=' ') ->  str:
         """Gets the port names of the component
         :return: List of port names
         """
-        if sep is None:
-            return [port.name for port in self.ports]
         return sep.join(port.name for port in self.ports)
+    
+    def port_list(self) -> list[str]:
+        """Gets the port names of the component as a list
+        :return: List of port names
+        """
+        return [port.name for port in self.ports]
 
     @property
     def params(self):
@@ -323,6 +345,10 @@ class Component(Primitive):
     @property
     def value_str(self):
         return self.get_value_str()
+    
+    @value_str.setter
+    def value_str(self, value):
+        self.set_value(value)
 
     def _set_ports(self, ports):
         """Sets the ports of the component
@@ -360,7 +386,7 @@ class Component(Primitive):
         else:
             self.set_parameter(key, value)
 
-    def set_value(self, value: float | int | str):
+    def set_value(self, value: ValueType):
         """
         :param value: Component value to set
         """
@@ -375,13 +401,13 @@ class Component(Primitive):
             return format_eng(value)
         return value
 
-    def get_value(self) -> float | str | None:
+    def get_value(self) -> ValueType | str | None:
         """
         :return: Component value
         """
         value = self.get_value_str()
         if isinstance(value, str):
-            return to_float(value, accept_invalid=True)
+            value = try_value(value)
         return value
 
     def get_parameters(self) -> OrderedDict:

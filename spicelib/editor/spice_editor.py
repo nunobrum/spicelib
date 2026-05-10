@@ -25,6 +25,8 @@ from pathlib import Path
 import io
 from typing import Union, Callable, Any
 
+from spicelib.sim.process_callback import CallbackType
+
 from .base_editor import BaseEditor
 from .primitives import Primitive
 from .spice_components import SpiceComponent
@@ -127,7 +129,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         
         # check whether the instruction is already there (dummy proofing)
         for line in self.netlist:
-            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip():
+            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip(): # pyright: ignore[reportOptionalMemberAccess]
                 _logger.warning(f'Instruction "{instruction.strip()}" is already present in the netlist. Ignoring addition.')
                 return
         # TODO: if adding a .MODEL or .SUBCKT it should verify if it already exists and update it.
@@ -137,7 +139,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
         # If there is .backanno, then it will be added just before that statement
         for nr, linecontent in enumerate(self.netlist):
             if isinstance(linecontent, Primitive): # only Primitive can have .backanno
-                if linecontent.obj.lower().startswith('.backanno'):
+                if linecontent.obj.lower().startswith('.backanno'): # pyright: ignore[reportOptionalMemberAccess]
                     line = nr
                     break
 
@@ -156,7 +158,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
 
         i = 0
         for line in self.netlist:
-            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip():
+            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip(): # pyright: ignore[reportOptionalMemberAccess]
                 del self.netlist[i]
                 logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
                 _logger.info(f'Instruction "{logtxt}" removed')
@@ -206,7 +208,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
             f = run_netlist_file
 
         try:
-            self.write_lines(f)
+            self.write_lines(f) # pyright: ignore[reportArgumentType]
         finally:
             if not isinstance(f, io.StringIO):
                 f.close()
@@ -285,7 +287,7 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                 raise SyntaxError("Netlist with missing .END or re.ENDS statements")
         elif self.circuit_file.exists():
             with open(self.circuit_file, encoding=self.encoding, errors='replace') as f:
-                lines = separate_lines(f)  # Creates an iterator object to consume the file
+                lines = separate_lines(f)  # pyright: ignore[reportArgumentType] # Creates an iterator object to consume the file
                 finished = self._add_lines(lines)
                 if not finished:
                     raise SyntaxError("Netlist with missing .END or .ENDS statements")
@@ -330,11 +332,11 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                     if lib_paths:
                         self.set_custom_library_paths(lib_paths)
         else:
-            _logger.error(f"Netlist file not found: {self.netlist_file}")
+            _logger.error(f"Netlist file not found: {self.circuit_file}")
         self.update_permission = UpdatePermission.Inform
 
     def run(self, wait_resource: bool = True,
-            callback: Callable[[str, str], Any] = None, timeout: float = None, run_filename: str = None, simulator=None):
+            callback: CallbackType | None = None, timeout: float | None = None, run_filename: str | None = None, simulator=None):
         """
         .. deprecated:: 1.0 Use the `run` method from the `SimRunner` class instead.
 

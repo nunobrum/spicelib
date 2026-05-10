@@ -26,7 +26,7 @@ from .updates import UpdateType, UpdatePermission
 
 class BaseSubCircuit(ABC):
 
-    def __init__(self, parent: "BaseSubCircuit" = None):
+    def __init__(self, parent: "BaseSubCircuit | None" = None):
         self.parent = parent
         self._modified = False
 

@@ -340,7 +340,7 @@ class QschTag:
         if len(a[0].tokens) >= 2:
             return a[0].tokens[1]
         else:
-            return default
+            return default or ""
 
     def get_text_attr(self, index: int) -> str:
         """Returns the text of the attribute at the given index. Unlike get_attr, this method only returns strings."""
@@ -383,7 +383,7 @@ class QschComponent(SchematicComponent):
 
     @property
     def tag(self) -> QschTag:
-        return self._obj
+        return self._obj # pyright: ignore[reportReturnType]
 
     @property
     def symbol_tag(self) -> QschTag:
@@ -401,7 +401,8 @@ class QschComponent(SchematicComponent):
         self.set_model(value_str)
 
     def set_model(self, model: str) -> None:
-        permission = self.parent.begin_update()
+        parent : QschEditor = self.parent # pyright: ignore[reportAssignmentType]
+        permission = parent.begin_update()
         if permission == UpdatePermission.Deny:
             raise PermissionError("Editor is read-only")
         texts = self.symbol_tag.get_items('text')
@@ -410,7 +411,8 @@ class QschComponent(SchematicComponent):
         self.attributes['value'] = model
         _logger.info(f"Component {self.reference} updated to {model}")
         if permission == UpdatePermission.Inform:
-            self.parent.end_update(self.reference, model, UpdateType.UpdateComponentValue)
+            reference : str = self.reference
+            parent.end_update(reference, model, UpdateType.UpdateComponentValue)
 
     def get_parameters(self) -> OrderedDict:
         """
@@ -423,10 +425,10 @@ class QschComponent(SchematicComponent):
         :rtype: dict
         """
         texts = self.symbol_tag.get_items('text')
-        parameters = {}
+        parameters = OrderedDict()
         param_regex = re.compile(PARAM_REGEX(r'\w+'), re.IGNORECASE)
         for i in range(2, len(texts)):
-            text = texts[i].get_attr(QSCH_TEXT_STR_ATTR)
+            text : str = texts[i].get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
             matches = param_regex.finditer(text)
             for match in matches:
                 parameters[match.group('name')] = match.group('value')
@@ -444,7 +446,8 @@ class QschComponent(SchematicComponent):
         where the parameter was found. If the key is a string, it represents the parameter name. If the parameter name
         already exists, it will be replaced. If not found, it will be added as a new text line.
         """
-        permission = self.parent.begin_update()
+        parent : QschEditor = self.parent # pyright: ignore[reportAssignmentType]
+        permission = parent.begin_update()
         if permission == UpdatePermission.Deny:
             raise PermissionError("Editor is read-only")
         symbol = self.symbol_tag
@@ -468,12 +471,13 @@ class QschComponent(SchematicComponent):
                 else:
                     texts[key].set_attr(QSCH_TEXT_STR_ATTR, value_str)
                 if permission == UpdatePermission.Inform:
-                    self.parent.end_update(self.reference, value_str, UpdateType.UpdateComponentParameter)
+                    reference : str = self.reference # pyright: ignore[reportAssignmentType]
+                    parent.end_update(reference, value_str, UpdateType.UpdateComponentParameter)
             else:
                 found = False
                 search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
                 for text in texts[QSCH_SYMBOL_TEXT_VALUE:]:
-                    text_value = text.get_attr(QSCH_TEXT_STR_ATTR)
+                    text_value: str = text.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
 
                     for match in search_expression.finditer(text_value):
                         if match.group("name") == key:
@@ -485,7 +489,7 @@ class QschComponent(SchematicComponent):
                                     symbol.items.remove(text)
                                 else:
                                     # delete only the parameter definition
-                                    del text_value[start:stop]
+                                    text_value = text_value[:start] + text_value[stop:]
                                     text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
                                 update = UpdateType.DeleteComponentParameter
                             else:
@@ -494,7 +498,8 @@ class QschComponent(SchematicComponent):
                                 text.set_attr(QSCH_TEXT_STR_ATTR, text_value)
                                 update = UpdateType.UpdateComponentParameter
                             if permission == UpdatePermission.Inform:
-                                self.parent.end_update(f'{self.reference}:{key}', value_str, update)
+                                reference : str = self.reference # pyright: ignore[reportAssignmentType]
+                                parent.end_update(f'{reference}:{key}', value_str, update)
                             found = True
                         if found:
                             break
@@ -518,8 +523,9 @@ class QschComponent(SchematicComponent):
                     else:
                         symbol.items.append(new_tag)
                     if permission == UpdatePermission.Inform:
-                        self.parent.end_update(f'{self.reference}:{key}', value_str, UpdateType.AddComponentParameter)
-                    self.parent.canvas_updated = True
+                        reference : str = self.reference # pyright: ignore[reportAssignmentType]
+                        parent.end_update(f'{reference}:{key}', value_str, UpdateType.AddComponentParameter)
+                    parent.canvas_updated = True
 
     def get_position(self) -> tuple[Point, ERotation]:
         return self.position, self.rotation
@@ -548,9 +554,9 @@ class QschComponent(SchematicComponent):
             raise ValueError("Invalid rotation parameter")
 
         comp_tag.set_attr(QSCH_COMPONENT_POS, (position.X, position.Y))
-        comp_tag.set_attr(QSCH_COMPONENT_ROTATION, rot)
+        comp_tag.set_attr(QSCH_COMPONENT_ROTATION, str(rot))
         self.position = position
-        self.rotation = rotation
+        self.rotation = rotation if isinstance(rotation, ERotation) else ERotation(rotation)
 
 
 class QschEditor(BaseSchematic, BaseSubCircuit):
@@ -606,6 +612,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         :param verilog_config: Mandatory when using Ø components: Verilog modules in a DLL. Details: see `save_netlist()`
         :return: Nothing
         """
+        symbol : str
         libraries_to_include = []
         subcircuits_to_write = OrderedDict()
         
@@ -632,7 +639,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                     typ = 'X'
                 else:
                     typ = 'Ø'
-                    symbol = component.value
+                    symbol = component.value # pyright: ignore[reportAssignmentType]
 
             if refdes[0] != typ[0]:
                 refdes = typ[0] + '´' + refdes
@@ -643,7 +650,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                 for text in texts[2:]:
                     parameters += " " + decap(text.get_text_attr(QSCH_TEXT_STR_ATTR))
 
-            ports = component.ports.copy()
+            ports = component.port_list()
             if typ in ('¥', 'Ã'):
                 # these 2 types MUST have 16 ports
                 if len(ports) < 16:
@@ -685,7 +692,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                             component.attributes['_SUBCKT'],  # the subcircuit schematic is saved
                             sub_ports,  # and also storing the port position now, so to save time later.
                         )
-                nets = " ".join(component.ports)
+                nets = " ".join(ports)
                 netlist_file.write(f'{refdes} {nets} {model}{parameters}\n')
 
             elif typ in ('QP', 'QN'):
@@ -761,7 +768,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
         text_tags = self.schematic.get_items('text')
         for text_tag in text_tags:
-            lines = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+            lines: str = text_tag.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
             lines = lines.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             for line in lines.split('\\n'):
                 if text_tag.get_attr(QSCH_TEXT_COMMENT) != 1:  # Comments are not written to the netlist
@@ -828,7 +835,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
     def _find_pin_position(self, comp_pos, orientation: int, pin: QschTag) -> tuple[int, int]:
         """Returns the net name at the pin position"""
-        pin_pos = pin.get_attr(1)
+        pin_pos :tuple[int,int] = pin.get_attr(1) # pyright: ignore[reportAssignmentType]
         hyp = (pin_pos[0] ** 2 + pin_pos[1] ** 2) ** 0.5
         if orientation % 2:
             # in 45º rotations the component is 1.414 times larger
@@ -848,13 +855,13 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
     def _find_net_at_position(self, x, y) -> str | None:
         """Returns the net name at the given position"""
-        for net in self.schematic.get_items('net'):  # Connection to ports, grounds and nets
+        for net in self.schematic.get_items('net'):  # pyright: ignore[reportOptionalMemberAccess] # Connection to ports, grounds and nets
             if net.get_attr(1) == (x, y):
-                net_name = net.get_attr(5)  # Found the net
+                net_name : str = net.get_attr(5)  # pyright: ignore[reportAssignmentType] # Found the net
                 return '0' if net_name == 'GND' else net_name
-        for wire in self.schematic.get_items('wire'):  # Connection to wires
+        for wire in self.schematic.get_items('wire'):  # pyright: ignore[reportOptionalMemberAccess] # Connection to wires
             if wire.get_attr(1) == (x, y) or wire.get_attr(2) == (x, y):
-                net_name = wire.get_attr(3)  # Found the net
+                net_name : str = wire.get_attr(3)  # pyright: ignore[reportAssignmentType] # Found the net
                 return '0' if net_name == 'GND' else net_name
         return None
 
@@ -894,28 +901,28 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         behavior_pin_counter = 0
         unconnected_pins = {}  # Storing the components that have floating pins
 
-        for net in self.schematic.get_items('net'):
+        for net in self.schematic.get_items('net'):  # pyright: ignore[reportOptionalMemberAccess] # Connection to ports, grounds and nets
             # process nets
-            x, y = net.get_attr(QSCH_NET_POS)
+            x, y = net.get_attr(QSCH_NET_POS) # pyright: ignore[reportGeneralTypeIssues]
             # TODO: Get the remaining attributes Rotation, size, color, etc...
             # rotation = net.get_attr(QSCH_NET_ROTATION)
-            net_name = net.get_attr(QSCH_NET_STR_ATTR)
+            net_name: str = net.get_attr(QSCH_NET_STR_ATTR) # pyright: ignore[reportAssignmentType]
             self.labels.append(Text(Point(x, y), net_name, type=TextTypeEnum.LABEL))
 
         for wire in self.schematic.get_items('wire'):
             # process wires
-            x1, y1 = wire.get_attr(QSCH_WIRE_POS1)
-            x2, y2 = wire.get_attr(QSCH_WIRE_POS2)
-            net = wire.get_attr(QSCH_WIRE_NET)
+            x1, y1 = wire.get_attr(QSCH_WIRE_POS1) # pyright: ignore[reportGeneralTypeIssues]
+            x2, y2 = wire.get_attr(QSCH_WIRE_POS2) # pyright: ignore[reportGeneralTypeIssues]
+            netname: str = wire.get_attr(QSCH_WIRE_NET)  # pyright: ignore[reportAssignmentType]
             # Check if the net is of the format N##, if it is get the net number
-            if net.startswith('N'):
+            if netname.startswith('N'):
                 try:
-                    net_no = int(net[1:])
+                    net_no = int(netname[1:])
                     if net_no > highest_net_number:
                         highest_net_number = net_no
                 except ValueError:
                     pass
-            self.wires.append(Line(Point(x1, y1), Point(x2, y2), net=net))
+            self.wires.append(Line(Point(x1, y1), Point(x2, y2), net=netname))
 
         components = self.schematic.get_items('component')
         for component in components:
@@ -924,13 +931,13 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             texts = symbol.get_items('text')
             if len(texts) < 2:
                 raise RuntimeError(f"Missing texts in component at coordinates {component.get_attr(1)}")
-            refdes = texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR)
-            value = texts[QSCH_SYMBOL_TEXT_VALUE].get_attr(QSCH_TEXT_STR_ATTR)
+            refdes: str = texts[QSCH_SYMBOL_TEXT_REFDES].get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
+            value: str = texts[QSCH_SYMBOL_TEXT_VALUE].get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
             sch_comp = QschComponent(self, component, reference=refdes, value=value)
-            x, y = position = component.get_attr(QSCH_COMPONENT_POS)
-            orientation = component.get_attr(QSCH_COMPONENT_ROTATION)
+            x, y = position = component.get_attr(QSCH_COMPONENT_POS) # pyright: ignore[reportGeneralTypeIssues]
+            orientation : int = component.get_attr(QSCH_COMPONENT_ROTATION) # pyright: ignore[reportAssignmentType]
             sch_comp.position = Point(x, y)
-            sch_comp.rotation = orientation * 45
+            sch_comp.rotation = ERotation(orientation * 45)
             sch_comp.attributes['type'] = symbol.get_text('type', "X")  # Assuming a sub-circuit
             # a bit complicated way to detect embedded subcircuits: they are in the library tag,
             lib = symbol.get_text('library file', "-")
@@ -982,11 +989,11 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                         _logger.warning(f"Subcircuit '{sub_circuit_name}' not found. Have you set the correct search paths?")
 
         for text_tag in self.schematic.get_items('text'):
-            x, y = text_tag.get_attr(QSCH_TEXT_POS)
+            x, y = text_tag.get_attr(QSCH_TEXT_POS) # pyright: ignore[reportGeneralTypeIssues]
             point = Point(x, y)
-            text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
-            text_size = text_tag.get_attr(QSCH_TEXT_SIZE)
-            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:
+            text: str = text_tag.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
+            text_size: int = text_tag.get_attr(QSCH_TEXT_SIZE) # pyright: ignore[reportAssignmentType]
+            if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1: # pyright: ignore[reportAssignmentType]
                 type_text = TextTypeEnum.COMMENT
             elif text.startswith(QSCH_TEXT_INSTR_QUALIFIER):
                 type_text = TextTypeEnum.DIRECTIVE
@@ -1008,11 +1015,12 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             self.directives.append(text_obj)
 
         for line_tag in self.schematic.get_items('line'):
-            x1, y1 = line_tag.get_attr(QSCH_LINE_POS1)
-            x2, y2 = line_tag.get_attr(QSCH_LINE_POS2)
-            width = line_tag.get_attr(QSCH_LINE_WIDTH)
-            line_type = line_tag.get_attr(QSCH_LINE_TYPE)
-            color = line_tag.get_attr(QSCH_LINE_COLOR)
+            line_tag: QschTag
+            x1, y1 = line_tag.get_attr(QSCH_LINE_POS1) # pyright: ignore[reportGeneralTypeIssues]
+            x2, y2 = line_tag.get_attr(QSCH_LINE_POS2) # pyright: ignore[reportGeneralTypeIssues]
+            width: str = line_tag.get_attr(QSCH_LINE_WIDTH) # pyright: ignore[reportAssignmentType]
+            line_type: str = line_tag.get_attr(QSCH_LINE_TYPE) # pyright: ignore[reportAssignmentType]
+            color: str = line_tag.get_attr(QSCH_LINE_COLOR) # pyright: ignore[reportAssignmentType]
             line = Line(Point(x1, y1), Point(x2, y2))
             line.style = LineStyle(width, line_type, color)
             self.lines.append(line)
@@ -1021,11 +1029,11 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
     def _get_param_named(self, param_name):
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         param_name_upped = param_name.upper()
-        text_tags = self.schematic.get_items('text')
+        text_tags = self.schematic.get_items('text')  # pyright: ignore[reportOptionalMemberAccess] # Connection to directives and comments
         for tag in text_tags:
             if tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
                 continue
-            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            line: str = tag.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
             line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if line.upper().startswith('.PARAM'):
                 for match in param_regex.finditer(line):
@@ -1038,11 +1046,11 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         # docstring inherited from BaseEditor
         param_names = []
         param_regex = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
-        text_tags = self.schematic.get_items('text')
+        text_tags = self.schematic.get_items('text') # pyright: ignore[reportOptionalMemberAccess] # Connection to directives and comments
         for tag in text_tags:
             if tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
                 continue
-            line = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            line: str = tag.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
             line = line.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if line.upper().startswith('.PARAM'):
                 matches = param_regex.finditer(line)
@@ -1051,7 +1059,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                     param_names.append(param_name.upper())
         return sorted(param_names)
 
-    def _qsch_file_find(self, filename: str, work_dir: str = None) -> str | None:
+    def _qsch_file_find(self, filename: str, work_dir: str | None = None) -> str | None:
         containers = ['.'] + self.custom_lib_paths + self.simulator_lib_paths
         # '.'  is the directory where the script is located
         if (work_dir is not None) and work_dir != ".":
@@ -1082,17 +1090,21 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
     def set_parameter(self, param: str, value: ValueType) -> None:
         # docstring inherited from BaseEditor
+        if isinstance(value, (int, float)):
+            value_str: str = format_eng(value)
+        elif isinstance(value, complex):
+            value_str: str = format_eng(value.real) + "+" + format_eng(value.imag) + "j"
+        else:
+            value_str: str = value
+
         permission = self.begin_update()
         if permission == UpdatePermission.Deny:
             raise PermissionError(f"Permission denied for editing {param}")
-        tag, match = self._get_param_named(param)
+        tag: QschTag
+        tag, match = self._get_param_named(param) # pyright: ignore[reportAssignmentType]
         if match:
             _logger.debug(f"Parameter {param} found in QSCH file, updating it")
-            if isinstance(value, (int, float)):
-                value_str = format_eng(value)
-            else:
-                value_str = value
-            text: str = tag.get_attr(QSCH_TEXT_STR_ATTR)
+            text: str = tag.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
             start, stop = match.span("value")
             start += len(QSCH_TEXT_INSTR_QUALIFIER)
             stop += len(QSCH_TEXT_INSTR_QUALIFIER)
@@ -1101,19 +1113,19 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             _logger.info(f"Parameter {param} updated to {value_str}")
             _logger.debug(f"Text at {tag.get_attr(QSCH_TEXT_POS)} Updated to {text}")
             if permission == UpdatePermission.Inform:
-                self.end_update(param, value, UpdateType.UpdateParameter)
+                self.end_update(param, value_str, UpdateType.UpdateParameter)
         else:
             # Was not found so we need to add it,
             _logger.debug(f"Parameter {param} not found in QSCH file, adding it")
             x, y = self._get_text_space()
             tag, _ = QschTag.parse(
-                f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{QSCH_TEXT_INSTR_QUALIFIER}.param {param}={value}"»'
+                f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{QSCH_TEXT_INSTR_QUALIFIER}.param {param}={value_str}"»'
             )
-            self.schematic.items.append(tag)
-            _logger.info(f"Parameter {param} added with value {value}")
+            self.schematic.items.append(tag) # pyright: ignore[reportOptionalMemberAccess]
+            _logger.info(f"Parameter {param} added with value {value_str}")
             _logger.debug(f"Text added to {tag.get_attr(QSCH_TEXT_POS)} Added: {tag.get_attr(QSCH_TEXT_STR_ATTR)}")
             if permission == UpdatePermission.Inform:
-                self.end_update(param, value, UpdateType.AddParameter)
+                self.end_update(param, value_str, UpdateType.AddParameter)
 
     # def _get_component_symbol(self, reference: str) -> tuple["BaseSchematic", str, QschTag]:
     #     sub_circuit, ref = self._get_parent(reference)
@@ -1135,9 +1147,9 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
     def set_element_model(self, device: str, model: str) -> None:
         # docstring inherited from BaseEditor
         component = self.get_component(device)
-        component.set_model(model)
+        component.set_value(model)
 
-    def get_component_value(self, reference: str) -> str:
+    def get_component_value(self, reference: str) -> ValueType | None:
         # docstring inherited from BaseEditor
         component = self.get_component(reference)
         return component.get_value()
@@ -1175,7 +1187,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                                mirror: bool = False,
                                ) -> None:
         # docstring inherited from BaseSchematic
-        component = self.get_component(reference)
+        component: QschComponent = self.get_component(reference)  # pyright: ignore[reportAssignmentType]
         component.set_position(position, rotation, mirror)
 
     def get_components(self, prefixes='*') -> list:
@@ -1191,7 +1203,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             raise PermissionError(f"Permission denied for removing component {designator}")
         component = self.get_component(designator)
         comp_tag: QschTag = component.attributes['tag']
-        self.schematic.items.remove(comp_tag)
+        self.schematic.items.remove(comp_tag) # pyright: ignore[reportOptionalMemberAccess]
         self.end_update(designator, None, UpdateType.DeleteComponent)
 
     def _get_text_space(self):
@@ -1199,7 +1211,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         Returns the coordinate on the Schematic File canvas where a text can be appended.
         """
         first = True
-        for tag in self.schematic.items:
+        for tag in self.schematic.items: # pyright: ignore[reportOptionalMemberAccess]
             if tag.tag in ('component', 'net', 'text'):
                 x1, y1 = tag.get_attr(1)
                 x2, y2 = x1, y1  # todo: the whole component primitives
@@ -1235,10 +1247,10 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
         if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
             # Before adding new instruction, if it is a unique instruction, we just replace it
-            for text_tag in self.schematic.get_items('text'):
+            for text_tag in self.schematic.get_items('text'): # pyright: ignore[reportOptionalMemberAccess]
                 if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
                     continue
-                text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+                text: str = text_tag.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
                 text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
                 command = text.split()[0].upper()
                 if command in UNIQUE_SIMULATION_DOT_INSTRUCTIONS:
@@ -1254,19 +1266,19 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         # If we get here, then the instruction was not found, so we need to add it
         x, y = self._get_text_space()
         tag, _ = QschTag.parse(f'«text ({x},{y}) 1 0 0 0x1000000 -1 -1 "{QSCH_TEXT_INSTR_QUALIFIER}{instruction}"»')
-        self.schematic.items.append(tag)
+        self.schematic.items.append(tag) # pyright: ignore[reportOptionalMemberAccess]
 
     def remove_instruction(self, instruction: str) -> bool:
         # docstring inherited from BaseEditor
         permission = self.begin_update()
         if permission == UpdatePermission.Deny:
             raise PermissionError(f"Permission denied for removing instruction {instruction}")
-        for text_tag in self.schematic.get_items('text'):
+        for text_tag in self.schematic.get_items('text'): # pyright: ignore[reportOptionalMemberAccess]
             if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
                 continue
-            text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+            text: str = text_tag.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
             if instruction in text:
-                self.schematic.items.remove(text_tag)
+                self.schematic.items.remove(text_tag) # pyright: ignore[reportOptionalMemberAccess]
                 self.end_update("INSTRUCTION", instruction, UpdateType.DeleteInstruction)
                 _logger.info(f'Instruction "{instruction}" removed')
                 return True  # Job done, can exit this method
@@ -1282,13 +1294,13 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             raise PermissionError(f"Permission denied for removing instructions with pattern '{search_pattern}'")
         regex = re.compile(search_pattern, re.IGNORECASE)
         instr_removed = False
-        for text_tag in self.schematic.get_items('text'):
+        for text_tag in self.schematic.get_items('text'): # pyright: ignore[reportOptionalMemberAccess]
             if text_tag.get_attr(QSCH_TEXT_COMMENT) == 1:  # if it is a comment, we ignore it
                 continue
-            text = text_tag.get_attr(QSCH_TEXT_STR_ATTR)
+            text: str = text_tag.get_attr(QSCH_TEXT_STR_ATTR) # pyright: ignore[reportAssignmentType]
             text = text.lstrip(QSCH_TEXT_INSTR_QUALIFIER)
             if regex.match(text):
-                self.schematic.items.remove(text_tag)
+                self.schematic.items.remove(text_tag) # pyright: ignore[reportOptionalMemberAccess]
                 self.end_update("INSTRUCTION" ,text, UpdateType.DeleteInstruction)
                 _logger.info(f'Instruction "{text}" removed')
                 instr_removed = True

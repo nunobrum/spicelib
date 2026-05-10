@@ -28,7 +28,7 @@ import logging
 from .editor_errors import *
 from .spice_utils import subckt_regex, SUBCKT_CLAUSE_FIND, \
     lib_inc_regex, END_LINE_TERM, REPLACE_REGEXS, VALID_PREFIXES, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
-from .primitives import Primitive, format_eng
+from .primitives import ValueType, Primitive, format_eng
 from .updates import UpdateType, UpdatePermission
 from .base_subcircuit import BaseSubCircuit
 from .spice_components import SpiceComponent, component_replace_regexs, _insert_section
@@ -38,7 +38,7 @@ from .base_editor import SUBCKT_DIVIDER, PARAM_REGEX, BaseEditor
 from spicelib.utils.detect_encoding import detect_encoding, EncodingDetectError
 from spicelib.utils.file_search import search_file_in_containers
 
-def get_line_command(line) -> str:
+def get_line_command(line: str | Primitive) -> str:
     """
     Retrieves the type of SPICE command in the line.
     Starts by removing the leading spaces and the evaluates if it is a comment, a directive or a component.
@@ -68,9 +68,9 @@ def get_line_command(line) -> str:
     elif isinstance(line, ControlEditor):
         return ".CONTROL"
     elif isinstance(line, (SpiceComponent, SpiceCircuitInstance)):
-        return line.obj[0]
+        return line.obj[0] # pyright: ignore[reportOptionalSubscript]
     elif isinstance(line, Primitive):
-        return get_line_command(line.obj)
+        return get_line_command(line.obj) # pyright: ignore[reportArgumentType]
     else:
         raise SyntaxError(f'Unrecognized command in line "{line}"')
 
@@ -161,7 +161,7 @@ class SpiceCircuit(BaseSubCircuit):
     and protect parameters and components from edits made at a higher level.
     """
 
-    def __init__(self, parent: "SpiceCircuit" = None):
+    def __init__(self, parent: "SpiceCircuit" = None): # pyright: ignore[reportArgumentType]
         super().__init__(parent)
         self.netlist = []
 
@@ -223,7 +223,7 @@ class SpiceCircuit(BaseSubCircuit):
             elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
                 primitive.write_lines(stream)
             elif isinstance(primitive, Primitive):
-                line = primitive.obj
+                line: str = primitive.obj # pyright: ignore[reportAssignmentType]
                 # Writes the modified sub-circuits at the end just before the .END clause
                 if line.upper().startswith(".END"):
                     # write here the modified sub-circuits
@@ -250,8 +250,8 @@ class SpiceCircuit(BaseSubCircuit):
                 line_no += 1
                 continue
             elif isinstance(line, Primitive):
-                line = line.obj
-            cmd = get_line_command(line)
+                line: str = line.obj
+            cmd = get_line_command(line) # pyright: ignore[reportArgumentType]
             if cmd == '.PARAM':
                 matches = search_expression.finditer(line)
                 for match in matches:
@@ -266,7 +266,7 @@ class SpiceCircuit(BaseSubCircuit):
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for line in self.netlist:
             if isinstance(line, Primitive):
-                line = line.obj
+                line: str = line.obj # pyright: ignore[reportAssignmentType]
             cmd = get_line_command(line)
             if cmd == '.PARAM':
                 matches = search_expression.finditer(line)
@@ -329,7 +329,6 @@ class SpiceCircuit(BaseSubCircuit):
         :type create_blank: bool
         :returns: None
         """
-        super().reset_netlist()
         self.netlist.clear()
 
     def clone(self, new_parent, **kwargs) -> 'SpiceCircuit':
@@ -368,7 +367,7 @@ class SpiceCircuit(BaseSubCircuit):
         if len(self.netlist):
             for line in self.netlist:
                 if isinstance(line, Primitive):
-                    line = line.obj
+                    line: str = line.obj # pyright: ignore[reportAssignmentType]
                 m = subckt_regex.search(line)
                 if m:
                     return m.group('name')
@@ -391,7 +390,7 @@ class SpiceCircuit(BaseSubCircuit):
             while line_no < lines:
                 line = self.netlist[line_no]
                 if isinstance(line, Primitive):
-                    line = line.obj
+                    line: str = line.obj # pyright: ignore[reportAssignmentType]
                 m = subckt_regex.search(line)
                 if m:
                     # Replacing the name in the SUBCKT Clause
@@ -408,7 +407,8 @@ class SpiceCircuit(BaseSubCircuit):
             while line_no < lines:
                 line = self.netlist[line_no]
                 if isinstance(line, Primitive):
-                    if get_line_command(line.obj) == '.ENDS':
+                    line_obj: str = line.obj # pyright: ignore[reportAssignmentType]
+                    if get_line_command(line_obj) == '.ENDS':
                         line._obj = '.ENDS ' + new_name + END_LINE_TERM
                         break
                 line_no += 1
@@ -420,7 +420,7 @@ class SpiceCircuit(BaseSubCircuit):
             self.netlist.append(Primitive(netlist=self, obj='.SUBCKT %s%s' % (new_name, END_LINE_TERM)))
             self.netlist.append(Primitive(netlist=self, obj='.ENDS %s%s' % (new_name, END_LINE_TERM)))
 
-    def get_component(self, reference: str) -> 'SpiceComponent | SpiceCircuitInstance':
+    def get_component(self, reference: str) -> 'SpiceComponent | SpiceCircuitInstance | SpiceCircuit':
         """
         Returns an object representing the given reference in the schematic file.
 
@@ -438,8 +438,9 @@ class SpiceCircuit(BaseSubCircuit):
                 # In this case the sub-circuit needs to be copied so that is copy is modified.
                 # A copy is created for each instance of a sub-circuit.
                 subckt_ref, sub_ref = ref_upped.split(SUBCKT_DIVIDER, 1)
-                subcircuit_instance = self.get_component(subckt_ref)
-                return subcircuit_instance.get_component(sub_ref)
+                subcircuit_instance : SpiceCircuitInstance = self.get_component(subckt_ref) # pyright: ignore[reportAssignmentType]
+                component_type = subcircuit_instance.get_component(sub_ref)
+                return component_type # pyright: ignore[reportReturnType] # Component is converted to SpiceComponent
         else:
             for component in self.netlist:
                 # This test needs to be done before SpiceComponent because this is a Subclass of SpiceComponent
@@ -462,7 +463,7 @@ class SpiceCircuit(BaseSubCircuit):
 
     def __getitem__(self, item) -> SpiceComponent:
         component = super().__getitem__(item)
-        return component
+        return component# pyright: ignore[reportReturnType] # Component is converted to SpiceComponent
 
     def __delitem__(self, key):
         """
@@ -516,11 +517,13 @@ class SpiceCircuit(BaseSubCircuit):
         if isinstance(component, SpiceCircuit):
             raise ValueError(f"Component '{reference}' is a sub-circuit. Use get_subcircuit() instead.")
         else:
-            return component.get_(attribute, None)
+            return component.attributes.get(attribute, None)
 
     def get_component_parameters(self, reference: str) -> dict:
         # docstring inherited from BaseEditor
         component = self.get_component(reference)
+        if isinstance(component, SpiceCircuit):
+            raise ValueError(f"Component '{reference}' is a sub-circuit. Use get_subcircuit() instead.")
         answer = {}
         answer.update(component.params)
         # Now check if there is a value parameter
@@ -552,7 +555,7 @@ class SpiceCircuit(BaseSubCircuit):
         else:
             raise ParameterNotFoundError(param, f"circuit {self.name()}")
 
-    def set_parameter(self, param: str, value: Union[str, int, float]) -> None:
+    def set_parameter(self, param: str, value: ValueType) -> None:
         """Sets the value of a parameter in the netlist. If the parameter is not found, it is added to the netlist.
 
         Usage: ::
@@ -581,6 +584,8 @@ class SpiceCircuit(BaseSubCircuit):
 
         if isinstance(value, (int, float)):
             value_str = format_eng(value)
+        elif isinstance(value, complex):
+            value_str = format_eng(value.real) + "+" + format_eng(value.imag) + "j"
         else:
             value_str = value
         if match:
@@ -592,7 +597,7 @@ class SpiceCircuit(BaseSubCircuit):
                 self.netlist[param_line] = _insert_section(self.netlist[param_line], start, stop,
                                                            f"{value_str}") + END_LINE_TERM
             if permission == UpdatePermission.Inform:
-                self.end_update(param, value, UpdateType.UpdateParameter)
+                self.end_update(param, value_str, UpdateType.UpdateParameter)
         else:
             # Was not found
             # the last two lines are typically (.backano and .end)
@@ -600,10 +605,10 @@ class SpiceCircuit(BaseSubCircuit):
             term = Primitive(netlist=self, obj=f'.PARAM {param}={value_str}  ; Batch instruction' + END_LINE_TERM)
             self.netlist.insert(insert_line, term)
             if permission == UpdatePermission.Inform:
-                self.end_update(param, value, UpdateType.AddParameter)
+                self.end_update(param, value_str, UpdateType.AddParameter)
 
 
-    def set_component_value(self, reference: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, reference: str, value: ValueType) -> None:
         """
         Changes the value of a component, such as a Resistor, Capacitor or Inductor.
         For components inside sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
@@ -628,7 +633,9 @@ class SpiceCircuit(BaseSubCircuit):
 
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
-        self.get_component(reference).set_value(value)
+        component = self.get_component(reference)
+        assert isinstance(component, SpiceComponent), f"Component '{reference}' is not a SpiceComponent. Use set_element_model() instead."
+        component.set_value(value)
 
     def set_element_model(self, reference: str, model: str) -> None:
         """Changes the value of a circuit element, such as a diode model or a voltage supply.
@@ -655,11 +662,13 @@ class SpiceCircuit(BaseSubCircuit):
         permission = self.begin_update()
         if permission == UpdatePermission.Deny:
             raise ValueError("Editor is read-only")
-        self.get_component(reference).set_value(model)
+        component = self.get_component(reference)
+        assert isinstance(component, SpiceComponent), f"Component '{reference}' is not a SpiceComponent. Use set_element_model() instead."
+        component.set_value(model)
         if permission == UpdatePermission.Inform:
             self.end_update(reference, model, UpdateType.UpdateComponentValue)
 
-    def get_component_value(self, reference: str) -> str:
+    def get_component_value(self, reference: str) -> str | None:
         """
         Returns the value of a component retrieved from the netlist.
 
@@ -667,13 +676,14 @@ class SpiceCircuit(BaseSubCircuit):
         :type reference: str
 
         :return: value of the circuit element .
-        :rtype: str
 
         :raises: ComponentNotFoundError - In case the component is not found
 
                  NotImplementedError - for not supported operations
         """
-        return self.get_component(reference).value_str
+        component = self.get_component(reference)
+        assert isinstance(component, SpiceComponent), f"Component '{reference}' is not a SpiceComponent. Use get_element_model() instead."
+        return component.value_str
 
     def get_component_nodes(self, reference: str) -> list[str]:
         """
@@ -684,7 +694,9 @@ class SpiceCircuit(BaseSubCircuit):
         :return: List of nodes
         :rtype: list[str]
         """
-        nodes = self.get_component(reference).ports
+        component = self.get_component(reference)
+        assert isinstance(component, SpiceComponent), f"Component '{reference}' is not a SpiceComponent. Use get_element_model() instead."
+        nodes = component.port_list()
         return nodes
 
     def get_components(self, prefixes='*') -> list:
@@ -750,8 +762,7 @@ class SpiceCircuit(BaseSubCircuit):
 
         self.netlist.insert(line_no, component)
         if permission == UpdatePermission.Inform:
-            value_or_model = component.value if component.value is not None else component.model
-            self.end_update(component.reference, value_or_model, UpdateType.AddComponent)
+            self.end_update(component.reference, component.value_str, UpdateType.AddComponent)
 
     def remove_component(self, designator: str) -> None:
         """
@@ -823,16 +834,17 @@ class SpiceCircuit(BaseSubCircuit):
 
         # check whether the instruction is already there (dummy proofing)
         for line in self.netlist:
-            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip():
-                _logger.warning(
-                    f'Instruction "{instruction.strip()}" is already present in the netlist. Ignoring addition.')
-                return
+            if isinstance(line, Primitive):
+                line_obj: str = line.obj # pyright: ignore[reportAssignmentType]
+                if line_obj.strip() == instruction.strip():
+                    _logger.warning(
+                        f'Instruction "{instruction.strip()}" is already present in the netlist. Ignoring addition.')
+                    return
         # TODO: if adding a .MODEL or .SUBCKT it should verify if it already exists and update it.
 
         if not instruction.endswith(END_LINE_TERM):
             instruction += END_LINE_TERM
 
-        super().add_instruction(instruction)
         # Insert at the end
         primitive = self.class_for_instruction(instruction, cmd)
         line = len(self.netlist) - 1  # Just before the ENDS
@@ -847,12 +859,14 @@ class SpiceCircuit(BaseSubCircuit):
             return False
         i = 0
         for line in self.netlist:
-            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip():
-                del self.netlist[i]
-                logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
-                _logger.info(f'Instruction "{logtxt}" removed')
-                self.end_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
-                return True
+            if isinstance(line, Primitive):
+                line_obj: str = line.obj # pyright: ignore[reportAssignmentType]
+                if line_obj.strip() == instruction.strip():
+                    del self.netlist[i]
+                    logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
+                    _logger.info(f'Instruction "{logtxt}" removed')
+                    self.end_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
+                    return True
             # All other cases are ignored
             i += 1
 
@@ -915,7 +929,7 @@ class SpiceCircuit(BaseSubCircuit):
             return None
         #  2. scan the file
         with open(library, encoding=encoding) as lib:
-            line_iterator = separate_lines(lib)
+            line_iterator = separate_lines(lib) # pyright: ignore[reportArgumentType]
             for line in line_iterator:
                 search = reg_subckt.match(line)
                 if search:
@@ -945,16 +959,18 @@ class SpiceCircuit(BaseSubCircuit):
             elif isinstance(line, ControlEditor):  # same for control editor
                 continue
             elif isinstance(line, Primitive):
-                line = line.obj
+                line: str = line.obj # pyright: ignore[reportAssignmentType]
             m = lib_inc_regex.match(line)
             if m:  # If it is a library include
                 lib = m.group(2)
-                lib_filename = search_file_in_containers(lib,
-                                                         os.path.split(self.editor.circuit_file)[0],
-                                                         # The directory where the file is located
-                                                         os.path.curdir,  # The current script directory,
-                                                         *self.editor.simulator_lib_paths,  # The simulator's library paths
-                                                         *self.editor.custom_lib_paths)  # The custom library paths
+                containers = []
+                if self.editor and self.editor.circuit_file:
+                    containers.append(os.path.split(self.editor.circuit_file)[0])  # The directory where the file is located
+                containers.append(os.path.curdir)  # The current script directory,
+                if self.editor:
+                    containers.extend(self.editor.simulator_lib_paths)  # The simulator's library paths
+                    containers.extend(self.editor.custom_lib_paths)  # The custom library paths
+                lib_filename = search_file_in_containers(lib, *containers)
                 if lib_filename:
                     sub_circuit = self.find_subckt_in_lib(lib_filename, subcircuit_name)
                     if sub_circuit:
@@ -963,7 +979,8 @@ class SpiceCircuit(BaseSubCircuit):
                         return sub_circuit
         if self.parent is not None:
             # try searching on parent netlists
-            return self.parent.find_subckt_in_included_libs(subcircuit_name)
+            parent: SpiceCircuit = self.parent # pyright: ignore[reportAssignmentType]
+            return parent.find_subckt_in_included_libs(subcircuit_name)
         else:
             return None
 
@@ -985,7 +1002,7 @@ class ControlEditor:
     Provides interfaces to manipulate SPICE `.control` instructions.
     """
 
-    def __init__(self, parent: SpiceCircuit = None):
+    def __init__(self, parent: SpiceCircuit | None = None):
         self._content = ""
         self.parent = parent
 

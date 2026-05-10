@@ -73,7 +73,7 @@ class LTComplex(complex):
         return _unit
 
 
-def try_convert_value(value: str | int | float | list) -> int | float | str | list | LTComplex:
+def try_convert_value(value: str | int | float | list | bytes) -> int | float | str | list | LTComplex:
     """
     Tries to convert the string into an integer and if it fails, tries to convert to a float, if it fails, then returns the
     value as string.
@@ -85,8 +85,9 @@ def try_convert_value(value: str | int | float | list) -> int | float | str | li
         return value
     elif isinstance(value, list):
         return [try_convert_value(v) for v in value]
-    elif isinstance(value, bytes):
+    elif isinstance(value, (bytes, bytearray)):
         value = value.decode('utf-8')
+    assert isinstance(value, str), "Value must be a string, int, float, list or bytes"
     try:
         ans = int(value)
     except ValueError:
@@ -94,13 +95,9 @@ def try_convert_value(value: str | int | float | list) -> int | float | str | li
             ans = float(value)
         except ValueError:
             try:
-                # Tries to convert to complex
-                ans = complex(value)
+                ans = LTComplex(value)
             except ValueError:
-                try:
-                    ans = LTComplex(value)
-                except ValueError:
-                    ans = value.strip()  # Removes the leading trailing spaces
+                ans = value.strip()  # Removes the leading trailing spaces
     return ans
 
 
@@ -152,7 +149,7 @@ class LogfileData:
     The super class constructor is bypassed and only their attributes are initialized
     """
 
-    def __init__(self, step_set: dict = None, dataset: dict = None):
+    def __init__(self, step_set: dict | None = None, dataset: dict | None = None):
         if step_set is None:
             self.stepset = {}
         else:

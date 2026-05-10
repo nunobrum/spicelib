@@ -23,7 +23,7 @@ import re
 
 from .base_editor import BaseEditor
 from .base_subcircuit import BaseSubCircuitInstance, BaseSubCircuit
-from .primitives import VALUE_IDs, PARAMS_IDs, Component
+from .primitives import VALUE_IDs, PARAMS_IDs, Component, ValueType
 from .updates import UpdateType, UpdatePermission
 from .spice_components import SpiceComponent, component_replace_regexs, _parse_params, undress_designator
 
@@ -43,18 +43,20 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
     def reset_attributes(self):
         """Resets the sub-circuit instance to its original state."""
-        new_line = re.sub(r'[\n\r]+\s*', ' ', self._obj)  # cleans up line breaks and extra spaces and tabs
+        line: str = self._obj  # pyright: ignore[reportAssignmentType]
+        new_line = re.sub(r'[\n\r]+\s*', ' ', line)  # cleans up line breaks and extra spaces and tabs
         regex = component_replace_regexs['X']
-        match: re.Match = regex.match(new_line)
+        match = regex.match(new_line)
         self._attributes.clear()
-        ref = match.group('designator')
-        self._reference = undress_designator(ref)
-        self._set_ports(match.group('nodes').strip().split())
-        self._attributes['value'] =match.group('value').strip()
-        if match.group('params'):
-            self._attributes['params'] = _parse_params(match.group('params'))
-        # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
-        self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
+        if match:
+            ref = match.group('designator')
+            self._reference = undress_designator(ref)
+            self._set_ports(match.group('nodes').strip().split())
+            self._attributes['value'] =match.group('value').strip()
+            if match.group('params'):
+                self._attributes['params'] = _parse_params(match.group('params'))
+            # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
+            self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
 
     @property
     def subcircuit(self):
@@ -62,13 +64,13 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         saved if there is an update made to it."""
         if self._subcircuit is None:
             # Try to get it from the parent netlist
-            self._subcircuit = self._netlist.get_subcircuit_named(self.value)
+            self._subcircuit = self._netlist.get_subcircuit_named(self.value) # pyright: ignore[reportOptionalMemberAccess]
             if self._subcircuit is None:
                 raise AssertionError(f"Couldn't find the subcircuit named \"{self.value}\"")
             self.shadow_subcircuit = None
         if self.shadow_subcircuit is None:
             # In all cases it creates a new copy of the subcircuit, it is only writen to the netlist if it was modified.
-            new_name = self.value + '_' + self.reference
+            new_name = self.value_str + '_' + self.reference
             self.shadow_subcircuit = self._subcircuit.clone(self, new_name=new_name)
         return self.shadow_subcircuit
 
@@ -91,22 +93,24 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         return self.shadow_subcircuit is not None and self.shadow_subcircuit._modified
 
     def begin_update(self) -> UpdatePermission:
-        permission = self._netlist.begin_update()
+        netlist: BaseSubCircuit = self._netlist # pyright: ignore[reportAssignmentType]
+        permission = netlist.begin_update()
         if permission == UpdatePermission.Inform and self.was_modified is False:
             # First update => Also update the subcircuit
             if permission == UpdatePermission.Inform:
-                old_name = self.value
-                self._netlist.end_update(f'CLONE({old_name})', old_name, UpdateType.CloneSubcircuit)
+                old_name = self.value_str
+                netlist.end_update(f'CLONE({old_name})', old_name, UpdateType.CloneSubcircuit)
                 name = self.subcircuit.name()
                 Component.set_value(self, name)  # Jumps the update tracking
-                self._netlist.end_update(self.reference, name, UpdateType.UpdateComponentValue)
+                netlist.end_update(self.reference, name, UpdateType.UpdateComponentValue)
         return permission
 
     def end_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
         # Make sure the modification is registered
         self.shadow_subcircuit._modified = True
         # Redirect the update to the parent
-        self._netlist.end_update(f"{self.reference}:{name}", value, updates)
+        netlist: BaseSubCircuit = self._netlist # pyright: ignore[reportAssignmentType]
+        netlist.end_update(f"{self.reference}:{name}", value, updates)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         self.shadow_subcircuit = None
@@ -119,7 +123,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         else:
             SpiceComponent.__setattr__(self, key, value)
 
-    def __getitem__(self, item) -> Union[SpiceComponent, str]:
+    def __getitem__(self, item) -> SpiceComponent | ValueType:
         """
        This returns a component or a parameter of the subcircuit using the syntax:
        circuit['R1']  # returns the component R1
@@ -129,7 +133,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         if item in VALUE_IDs or item in PARAMS_IDs:
             return getattr(self, item)
         elif item in self.get_components():
-            return self.get_component(item)
+            return self.get_component(item) # pyright: ignore[reportReturnType]
         elif item in self.get_all_parameter_names():
             return self.get_parameter(item)
         else:
@@ -175,7 +179,8 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
             If this is the case, use GitHub to start a ticket.  https://github.com/nunobrum/spicelib
         """
         logger.debug(f'Setting component "{device}" to value "{value}"')
-        self.get_component(device).set_component(value)
+        component = self.get_component(device)
+        component.set_value(value)
 
     def set_element_model(self, element: str, model: str) -> None:
         """Changes the value of a circuit element, such as a diode model or a voltage supply.
@@ -200,7 +205,8 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         """
         self.begin_update()
         logger.debug(f'Setting element "{element}" to model "{model}"')
-        self.get_component(element).set_component(model)
+        component = self.get_component(element)
+        component.set_value(model)
 
     def set_component_parameters(self, element: str, **kwargs) -> None:
         """
@@ -228,7 +234,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         """
         self.begin_update()
         logger.debug(f'Setting parameters for component "{element}": {kwargs}')
-        self.get_component(element).set_component_parameters(**kwargs)
+        self.get_component(element).set_parameters(**kwargs)
 
     def set_component_attribute(self, reference: str, attribute: str, value: str) -> None:
         """Sets the value of the attribute of the component. Attributes are the values that are not related with
@@ -246,7 +252,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         """
         self.begin_update()
         logger.debug(f'Setting attribute "{attribute}" of component "{reference}" to value "{value}"')
-        component  = self.get_component(reference).set_component(attribute, value)
+        component  = self.get_component(reference)
         setattr(component, attribute, value)
         # self.end_update(reference, value, UpdateType.UpdateComponentParameter)
 
@@ -278,7 +284,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
         self.subcircuit.set_component_values(**kwargs)
         if permission == UpdatePermission.Inform:
             for device, value in kwargs.items():
-                self.add_update(device, value, UpdateType.UpdateComponentValue)
+                self.end_update(device, value, UpdateType.UpdateComponentValue)
 
 
     def add_component(self, component: SpiceComponent, **kwargs) -> None:

@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.5.1_
+_current version: 1.6.0_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1130,6 +1130,10 @@ For support and improvement requests please open an Issue
 in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
+* Version 1.6.0
+    * Major refactor of the editor classes for a more object-oriented approach. The Refactoring adds the hierarchy of 
+      classes explained in [/doc/media/Singleton approach.drawio](./doc/media/Singleton%20approach.drawio)
+    * All components derive from the same class "Component" that will allow in future releases the creation of components.
 * Version 1.5.1
     * Completing the Python 3.10+ migration. 
     * Handle LTSpice logs with bare `.step` lines.

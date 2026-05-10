@@ -28,10 +28,9 @@ from collections.abc import Callable, Iterable
 from functools import wraps
 from pathlib import Path
 
-from spicelib.sim.process_callback import ProcessCallback
-
 _logger = logging.getLogger("spicelib.SimStepper")
-from ..editor.base_editor import BaseEditor, ValueType
+from ..editor.primitives import ValueType
+from ..editor.spice_editor import SpiceEditor
 from .sim_runner import AnyRunner, CallbackType, CallbackArgsType
 
 
@@ -88,52 +87,52 @@ class SimStepper(AnyRunner):
     then use the .LOADBIAS command at the subsequent ones to speed up the simulation times.
     """
 
-    def __init__(self, circuit: BaseEditor, runner: AnyRunner):
+    def __init__(self, editor: SpiceEditor, runner: AnyRunner):
         self.runner = runner
-        self.netlist = circuit
+        self.editor = editor
         self.iter_list: list[StepInfo] = []
         self.current_values = {}
         self.sim_info = {}
 
-    @wraps(BaseEditor.add_instruction, updated=())  # updated=() solves conflict between wraps and abstract classes
+    @wraps(SpiceEditor.add_instruction, updated=())  # updated=() solves conflict between wraps and abstract classes
     def add_instruction(self, instruction: str):
-        self.netlist.add_instruction(instruction)
-
-    @wraps(BaseEditor.add_instructions, updated=())  # updated=() solves conflict between wraps and abstract classes
+        self.editor.add_instruction(instruction)
+    
+    @wraps(SpiceEditor.add_instructions, updated=())  # updated=() solves conflict between wraps and abstract classes
     def add_instructions(self, *instructions) -> None:
-        self.netlist.add_instructions(*instructions)
+        self.editor.add_instructions(*instructions)
 
-    @wraps(BaseEditor.remove_instruction, updated=())  # updated=() solves conflict between wraps and abstract classes
+    @wraps(SpiceEditor.remove_instruction, updated=())  # updated=() solves conflict between wraps and abstract classes
     def remove_instruction(self, instruction) -> bool:
-        return self.netlist.remove_instruction(instruction)
+        return self.editor.remove_instruction(instruction)
 
-    @wraps(BaseEditor.remove_Xinstruction, updated=())  # updated=() solves conflict between wraps and abstract classes
+    @wraps(SpiceEditor.remove_Xinstruction, updated=())  # updated=() solves conflict between wraps and abstract classes
     def remove_Xinstruction(self, search_pattern: str) -> bool:
-        return self.netlist.remove_Xinstruction(search_pattern)
+        return self.editor.remove_Xinstruction(search_pattern)
 
-    @wraps(BaseEditor.set_parameters, updated=())  # updated=() solves conflict between wraps and abstract classes
+    @wraps(SpiceEditor.set_parameters, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_parameters(self, **kwargs):
-        self.netlist.set_parameters(**kwargs)
+        self.editor.set_parameters(**kwargs)
         self.current_values.update(**kwargs)
 
-    @wraps(BaseEditor.set_parameter, updated=())  # updated=() solves conflict between wraps and abstract classes
+    @wraps(SpiceEditor.set_parameter, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_parameter(self, param: str, value: ValueType) -> None:
-        self.netlist.set_parameter(param, value)
+        self.editor.set_parameter(param, value)
         self.current_values[param] = value
 
-    @wraps(BaseEditor.set_component_values, updated=())  # updated=() solves conflict between wraps and abstract classes
+    @wraps(SpiceEditor.set_component_values, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_component_values(self, **kwargs):
-        self.netlist.set_component_values(**kwargs)
+        self.editor.set_component_values(**kwargs)
         self.current_values.update(**kwargs)
 
-    @wraps(BaseEditor.set_component_value, updated=())  # updated=() solves conflict between wraps and abstract classes
+    @wraps(SpiceEditor.set_component_value, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_component_value(self, device: str, value: ValueType) -> None:
-        self.netlist.set_component_value(device, value)
+        self.editor.set_component_value(device, value)
         self.current_values[device] = value
 
-    @wraps(BaseEditor.set_element_model, updated=())  # updated=() solves conflict between wraps and abstract classes
+    @wraps(SpiceEditor.set_element_model, updated=())  # updated=() solves conflict between wraps and abstract classes
     def set_element_model(self, element: str, model: str) -> None:
-        self.netlist.set_element_model(element, model)
+        self.editor.set_element_model(element, model)
         self.current_values[element] = model
 
     def add_param_sweep(self, param: str, iterable: Iterable):
@@ -143,13 +142,13 @@ class SimStepper(AnyRunner):
     def add_value_sweep(self, comp: str, iterable: Iterable):
         """Adds a dimension to the simulation, where a component value is swept."""
         # The next line raises an ComponentNotFoundError if the component doesn't exist
-        _ = self.netlist.get_component_value(comp)
+        _ = self.editor.get_component_value(comp)
         self.iter_list.append(StepInfo("component", comp, iterable))
 
     def add_model_sweep(self, comp: str, iterable: Iterable):
         """Adds a dimension to the simulation, where a component model is swept."""
         # The next line raises an ComponentNotFoundError if the component doesn't exist
-        _ = self.netlist.get_component_value(comp)
+        _ = self.editor.get_component_value(comp)
         self.iter_list.append(StepInfo("model", comp, iterable))
 
     def total_number_of_simulations(self):
@@ -167,9 +166,9 @@ class SimStepper(AnyRunner):
                 callback: CallbackType = None,
                 callback_args: CallbackArgsType = None,
                 switches: list | None = None,
-                timeout: float = None,
+                timeout: float | None = None,
                 wait_completion: bool = True,
-                filenamer: Callable[[dict[str, str]], str] = None,
+                filenamer: Callable[[dict[str, str]], str] | None = None,
                 exe_log: bool = False,
                 ) -> None:
         """

@@ -59,18 +59,19 @@ class AscComponent(SchematicComponent):
 
         :param value: The new value
         """
+        parent: BaseSubCircuit = self.parent # pyright: ignore[reportAssignmentType]
         if "Value" in self.attributes:
             if isinstance(value, str):
                 value_str = value
             else:
                 value_str = format_eng(value)
-            permission = self.parent.begin_update()
+            permission = parent.begin_update()
             if permission == UpdatePermission.Deny:
                 _logger.warning(f"Update denied when trying to set value of component {self.reference} to {value_str}")
                 raise PermissionError(f"Update of Component {self.reference} Value {value_str} denied")
             self.attributes["Value"] = value_str
             _logger.info(f"Component {self.reference} updated to {value_str}")
-            self.parent.end_update(self.reference, value_str, UpdateType.UpdateComponentValue)
+            parent.end_update(self.reference, value_str, UpdateType.UpdateComponentValue)
         else:
             _logger.error(f"Component {self.reference} does not have a Value attribute")
             raise ComponentNotFoundError(f"Component {self.reference} does not have a Value attribute")
@@ -140,7 +141,8 @@ class AscComponent(SchematicComponent):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
-        permission = self.parent.begin_update()
+        parent: BaseSubCircuit = self.parent # pyright: ignore[reportAssignmentType]
+        permission = parent.begin_update()
         if permission == UpdatePermission.Deny:
             _logger.warning(f"Update denied when trying to set parameter of component {self.reference}")
             raise PermissionError(f"Update of Component {self.reference} Parameter denied")
@@ -200,7 +202,7 @@ class AscComponent(SchematicComponent):
                                 self.attributes[param_key] = f'{key}={value_str}'
                             update_type = UpdateType.AddComponentParameter
                             _logger.info(f"Component {self.reference} added parameter {key}:{value_str}")
-            self.parent.end_update(f"{self.reference}:{key}", value_str, update_type)
+            parent.end_update(f"{self.reference}:{key}", value_str, update_type)
 
 
 class AscEditor(BaseSchematic, BaseSubCircuit):
@@ -323,7 +325,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                         self.components[component.reference] = component
                     component = AscComponent(self, line)
                     tag, *symbol, posX, posY, rotation = line.split()
-                    component.symbol = symbol[0] if len(symbol) == 1 else ' '.join(symbol)
+                    component.symbol = symbol[0] if len(symbol) == 1 else ' '.join(symbol) # pyright: ignore[reportAttributeAccessIssue]
                     component.position.X = int(posX)
                     component.position.Y = int(posY)
                     if rotation in ASC_ROTATION_DICT:
@@ -335,7 +337,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                     tag, num_ref, posX, posY, alignment, size = line.split()
                     component+=line
                     coord = Point(int(posX), int(posY))
-                    text = Text(coord=coord, text=num_ref, size=size, type=TextTypeEnum.ATTRIBUTE)
+                    text = Text(coord=coord, text=num_ref, size=int(size), type=TextTypeEnum.ATTRIBUTE)
                     text = asc_text_align_set(text, alignment)
                     component.attributes['_WINDOW ' + num_ref] = text
 
@@ -346,7 +348,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                     text = text.strip()  # Gets rid of the \n terminator
                     if ref == "InstName":
                         component.reference = text
-                        symbol = self._get_symbol(component.symbol)
+                        symbol = self._get_symbol(component.symbol) # pyright: ignore[reportArgumentType]
                         if component.reference.startswith('X') or symbol.is_subcircuit():  # This is a subcircuit
                             # then create the attribute "SUBCKT"
                             component.attributes['_SUBCKT'] = self._get_subcircuit(symbol)
@@ -461,7 +463,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         answer = AsyReader(asy_path)
         return answer
 
-    def _get_subcircuit(self, symbol: AsyReader) -> 'SpiceEditor | AscEditor':
+    def _get_subcircuit(self, symbol: AsyReader) -> 'SpiceCircuit | AscEditor | None':
         # two main possibilities here:
         # either the symbol refers to a library file,
         # either to a subcircuit in another .asc file. This appears to only happen with BLOCK symbols
@@ -555,12 +557,15 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         permission = self.begin_update()
         if permission == UpdatePermission.Deny:
             raise PermissionError(f"Permission denied for {param}")
-        match, directive = self._get_param_named(param)
+        
         if isinstance(value, (int, float)):
             value_str = format_eng(value)
         else:
             value_str = value
+
+        match, directive = self._get_param_named(param) # pyright: ignore[reportAssignmentType]
         if match:
+            directive : Text
             _logger.debug(f"Parameter {param} found in ASC file, updating it")
             start, stop = match.span('value')
             directive.text = f"{directive.text[:start]}{value_str}{directive.text[stop:]}"
@@ -590,7 +595,10 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
             if isinstance(sub_circuit, SpiceCircuit):
                 _logger.warning(f"Component {device} is in an Spice subcircuit. "
                                 f"This function may not work as expected.")
-            return sub_circuit.set_component_value(ref, value)
+            elif isinstance(sub_circuit, AscEditor):
+                return sub_circuit.set_component_value(ref, value)
+            else:
+                raise TypeError(f"Unknown subcircuit type: {type(sub_circuit)}")
         else:
             component = self.get_component(device)
             return component.set_value(value)
@@ -600,7 +608,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         component.symbol = model
         _logger.info(f"Component {element} updated to {model}")
 
-    def get_component_value(self, element: str) -> str:
+    def get_component_value(self, element: str) -> str | None:
         component = self.get_component(element)
         return component.get_value_str()
 
@@ -619,7 +627,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
 
                  NotImplementedError - for not supported operations
         """
-        component = self.get_component(element)
+        component: AscComponent = self.get_component(element) # pyright: ignore[reportAssignmentType]
         parameters = component.get_parameters(as_dicts)
         return parameters
 
@@ -648,7 +656,6 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         :return: Nothing
         :raises: ComponentNotFoundError - In case one of the component is not found.
         """
-        super().set_component_parameters(element, **kwargs)
         component = self.get_component(element)
         component.set_parameters(**kwargs)
 

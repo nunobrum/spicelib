@@ -108,7 +108,7 @@ class AsyReader:
                             if justification == "VRIGHT":
                                 text_alignment = HorAlign.RIGHT
                             elif justification == "VTOP":
-                                text_alignment = VerAlign.TOP
+                                vertical_alignment = VerAlign.TOP
                             # else other two cases are the default
                         else:
                             if justification == "TOP":
@@ -121,6 +121,9 @@ class AsyReader:
 
                     pin = Text(coord, "", type=TextTypeEnum.PIN, size=int(offset),
                                textAlignment=text_alignment, verticalAlignment=vertical_alignment, angle=angle)
+                    # Pin is not added to the list yet, as it may have attributes that need to be added to it. 
+                    # It is added when we encounter the next PIN or at the end of the file.
+
                 
                 # the following is identical to the code in asc_reader.py. If you modify it, do so in both places.
                 elif line.startswith("LINE") or line.startswith("RECTANGLE") or line.startswith("CIRCLE"):
@@ -278,7 +281,7 @@ class AsyReader:
         for attr in ('ModelFile', 'SpiceModel', 'SpiceLine', 'SpiceLine2', 'Def_Sub', 'Value', 'Value2'):
             if attr in self.attributes and (self.attributes[attr].lower().endswith(suffixes)):
                 return self.attributes[attr]
-        return self.attributes.get('SpiceModel')
+        return self.attributes.get('SpiceModel')  # pyright: ignore[reportReturnType]
 
     def get_model(self) -> str:
         """Returns the model name of the component. If not found, returns None."""

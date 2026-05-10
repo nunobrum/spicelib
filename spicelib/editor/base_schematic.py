@@ -21,6 +21,7 @@ import enum
 from typing import Callable
 from collections import OrderedDict
 import logging
+from weakref import ref
 from .base_editor import BaseEditor, SUBCKT_DIVIDER
 from .primitives import Component
 from .editor_errors import ComponentNotFoundError
@@ -157,7 +158,7 @@ class Point:
 
 class Line:
     """X1, Y1, X2, Y2 coordinates"""
-    def __init__(self, v1: Point, v2: Point, style: LineStyle = None, net: str = ""):
+    def __init__(self, v1: Point, v2: Point, style: LineStyle | None = None, net: str = ""):
         self.V1 = v1
         self.V2 = v2
         if style is None:
@@ -208,7 +209,7 @@ class Shape:
     """Polygon object. The shape is defined by a list of points. It can define a closed or open shape.
     The closed shape is defined by the first and last points being the same. In this case, it can have a fill.
     It is used to define polygons, arcs, circles or more complex shapes like the ones found in QSPICE"""
-    def __init__(self, name: str, points: list[Point], line_style: LineStyle = None, fill: str = ""):
+    def __init__(self, name: str, points: list[Point], line_style: LineStyle | None = None, fill: str = ""):
         self.name = name
         self.points = points
         if line_style is None:
@@ -269,7 +270,7 @@ class SchematicComponent(Component):
         super().__init__(netlist=parent, obj=line, **kwargs)
         self.position: Point = kwargs.get('position', Point(0, 0))
         self.rotation: ERotation = kwargs.get('rotation', ERotation.R0)
-        self.symbol = None
+        self.symbol: str | None = None
 
     def __str__(self):
         return f"{self.reference} {self.position.X} {self.position.Y} {self.rotation}"
@@ -361,7 +362,15 @@ class BaseSchematic(BaseEditor):
         self.canvas_updated = True
 
     def add_component(self, component: SchematicComponent, **kwargs) -> None:
-        self.components[component.reference] = component
+        reference = component.reference
+        if reference in self.components:
+            _logger.error(f"Component {reference} already exists in the schematic")
+            raise ValueError(f"Component {reference} already exists in the schematic")
+        elif not reference:
+            _logger.error("Component reference cannot be empty")
+            raise ValueError("Component reference cannot be empty")
+        else:
+            self.components[reference] = component
         component._netlist = self
         if kwargs:
             # Update attributes
