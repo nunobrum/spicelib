@@ -15,7 +15,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     23-12-2016
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 """
 Allows launching LTSpice simulations from a Python Script, thus allowing to overcome the 3 dimensions STEP limitation on
@@ -372,15 +372,9 @@ class SimRunner(AnyRunner):
         for task in self.completed_tasks:
             task: RunTask
             run_no = task.runno
-            v = {}
-            v['netlist_file'] = task.netlist_file
-            v['raw_file'] = task.raw_file
-            v['log_file'] = task.log_file
-            v['retcode'] = task.retcode
-            v['exception_text'] = task.exception_text
-            v['callback_return'] = task.callback_return
-            v['start_time'] = task.start_time
-            v['stop_time'] = task.stop_time
+            v = {'netlist_file': task.netlist_file, 'raw_file': task.raw_file, 'log_file': task.log_file,
+                 'retcode': task.retcode, 'exception_text': task.exception_text,
+                 'callback_return': task.callback_return, 'start_time': task.start_time, 'stop_time': task.stop_time}
             if task.edits:
                 v['edits'] = task.edits.netlist_updates
             rv[run_no] = v

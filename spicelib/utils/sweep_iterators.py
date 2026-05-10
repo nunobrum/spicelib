@@ -13,7 +13,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     24-07-2020
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 #
 # -------------------------------------------------------------------------------
 

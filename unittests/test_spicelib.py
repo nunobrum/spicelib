@@ -15,7 +15,7 @@
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 """
 @author:        Nuno Brum

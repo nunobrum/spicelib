@@ -14,7 +14,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     10-08-2023
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 from abc import abstractmethod, ABC
 from dataclasses import dataclass

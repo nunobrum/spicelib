@@ -12,7 +12,7 @@
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
 
@@ -268,7 +268,7 @@ class SchematicComponent(Component):
     def __init__(self, parent, line, **kwargs):
         super().__init__(netlist=parent, obj=line, **kwargs)
         self.position: Point = kwargs.get('position', Point(0, 0))
-        self.rotation: ERotation =  kwargs.get('rotation', ERotation.R0)
+        self.rotation: ERotation = kwargs.get('rotation', ERotation.R0)
         self.symbol = None
 
     def __str__(self):
@@ -402,7 +402,8 @@ class BaseSchematic(BaseEditor):
         self.canvas_updated = True
 
     def begin_update(self) -> UpdatePermission:
-        """Returns the update permission for the schematic. This is used to determine if the schematic can be updated or not."""
+        """Returns the update permission for the schematic. This is used to determine if the schematic can be updated
+        or not."""
         return self.update_permission
 
     def end_update(self, name: str, value: str | int | float | None, updates: UpdateType):

@@ -12,7 +12,7 @@
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
@@ -154,7 +154,7 @@ class BaseEditor(ABC):
                     cls._check_and_append_custom_library_path(p)
             
     def is_read_only(self) -> bool:
-        """Check if the component can be edited. This is useful when the editor is used on non modifiable files.
+        """Check if the component can be edited. This is useful when the editor is used on non-modifiable files.
 
         :return: True if the component is read-only, False otherwise
         """

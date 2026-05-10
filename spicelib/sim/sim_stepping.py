@@ -17,7 +17,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     31-07-2020
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"

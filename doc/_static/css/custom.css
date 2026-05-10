@@ -1,4 +1,4 @@
-@import '../agogo.css';  /* main theme */
+/* Theme CSS is loaded by Sphinx; keep this file for overrides only. */
 
 td.text-center {
     text-align: center;
@@ -19,7 +19,7 @@ table.docutils th {
 }
 table.docutils th, table.docutils td {
     border: 1px solid #808080;
-    border-spacing: 0px;
+    border-spacing: 0;
     padding: 0.2em;
     border-collapse: collapse;
     vertical-align: top;

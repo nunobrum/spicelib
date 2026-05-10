@@ -13,10 +13,11 @@
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os.path
 import sys
+from collections import OrderedDict
 from pathlib import Path
 import io
 
@@ -46,6 +47,7 @@ _logger = logging.getLogger("spicelib.AscEditor")
 LTSPICE_PARAMETERS = ("Value", "Value2", "SpiceModel", "SpiceLine", "SpiceLine2")
 LTSPICE_PARAMETERS_REDUCED = ("SpiceLine", "SpiceLine2")
 LTSPICE_ATTRIBUTES = ("InstName", "Def_Sub")
+
 
 class AscComponent(SchematicComponent):
     """Class made to represent a component in an ASC file"""
@@ -81,21 +83,20 @@ class AscComponent(SchematicComponent):
             raise ComponentNotFoundError(f"Component {self.reference} does not have a Value attribute")
         return ' '.join(values)
 
-    def get_parameters(self, as_dicts: bool = False) -> dict:
+    def get_parameters(self, as_dicts: bool = False) -> OrderedDict:
         """
         Returns the parameters of a component that are related with Spice operation.
         That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, plus all contents of SpiceLine, SpiceLine2
-        :param as_dicts: will report the contents of SpiceLine and SpiceLine2 inside a SpiceLine/SpiceLine2 instead of separately.
-        :type as_dicts: bool
+        :param as_dicts: will report the contents of SpiceLine and SpiceLine2 inside a SpiceLine/SpiceLine2 instead of
+        separately.
 
         :return: parameters of the circuit element in dictionary format.
-        :rtype: dict
 
         :raises: ComponentNotFoundError - In case the component is not found
 
                  NotImplementedError - for not supported operations
         """
-        parameters = {}
+        parameters = OrderedDict()
         search_regex = re.compile(PARAM_REGEX(r'\w+'), re.IGNORECASE)
         for key, value in self.attributes.items():
             if key in LTSPICE_PARAMETERS:
@@ -154,7 +155,7 @@ class AscComponent(SchematicComponent):
                 value_str = format_eng(value)
             params = self.get_parameters(as_dicts=True)
             if key in params:
-                # I only have the LTSPICE_PARAMETERS as keys here, so when I match, i can overwrite
+                # I only have the LTSPICE_PARAMETERS as keys here, so when I match, I can overwrite
                 # I do not support delete here, as some of the keys are mandatory
                 self.attributes[key] = value_str
                 _logger.info(f"Component {self.reference} updated with parameter {key}:{value}")
@@ -552,6 +553,8 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
 
     def set_parameter(self, param: str, value: str | int | float) -> None:
         permission = self.begin_update()
+        if permission == UpdatePermission.Deny:
+            raise PermissionError(f"Permission denied for {param}")
         match, directive = self._get_param_named(param)
         if isinstance(value, (int, float)):
             value_str = format_eng(value)

@@ -14,7 +14,7 @@
 #
 # Author:      hb020
 #
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 """
 @author:        nunobrum

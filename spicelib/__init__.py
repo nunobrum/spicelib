@@ -48,7 +48,7 @@ def set_log_level(level):
     """
     Sets the logging level for all loggers used in the library.
 
-    :param level: The logging level to be used, eg. logging.ERROR, logging.DEBUG, etc.
+    :param level: The logging level to be used, e.g. logging.ERROR, logging.DEBUG, etc.
     :type level: int
     """
     import logging
@@ -60,7 +60,7 @@ def add_log_handler(handler):
     """
     Sets the logging handler for all loggers used in the library.
 
-    :param handler: The logging handler to be used, eg. logging.NullHandler
+    :param handler: The logging handler to be used, e.g. logging.NullHandler
     :type handler: Handler
     """
     import logging

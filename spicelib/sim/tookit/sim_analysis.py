@@ -16,7 +16,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     06-07-2021
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
 from functools import wraps
