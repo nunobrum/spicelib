@@ -183,16 +183,17 @@ def to_float(value, accept_invalid: bool = True) -> float | str:
 def try_value(token: str) -> ValueType:
     """Try to convert a token to an int or float, if it fails return the original string"""
     try:
-        return complex(token)
-    except ValueError:  
+        value = to_float(token, accept_invalid=False)
+    except ValueError as err:
         try:
-            value = to_float(token, accept_invalid=False)
-            if isinstance(value, float) and value.is_integer():
-                return int(value)
-            return value
+            return complex(token)
         except ValueError:
             return token
- 
+    else:
+        if value.is_integer():
+            return int(value)
+        return value
+
 
 class CallMe(object):
     """Used to create callable objects to set properties back on the parent object"""
@@ -272,7 +273,7 @@ class Component(Primitive):
 
         for key, value in kwargs.items():
             if key in PORTS_IDs:
-                self._set_ports(*value)  # This allows to set the ports with the "ports" keyword argument. Ex: R('R1', ports=['n1', 'n2'], value=10) or R('R1', p=['n1', 'n2'], value=10)
+                self._set_ports(value)  # This allows to set the ports with the "ports" keyword argument. Ex: R('R1', ports=['n1', 'n2'], value=10) or R('R1', p=['n1', 'n2'], value=10)
             elif key in PARAMS_IDs:
                 self._attributes['params'] = value
             elif key in VALUE_IDs:
@@ -350,21 +351,22 @@ class Component(Primitive):
     def value_str(self, value):
         self.set_value(value)
 
-    def _set_ports(self, ports):
+    def _set_ports(self, ports: list[Net] | list[str]):
         """Sets the ports of the component
-        :param args: List of Net objects
+        :param ports: List of Net objects or strings representing the ports. Ex: ['n1', 'n2'] or [Net('n1'), Net('n2')]
         """
-        self._attributes['ports'] = []
+        ports_list  = []
         for arg in ports:
             if isinstance(arg, Net):
                 net = arg
-                self._attributes['ports'].append(net)
+                ports_list.append(net)
             elif isinstance(arg, str):
                 net = Net(arg, netlist=self._netlist)
-                self._attributes['ports'].append(net)
+                ports_list.append(net)
             else:
                 raise ValueError(f"Invalid port value: {arg}. Must be a string or a Net object.")
             net.nodes.append(self)
+        self._attributes['ports'] = ports_list
 
     def __str__(self):
         return self._obj or self._reference
