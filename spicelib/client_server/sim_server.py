@@ -25,7 +25,7 @@ import threading
 from pathlib import Path
 import zipfile
 import io
-from spicelib.client_server.srv_sim_runner import ServerSimRunner
+from .srv_sim_runner import ServerSimRunner
 import uuid
 
 _logger = logging.getLogger("spicelib.SimServer")

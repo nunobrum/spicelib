@@ -35,8 +35,8 @@ from .spice_components import SpiceComponent, component_replace_regexs, _insert_
 from .spice_subcircuit_instance import SpiceCircuitInstance
 from .base_editor import SUBCKT_DIVIDER, PARAM_REGEX, BaseEditor
 
-from spicelib.utils.detect_encoding import detect_encoding, EncodingDetectError
-from spicelib.utils.file_search import search_file_in_containers
+from ..utils.detect_encoding import detect_encoding, EncodingDetectError
+from ..utils.file_search import search_file_in_containers
 
 def get_line_command(line: str | Primitive) -> str:
     """

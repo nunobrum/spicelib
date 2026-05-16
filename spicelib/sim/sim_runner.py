@@ -115,7 +115,8 @@ from .process_callback import ProcessCallback, CallbackType, CallbackArgsType
 from ..sim.run_task import RunTask
 from ..sim.simulator import Simulator
 from ..editor.base_editor import BaseEditor
-from spicelib import RawWrite, RawRead
+from ..raw.raw_read import RawRead
+from ..raw.raw_write import RawWrite
 from ..editor.updates import Update
 
 

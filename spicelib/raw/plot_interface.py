@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from spicelib.raw.raw_classes import Axis, TraceRead
+from .raw_classes import Axis, TraceRead
 
 # Constants
 MIN_BYTES_IN_FILE = 20

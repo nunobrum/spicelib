@@ -8,13 +8,12 @@ from pathlib import Path
 
 import numpy as np
 
-from spicelib import SpiceReadException
-from spicelib.editor.primitives import scan_eng
-from spicelib.log.logfile_data import try_convert_value
-from spicelib.raw.plot_interface import PlotInterface, MIN_BYTES_IN_FILE
-from spicelib.raw.raw_classes import Axis, TraceRead
+from ..log.logfile_data import try_convert_value
+from ..raw.plot_interface import PlotInterface, MIN_BYTES_IN_FILE
+from ..utils.float_unit import scan_eng
+from .raw_classes import Axis, TraceRead, SpiceReadException
 
-from spicelib.utils.detect_encoding import detect_encoding, EncodingDetectError
+from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
 _logger = logging.getLogger("spicelib.PlotData")
 

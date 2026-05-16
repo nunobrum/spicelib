@@ -25,7 +25,7 @@ from pathlib import Path
 import io
 from typing import Union, Callable, Any
 
-from spicelib.sim.process_callback import CallbackType
+from ..sim.process_callback import CallbackType
 
 from .base_editor import BaseEditor
 from .primitives import Primitive
