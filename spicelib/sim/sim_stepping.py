@@ -207,11 +207,11 @@ class SimStepper(AnyRunner):
 
                 self.current_values[self.iter_list[iter_no].elem] = value
                 if self.iter_list[iter_no].what == 'param':
-                    self.netlist.set_parameter(self.iter_list[iter_no].elem, value)
+                    self.editor.set_parameter(self.iter_list[iter_no].elem, value)
                 elif self.iter_list[iter_no].what == 'component':
-                    self.netlist.set_component_value(self.iter_list[iter_no].elem, value)
+                    self.editor.set_component_value(self.iter_list[iter_no].elem, value)
                 elif self.iter_list[iter_no].what == 'model':
-                    self.netlist.set_element_model(self.iter_list[iter_no].elem, value)
+                    self.editor.set_element_model(self.iter_list[iter_no].elem, value)
                 else:
                     # TODO: develop other types of sweeps EX: add .STEP instruction
                     raise ValueError("Not Supported sweep")
@@ -221,7 +221,7 @@ class SimStepper(AnyRunner):
 
             run_filename = filenamer(**self.current_values) if filenamer else None
 
-            task = self.runner.run(self.netlist, callback=callback, callback_args=callback_args,
+            task = self.runner.run(self.editor, callback=callback, callback_args=callback_args,
                                    switches=switches, timeout=timeout, run_filename=run_filename, exe_log=exe_log)
 
             # Now storing the simulation information

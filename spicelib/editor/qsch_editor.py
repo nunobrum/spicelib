@@ -554,7 +554,7 @@ class QschComponent(SchematicComponent):
             raise ValueError("Invalid rotation parameter")
 
         comp_tag.set_attr(QSCH_COMPONENT_POS, (position.X, position.Y))
-        comp_tag.set_attr(QSCH_COMPONENT_ROTATION, str(rot))
+        comp_tag.set_attr(QSCH_COMPONENT_ROTATION, rot)
         self.position = position
         self.rotation = rotation if isinstance(rotation, ERotation) else ERotation(rotation)
 
@@ -590,8 +590,10 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         if not self.schematic:
             _logger.error("Empty Schematic information")
             return
-        if self.updated() or Path(qsch_filename) != self._circuit_filepath:
-            with open(qsch_filename, 'w', encoding="cp1252") as qsch_file:
+        qsch_filename_p = Path(qsch_filename)
+        if self.updated() or qsch_filename_p != self._circuit_filepath:
+            self._circuit_filepath = qsch_filename_p
+            with qsch_filename_p.open('w', encoding="cp1252") as qsch_file:
                 _logger.info(f"Writing QSCH file {qsch_file}")
                 for c in QSCH_HEADER:
                     qsch_file.write(chr(c))
@@ -781,7 +783,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                 netlist_file.write(f'.lib {library}\n')
             else:
                 if sys.platform.startswith("win"):
-                    from spicelib.utils.windows_short_names import get_short_path_name
+                    from ..utils.windows_short_names import get_short_path_name
                     netlist_file.write(f'.lib {get_short_path_name(os.path.abspath(library_path))}\n')
                 else:
                     netlist_file.write(f'.lib {os.path.abspath(library_path)}\n')

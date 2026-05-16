@@ -96,6 +96,17 @@ class BaseEditor(ABC):
         Writes the netlist to a file. This is an alias to save_netlist."""
         self.save_netlist(run_netlist_file)
 
+    @abstractmethod
+    def save_as(self, new_circuit_filepath: str | Path) -> None:
+        """
+        Saves the current state of the netlist to a new file. This is useful when you want to keep the original file
+        unchanged.
+
+        :param new_circuit_filepath: File name of the new circuit file.
+        :returns: Nothing
+        """
+        ...
+
     @classmethod     
     def prepare_for_simulator(cls, simulator: Simulator) -> None:
         """

@@ -114,10 +114,10 @@ class QschEditor_Test(unittest.TestCase):
         self.assertEqual(self.edt.get_all_parameter_names(), ['RES', 'TEMP'])        
         self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameter('TEMP', 25)
-        self.check_update('TEMP', UpdateType.UpdateParameter, 25)
+        self.check_update('TEMP', UpdateType.UpdateParameter, '25')
         self.assertEqual(self.edt.get_parameter('TEMP'), '25', "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameters(new_param=120, other_param="{voila}")
-        self.check_update("new_param", UpdateType.AddParameter, 120, -2)
+        self.check_update("new_param", UpdateType.AddParameter, '120', -2)
         self.check_update("other_param", UpdateType.AddParameter, "{voila}", -1)
         self.edt.save_as(temp_dir + 'test_parameter_output.qsch')
         equalFiles(self, golden_dir + 'test_parameter_output.qsch', temp_dir + 'test_parameter_output.qsch')
@@ -125,7 +125,7 @@ class QschEditor_Test(unittest.TestCase):
         equalFiles(self, golden_dir + 'test_parameter_output_qsch.net', temp_dir + 'test_parameter_output_qsch.net')
         update_size = len(self.edt.netlist_updates)
         self.edt.set_parameter('TEMP', 0)  # reset to 0
-        self.check_update('TEMP', UpdateType.UpdateParameter, 0, 0)
+        self.check_update('TEMP', UpdateType.UpdateParameter, '0', 0)
         self.assertEqual(update_size, len(self.edt.netlist_updates), "The number of updates was not changed")
         self.edt.set_parameter('other_param', "{Pronto}")
         self.check_update('other_param', UpdateType.UpdateParameter, "{Pronto}")

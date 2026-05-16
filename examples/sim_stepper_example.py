@@ -22,7 +22,8 @@ Stepper.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
 # define simulation
 Stepper.add_instructions(
     "; Simulation settings",
-    ";.param run = 0"
+    ";.param run = 0",
+    ".lib ADI1.lib",  # This is needed for accessing AD712
 )
 Stepper.set_parameter('run', 0)
 Stepper.set_parameter('test_param2', 20)

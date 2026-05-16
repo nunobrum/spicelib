@@ -252,10 +252,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                 raise ValueError("Use the `LTspice.create_netlist()` method instead")
             if run_netlist_file.suffix != '.asc':
                 run_netlist_file = run_netlist_file.with_suffix(".asc")
-            else:
-                # Stores the new file path for further use, so that we can update the same file when saving again.
-                # This is useful for sub-circuits, which need to know where to save themselves.
-                self._circuit_filepath = run_netlist_file
+
             asc = open(run_netlist_file, 'w', encoding=self.encoding)
 
         try:
@@ -286,7 +283,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                     # writing the sub-circuit if it was updated
                     sub_circuit: AscEditor = component.attributes['_SUBCKT']
                     if sub_circuit is not None and sub_circuit.updated():
-                        sub_circuit.save_netlist(sub_circuit.circuit_file)
+                        sub_circuit.save_as(sub_circuit.circuit_file)
                 for attr, value in component.attributes.items():
                     if not attr.startswith('_'):  # All these are not exported since they are only used internally
                         asc.write(f"SYMATTR {attr} {value}" + END_LINE_TERM)
@@ -311,6 +308,21 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         finally:
             if not isinstance(run_netlist_file, io.StringIO):
                 asc.close()
+
+    def save_as(self, new_circuit_filepath: str | Path) -> None:
+        """
+        Saves the current state of the netlist to a new file. This is useful when you want to keep the original file
+        unchanged. This updates the file pointer to the new file.
+
+        :param new_circuit_filepath: File name of the new circuit file.
+        :returns: Nothing
+        """
+        if isinstance(new_circuit_filepath, str):
+            new_circuit_filepath = Path(new_circuit_filepath)
+        if new_circuit_filepath.suffix != '.asc':
+            new_circuit_filepath = new_circuit_filepath.with_suffix(".asc")
+        self._circuit_filepath = new_circuit_filepath
+        self.save_netlist(new_circuit_filepath)
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         super().reset_netlist()

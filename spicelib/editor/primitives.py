@@ -1,183 +1,12 @@
 from collections import OrderedDict
-from math import floor, log
 import copy
 from typing import TypeAlias
-from spicelib.editor.editor_errors import ParameterNotFoundError
+from .editor_errors import ParameterNotFoundError
+from ..utils.float_unit import format_eng, scan_eng, to_float, float_unit
 
 
 ValueType: TypeAlias = str | float | int | complex
-           
 
-def format_eng(value: float | int) -> str:
-    """
-    Helper function for formatting value with the SI qualifiers.  That is, it will use
-
-        * p for pico (10E-12)
-        * n for nano (10E-9)
-        * u for micro (10E-6)
-        * m for mili (10E-3)
-        * k for kilo (10E+3)
-        * Meg for Mega (10E+6)
-        * g for giga (10E+9)
-        * t for tera (10E+12)
-
-
-    :param value: float value to format
-    :type value: float
-    :return: String with the formatted value
-    :rtype: str
-    """
-    if value == 0.0:
-        return f"{value:g}"  # This avoids a problematic log(0), and the int and float conversions
-    e = floor(log(abs(value), 1000))
-    if -5 <= e < 0:
-        suffix = "fpnum"[e]
-    elif e == 0:
-        return f"{value:g}"
-    elif e == 1:
-        suffix = "k"
-    elif e == 2:
-        suffix = 'Meg'
-    elif e == 3:
-        suffix = 'g'
-    elif e == 4:
-        suffix = 't'
-    else:
-        return f'{value:E}'
-    return f'{value * (1000 ** -e):g}{suffix}'
-
-
-def scan_eng(value: str) -> float:
-    """
-    Converts a string to a float, considering SI multipliers
-
-        * f for femto (10E-15)
-        * p for pico (10E-12)
-        * n for nano (10E-9)
-        * u or µ for micro (10E-6)
-        * m for mili (10E-3)
-        * k for kilo (10E+3)
-        * meg for Mega (10E+6)
-        * g for giga (10E+9)
-        * t for tera (10E+12)
-
-    The extra unit qualifiers such as V for volts or F for Farads are ignored.
-
-
-    :param value: string to be converted to float
-    :type value: str
-    :return:
-    :rtype: float
-    :raises: ValueError when the value cannot be converted.
-    """
-    # Search for the last digit on the string. Assuming that all after the last number are SI qualifiers and units.
-    value = value.strip()
-    x = len(value)
-    while x > 0:
-        if value[x - 1] in "0123456789":
-            break
-        x -= 1
-    suffix = value[x:]  # this is the non-numeric part at the end
-    f = float(value[:x])  # this is the numeric part. Can raise ValueError.
-    if suffix:
-        suffix = suffix.lower()
-        # By industry convention, SPICE is not case-sensitive
-        if suffix.startswith("meg"):
-            return f * 1E+6
-        elif suffix[0] in "fpnuµmkgt":
-            return f * {
-                'f': 1.0e-15,
-                'p': 1.0e-12,
-                'n': 1.0e-09,
-                'u': 1.0e-06,
-                'µ': 1.0e-06,
-                'm': 1.0e-03,
-                'k': 1.0e+03,
-                'g': 1.0e+09,
-                't': 1.0e+12,
-            }[suffix[0]]
-    return f
-
-
-def to_float(value, accept_invalid: bool = True) -> float | str:
-    _MULT = {
-        'f': 1E-15,
-        'p': 1E-12,
-        'n': 1E-9,
-        'µ': 1E-6,
-        'u': 1E-6,
-        'U': 1E-6,
-        'm': 1E-3,
-        'M': 1E-3,
-        'k': 1E+3,
-        'K': 1E+3,  # For much of the world, K is the same as k. That is a sad fact of life. K is Kelvin in SI
-        'Meg': 1E+6,
-        'g': 1E+9,
-        't': 1E+12,
-        # These units can be used as decimal points in the number definition. Ex: 10R5 is 10.5 Ohms. In LTSpice
-        # the units can be used in any number definition. For example 10H5 is 10.5 Henrys but also can be used in
-        # resistors value definition. LTSpice doesn't care about the unit in the component value definition.
-        'Ω': 1,  # This is the Ohm symbol. It is supported by LTspice
-        'R': 1,  # This also represents the Ohm symbol. Can be used a decimal point. Ex: 10R2 is 10.2 Ohms
-        'V': 1,  # Volts
-        'A': 1,  # Amperes (Current)
-        'F': 1,  # Farads (Capacitance)
-        'H': 1,  # Henry (Inductance)
-        '%': 0.01,  # Percent. 10% is 0.1. 1%6 is 0.016
-    }
-
-    value = value.strip()  # Removing trailing and leading spaces
-    length = len(value)
-
-    multiplier = 1.0
-
-    i = 0
-    while i < length and (value[i] in "0123456789.+-"):  # Includes spaces
-        i += 1
-    if i == 0:
-        if accept_invalid:
-            return value
-        else:
-            raise ValueError("Doesn't start with a number")
-
-    if 0 < i < length and (value[i] == 'E' or value[i] == 'e'):
-        # if it is a number in scientific format, it doesn't have 1000x qualifiers (Ex: p, u, k, etc...)
-        i += 1
-        while i < length and (value[i] in "0123456789+-"):  # Includes spaces
-            i += 1
-        j = k = i
-    else:
-        # this first part should be able to be converted into float
-        k = i  # Stores the position of the end of the number
-        # Consume any spaces that may exist between the number and the unit
-        while i < length and (value[i] in " \t"):
-            i += 1
-
-        if i < length:  # Still has characters to consume
-            if value[i] in _MULT:
-                if value[i:].upper().startswith('MEG'):  # to 1E+06 qualifier 'Meg'
-                    i += 3
-                    multiplier = _MULT['Meg']
-                else:
-                    multiplier = _MULT[value[i]]
-                    i += 1
-
-            # This part is done to support numbers with the format 1k7 or 1R8
-            j = i
-            while i < length and (value[i] in "0123456789"):
-                i += 1
-        else:
-            j = i
-
-    try:
-        if j < i:  # There is a suffix number
-            value = float(value[:k] + "." + value[j:i]) * multiplier
-        else:
-            value = float(value[:k]) * multiplier
-    except ValueError as err:
-        if not accept_invalid:
-            raise err
-    return value
 
 
 def try_value(token: str) -> ValueType:
@@ -190,8 +19,6 @@ def try_value(token: str) -> ValueType:
         except ValueError:
             return token
     else:
-        if value.is_integer():
-            return int(value)
         return value
 
 

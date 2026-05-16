@@ -52,5 +52,11 @@ class ProcessCallback(Process):
         ...
 
 
-CallbackType: TypeAlias = type[ProcessCallback] | Callable[[Path | None, Path | None], Any] | None
 CallbackArgsType: TypeAlias = tuple | dict | None
+# A callback can be:
+# - any callable that accepts arbitrary positional/keyword args (Callable[..., Any])
+#   which covers plain functions and callable class instances;
+# - or a ProcessCallback class/type (kept for backward compatibility if code
+#   expects to receive a ProcessCallback subclass/type);
+# - or None when no callback is provided.
+CallbackType: TypeAlias = Callable[..., Any] | type[ProcessCallback] | None

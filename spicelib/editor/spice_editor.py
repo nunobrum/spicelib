@@ -213,6 +213,17 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
             if not isinstance(f, io.StringIO):
                 f.close()
 
+    def save_as(self, new_circuit_filepath: str | Path) -> None:
+        """
+        Saves the netlist to a new file. The new file will be created if it does not exist, and overwritten if it does exist.
+
+        :param new_circuit_filepath: Path to the new netlist file
+        :type new_circuit_filepath: str or Path
+        :return: Nothing
+        """
+        self._circuit_filepath = Path(new_circuit_filepath)
+        self.save_netlist(self._circuit_filepath)
+
     def get_control_sections(self) -> list[str]:
         """
         Returns a list representing the control sections in the netlist.

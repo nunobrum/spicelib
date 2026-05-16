@@ -72,7 +72,9 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(name, editor.netlist_updates[index].name, "Name mismatch")
         self.assertEqual(update, editor.netlist_updates[index].updates, "Update Type mismatch")
         if update not in (UpdateType.DeleteParameter, UpdateType.DeleteComponent, UpdateType.DeleteComponentParameter):
-            self.assertEqual(value, editor.netlist_updates[index].value, "Value mismatch")
+            value_p = editor.netlist_updates[index].value
+            value_p1 = type(value)(value_p)
+            self.assertEqual(value, value_p1, "Value mismatch")
 
     def test_component_editing_1(self):
         self.edt.reset_netlist()
@@ -167,7 +169,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + 'test_parameter_output.net', golden_dir + 'test_parameter_output.net')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
         self.check_update(self.edt, 'TEMP', UpdateType.UpdateParameter, 0)
-        self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
+        self.assertEqual(self.edt.get_parameter('TEMP'), 0, "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameters(floatpparam=1.23, signed_param=-0.99, expparam=-1E-34)
         self.check_update(self.edt, 'floatpparam', UpdateType.AddParameter, 1.23, 1)
         self.check_update(self.edt, 'signed_param', UpdateType.AddParameter, -0.99, 2)

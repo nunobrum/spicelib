@@ -5,7 +5,7 @@
 * Bxxx n001 n002 [VIRP]=<expression> [ic=<value>] ...
 B1 NC_01 NC_02 V=1e-9 tc1=2
 B2 NC_01 NC_02 V=1e-9 delay=1
-B3 NC_01 NC_02 V=1e-9 ic=1e-06,4 a=1e-09 blabla=1 2 3 4 5 6 7
+B3 NC_01 NC_02 V=1e-9 ic=1e-6,4 a=1e-09 blabla=1 2 3 4 5 6 7
 B4 NC_01 NC_02 V=1e-9
 B5 NC_01 NC_02 V=1e-9 VprXover=50mV
 

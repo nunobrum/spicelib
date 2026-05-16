@@ -24,11 +24,11 @@ from typing import Union, Optional, Any, Generator
 import logging
 
 
-
+from ..utils.float_unit import format_eng
 from .editor_errors import *
 from .spice_utils import subckt_regex, SUBCKT_CLAUSE_FIND, \
     lib_inc_regex, END_LINE_TERM, REPLACE_REGEXS, VALID_PREFIXES, UNIQUE_SIMULATION_DOT_INSTRUCTIONS
-from .primitives import ValueType, Primitive, format_eng
+from .primitives import ValueType, Primitive, try_value
 from .updates import UpdateType, UpdatePermission
 from .base_subcircuit import BaseSubCircuit
 from .spice_components import SpiceComponent, component_replace_regexs, _insert_section
@@ -551,7 +551,7 @@ class SpiceCircuit(BaseSubCircuit):
 
         line_no, match = self._get_parameter_named(param)
         if match:
-            return match.group('value')
+            return try_value(match.group('value'))
         else:
             raise ParameterNotFoundError(param, f"circuit {self.name()}")
 
@@ -605,7 +605,7 @@ class SpiceCircuit(BaseSubCircuit):
             term = Primitive(netlist=self, obj=f'.PARAM {param}={value_str}  ; Batch instruction' + END_LINE_TERM)
             self.netlist.insert(insert_line, term)
             if permission == UpdatePermission.Inform:
-                self.end_update(param, value_str, UpdateType.AddParameter)
+                self.end_update(param, value, UpdateType.AddParameter)
 
 
     def set_component_value(self, reference: str, value: ValueType) -> None:
@@ -792,14 +792,16 @@ class SpiceCircuit(BaseSubCircuit):
         """
         circuit_nodes = []
         for line in self.netlist:
-            prefix = get_line_command(line)
-            if prefix in component_replace_regexs:
-                match = component_replace_regexs[prefix].match(line)
-                if match:
-                    nodes = match.group('nodes').split()  # This separates by all space characters including \t
-                    for node in nodes:
-                        if node not in circuit_nodes:
-                            circuit_nodes.append(node)
+            if isinstance(line, (SpiceComponent, SpiceCircuitInstance)):
+                prefix = get_line_command(line)
+                if prefix in component_replace_regexs:
+                    regex = component_replace_regexs[prefix]
+                    match = regex.match(line.obj) # pyright: ignore[reportAssignmentType]
+                    if match:
+                        nodes = match.group('nodes').split()  # This separates by all space characters including \t
+                        for node in nodes:
+                            if node not in circuit_nodes:
+                                circuit_nodes.append(node)
         return circuit_nodes
 
     def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:

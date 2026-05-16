@@ -138,7 +138,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
             return value, ComponentDeviation.none()
         # The value needs to be able to be computed, otherwise it can't be used
         try:
-            value = to_float(value, accept_invalid=False)
+            value = to_float(value, accept_invalid=False).clean()  # clean the original representation
         except ValueError:
             return value, ComponentDeviation.none()
         if ref in self.device_deviations:
