@@ -14,7 +14,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     16-02-2024
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import os
 import logging
@@ -64,7 +64,7 @@ def convert_asc_to_qsch(asc_file, qsch_file, search_paths=[]):
     # Open the ASC file
     asc_editor = AscEditor(asc_file)
 
-    # import the conversion data from xml file
+    # import the conversion data from XML file
     # need first to find the file. It is in the same directory as the script
     parent_dir = os.path.dirname(os.path.realpath(__file__))
     xml_file = os.path.join(parent_dir, 'asc_to_qsch_data.xml')

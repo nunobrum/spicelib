@@ -15,7 +15,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     23-02-2023
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 from xmlrpc.client import Binary
 from xmlrpc.server import SimpleXMLRPCServer
@@ -25,7 +25,7 @@ import threading
 from pathlib import Path
 import zipfile
 import io
-from spicelib.client_server.srv_sim_runner import ServerSimRunner
+from .srv_sim_runner import ServerSimRunner
 import uuid
 
 _logger = logging.getLogger("spicelib.SimServer")

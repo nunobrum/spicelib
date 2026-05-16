@@ -8,13 +8,12 @@ from pathlib import Path
 
 import numpy as np
 
-from spicelib import SpiceReadException
-from spicelib.editor.base_editor import scan_eng
-from spicelib.log.logfile_data import try_convert_value
-from spicelib.raw.plot_interface import PlotInterface, MIN_BYTES_IN_FILE
-from spicelib.raw.raw_classes import Axis, TraceRead
+from ..log.logfile_data import try_convert_value
+from ..raw.plot_interface import PlotInterface, MIN_BYTES_IN_FILE
+from ..utils.float_unit import scan_eng
+from .raw_classes import Axis, TraceRead, SpiceReadException
 
-from spicelib.utils.detect_encoding import detect_encoding, EncodingDetectError
+from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
 _logger = logging.getLogger("spicelib.PlotData")
 
@@ -509,7 +508,7 @@ class PlotData(PlotInterface):
         elif property_name.title() in self._raw_params.keys():
             return self._raw_params[property_name.title()]
         else:
-            raise ValueError("Invalid property. Use %s" % str(self._raw_params.keys()))
+            raise ValueError(f"Invalid property. Use {list(self._raw_params.keys())}")
 
     def get_raw_properties(self) -> dict[str, str]:
         """

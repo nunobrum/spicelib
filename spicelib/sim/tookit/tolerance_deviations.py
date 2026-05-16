@@ -14,13 +14,15 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     10-08-2023
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 
-from ..run_task import RunTask, CallbackType, CallbackArgsType
-from ...editor.base_editor import BaseEditor, to_float
+from ..run_task import RunTask
+from ...editor.base_editor import BaseEditor
+from ...editor.primitives import scan_eng, to_float
+from ..process_callback import CallbackType, CallbackArgsType
 from .sim_analysis import SimAnalysis, AnyRunner
 from enum import Enum
 
@@ -136,7 +138,7 @@ class ToleranceDeviations(SimAnalysis, ABC):
             return value, ComponentDeviation.none()
         # The value needs to be able to be computed, otherwise it can't be used
         try:
-            value = to_float(value, accept_invalid=False)
+            value = to_float(value, accept_invalid=False).clean()  # clean the original representation
         except ValueError:
             return value, ComponentDeviation.none()
         if ref in self.device_deviations:

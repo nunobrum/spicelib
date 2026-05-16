@@ -15,7 +15,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     23-12-2016
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 """
 Allows launching LTSpice simulations from a Python Script, thus allowing to overcome the 3 dimensions STEP limitation on
@@ -41,9 +41,9 @@ temperature to 80 degrees, and update the values of R1 and R2 to 3.3k. ::
 
     runner.wait_completion()  # Waits for the LTSpice simulations to complete
 
-    print("Total Simulations: {}".format(runner.runno))
-    print("Successful Simulations: {}".format(runner.okSim))
-    print("Failed Simulations: {}".format(runner.failSim))
+    print(f"Total Simulations: {runner.runno}")
+    print(f"Successful Simulations: {runner.okSim}")
+    print(f"Failed Simulations: {runner.failSim}")
 
 The first line will create a python class instance that represents the LTSpice file or netlist that is to be
 simulated. This object implements methods that are used to manipulate the spice netlist. For example, the method
@@ -115,7 +115,8 @@ from .process_callback import ProcessCallback, CallbackType, CallbackArgsType
 from ..sim.run_task import RunTask
 from ..sim.simulator import Simulator
 from ..editor.base_editor import BaseEditor
-from spicelib import RawWrite, RawRead
+from ..raw.raw_read import RawRead
+from ..raw.raw_write import RawWrite
 from ..editor.updates import Update
 
 
@@ -372,15 +373,9 @@ class SimRunner(AnyRunner):
         for task in self.completed_tasks:
             task: RunTask
             run_no = task.runno
-            v = {}
-            v['netlist_file'] = task.netlist_file
-            v['raw_file'] = task.raw_file
-            v['log_file'] = task.log_file
-            v['retcode'] = task.retcode
-            v['exception_text'] = task.exception_text
-            v['callback_return'] = task.callback_return
-            v['start_time'] = task.start_time
-            v['stop_time'] = task.stop_time
+            v = {'netlist_file': task.netlist_file, 'raw_file': task.raw_file, 'log_file': task.log_file,
+                 'retcode': task.retcode, 'exception_text': task.exception_text,
+                 'callback_return': task.callback_return, 'start_time': task.start_time, 'stop_time': task.stop_time}
             if task.edits:
                 v['edits'] = task.edits.netlist_updates
             rv[run_no] = v
@@ -579,7 +574,7 @@ class SimRunner(AnyRunner):
                     switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
                     cwd=self.cwd, callback_on_error=callback_on_error, exe_log=exe_log
                 )
-                if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
+                if isinstance(netlist, BaseEditor) and len(netlist.netlist_updates) > 0:
                     t.edits = netlist.netlist_updates  # Copy is made in this assignment
                 self.active_tasks.append(t)
                 t.start()
@@ -630,7 +625,7 @@ class SimRunner(AnyRunner):
             switches=cmdline_switches, timeout=timeout, verbose=self.verbose,
             cwd=self.cwd, callback_on_error=False, exe_log=exe_log
         )
-        if isinstance(netlist, BaseEditor) and netlist.netlist_updates is not None:
+        if isinstance(netlist, BaseEditor) and len(netlist.netlist_updates) > 0:
             t.edits = netlist.netlist_updates  # Copy is made in this assignment
         t.start()
         sleep(0.01)  # Give slack for the thread to start

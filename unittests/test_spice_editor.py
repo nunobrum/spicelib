@@ -14,7 +14,7 @@
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
 import os
@@ -26,8 +26,9 @@ sys.path.append(
     os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../"))  # add project root to lib search path
 
 import spicelib
-from spicelib.editor.base_editor import to_float
-from spicelib.editor.spice_editor import component_replace_regexs, SpiceCircuit
+from spicelib.editor.primitives import to_float
+from spicelib.editor.spice_components import component_replace_regexs
+from spicelib import SpiceCircuit
 from spicelib.editor.updates import UpdateType
 
 import io
@@ -71,9 +72,12 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(name, editor.netlist_updates[index].name, "Name mismatch")
         self.assertEqual(update, editor.netlist_updates[index].updates, "Update Type mismatch")
         if update not in (UpdateType.DeleteParameter, UpdateType.DeleteComponent, UpdateType.DeleteComponentParameter):
-            self.assertEqual(value, editor.netlist_updates[index].value, "Value mismatch")
+            value_p = editor.netlist_updates[index].value
+            value_p1 = type(value)(value_p)
+            self.assertEqual(value, value_p1, "Value mismatch")
 
     def test_component_editing_1(self):
+        self.edt.reset_netlist()
         self.assertEqual(self.edt.get_component_value('R1'), '10k', "Tested R1 Value")  # add assertion here
         self.assertListEqual(self.edt.get_components(), ['VIN', 'R1', 'R2', 'D1'], "Tested get_components")  # add assertion here
         self.assertEqual(0, len(self.edt.netlist_updates), "There is no update")
@@ -101,10 +105,10 @@ class SpiceEditor_Test(unittest.TestCase):
     def test_component_editing_1_obj(self):
         self.assertListEqual(self.edt.get_components(), ['VIN', 'R1', 'R2', 'D1'], "Tested get_components")
         r1 = self.edt['R1']
-        r3 = copy(r1)
+        r3 = r1.clone()
         self.assertEqual(r1.value_str, '10k', "Tested R1 Value")
         self.assertEqual(r1.value, 10000, "Tested R1 Numeric Value")
-        self.assertListEqual(r1.ports, ['in', 'out'], "Tested R1 Nodes")
+        self.assertListEqual(r1.port_list(), ['in', 'out'], "Tested R1 Nodes")
         r1.value = '33k'
         self.assertEqual(r1.value_str, '33k', "Tested R1 Value")
         self.check_update(self.edt, 'R1', UpdateType.UpdateComponentValue, '33k')
@@ -113,7 +117,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(self.edt['R1'].value_str, '33k', "Tested R1 Value")
         r1['Tc1'] = 0
         r1['Tc2'] = 0
-        r1['pwr'] = None
+        r1['pwr'] = None  # delete parameter
         self.assertEqual(4, len(self.edt.netlist_updates))
         self.check_update(self.edt, 'R1:Tc1', UpdateType.AddComponentParameter, 0, 1)
         self.check_update(self.edt, 'R1:Tc2', UpdateType.AddComponentParameter, 0, 2)
@@ -148,8 +152,8 @@ class SpiceEditor_Test(unittest.TestCase):
         self.check_update(self.edt2, 'V3', UpdateType.UpdateComponentValue, 'PWL(2u 0 +1p 1 +1m 1)')
         self.edt2.set_component_parameters('V3', Rser=1)  # first in the list
         self.check_update(self.edt2, 'V3:Rser', UpdateType.UpdateComponentParameter, 1)
-        self.edt2.set_component_value('XU1', 'level3')
-        self.check_update(self.edt2, 'XU1', UpdateType.UpdateComponentValue, 'level3')
+        self.edt2.set_component_value('XU1', 'AD820_ALT')
+        self.check_update(self.edt2, 'XU1', UpdateType.UpdateComponentValue, 'AD820_ALT')
         self.edt2.set_component_parameters('XU1', GBW='1Meg')  # somewhere in the list
         self.check_update(self.edt2, 'XU1:GBW', UpdateType.UpdateComponentParameter, '1Meg')
         self.edt2.save_netlist(temp_dir + 'opamptest_output_1.net')
@@ -165,11 +169,11 @@ class SpiceEditor_Test(unittest.TestCase):
         self.equalFiles(temp_dir + 'test_parameter_output.net', golden_dir + 'test_parameter_output.net')
         self.edt.set_parameter('TEMP', 0)  # reset to 0
         self.check_update(self.edt, 'TEMP', UpdateType.UpdateParameter, 0)
-        self.assertEqual(self.edt.get_parameter('TEMP'), '0', "Tested TEMP Parameter")  # add assertion here
+        self.assertEqual(self.edt.get_parameter('TEMP'), 0, "Tested TEMP Parameter")  # add assertion here
         self.edt.set_parameters(floatpparam=1.23, signed_param=-0.99, expparam=-1E-34)
-        self.check_update(self.edt, 'floatpparam', UpdateType.UpdateParameter, 1.23, 1)
-        self.check_update(self.edt, 'signed_param', UpdateType.UpdateParameter, -0.99, 2)
-        self.check_update(self.edt, 'expparam', UpdateType.UpdateParameter, -1E-34, 3)
+        self.check_update(self.edt, 'floatpparam', UpdateType.AddParameter, 1.23, 1)
+        self.check_update(self.edt, 'signed_param', UpdateType.AddParameter, -0.99, 2)
+        self.check_update(self.edt, 'expparam', UpdateType.AddParameter, -1E-34, 3)
         self.edt.save_netlist(temp_dir + 'test_parameter_output_1.net')
         self.equalFiles(temp_dir + 'test_parameter_output_1.net', golden_dir + 'test_parameter_output_1.net')
         # String parameters
@@ -189,7 +193,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt.add_instruction('.save I(R1)')
         self.edt.add_instruction('.save I(R2)')
         self.edt.add_instruction('.save I(D1)')
-        self.check_update(self.edt, 'INSTRUCTION', UpdateType.AddInstruction, '.ac dec 10 1 100k', 0)
+        self.check_update(self.edt, 'INSTRUCTION', UpdateType.UpdateInstruction, '.ac dec 10 1 100k', 0)
         self.check_update(self.edt, 'INSTRUCTION', UpdateType.AddInstruction, '.save V(vout)', 1)
         self.check_update(self.edt, 'INSTRUCTION', UpdateType.AddInstruction, '.save I(R1)', 2)
         self.check_update(self.edt, 'INSTRUCTION', UpdateType.AddInstruction, '.save I(R2)', 3)
@@ -222,7 +226,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.assertEqual(len(lines1), len(lines2), "Files have different number of lines\n"
                                                    f"File1:{file1} and File2:{file2}")
         for i, lines in enumerate(zip(lines1, lines2)):
-            self.assertEqual(lines[0], lines[1], f"Line {i}\nFile1:{file1} and File2:{file2}")
+            self.assertEqual(lines[0] , lines[1], f"Line {i+1}\nFile1:{file1} and File2:{file2}")
 
     def test_resistors(self):
         """Validates the RegEx expressions on the Spice Editor file"""
@@ -391,18 +395,18 @@ class SpiceEditor_Test(unittest.TestCase):
         my_edt[sc + ":X2:R1"].value = 99
         my_edt.save_netlist(temp_dir + "top_circuit_edit2.net")
         self.equalFiles(temp_dir + "top_circuit_edit2.net", golden_dir + "top_circuit_edit2.net")
-        print("Updates:")
-        for update in my_edt.netlist_updates:
-            print(update)
+        # print("Updates:")
+        # for update in my_edt.netlist_updates:
+        #     print(update)
 
     def test_semiconductor_edits(self):
         # inspecting W/L parameters
         params = self.edt3["XOPAMP:M11"].params
-        print(params)
+        # print(params)
         self.assertAlmostEqual(2.5175e-05, params['W'])
         self.assertAlmostEqual(3.675e-06, params['L'])
         params = self.edt3["XOPAMP:M30"].params
-        print(params)
+        # print(params)
         self.assertAlmostEqual(2.5175e-05, params['W'])
         self.assertAlmostEqual(3.675e-06, params['L'])
         self.assertEqual(22, params['M'])
@@ -411,12 +415,12 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt3["XOPAMP:M11"].params = dict(W=2 * actual_width)
         self.edt3["XOPAMP:M12"].set_params(L=4E-6)
         self.assertEqual(4, len(self.edt3.netlist_updates))
-        self.check_update(self.edt3, "CLONE(PFC.SUB)", UpdateType.CloneSubcircuit, "PFC.SUB_XOPAMP", 0)
+        self.check_update(self.edt3, "CLONE(PFC.SUB)", UpdateType.CloneSubcircuit, "PFC.SUB", 0)
         self.check_update(self.edt3, "XOPAMP", UpdateType.UpdateComponentValue, "PFC.SUB_XOPAMP", 1)
         self.check_update(self.edt3, "XOPAMP:M11:W", UpdateType.UpdateComponentParameter, 2 * actual_width, 2)
         self.check_update(self.edt3, "XOPAMP:M12:L", UpdateType.UpdateComponentParameter, 4E-6, 3)
         updated_params = self.edt3["XOPAMP:M11"].params
-        print(updated_params)
+        # print(updated_params)
         self.assertAlmostEqual(2 * actual_width, updated_params['W'])
         self.edt3.save_netlist(temp_dir + "amp3_instance_edits.net")
         self.equalFiles(golden_dir + "amp3_instance_edits.net", temp_dir + "amp3_instance_edits.net")
@@ -439,7 +443,7 @@ class SpiceEditor_Test(unittest.TestCase):
         expected = {
             "B1": ["V=1", {"tc1": 2}],
             "B2": ["V=V(1) < {Vlow} ? {Vlow} : V(1) > {Vhigh} ? {Vhigh} : V(1)", {"delay": 1}],
-            "B3": ["I=cos(v(1))+sin(v(2))", {"ic": "1e-6,4", "delay": 10, "a": "b"}],
+            "B3": ["I=cos(v(1))+sin(v(2))", {"ic": [1e-6, 4], "delay": 10, "a": "b"}],
             "B4": ["R=V(1) < 0? 2 : 1", {}],
             "B5": ["B=V(NC_01)", {"VprXover": "50mV"}],
             #
@@ -462,7 +466,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "I2": ["2 AC 1", {"c4": "\"bla bla\"", "Rser": 3, "bb": "aa"}],
             #
             "J1": ["2N3819", {}],
-            "J2": ["2N3819", {"ic": "1,2", "temp": 6}],
+            "J2": ["2N3819", {"ic": [1, 2], "temp": 6}],
             #
             "K1": ["1", {}],
             "K2": ["0.1", {}],
@@ -484,7 +488,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "P2": ["12", {"port": 2, "Z0": 50}],  # 'DC' gets lost in translation
             #
             "Q1": ["2N2222", {}],
-            "Q2": ["BC517", {"temp": 60, "ic": "0.6,5"}],
+            "Q2": ["BC517", {"temp": 60, "ic":  [0.6, 5]}],
             #
             "R1": ["10k", {}],
             "R2": ["2k5r", {}],
@@ -515,7 +519,7 @@ class SpiceEditor_Test(unittest.TestCase):
             "Y2": ["1e8", {"q": 10}],
             #
             "Z1": ["NMF", {}],
-            "Z2": ["NMF", {"ic": "1,2", "area": 1.4}],
+            "Z2": ["NMF", {"ic": [1, 2], "area": 1.4}],
             #
             "Ã1": ["TYPE", {"I": 5}],
             "¥1": ["TYPE", {"I": 5}],

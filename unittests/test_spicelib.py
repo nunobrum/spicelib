@@ -15,7 +15,7 @@
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 """
 @author:        Nuno Brum
@@ -107,10 +107,11 @@ class test_spicelib(unittest.TestCase):
         editor.add_instructions(
                 "; Simulation settings",
                 # ".step dec param freq 10k 1Meg 10",
+                ".lib ADI1.lib",
         )
         editor.set_parameter("run", "0")
 
-        for opamp in ('AD712', 'AD820_XU1'):
+        for opamp in ('AD712', 'AD820_ALT'):
             editor.set_element_model('XU1', opamp)
             for supply_voltage in (5, 10, 15):
                 editor.set_component_value('V1', supply_voltage)
@@ -140,7 +141,7 @@ class test_spicelib(unittest.TestCase):
 
         # check
         editor.reset_netlist()
-        editor.set_element_model('XU1', 'AD712')  # this is needed with the newer LTspice versions, as AD820 has been defined in the file and in a lib
+        editor.set_element_model('XU1', 'AD820_ALT')  # this is needed with the newer LTspice versions, as AD820 has been defined in the file and in a lib
         editor.remove_instruction('.meas TRAN period FIND time WHEN V(out)=0 RISE=1')  # not in TRAN now
         editor.remove_instruction('.meas Vout1m FIND V(OUT) AT 1m')  # old style, not working on AC with these frequencies
         
@@ -160,11 +161,11 @@ class test_spicelib(unittest.TestCase):
             print(measure, '=', log.get_measure_value(measure))
         print("vout1m.mag_db=", log.get_measure_value('vout1m').mag_db())
         print("vout1m.ph=", log.get_measure_value('vout1m').ph)
-        
-        self.assertAlmostEqual(log.get_measure_value('fcutac'), 6.3e+06, delta=0.1e6)  # have to be imprecise, different ltspice versions give different replies
+        print("fcutac", log.get_measure_value('fcutac'))
+        self.assertAlmostEqual(log.get_measure_value('fcutac'), 8.18E+06, delta=0.1e6)  # have to be imprecise, different ltspice versions give different replies
         # self.assertEqual(log.get_measure_value('vout1m'), 1.9999977173843142 - 1.8777417486008045e-09j)  # excluded, diffifult to make compatible
         self.assertAlmostEqual(log.get_measure_value('vout1m').mag_db(), 6.0206, delta=0.0001)
-        self.assertAlmostEqual(log.get_measure_value('vout1m').ph, -1.7676e-05, delta=0.0001e-05)
+        self.assertAlmostEqual(log.get_measure_value('vout1m').ph, -5.3337241733e-05, delta=0.0001e-05)
 
         # test the cretion of log file
         runner.export_sim_log("batch_test_sim_info.log")

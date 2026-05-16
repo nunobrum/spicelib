@@ -15,7 +15,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     19-06-2022
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 """
 Defines base classes for the RAW file data structures.
@@ -92,6 +92,7 @@ class Axis(DataSet):
                  data: np.ndarray | list = None):
         super().__init__(name, whattype, datalen, numerical_type, data)
         self.step_info = None
+        self.step_offsets = None
 
     def set_steps(self, step_info: list[dict]):
         self.step_info = step_info

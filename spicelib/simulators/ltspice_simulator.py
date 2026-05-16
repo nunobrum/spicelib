@@ -15,7 +15,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     23-12-2016
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import sys
 import os
@@ -54,7 +54,7 @@ class LTspice(Simulator):
     
     # defaults:
     spice_exe = []
-    process_name = None       
+    process_name = None        # pyright: ignore[reportAssignmentType]
     
     if sys.platform == "linux" or sys.platform == "darwin":
         # Linux: look for wine and ltspice under wine.
@@ -136,7 +136,7 @@ class LTspice(Simulator):
     # fall through        
     if len(spice_exe) == 0:
         spice_exe = []
-        process_name = None
+        process_name = None # pyright: ignore[reportAssignmentType]
     else:
         process_name = Simulator.guess_process_name(spice_exe[0])
         _logger.debug(f"Found LTspice installed in: '{spice_exe}' ")

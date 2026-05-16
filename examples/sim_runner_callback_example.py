@@ -41,7 +41,8 @@ netlist.set_component_value('XU1:C2', 20e-12)  # modifying a component in a subc
 # define simulation
 netlist.add_instructions(
     "; Simulation settings",
-    ";.param run = 0"
+    ";.param run = 0",
+    ".lib ADI1.lib",  # This is needed for accessing AD820
 )
 netlist.set_parameter('run', 0)
 
@@ -53,7 +54,7 @@ for opamp in ('AD712', 'AD820'):
         netlist['V1'].value = supply_voltage
         netlist['V2'].value = -supply_voltage
         # overriding the automatic netlist naming
-        run_netlist_file = f"{netlist.netlist_file.stem}_{opamp}_{supply_voltage}.net"
+        run_netlist_file = f"{netlist.circuit_file.stem}_{opamp}_{supply_voltage}.net"
         if use_run_now:
             runner.run_now(netlist, run_filename=run_netlist_file)
         else:

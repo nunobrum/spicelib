@@ -15,7 +15,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     16-10-2021
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
 """
@@ -152,7 +152,7 @@ class RawWrite:
             self._consolidate()
         f = open(filename, 'wb')
         f.write("Title: * spicelib RawWrite\n".encode(self.encoding))
-        f.write("Date: {}\n".format(strftime("%a %b %d %H:%M:%S %Y")).encode(self.encoding))
+        f.write(f"Date: {strftime('%a %b %d %H:%M:%S %Y')}\n".encode(self.encoding))
         f.write(f"Plotname: {self.plot_name}\n".encode(self.encoding))
         f.write(f"Flags: {self._str_flags()}\n".encode(self.encoding))
         f.write(f"No. Variables: {len(self._traces)}\n".encode(self.encoding))

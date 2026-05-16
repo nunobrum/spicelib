@@ -5,6 +5,11 @@ from typing import TypeAlias
 
 UpdateValueType: TypeAlias = str | int | float | None
 
+class UpdatePermission(enum.IntEnum):
+    Deny = enum.auto()
+    Initializing = enum.auto()
+    Inform = enum.auto()
+
 
 class UpdateType(enum.Enum):
     """The UpdateType holds the information about what is being updated."""
@@ -20,6 +25,7 @@ class UpdateType(enum.Enum):
     AddComponent = enum.auto()
     AddComponentParameter = enum.auto()
     AddInstruction = enum.auto()
+    UpdateInstruction = enum.auto()
     CloneSubcircuit = enum.auto()
 
 
@@ -84,6 +90,9 @@ class Updates:
         else:
             raise TypeError("getitem only supports int, slice and str")
 
+    def __iter__(self):
+        return iter(self.netlist_updates)
+
     def clear(self):
         """Clear the list of updates."""
         self.netlist_updates.clear()
@@ -116,3 +125,6 @@ class Updates:
             if update.updates in (UpdateType.UpdateParameter, UpdateType.AddParameter) and name == update.name:
                 return update.value
         return None
+
+    def updates_on(self, name: str) -> list[Update]:
+        return [update for update in self.netlist_updates if update.name.startswith(name)]

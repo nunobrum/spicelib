@@ -14,7 +14,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     04-11-2023
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
 import logging

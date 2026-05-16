@@ -8,9 +8,10 @@ from shutil import copyfile
 
 # Read the README.md on the path indicated on the command line arguments
 filename = sys.argv[1]
-print(f"Reading \"{filename}\"", end="...")
+encoding = sys.argv[2] if len(sys.argv) > 2 else "utf-8"
+print(f"Reading \"{filename}\" with encoding \"{encoding}\"", end="...")
 try:
-    readme_md = open(filename).readlines()
+    readme_md = open(filename, encoding=encoding).readlines()
 except FileNotFoundError:
     print("File not found")
     exit(1)
@@ -73,5 +74,5 @@ backup_filename = filename.replace(".md", ".bak")
 print(f"Creating backup {backup_filename}")
 copyfile(filename, backup_filename)
 print(f"Writing {len(readme_md)} lines to {filename}")
-open(filename, 'w').writelines(readme_md)
+open(filename, 'w', encoding=encoding, errors="ignore").writelines(readme_md)
 exit(0)

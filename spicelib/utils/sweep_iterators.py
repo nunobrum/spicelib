@@ -13,7 +13,7 @@
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
 # Created:     24-07-2020
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 #
 # -------------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ class BaseIterator:
         return self
 
     def __next__(self):
-        raise NotImplemented("This function needs to be overriden")
+        raise NotImplementedError("This function needs to be overridden")
 
 
 class sweep(BaseIterator):

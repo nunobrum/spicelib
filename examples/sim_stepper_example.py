@@ -22,7 +22,8 @@ Stepper.set_element_model('V3', "SINE(0 1 3k 0 0 0)")
 # define simulation
 Stepper.add_instructions(
     "; Simulation settings",
-    ";.param run = 0"
+    ";.param run = 0",
+    ".lib ADI1.lib",  # This is needed for accessing AD712
 )
 Stepper.set_parameter('run', 0)
 Stepper.set_parameter('test_param2', 20)
@@ -34,6 +35,6 @@ run_netlist_file = "run_OPAMP_{XU1}_VDD_{V1}.net"
 Stepper.run_all(callback=processing_data, filenamer=run_netlist_file.format)
 
 # Sim Statistics
-print('Successful/Total Simulations: ' + str(Stepper.okSim) + '/' + str(Stepper.runno))
+print(f'Successful/Total Simulations: {Stepper.okSim}/{Stepper.runno}')
 Stepper.export_step_info("./temp2/export.csv")
 runner.cleanup_files()

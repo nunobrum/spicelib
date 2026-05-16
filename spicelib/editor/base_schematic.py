@@ -12,20 +12,25 @@
 #
 # Author:      Nuno Brum (nuno.brum@gmail.com)
 #
-# Licence:     refer to the LICENSE file
+# License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 
 
 import dataclasses
 import enum
-import logging
+from typing import Callable
 from collections import OrderedDict
-from collections.abc import Callable
+import logging
+from weakref import ref
+from .base_editor import BaseEditor, SUBCKT_DIVIDER
+from .primitives import Component
+from .editor_errors import ComponentNotFoundError
 
-from .base_editor import BaseEditor, Component, ComponentNotFoundError, SUBCKT_DIVIDER
 
 __author__ = "Nuno Canto Brum <nuno.brum@gmail.com>"
 __copyright__ = "Copyright 2021, Fribourg Switzerland"
+
+from .updates import UpdateType, UpdatePermission
 
 _logger = logging.getLogger("spicelib.BaseSchematic")
 
@@ -153,7 +158,7 @@ class Point:
 
 class Line:
     """X1, Y1, X2, Y2 coordinates"""
-    def __init__(self, v1: Point, v2: Point, style: LineStyle = None, net: str = ""):
+    def __init__(self, v1: Point, v2: Point, style: LineStyle | None = None, net: str = ""):
         self.V1 = v1
         self.V2 = v2
         if style is None:
@@ -204,7 +209,7 @@ class Shape:
     """Polygon object. The shape is defined by a list of points. It can define a closed or open shape.
     The closed shape is defined by the first and last points being the same. In this case, it can have a fill.
     It is used to define polygons, arcs, circles or more complex shapes like the ones found in QSPICE"""
-    def __init__(self, name: str, points: list[Point], line_style: LineStyle = None, fill: str = ""):
+    def __init__(self, name: str, points: list[Point], line_style: LineStyle | None = None, fill: str = ""):
         self.name = name
         self.points = points
         if line_style is None:
@@ -261,11 +266,11 @@ class Port:
 class SchematicComponent(Component):
     """Holds component information"""
 
-    def __init__(self, parent, line):
-        super().__init__(parent, line)
-        self.position: Point = Point(0, 0)
-        self.rotation: ERotation = ERotation.R0
-        self.symbol = None
+    def __init__(self, parent, line, **kwargs):
+        super().__init__(netlist=parent, obj=line, **kwargs)
+        self.position: Point = kwargs.get('position', Point(0, 0))
+        self.rotation: ERotation = kwargs.get('rotation', ERotation.R0)
+        self.symbol: str | None = None
 
     def __str__(self):
         return f"{self.reference} {self.position.X} {self.position.Y} {self.rotation}"
@@ -277,8 +282,8 @@ class BaseSchematic(BaseEditor):
     classes.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, filename):
+        super().__init__(filename)
         self.components: OrderedDict[str, SchematicComponent] = OrderedDict()
         self.wires: list[Line] = []
         self.labels: list[Text] = []
@@ -286,7 +291,7 @@ class BaseSchematic(BaseEditor):
         self.ports: list[Port] = []
         self.lines: list[Line] = []
         self.shapes: list[Shape] = []
-        self.updated = False  # indicates if an edit was done and the file has to be written back to disk
+        self.canvas_updated = False
 
     def reset_netlist(self, create_blank: bool = False) -> None:
         """Resets the netlist to the original state"""
@@ -297,7 +302,7 @@ class BaseSchematic(BaseEditor):
         self.directives.clear()
         self.lines.clear()
         self.shapes.clear()
-        self.updated = False
+        self.canvas_updated = False
 
     def copy_from(self, editor: 'BaseSchematic') -> None:
         """Clones the contents of the given editor"""
@@ -308,7 +313,8 @@ class BaseSchematic(BaseEditor):
         self.directives = deepcopy(editor.directives)
         self.lines = deepcopy(editor.lines)
         self.shapes = deepcopy(editor.shapes)
-        self.updated = True
+        self.netlist_updates = deepcopy(editor.netlist_updates)
+        self.canvas_updated = editor.canvas_updated
 
     def _get_parent(self, reference) -> tuple["BaseSchematic", str]:
         if SUBCKT_DIVIDER in reference:
@@ -319,11 +325,6 @@ class BaseSchematic(BaseEditor):
             return subcircuit, sub_comp
         else:
             return self, reference
-
-    def set_updated(self, reference):
-        """:meta private:"""
-        sub_circuit, _ = self._get_parent(reference)
-        sub_circuit.updated = True
 
     def get_component(self, reference: str) -> SchematicComponent:
         """
@@ -358,15 +359,23 @@ class BaseSchematic(BaseEditor):
         comp = self.get_component(reference)
         comp.position = position
         comp.rotation = rotation
-        self.set_updated(reference)
+        self.canvas_updated = True
 
     def add_component(self, component: SchematicComponent, **kwargs) -> None:
-        self.components[component.reference] = component
-        component.parent = self
+        reference = component.reference
+        if reference in self.components:
+            _logger.error(f"Component {reference} already exists in the schematic")
+            raise ValueError(f"Component {reference} already exists in the schematic")
+        elif not reference:
+            _logger.error("Component reference cannot be empty")
+            raise ValueError("Component reference cannot be empty")
+        else:
+            self.components[reference] = component
+        component._netlist = self
         if kwargs:
             # Update attributes
             component.attributes.update(kwargs)
-        self.updated = True
+        self.canvas_updated = True
 
     def scale(self, offset_x, offset_y, scale_x, scale_y: float,
               round_fun: Callable[[float], int | float] | None = None) -> None:
@@ -399,4 +408,17 @@ class BaseSchematic(BaseEditor):
             for point in shape.points:
                 point.X = round_fun(point.X * scale_x + offset_x)
                 point.Y = round_fun(point.Y * scale_y + offset_y)
-        self.updated = True
+        self.canvas_updated = True
+
+    def begin_update(self) -> UpdatePermission:
+        """Returns the update permission for the schematic. This is used to determine if the schematic can be updated
+        or not."""
+        return self.update_permission
+
+    def end_update(self, name: str, value: str | int | float | None, updates: UpdateType):
+        """Adds an update to the netlist updates list"""
+        self.netlist_updates.add_update(name, value, updates)
+        self.canvas_updated = True
+
+    def updated(self):
+        return self.canvas_updated or len(self.netlist_updates) > 0
