@@ -35,6 +35,6 @@ run_netlist_file = "run_OPAMP_{XU1}_VDD_{V1}.net"
 Stepper.run_all(callback=processing_data, filenamer=run_netlist_file.format)
 
 # Sim Statistics
-print('Successful/Total Simulations: ' + str(Stepper.okSim) + '/' + str(Stepper.runno))
+print(f'Successful/Total Simulations: {Stepper.okSim}/{Stepper.runno}')
 Stepper.export_step_info("./temp2/export.csv")
 runner.cleanup_files()
