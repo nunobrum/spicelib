@@ -1137,6 +1137,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     * Major refactor of the editor classes for a more object-oriented approach. The Refactoring adds the hierarchy of 
       classes explained in [/doc/media/Singleton approach.drawio](./doc/media/Singleton%20approach.drawio)
     * All components derive from the same class "Component" that will allow in future releases the creation of components.
+    * Introducing a float_unit object that can be used to represent values with engineering notation and unit.
+      This is used across the entire codebase for all values, and it is also used for parameters where possible.
 * Version 1.5.1
     * Completing the Python 3.10+ migration. 
     * Handle LTSpice logs with bare `.step` lines.
