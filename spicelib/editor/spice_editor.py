@@ -80,7 +80,6 @@ class SpiceEditor(SpiceFile):
                 except EncodingDetectError as err:
                     raise err
         super().__init__(netlist_file, encoding, **kwargs)
-        self.reset_netlist(**kwargs)
 
     def reset_netlist(self, **kwargs) -> bool:
         """
