@@ -169,12 +169,13 @@ class SpiceFile(BaseEditor, SpiceCircuit):
         BaseEditor.reset_netlist(self)
         self.netlist_updates.clear()
         self.update_permission = UpdatePermission.Initializing
+        finished = True
         if kwargs.get('create_blank', False):
             self._add_lines(['* netlist generated from spicelib'])
         elif self.circuit_file.exists():
             with open(self.circuit_file, encoding=self.encoding, errors='replace') as f:
                 lines = separate_lines(f)  # pyright: ignore[reportArgumentType] # Creates an iterator object to consume the file
-                finished = self._add_lines(lines)
+                finished = self._add_lines(lines) or kwargs.get('include_file', False)
 
                 # consume any extra lines that may exit
                 for line in lines:
@@ -186,8 +187,7 @@ class SpiceFile(BaseEditor, SpiceCircuit):
                         # not expecting any valid primitive after the .END statement
                         _logger.info(f"Ignoring line \"{line}\" found after END statement")
 
-                return finished or kwargs.get('include_file', False)
         else:
             _logger.error(f"Netlist file not found: {self.circuit_file}")
         self.update_permission = UpdatePermission.Inform
-        return True  # This means that is finished
+        return finished  # This means that is finished
