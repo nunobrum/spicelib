@@ -225,6 +225,10 @@ class SpiceCircuit(BaseSubCircuit):
             if isinstance(primitive, str):
                 stream.write(primitive)
             elif isinstance(primitive, IncludeFile):
+                if primitive.editor is None:
+                    raise RuntimeError(
+                        f"Cannot write unresolved include file: {primitive.obj!r}"
+                    )
                 primitive.editor.write_lines(stream)
             elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
                 primitive.write_lines(stream)
@@ -1077,7 +1081,11 @@ class IncludeFile(Primitive):
             if include_file:
                 from .spice_editor import SpiceEditor
                 try:
-                    editor = SpiceEditor(include_file, encoding=self._netlist.encoding, include_file=True)
+                    encoding = getattr(self._netlist, 'encoding', None)
+                    if encoding is None:
+                        parent_editor = getattr(self._netlist, 'editor', None)
+                        encoding = getattr(parent_editor, 'encoding', None)
+                    editor = SpiceEditor(include_file, encoding=encoding, include_file=True)
                 except Exception as e:
                     _logger.error(f"Error loading library '{lib_name}': {e}")
             else:

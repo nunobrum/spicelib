@@ -885,6 +885,8 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                 _logger.info(f"Reading QSCH file {self.circuit_file}")
                 stream = qsch_file.read()
             self._parse_qsch_stream(stream)
+        else:
+            self.update_permission = UpdatePermission.Inform
         return True
 
     def _parse_qsch_stream(self, stream):

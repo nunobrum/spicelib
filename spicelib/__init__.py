@@ -3,7 +3,7 @@ from .raw.raw_classes import SpiceReadException
 from .raw.raw_read import RawRead
 from .raw.plot_data import PlotData
 from .raw.raw_write import RawWrite, Trace
-from .editor.spice_editor import SpiceEditor, SpiceCircuit
+from .editor.spice_editor import SpiceEditor, SpiceCircuit, SpiceComponent
 from .editor.asc_editor import AscEditor
 from .editor.qsch_editor import QschEditor
 from .sim.sim_runner import SimRunner
