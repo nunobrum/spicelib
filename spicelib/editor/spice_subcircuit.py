@@ -257,7 +257,7 @@ class SpiceCircuit(BaseSubCircuit):
                 continue
             elif isinstance(line, IncludeFile):  # same for include files
                 if line.editor and isinstance(line.editor, SpiceCircuit):
-                    line.editor.get_parameter_named(param_name_upped)
+                    line.editor.get_subcircuit_named(param_name_upped)
             elif isinstance(line, Primitive):
                 line: str = line.obj
             cmd = get_line_command(line) # pyright: ignore[reportArgumentType]
