@@ -575,11 +575,11 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
     :meta hide-value:
     """    
 
-    def __init__(self, qsch_filename: str | Path, create_blank: bool = False):
+    def __init__(self, qsch_filename: str | Path, **kwargs):
         super().__init__(qsch_filename)
         self.schematic = None
         # read the file into memory
-        self.reset_netlist(create_blank)
+        self.reset_netlist(**kwargs)
 
     def save_as(self, qsch_filename: str | Path) -> None:
         """
@@ -867,7 +867,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                 return '0' if net_name == 'GND' else net_name
         return None
 
-    def reset_netlist(self, create_blank: bool = False) -> None:
+    def reset_netlist(self, **kwargs) -> bool:
         """
         If create_blank is True, it creates a blank netlist.
 
@@ -875,16 +875,17 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
 
         All previous edits done to the netlist are lost.
 
-        :param create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
+        :key create_blank: If True, the file will be created from scratch. If False, the file will be read and parsed
         """
-        super().reset_netlist(create_blank)
-        if not create_blank:
+        super().reset_netlist()
+        if not kwargs.get('create_blank', False):
             if not self.circuit_file.exists():
                 raise FileNotFoundError(f"File {self.circuit_file} not found")
             with open(self.circuit_file, encoding="cp1252") as qsch_file:
                 _logger.info(f"Reading QSCH file {self.circuit_file}")
                 stream = qsch_file.read()
             self._parse_qsch_stream(stream)
+        return True
 
     def _parse_qsch_stream(self, stream):
         """Parses the QSCH file stream"""

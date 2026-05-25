@@ -324,7 +324,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         self._circuit_filepath = new_circuit_filepath
         self.save_netlist(new_circuit_filepath)
 
-    def reset_netlist(self, create_blank: bool = False) -> None:
+    def reset_netlist(self, **kwargs) -> None:
         super().reset_netlist()
         with open(self.circuit_file, encoding=self.encoding) as asc_file:
             _logger.info(f"Parsing ASC file {self.circuit_file}")

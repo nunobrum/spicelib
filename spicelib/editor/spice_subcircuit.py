@@ -20,9 +20,8 @@ import io
 import os
 import re
 from pathlib import Path
-from typing import Union, Optional, Any, Generator
+from typing import Any, Generator
 import logging
-
 
 from ..utils.float_unit import format_eng
 from .editor_errors import *
@@ -67,6 +66,8 @@ def get_line_command(line: str | Primitive) -> str:
         return ".SUBCKT"
     elif isinstance(line, ControlEditor):
         return ".CONTROL"
+    elif isinstance(line, IncludeFile):
+        return ".INCLUDE"
     elif isinstance(line, (SpiceComponent, SpiceCircuitInstance)):
         return line.obj[0] # pyright: ignore[reportOptionalSubscript]
     elif isinstance(line, Primitive):
@@ -184,14 +185,17 @@ class SpiceCircuit(BaseSubCircuit):
                 else:
                     return False
             elif cmd == ".CONTROL":
-                sub_circuit = ControlEditor(self)
-                sub_circuit.content = line
+                sub_circuit = ControlEditor(netlist=self, obj=line)
                 # Advance to the next .ENDC. There is no risk of nesting, as control sections cannot be nested.
                 finished = sub_circuit._add_lines(line_iter)
                 if finished:
                     self.netlist.append(sub_circuit)
                 else:
                     return False
+            elif cmd.startswith(".INC"):
+                # This is an include statement. We need to find the file and parse it as a sub-circuit
+                primitive = IncludeFile(netlist=self, obj=line)
+                self.netlist.append(primitive)
             elif cmd == '+':
                 assert len(self.netlist) > 0, "ERROR: The first line cannot be starting with a +"
                 # Concatenate the line to the previous line. Make it easy to handle: just make it 1 line. (but keep spaces etc)
@@ -220,6 +224,8 @@ class SpiceCircuit(BaseSubCircuit):
         for primitive in self.netlist:
             if isinstance(primitive, str):
                 stream.write(primitive)
+            elif isinstance(primitive, IncludeFile):
+                primitive.editor.write_lines(stream)
             elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
                 primitive.write_lines(stream)
             elif isinstance(primitive, Primitive):
@@ -229,11 +235,11 @@ class SpiceCircuit(BaseSubCircuit):
                     # write here the modified sub-circuits
                     for sub in self.modified_subcircuits():
                         sub.write_lines(stream)
-                stream.write(line)
+                stream.write(line.strip() + END_LINE_TERM)
             else:
                 raise RuntimeError("Unknown primitive type found in netlist")
 
-    def _get_parameter_named(self, param_name) -> tuple[int, Union[re.Match, None]]:
+    def _get_parameter_named(self, param_name) -> tuple[int, re.Match | None]:
         """
         Internal function. Do not use. Returns a line starting with command and matching the search with the regular
         expression
@@ -249,6 +255,9 @@ class SpiceCircuit(BaseSubCircuit):
             elif isinstance(line, ControlEditor):  # same for control editor
                 line_no += 1
                 continue
+            elif isinstance(line, IncludeFile):  # same for include files
+                if line.editor and isinstance(line.editor, SpiceCircuit):
+                    line.editor.get_parameter_named(param_name_upped)
             elif isinstance(line, Primitive):
                 line: str = line.obj
             cmd = get_line_command(line) # pyright: ignore[reportArgumentType]
@@ -302,6 +311,12 @@ class SpiceCircuit(BaseSubCircuit):
             if isinstance(line, SpiceCircuit):
                 if line.name() == name:
                     return line
+            elif isinstance(line, IncludeFile):
+                # Searches inside the Include File
+                if line.editor:
+                    sub_ckt = line.editor.get_subcircuit_named(name)
+                    if sub_ckt:
+                        return sub_ckt
         if self.parent is not None:
             return self.parent.get_subcircuit_named(name)
         return self.find_subckt_in_included_libs(name)  # If it is not found in the current circuit, it may be in the included libraries
@@ -321,15 +336,14 @@ class SpiceCircuit(BaseSubCircuit):
         assert isinstance(sub_inst, SpiceCircuitInstance)
         return sub_inst.subcircuit
 
-    def reset_netlist(self, create_blank: bool = False) -> None:
+    def reset_netlist(self, **kwargs) -> bool:
         """
-        Reverts all changes done to the netlist. If create_blank is set to True, then the netlist is blanked.
+        Reverts all changes done to the netlist.
 
-        :param create_blank: If True, the netlist is blanked. That is, all primitives and components are erased.
-        :type create_blank: bool
         :returns: None
         """
         self.netlist.clear()
+        return True
 
     def clone(self, new_parent, **kwargs) -> 'SpiceCircuit':
         """
@@ -494,12 +508,14 @@ class SpiceCircuit(BaseSubCircuit):
                 yield from line
             elif isinstance(line, ControlEditor):
                 continue  # no components here, just control commands
+            elif isinstance(line, IncludeFile):
+                yield from line
             else:
                 cmd = get_line_command(line)
                 if cmd in VALID_PREFIXES:
                     yield SpiceComponent(self, line_no)
 
-    def get_component_attribute(self, reference: str, attribute: str) -> Optional[str]:
+    def get_component_attribute(self, reference: str, attribute: str) -> str | None:
         """
         Returns the attribute of a component retrieved from the netlist.
 
@@ -804,7 +820,7 @@ class SpiceCircuit(BaseSubCircuit):
                                 circuit_nodes.append(node)
         return circuit_nodes
 
-    def save_netlist(self, run_netlist_file: Union[str, Path, io.StringIO]) -> None:
+    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
         # docstring is in the parent class
         pass
 
@@ -813,9 +829,11 @@ class SpiceCircuit(BaseSubCircuit):
             cmd = get_line_command(instruction)
         if cmd == ".CONTROL":
             # If it is a control instruction, then it should be added as a ControlEditor
-            c = ControlEditor(self)
-            c.content = instruction
+            c = ControlEditor(self, instruction)
             return c
+        elif cmd.startswith(".INC"):
+            # An include file
+            return IncludeFile(netlist=self, obj=instruction)
         elif cmd in VALID_PREFIXES:
             # If it is a component, then it should be added as a SpiceComponent
             return SpiceComponent(netlist=self, obj=instruction)
@@ -910,7 +928,7 @@ class SpiceCircuit(BaseSubCircuit):
         return editor is None or editor.update_permission == UpdatePermission.Deny
 
     @staticmethod
-    def find_subckt_in_lib(library: str, subckt_name: str) -> Union['SpiceCircuit', None]:
+    def find_subckt_in_lib(library: str, subckt_name: str) -> 'SpiceCircuit | None':
         """
         Finds a sub-circuit in a library. The search is case-insensitive.
 
@@ -946,7 +964,25 @@ class SpiceCircuit(BaseSubCircuit):
         #  3. Return an instance of SpiceCircuit
         return None
 
-    def find_subckt_in_included_libs(self, subcircuit_name: str) -> Optional["SpiceCircuit"]:
+    def find_library(self, library_name: str) -> str | None:
+        """Find the library in the list of libraries
+
+        :param library_name: library to search for
+        :type library_name: str
+        :return: Returns the path to the library or None if not found
+        :rtype: str
+        :meta private:
+        """
+        containers = []
+        if self.editor and self.editor.circuit_file:
+            containers.append(os.path.split(self.editor.circuit_file)[0])  # The directory where the file is located
+        containers.append(os.path.curdir)  # The current script directory,
+        if self.editor:
+            containers.extend(self.editor.simulator_lib_paths)  # The simulator's library paths
+            containers.extend(self.editor.custom_lib_paths)  # The custom library paths
+        return search_file_in_containers(library_name, *containers)
+
+    def find_subckt_in_included_libs(self, subcircuit_name: str) -> 'SpiceCircuit | None':
         """Find the subcircuit in the list of libraries
 
         :param subcircuit_name: sub-circuit to search for
@@ -964,15 +1000,8 @@ class SpiceCircuit(BaseSubCircuit):
                 line: str = line.obj # pyright: ignore[reportAssignmentType]
             m = lib_inc_regex.match(line)
             if m:  # If it is a library include
-                lib = m.group(2)
-                containers = []
-                if self.editor and self.editor.circuit_file:
-                    containers.append(os.path.split(self.editor.circuit_file)[0])  # The directory where the file is located
-                containers.append(os.path.curdir)  # The current script directory,
-                if self.editor:
-                    containers.extend(self.editor.simulator_lib_paths)  # The simulator's library paths
-                    containers.extend(self.editor.custom_lib_paths)  # The custom library paths
-                lib_filename = search_file_in_containers(lib, *containers)
+                lib = m.group('filename')
+                lib_filename = self.find_library(lib)
                 if lib_filename:
                     sub_circuit = self.find_subckt_in_lib(lib_filename, subcircuit_name)
                     if sub_circuit:
@@ -999,21 +1028,16 @@ class SpiceCircuit(BaseSubCircuit):
                 modified.append(subckt.shadow_subcircuit)
         return modified
 
-class ControlEditor:
+class ControlEditor(Primitive):
     """
     Provides interfaces to manipulate SPICE `.control` instructions.
     """
-
-    def __init__(self, parent: SpiceCircuit | None = None):
-        self._content = ""
-        self.parent = parent
-
     def _add_lines(self, line_iter):
         """Internal function. Do not use.
         Add a list of lines to the section. No parsing, just loop until a .ENDC is found."""
-        self._content = self._content.rstrip() + END_LINE_TERM
+        self._obj = self._obj.rstrip() + END_LINE_TERM
         for line in line_iter:
-            self._content += line.rstrip() + END_LINE_TERM
+            self._obj += line.rstrip() + END_LINE_TERM
             if line.strip().upper().startswith(".ENDC"):
                 return True
         return False  # If a file ends abruptly, returns False
@@ -1021,7 +1045,7 @@ class ControlEditor:
     def write_lines(self, f: io.StringIO):
         """Internal function. Do not use."""
         # This helper function writes the contents of the section to the file f
-        f.write(self._content)
+        f.write(self._obj)
 
     @property
     def content(self) -> str:
@@ -1029,7 +1053,7 @@ class ControlEditor:
 
         :getter: Returns the value as a string
         """
-        return self._content
+        return self._obj
 
     @content.setter
     def content(self, value: str):
@@ -1038,4 +1062,33 @@ class ControlEditor:
         :param value: The new content to be set
         :type value: str
         """
-        self._content = value.strip() + END_LINE_TERM
+        self._obj = value.strip() + END_LINE_TERM
+
+
+class IncludeFile(Primitive):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        m = lib_inc_regex.match(self._obj)
+        editor = None
+        if m:
+            lib_name = m.group('filename')
+            include_file = self._netlist.find_library(lib_name)
+            if include_file:
+                from .spice_editor import SpiceEditor
+                try:
+                    editor = SpiceEditor(include_file, encoding=self._netlist.encoding, include_file=True)
+                except Exception as e:
+                    _logger.error(f"Error loading library '{lib_name}': {e}")
+            else:
+                _logger.error(f"Could not find library '{lib_name}'")
+        else:
+            _logger.error(f"Invalid .INCLUDE statement: {self._obj}")
+        self._editor = editor
+
+    @property
+    def editor(self) -> 'SpiceEditor | None':
+        return self._editor
+
+    def __iter__(self):
+        return iter(self.editor)

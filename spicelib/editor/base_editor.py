@@ -70,15 +70,15 @@ class BaseEditor(ABC):
         """Returns the path of the circuit file."""
         return self._circuit_filepath
 
-    def reset_netlist(self, create_blank: bool = False) -> None:
+    def reset_netlist(self, **kwargs) -> bool:
         """
-        Reverts all changes done to the netlist. If create_blank is set to True, then the netlist is blanked.
+        Reverts all changes done to the netlist.
 
-        :param create_blank: If True, the netlist will be reset to a new empty netlist. If False, the netlist will be
-                             reset to the original state.
+        :returns: True if the netlist was reset successfully, False otherwise
         """
         self.netlist_updates.clear()
         self.update_permission = UpdatePermission.Initializing
+        return True
 
     @abstractmethod
     def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:

@@ -19,21 +19,15 @@
 from __future__ import annotations
 
 import logging
-import re
 
 from pathlib import Path
-import io
-from typing import Union, Callable, Any
 
+from .spice_file import SpiceFile
 from ..sim.process_callback import CallbackType
 
 from .base_editor import BaseEditor
-from .primitives import Primitive
-from .spice_components import SpiceComponent
-from .spice_utils import END_LINE_TERM
 from .updates import UpdateType, UpdatePermission
-from .spice_subcircuit import SpiceCircuit, SpiceCircuitInstance, get_line_command, ControlEditor, \
-    _is_unique_instruction, separate_lines
+from .spice_subcircuit import SpiceCircuit, ControlEditor
 
 from ..utils.detect_encoding import detect_encoding, EncodingDetectError
 
@@ -60,7 +54,7 @@ __copyright__ = "Copyright 2021, Fribourg Switzerland"
 # LibSearchPaths = []
 
 
-class SpiceEditor(BaseEditor, SpiceCircuit):
+class SpiceEditor(SpiceFile):
     """
     Provides interfaces to manipulate SPICE netlist files. The class doesn't update the netlist file
     itself. After implementing the modifications, the user should call the "save_netlist" method to write a new
@@ -69,160 +63,74 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
     :param netlist_file: Name of the .NET file to parse
     :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This, however, is not 100% foolproof.
-    :param create_blank: Create a blank '.net' file when 'netlist_file' not exist. False by default
+    :keyword create_blank: Create a blank '.net' file when 'netlist_file' not exist. False by default
+    :keyword include_file: If an include file is being parsed, the control of the ending .END statement is suppressed.
     """
 
-    def __init__(self, netlist_file: Union[str, Path], encoding='autodetect', create_blank=False):
-        BaseEditor.__init__(self, netlist_file)
-        SpiceCircuit.__init__(self)
-        if create_blank:
-            self.encoding = 'utf-8'  # when user want to create a blank netlist file, and didn't set encoding.
+    def __init__(self, netlist_file: Path | str, encoding='autodetect', **kwargs):
+        if kwargs.get('create_blank', False):
+            if encoding == 'autodetect':
+                encoding = 'utf-8'
+            else:
+                encoding = encoding
         else:
             if encoding == 'autodetect':
                 try:
-                    self.encoding = detect_encoding(self.circuit_file, r'^\*')  # Normally, the file will start with a '*'
+                    encoding = detect_encoding(netlist_file, r'^[\*|.title]')  # Normally, the file will start with a '*' except for KiCad that can start with '.title'
                 except EncodingDetectError as err:
                     raise err
-            else:
-                self.encoding = encoding
-        self.reset_netlist(create_blank)
+        super().__init__(netlist_file, encoding, **kwargs)
+        self.reset_netlist(**kwargs)
 
-    def add_instruction(self, instruction: str) -> None:
-        """Adds a SPICE instruction to the netlist.
-
-        For example:
-
-        .. code-block:: text
-
-                  .tran 10m ; makes a transient simulation
-                  .meas TRAN Icurr AVG I(Rs1) TRIG time=1.5ms TARG time=2.5ms ; Establishes a measuring
-                  .step run 1 100, 1 ; makes the simulation run 100 times
-                  .control ... control statements on multiple lines ... .endc
-
-        :param instruction:
-            Spice instruction to add to the netlist. This instruction will be added at the end of the netlist,
-            typically just before the .BACKANNO statement
-        :return: Nothing
+    def reset_netlist(self, **kwargs) -> bool:
         """
-        permission = self.begin_update()
-        if permission == UpdatePermission.Deny:
-            raise PermissionError('The .NET file is read-only')
+        Reset the netlist state and reload or reinitialize its content.
 
-        if not instruction.endswith(END_LINE_TERM):
-            instruction += END_LINE_TERM
-
-        cmd = get_line_command(instruction)
-        if _is_unique_instruction(cmd):
-            # Before adding new instruction, delete previously set unique instructions
-            i = 0
-            while i < len(self.netlist):
-                line = self.netlist[i]
-                if isinstance(line, Primitive) and _is_unique_instruction(line.obj):
-                    self.netlist[i] = Primitive(netlist=self, obj=instruction)
-                    if permission == UpdatePermission.Inform:
-                        self.end_update("INSTRUCTION", instruction.strip(), UpdateType.UpdateInstruction)
-                    return
-                else:
-                    i += 1
-        elif cmd == '.PARAM':
-            raise RuntimeError('The .PARAM instruction should be added using the "set_parameter" method')
-        
-        # check whether the instruction is already there (dummy proofing)
-        for line in self.netlist:
-            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip(): # pyright: ignore[reportOptionalMemberAccess]
-                _logger.warning(f'Instruction "{instruction.strip()}" is already present in the netlist. Ignoring addition.')
-                return
-        # TODO: if adding a .MODEL or .SUBCKT it should verify if it already exists and update it.
-
-        # Insert at the end
-        line = len(self.netlist) - 1
-        # If there is .backanno, then it will be added just before that statement
-        for nr, linecontent in enumerate(self.netlist):
-            if isinstance(linecontent, Primitive): # only Primitive can have .backanno
-                if linecontent.obj.lower().startswith('.backanno'): # pyright: ignore[reportOptionalMemberAccess]
-                    line = nr
-                    break
-
-        primitive = self.class_for_instruction(instruction, cmd)
-        self.netlist.insert(line, primitive)
-
-        if permission == UpdatePermission.Inform:
-            self.end_update("INSTRUCTION", instruction.strip(), UpdateType.AddInstruction)
-
-    def remove_instruction(self, instruction) -> bool:
-        # docstring is in the parent class
-        permission = self.begin_update()
-        if permission == UpdatePermission.Deny:
-            raise PermissionError('The .NET file is read-only')
-        # TODO: Make it more intelligent so it recognizes .models, .param and .subckt
-
-        i = 0
-        for line in self.netlist:
-            if isinstance(line, Primitive) and line.obj.strip() == instruction.strip(): # pyright: ignore[reportOptionalMemberAccess]
-                del self.netlist[i]
-                logtxt = instruction.strip().replace("\r", "\\r").replace("\n", "\\n")
-                _logger.info(f'Instruction "{logtxt}" removed')
-                if permission == UpdatePermission.Inform:
-                    self.end_update('INSTRUCTION', logtxt, UpdateType.DeleteInstruction)
-                return True
-            # All other cases are ignored
-            i += 1
-        
-        _logger.error(f'Instruction "{instruction}" not found.')
-        return False
-
-    def remove_Xinstruction(self, search_pattern: str) -> bool:
-        # docstring is in the parent class
-        permission = self.begin_update()
-        if permission == UpdatePermission.Deny:
-            raise PermissionError('The .NET file is read-only')
-
-        regex = re.compile(search_pattern, re.IGNORECASE)
-        i = 0
-        instr_removed = False
-        while i < len(self.netlist):
-            line = self.netlist[i]
-            if isinstance(line, Primitive):
-                line = line.obj
-            if isinstance(line, str) and (match := regex.match(line)):
-                del self.netlist[i]
-                instr_removed = True
-                if  permission == UpdatePermission.Inform:
-                    self.end_update('INSTRUCTION', match.string.strip(), UpdateType.DeleteInstruction)
-                _logger.info(f'Instruction "{line}" removed')
-            else:
-                i += 1
-        if instr_removed:
-            return True
+        :keyword create_blank: Create a blank '.net' file when 'netlist_file' not exist.
+        :keyword include_file: If an include file is being parsed, the control of the ending .END statement is
+            suppressed. This is useful when parsing include files, which do not have an .END statement, but are just
+            a part of the netlist.
+        :return: True if successful, False otherwise.
+        """
+        finished = super().reset_netlist(**kwargs)
+        if kwargs.get('create_blank', False):
+            self._add_lines(['.END'])
         else:
-            _logger.error(f'No instruction matching pattern "{search_pattern}" was found')
-            return False
+            if not finished:
+                raise SyntaxError("Netlist with missing .END or .ENDS statements")
 
-    def save_netlist(self, run_netlist_file: str | Path | io.StringIO) -> None:
-        # docstring is in the parent class
-        if isinstance(run_netlist_file, str):
-            run_netlist_file = Path(run_netlist_file)
-        if isinstance(run_netlist_file, Path):
-            f = open(run_netlist_file, 'w', encoding=self.encoding)
-        else:
-            f = run_netlist_file
+            if not self.custom_lib_paths:
+                # See if it can find a comment specifying who generated this netlist, only checks the first
+                # 5 lines
+                lib_paths = None
+                for line in self.netlist[:5]:
+                    if isinstance(line, str):
+                        line_stripped_upped = line.strip().upper()
+                        if line.startswith('*'):
+                            if line_stripped_upped.endswith(".ASC"):
+                                from ..simulators.ltspice_simulator import LTspice
+                                lib_paths = LTspice.get_default_library_paths()
+                                _logger.info(f"Found LTspice netlist pattern.\nAdding search paths: [{lib_paths}]")
+                                break
+                            elif line_stripped_upped.endswith(".QSCH"):
+                                from ..simulators.qspice_simulator import Qspice
+                                lib_paths = Qspice.get_default_library_paths()
+                                _logger.info(f"Found Qspice netlist pattern.\nAdding search paths: [{lib_paths}]")
+                                break
+                            elif 'XYCE' in line_stripped_upped:
+                                from ..simulators.xyce_simulator import XyceSimulator
+                                lib_paths = XyceSimulator.get_default_library_paths()
+                                _logger.info(f"Found Xyce netlist pattern.\nAdding search paths: [{lib_paths}]")
+                                break
+                            elif 'NGSPICE' in line_stripped_upped:
+                                from ..simulators.ngspice_simulator import NGspiceSimulator
+                                lib_paths = NGspiceSimulator.get_default_library_paths()
+                                _logger.info(f"Found NGspice netlist pattern.\nAdding search paths: [{lib_paths}]")
+                                break
+                if lib_paths:
+                    self.set_custom_library_paths(lib_paths)
 
-        try:
-            self.write_lines(f) # pyright: ignore[reportArgumentType]
-        finally:
-            if not isinstance(f, io.StringIO):
-                f.close()
-
-    def save_as(self, new_circuit_filepath: str | Path) -> None:
-        """
-        Saves the netlist to a new file. The new file will be created if it does not exist, and overwritten if it does exist.
-
-        :param new_circuit_filepath: Path to the new netlist file
-        :type new_circuit_filepath: str or Path
-        :return: Nothing
-        """
-        self._circuit_filepath = Path(new_circuit_filepath)
-        self.save_netlist(self._circuit_filepath)
+        return finished
 
     def get_control_sections(self) -> list[str]:
         """
@@ -279,72 +187,6 @@ class SpiceEditor(BaseEditor, SpiceCircuit):
                 i += 1
         _logger.error(f"Control section {index} was not found")
         return False
-    
-    def reset_netlist(self, create_blank: bool = False) -> None:
-        """
-        Removes all previous edits done to the netlist, i.e. resets it to the original state.
-
-        :returns: Nothing
-        """
-        # For some reason, the MRO is not working well here. Need to explicitly call each super class individually.
-        SpiceCircuit.reset_netlist(self, create_blank)
-        BaseEditor.reset_netlist(self, create_blank)
-        self.netlist_updates.clear()
-        self.update_permission = UpdatePermission.Initializing
-        if create_blank:
-            lines = ['* netlist generated from spicelib', '.end']
-            finished = self._add_lines(lines)
-            if not finished:
-                raise SyntaxError("Netlist with missing .END or re.ENDS statements")
-        elif self.circuit_file.exists():
-            with open(self.circuit_file, encoding=self.encoding, errors='replace') as f:
-                lines = separate_lines(f)  # pyright: ignore[reportArgumentType] # Creates an iterator object to consume the file
-                finished = self._add_lines(lines)
-                if not finished:
-                    raise SyntaxError("Netlist with missing .END or .ENDS statements")
-
-                # consume any extra lines that may exit
-                for line in lines:
-                    cmd = get_line_command(line)
-                    if cmd == '*':
-                        # comments are still acceptable
-                        self.netlist.append(line)
-                    else:
-                        # not expecting any valid primitive after the .END statement
-                        _logger.info(f"Ignoring line \"{line}\" found after END statement")
-                if not self.custom_lib_paths:
-                    # See if it can find a comment specifying who genereated this netlist, only checks the first
-                    # 5 lines
-                    lib_paths = None
-                    for line in self.netlist[:5]:
-                        if isinstance(line, str):
-                            line_stripped_upped = line.strip().upper()
-                            if line.startswith('*'):
-                                if line_stripped_upped.endswith(".ASC"):
-                                    from ..simulators.ltspice_simulator import LTspice
-                                    lib_paths = LTspice.get_default_library_paths()
-                                    _logger.info(f"Found LTspice netlist pattern.\nAdding search paths: [{lib_paths}]")
-                                    break
-                                elif line_stripped_upped.endswith(".QSCH"):
-                                    from ..simulators.qspice_simulator import Qspice
-                                    lib_paths = Qspice.get_default_library_paths()
-                                    _logger.info(f"Found Qspice netlist pattern.\nAdding search paths: [{lib_paths}]")
-                                    break
-                                elif 'XYCE' in line_stripped_upped:
-                                    from ..simulators.xyce_simulator import XyceSimulator
-                                    lib_paths = XyceSimulator.get_default_library_paths()
-                                    _logger.info(f"Found Xyce netlist pattern.\nAdding search paths: [{lib_paths}]")
-                                    break
-                                elif 'NGSPICE' in line_stripped_upped:
-                                    from ..simulators.ngspice_simulator import NGspiceSimulator
-                                    lib_paths = NGspiceSimulator.get_default_library_paths()
-                                    _logger.info(f"Found NGspice netlist pattern.\nAdding search paths: [{lib_paths}]")
-                                    break
-                    if lib_paths:
-                        self.set_custom_library_paths(lib_paths)
-        else:
-            _logger.error(f"Netlist file not found: {self.circuit_file}")
-        self.update_permission = UpdatePermission.Inform
 
     def run(self, wait_resource: bool = True,
             callback: CallbackType | None = None, timeout: float | None = None, run_filename: str | None = None, simulator=None):
