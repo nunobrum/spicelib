@@ -1105,4 +1105,7 @@ class IncludeFile(Primitive):
         return self._editor
 
     def __iter__(self):
-        return iter(self.editor)
+        editor = self.editor
+        if editor is None:
+            return iter(())
+        return iter(editor)
