@@ -189,5 +189,6 @@ class SpiceFile(BaseEditor, SpiceCircuit):
 
         else:
             _logger.error(f"Netlist file not found: {self.circuit_file}")
+            raise FileNotFoundError(f"Netlist file not found: {self.circuit_file}")
         self.update_permission = UpdatePermission.Inform
         return finished  # This means that is finished

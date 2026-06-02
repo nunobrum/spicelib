@@ -25,7 +25,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-unittests/temp/
+temp/*
+output/*
+unittests/temp/*
 examples/testfiles/temp/*
 reproducing_error/*
 

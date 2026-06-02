@@ -243,7 +243,7 @@ class SpiceCircuit(BaseSubCircuit):
             else:
                 raise RuntimeError("Unknown primitive type found in netlist")
 
-    def _get_parameter_named(self, param_name) -> tuple[int, re.Match | None]:
+    def _get_parameter_named(self, param_name) -> tuple[int, re.Match | None, list | None]:
         """
         Internal function. Do not use. Returns a line starting with command and matching the search with the regular
         expression
@@ -261,7 +261,12 @@ class SpiceCircuit(BaseSubCircuit):
                 continue
             elif isinstance(line, IncludeFile):  # same for include files
                 if line.editor and isinstance(line.editor, SpiceCircuit):
-                    line.editor.get_subcircuit_named(param_name_upped)
+                    sub_circuit = line.editor.get_subcircuit_named(param_name_upped)
+                    if sub_circuit:
+                        sub_ckt_line_no, match, netlist = sub_circuit._get_parameter_named(param_name_upped)
+                        if match:
+                            return sub_ckt_line_no, match, netlist
+                        
             elif isinstance(line, Primitive):
                 line: str = line.obj
             cmd = get_line_command(line) # pyright: ignore[reportArgumentType]
@@ -269,9 +274,9 @@ class SpiceCircuit(BaseSubCircuit):
                 matches = search_expression.finditer(line)
                 for match in matches:
                     if match.group("name").upper() == param_name_upped:
-                        return line_no, match
+                        return line_no, match, self.netlist
             line_no += 1
-        return -1, None  # If it fails, it returns an invalid line number and No match
+        return -1, None, None  # If it fails, it returns an invalid line number and No match
 
     def get_all_parameter_names(self) -> list[str]:
         # docstring inherited from BaseEditor
@@ -569,7 +574,7 @@ class SpiceCircuit(BaseSubCircuit):
         :raises: ParameterNotFoundError - In case the component is not found
         """
 
-        line_no, match = self._get_parameter_named(param)
+        _, match, _ = self._get_parameter_named(param)
         if match:
             return try_value(match.group('value'))
         else:
@@ -600,7 +605,6 @@ class SpiceCircuit(BaseSubCircuit):
         permission = self.begin_update()
         if permission == UpdatePermission.Deny:
             raise ValueError("Editor is read-only")
-        param_line, match = self._get_parameter_named(param)
 
         if isinstance(value, (int, float)):
             value_str = format_eng(value)
@@ -608,14 +612,16 @@ class SpiceCircuit(BaseSubCircuit):
             value_str = format_eng(value.real) + "+" + format_eng(value.imag) + "j"
         else:
             value_str = value
+
+        param_line, match, netlist = self._get_parameter_named(param)
         if match:
             start, stop = match.span('value')
-            if isinstance(self.netlist[param_line], Primitive):
-                self.netlist[param_line]._obj = _insert_section(self.netlist[param_line].obj, start, stop,
-                                                               f"{value_str}") + END_LINE_TERM
-            else:
-                self.netlist[param_line] = _insert_section(self.netlist[param_line], start, stop,
+            if isinstance(netlist[param_line], Primitive):
+                netlist[param_line]._obj = _insert_section(netlist[param_line].obj, start, stop,
                                                            f"{value_str}") + END_LINE_TERM
+            else:
+                netlist[param_line] = _insert_section(netlist[param_line], start, stop,
+                                                      f"{value_str}") + END_LINE_TERM
             if permission == UpdatePermission.Inform:
                 self.end_update(param, value_str, UpdateType.UpdateParameter)
         else:
