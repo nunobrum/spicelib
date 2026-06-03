@@ -1136,6 +1136,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 * Version 1.6.1
     * Feature request #275 - Add support for Spice .INC statements in SpiceEditor
     * Fixing issue #301 - SpiceEditor chokes on netlists with .title directive (KiCad export format)
+    * add wine folder and executable env vars by @bmfp in #300
+    * Fix Montecarlo normal-distribution σ to be multiplicative (run_analysis mode) by @Cognitohazard in #304
 * Version 1.6.0
     * Major refactor of the editor classes for a more object-oriented approach. The Refactoring adds the hierarchy of 
       classes explained in [/doc/media/Singleton approach.drawio](./doc/media/Singleton%20approach.drawio)
