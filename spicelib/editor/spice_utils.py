@@ -55,7 +55,10 @@ SPICE_DOT_INSTRUCTIONS = (
 )
 SUBCKT_CLAUSE_FIND = r"^.SUBCKT\s+"
 subckt_regex = re.compile(r"^.SUBCKT\s+(?P<name>[\w\.]+)", re.IGNORECASE)
-lib_inc_regex = re.compile(r"^\.(LIB|INC)\s+(.*)$", re.IGNORECASE)
+lib_inc_regex = re.compile(
+    r"^\.(LIB|INC(LUDE)?)\s+(?P<filename>.+?)\s*(?:[;*].*)?$",
+    re.IGNORECASE
+)
 
 
 

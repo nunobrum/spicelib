@@ -21,7 +21,6 @@ import enum
 from typing import Callable
 from collections import OrderedDict
 import logging
-from weakref import ref
 from .base_editor import BaseEditor, SUBCKT_DIVIDER
 from .primitives import Component
 from .editor_errors import ComponentNotFoundError
@@ -293,9 +292,9 @@ class BaseSchematic(BaseEditor):
         self.shapes: list[Shape] = []
         self.canvas_updated = False
 
-    def reset_netlist(self, create_blank: bool = False) -> None:
+    def reset_netlist(self, **kwargs) -> bool:
         """Resets the netlist to the original state"""
-        super().reset_netlist()
+        ans = super().reset_netlist()
         self.components.clear()
         self.wires.clear()
         self.labels.clear()
@@ -303,6 +302,7 @@ class BaseSchematic(BaseEditor):
         self.lines.clear()
         self.shapes.clear()
         self.canvas_updated = False
+        return ans
 
     def copy_from(self, editor: 'BaseSchematic') -> None:
         """Clones the contents of the given editor"""

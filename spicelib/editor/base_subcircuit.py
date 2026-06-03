@@ -17,9 +17,8 @@
 # License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 from abc import ABC, abstractmethod
-from typing import Union
 
-from .primitives import Component, scan_eng
+from .primitives import Component, scan_eng, ValueType
 from .base_editor import BaseEditor
 from .updates import UpdateType, UpdatePermission
 
@@ -51,7 +50,7 @@ class BaseSubCircuit(ABC):
         else:
             return UpdatePermission.Deny
 
-    def end_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+    def end_update(self, name: str, value: ValueType | None, updates: UpdateType):
         self._modified = True
         if isinstance(self, BaseEditor):
             if self.update_permission == UpdatePermission.Inform:
@@ -64,7 +63,7 @@ class BaseSubCircuit(ABC):
         return self._modified
 
     @abstractmethod
-    def reset_netlist(self, create_blank: bool = False) -> None:
+    def reset_netlist(self, **kwargs) -> bool:
         ...
 
     @abstractmethod
@@ -188,7 +187,7 @@ class BaseSubCircuit(ABC):
             self.set_parameter(param, kwargs[param])
 
     @abstractmethod
-    def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, device: str, value: ValueType) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
         sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
         Usage: ::

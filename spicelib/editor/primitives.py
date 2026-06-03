@@ -71,6 +71,10 @@ class Primitive(object):
     @property
     def obj(self):
         return self._obj
+    
+    @property
+    def parent(self):
+        return self._netlist
 
 
 PORTS_IDs = ['ports', 'p', 'pins']
@@ -109,13 +113,13 @@ class Component(Primitive):
                 self._reference = value
 
     @property
-    def attributes(self):
+    def attributes(self) -> dict:
         if not self._attributes:
             self.reset_attributes()
         return self._attributes
 
     @property
-    def reference(self):
+    def reference(self) -> str:
         if not self._reference:
             self.reset_attributes()
         return self._reference
@@ -123,10 +127,6 @@ class Component(Primitive):
     @reference.setter
     def reference(self, value):
         self._reference = value
-
-    @property
-    def parent(self):
-        return self._netlist
 
     @property
     def ports(self) -> list[Net]:
@@ -155,11 +155,11 @@ class Component(Primitive):
         return [port.name for port in self.ports]
 
     @property
-    def params(self):
+    def params(self) -> OrderedDict:
         return self.get_parameters()
 
     @params.setter
-    def params(self, params):
+    def params(self, params: dict):
         self.set_parameters(**params)
 
     @property

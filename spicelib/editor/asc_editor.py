@@ -324,7 +324,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         self._circuit_filepath = new_circuit_filepath
         self.save_netlist(new_circuit_filepath)
 
-    def reset_netlist(self, create_blank: bool = False) -> None:
+    def reset_netlist(self, **kwargs) -> bool:
         super().reset_netlist()
         with open(self.circuit_file, encoding=self.encoding) as asc_file:
             _logger.info(f"Parsing ASC file {self.circuit_file}")
@@ -451,6 +451,7 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
                 assert component.reference is not None, "Component InstName was not given"
                 self.components[component.reference] = component
         self.update_permission = UpdatePermission.Inform
+        return True
 
     def _get_symbol(self, symbol: str) -> AsyReader:
         asy_filename = symbol + os.path.extsep + "asy"

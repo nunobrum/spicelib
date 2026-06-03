@@ -17,7 +17,6 @@
 # License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
 import io
-from typing import Union
 import logging
 import re
 
@@ -105,15 +104,16 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
                 netlist.end_update(self.reference, name, UpdateType.UpdateComponentValue)
         return permission
 
-    def end_update(self, name: str, value: Union[str, int, float, None], updates: UpdateType):
+    def end_update(self, name: str, value: ValueType | None, updates: UpdateType):
         # Make sure the modification is registered
         self.shadow_subcircuit._modified = True
         # Redirect the update to the parent
         netlist: BaseSubCircuit = self._netlist # pyright: ignore[reportAssignmentType]
         netlist.end_update(f"{self.reference}:{name}", value, updates)
 
-    def reset_netlist(self, create_blank: bool = False) -> None:
+    def reset_netlist(self, **kwargs) -> bool:
         self.shadow_subcircuit = None
+        return True
 
     def __setattr__(self, key, value):
         if key in VALUE_IDs:
@@ -154,7 +154,7 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
             raise KeyError(f'Key "{key}" not found as component or parameter in subcircuit "{self.reference}".')
 
 
-    def set_component_value(self, device: str, value: Union[str, int, float]) -> None:
+    def set_component_value(self, device: str, value: ValueType) -> None:
         """Changes the value of a component, such as a Resistor, Capacitor or Inductor. For components inside
         sub-circuits, use the sub-circuit designator prefix with ':' as separator (Example X1:R1)
         Usage: ::

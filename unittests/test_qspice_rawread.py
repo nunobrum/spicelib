@@ -131,7 +131,7 @@ class test_spicelib(unittest.TestCase):
     def test_run_from_spice_editor(self):
         """Run command on SpiceEditor"""
         print("Starting test_run_from_spice_editor")
-        runner = SimRunner(output_folder='temp' + "temp/", simulator=qspice_simulator)
+        runner = SimRunner(output_folder='temp', simulator=qspice_simulator)
         # select spice model
         netlist = SpiceEditor(test_dir + "testfile.net")
         # set default arguments
