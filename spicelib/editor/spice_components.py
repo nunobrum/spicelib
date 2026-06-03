@@ -224,9 +224,9 @@ class SpiceComponent(Component):
     component.
     """
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the SpiceComponent"""
-        super().__init__(*args, **kwargs)
+    # def __init__(self, *args, **kwargs):
+    #     """Initialize the SpiceComponent"""
+    #     super().__init__(*args, **kwargs)
 
     # def absolute_reference(self) -> str:
     #     """Get the absolute reference of the component inside the netlist
