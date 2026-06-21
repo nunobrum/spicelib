@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.6.1_
+_current version: 1.6.2_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1133,6 +1133,8 @@ For support and improvement requests please open an Issue
 in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
+* Version 1.6.2
+  * method get_component_value() always return a string value
 * Version 1.6.1
     * Feature request #275 - Add support for Spice .INC statements in SpiceEditor
     * Fixing issue #301 - SpiceEditor chokes on netlists with .title directive (KiCad export format)

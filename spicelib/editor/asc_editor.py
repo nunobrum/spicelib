@@ -34,7 +34,7 @@ from .spice_editor import SpiceEditor, SpiceCircuit
 from ..simulators.ltspice_simulator import LTspice
 from ..utils.file_search import search_file_in_containers
 from .primitives import format_eng
-from .editor_errors import ComponentNotFoundError, ParameterNotFoundError
+from .editor_errors import ComponentNotFoundError, ParameterNotFoundError, ValueNotFoundError
 from .base_editor import PARAM_REGEX, ValueType
 from .base_schematic import (BaseSchematic, Point, Line, Shape, Text, SchematicComponent, ERotation, TextTypeEnum, Port)
 from .asy_reader import AsyReader
@@ -621,25 +621,15 @@ class AscEditor(BaseSchematic, BaseSubCircuit):
         component.symbol = model
         _logger.info(f"Component {element} updated to {model}")
 
-    def get_component_value(self, element: str) -> str | None:
+    def get_component_value(self, element: str) -> str:
         component = self.get_component(element)
-        return component.get_value_str()
-
+        value_str = component.get_value_str()
+        if value_str is None:
+            raise ValueNotFoundError(element)
+        return value_str
 
     def get_component_parameters(self, element: str, as_dicts: bool = False) -> dict:
-        """
-        Returns the parameters of a component that are related with Spice operation.
-        That is: Value, Value2, SpiceModel, SpiceLine, SpiceLine2, plus all contents of SpiceLine, SpiceLine2
-
-        :param element: Reference of the circuit element to get the parameters.
-        :param as_dicts: will report the contents of SpiceLine and SpiceLine2 inside a SpiceLine/SpiceLine2 instead of separately.
-
-        :return: parameters of the circuit element in dictionary format.
-
-        :raises: ComponentNotFoundError - In case the component is not found
-
-                 NotImplementedError - for not supported operations
-        """
+        # docstring inherited from BaseSubCircuit
         component: AscComponent = self.get_component(element) # pyright: ignore[reportAssignmentType]
         parameters = component.get_parameters(as_dicts)
         return parameters

@@ -27,6 +27,13 @@ class ComponentNotFoundError(Exception):
         super().__init__(f'Component "{reference}" not found')
 
 
+class ValueNotFoundError(Exception):
+    """Value Not Found Error"""
+    def __init__(self, reference):
+        _logger.error(f'Value not found on {reference}')
+        super().__init__(f'Value not found on {reference}')
+
+
 class ParameterNotFoundError(Exception):
     """ParameterNotFound Error"""
     def __init__(self, parameter, context):

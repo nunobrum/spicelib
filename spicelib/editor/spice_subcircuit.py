@@ -62,6 +62,7 @@ def get_line_command(line: str | Primitive) -> str:
                     return line[i:j].upper()
                 else:
                     raise SyntaxError(f"Unrecognized command in line: \"{line}\"")
+        raise SyntaxError(f"Unrecognized command in line: \"{line}\"")
     elif isinstance(line, SpiceCircuit):
         return ".SUBCKT"
     elif isinstance(line, ControlEditor):
@@ -261,7 +262,7 @@ class SpiceCircuit(BaseSubCircuit):
                 continue
             elif isinstance(line, IncludeFile):  # same for include files
                 if line.editor and isinstance(line.editor, SpiceCircuit):
-                    sub_circuit = line.editor.get_subcircuit_named(param_name_upped)
+                    sub_circuit: SpiceCircuit = line.editor
                     if sub_circuit:
                         sub_ckt_line_no, match, netlist = sub_circuit._get_parameter_named(param_name_upped)
                         if match:
@@ -694,22 +695,14 @@ class SpiceCircuit(BaseSubCircuit):
         if permission == UpdatePermission.Inform:
             self.end_update(reference, model, UpdateType.UpdateComponentValue)
 
-    def get_component_value(self, reference: str) -> str | None:
-        """
-        Returns the value of a component retrieved from the netlist.
-
-        :param reference: Reference of the circuit element to get the value.
-        :type reference: str
-
-        :return: value of the circuit element .
-
-        :raises: ComponentNotFoundError - In case the component is not found
-
-                 NotImplementedError - for not supported operations
-        """
+    def get_component_value(self, reference: str) -> str:
+        # docstring inherited from BaseSubcircuit
         component = self.get_component(reference)
         assert isinstance(component, SpiceComponent), f"Component '{reference}' is not a SpiceComponent. Use get_element_model() instead."
-        return component.value_str
+        value_str = component.value_str
+        if value_str is None:
+            raise ValueNotFoundError(reference)
+        return value_str
 
     def get_component_nodes(self, reference: str) -> list[str]:
         """
