@@ -26,7 +26,7 @@ import logging
 
 from .base_subcircuit import BaseSubCircuit
 from .primitives import format_eng
-from .editor_errors import ComponentNotFoundError, ParameterNotFoundError
+from .editor_errors import ComponentNotFoundError, ParameterNotFoundError, ValueNotFoundError
 from .base_editor import PARAM_REGEX, ValueType
 from .spice_utils import UNIQUE_SIMULATION_DOT_INSTRUCTIONS
 from .base_schematic import (BaseSchematic, SchematicComponent, Point, ERotation, Line, Text, TextTypeEnum,
@@ -1155,10 +1155,14 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         component = self.get_component(device)
         component.set_value(model)
 
-    def get_component_value(self, reference: str) -> ValueType | None:
-        # docstring inherited from BaseEditor
-        component = self.get_component(reference)
-        return component.get_value()
+    def get_component_value(self, reference: str) -> str:
+        # docstring inherited from BaseSubcircuit
+        component = BaseSchematic.get_component(self, reference)
+        value_str = component.get_value_str()
+        if value_str is None:
+            raise ValueNotFoundError(reference)
+        else:
+            return value_str
 
     def get_component_parameters(self, reference: str) -> dict:
         """

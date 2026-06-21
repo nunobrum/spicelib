@@ -171,7 +171,7 @@ class Component(Primitive):
         self.set_value(value)
 
     @property
-    def value_str(self):
+    def value_str(self) -> str | None:
         return self.get_value_str()
     
     @value_str.setter

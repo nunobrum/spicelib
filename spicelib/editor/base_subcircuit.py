@@ -293,6 +293,7 @@ class BaseSubCircuit(ABC):
         :rtype: str
 
         :raises: ComponentNotFoundError - In case the component is not found
+                 ValueNotFoundError - In case the component doesn't have a value
 
                  NotImplementedError - for not supported operations
         """
@@ -311,6 +312,10 @@ class BaseSubCircuit(ABC):
 
         :raises: ComponentNotFoundError - In case the component is not found
 
+                 ParameterNotFoundError - In case the component doesn't have any parameters
+
+                 ValueNotFoundError - In case the component doesn't have a value
+
                  NotImplementedError - for not supported operations
         """
         ...
@@ -326,6 +331,8 @@ class BaseSubCircuit(ABC):
         :rtype: float
 
         :raises: ComponentNotFoundError - In case the component is not found
+
+                 ValueNotFoundError - In case the component doesn't have a value
 
                  NotImplementedError - for not supported operations
         """
@@ -470,19 +477,7 @@ class BaseSubCircuitInstance(BaseSubCircuit):
         return self.subcircuit.get_all_parameter_names()
 
     def get_component_value(self, element: str) -> str:
-        """
-        Returns the value of a component retrieved from the netlist.
-
-        :param element: Reference of the circuit element to get the value.
-        :type element: str
-
-        :return: value of the circuit element .
-        :rtype: str
-
-        :raises: ComponentNotFoundError - In case the component is not found
-
-                 NotImplementedError - for not supported operations
-        """
+        # Docstring inherited from BaseSubCircuit
         return self.subcircuit.get_component_value(element)
 
     def get_component_parameters(self, element: str) -> dict:
