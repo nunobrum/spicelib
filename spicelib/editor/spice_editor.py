@@ -61,7 +61,7 @@ class SpiceEditor(SpiceFile):
     netlist file.
 
     :param netlist_file: Name of the .NET file to parse
-    :param encoding: Forcing the encoding to be used on the circuit netlile read. Defaults to 'autodetect' which will
+    :param encoding: Forcing the encoding to be used on the circuit netlist file read. Defaults to 'autodetect' which will
         call a function that tries to detect the encoding automatically. This, however, is not 100% foolproof.
     :keyword create_blank: Create a blank '.net' file when 'netlist_file' not exist. False by default
     :keyword include_file: If an include file is being parsed, the control of the ending .END statement is suppressed.

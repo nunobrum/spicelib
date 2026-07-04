@@ -355,7 +355,15 @@ class SpiceComponent(Component):
                             value_str = str(value)
                         new_params.append(f"{key}={value_str}")
                     new_params_str = ' '.join(new_params)
-                    new_line = _insert_section(new_line, start + offset, stop + offset, new_params_str)
+                    if start == -1 and stop == -1:
+                        # params were not present in the original line, we need to add them at the end, or just before the comment if there is one
+                        comment_index = max(new_line.find('*'), new_line.find(';'))
+                        if comment_index != -1:
+                            new_line = new_line[:comment_index].rstrip() + ' ' + new_params_str + ' ' + new_line[comment_index:]
+                        else:
+                            new_line += ' ' + new_params_str
+                    else:
+                        new_line = _insert_section(new_line, start + offset, stop + offset, new_params_str)
                     offset += len(new_params_str) - len(old_params_str)
                     update_done = True
             else:
@@ -403,7 +411,10 @@ class SpiceComponent(Component):
             if line_size == 0:
                 count += stream.write("+") # continuation line
                 line_size = 1
-            chars = stream.write(f" {key}={value}")
+            if key in SPICE_KEYWORDS and value is True:
+                chars = stream.write(f" {key}")
+            else:
+                chars = stream.write(f" {key}={value}")
             count += chars
             line_size += chars
             if line_size > 80:

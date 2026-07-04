@@ -162,6 +162,10 @@ class SpiceFile(BaseEditor, SpiceCircuit):
         """
         Removes all previous edits done to the netlist, i.e. resets it to the original state.
 
+        :keyword create_blank: Create a blank '.net' file when 'netlist_file' not exist. False by default
+
+        :keyword include_file: If an include file is being parsed, the control of the ending .END statement is suppressed.
+
         :returns: True if the netlist is loaded successfully. False is returned in case a .END statement is missing.
         """
         # For some reason, the MRO is not working well here. Need to explicitly call each super class individually.

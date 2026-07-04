@@ -284,7 +284,12 @@ class SpiceCircuit(BaseSubCircuit):
         param_names = []
         search_expression = re.compile(PARAM_REGEX(r"\w+"), re.IGNORECASE)
         for line in self.netlist:
-            if isinstance(line, Primitive):
+            if isinstance(line, IncludeFile):  # same for include files
+                if line.editor and isinstance(line.editor, SpiceCircuit):
+                    sub_circuit: SpiceCircuit = line.editor
+                    if sub_circuit:
+                        param_names.extend(sub_circuit.get_all_parameter_names())
+            elif isinstance(line, Primitive):
                 line: str = line.obj # pyright: ignore[reportAssignmentType]
             cmd = get_line_command(line)
             if cmd == '.PARAM':
@@ -616,15 +621,23 @@ class SpiceCircuit(BaseSubCircuit):
 
         param_line, match, netlist = self._get_parameter_named(param)
         if match:
-            start, stop = match.span('value')
-            if isinstance(netlist[param_line], Primitive):
-                netlist[param_line]._obj = _insert_section(netlist[param_line].obj, start, stop,
-                                                           f"{value_str}") + END_LINE_TERM
+            if value is None:
+                # Remove the parameter from the netlist
+                if isinstance(netlist[param_line], Primitive):
+                    netlist[param_line]._obj = re.sub(PARAM_REGEX(param), '', netlist[param_line].obj, flags=re.IGNORECASE)
+                    # if no other parameters are left, remove the line from the netlist
+                    all_params = re.findall(PARAM_REGEX(r"\w+"), netlist[param_line].obj, flags=re.IGNORECASE)
+                    if len(all_params) == 0:  # If the line is empty or only has .PARAM, remove it from the netlist
+                        netlist[param_line] = '* SpiceEditor removed empty .PARAM line' + END_LINE_TERM
+                if permission == UpdatePermission.Inform:
+                    self.end_update(param, None, UpdateType.DeleteParameter)
             else:
-                netlist[param_line] = _insert_section(netlist[param_line], start, stop,
-                                                      f"{value_str}") + END_LINE_TERM
-            if permission == UpdatePermission.Inform:
-                self.end_update(param, value_str, UpdateType.UpdateParameter)
+                start, stop = match.span('value')
+                if isinstance(netlist[param_line], Primitive):
+                    netlist[param_line]._obj = _insert_section(netlist[param_line].obj, start, stop,
+                                                               f"{value_str}") + END_LINE_TERM
+                if permission == UpdatePermission.Inform:
+                    self.end_update(param, value_str, UpdateType.UpdateParameter)
         else:
             # Was not found
             # the last two lines are typically (.backano and .end)
