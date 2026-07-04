@@ -618,7 +618,7 @@ class SpiceEditor_Test(unittest.TestCase):
                     my_nr += 1
                     if my_nr >= 3:
                         break
-                print(f"Modifying parameter '{my_change_key}' (nr {seq}) from {el} parameters, to {new_param_value}")
+                # print(f"Modifying parameter '{my_change_key}' (nr {seq}) from {el} parameters, to {new_param_value}")
                 edt.set_component_parameters(el, **{my_change_key: new_param_value})
                 # adapt my expected value
                 exp[1][my_change_key] = new_param_value
