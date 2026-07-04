@@ -411,8 +411,11 @@ class SpiceComponent(Component):
             if line_size == 0:
                 count += stream.write("+") # continuation line
                 line_size = 1
-            if key in SPICE_KEYWORDS and value is True:
-                chars = stream.write(f" {key}")
+            if key in SPICE_KEYWORDS:
+                if value is True:
+                    chars = stream.write(f" {key}")
+                else:
+                    chars = 0
             else:
                 chars = stream.write(f" {key}={value}")
             count += chars
