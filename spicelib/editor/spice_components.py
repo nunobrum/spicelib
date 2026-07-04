@@ -357,7 +357,7 @@ class SpiceComponent(Component):
                     new_params_str = ' '.join(new_params)
                     if start == -1 and stop == -1:
                         # params were not present in the original line, we need to add them at the end, or just before the comment if there is one
-                        comment_index = max(new_line.find('*'), new_line.find(';'))
+                        comment_index = new_line.find(';')
                         if comment_index != -1:
                             new_line = new_line[:comment_index].rstrip() + ' ' + new_params_str + ' ' + new_line[comment_index:]
                         else:
