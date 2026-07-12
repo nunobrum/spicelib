@@ -241,7 +241,7 @@ REPLACE_REGEXS : Dict[str, str] = {
     # ex: XU1 NC_01 NC_02 NC_03 NC_04 NC_05 level2 Avol=1Meg GBW=10Meg Slew=10Meg Ilimit=25m Rail=0 Vos=0 En=0 Enk=0 In=0 Ink=0 Rin=500Meg
     #     XU1 in out1 -V +V out1 OPAx189 bla_v2 =1% bla_sp1=2 bla_sp2 = 3
     #     XU1 in out1 -V +V out1 GND OPAx189_float
-    'X': PREFIX_AND_NODES_RGX("X", 1, 99) + MODEL_OR_VALUE_RGX + r"(?:\s+(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?" + COMMENT_RGX,  # Subcircuit Instance
+'X': PREFIX_AND_NODES_RGX("X", 1, 99) + MODEL_OR_VALUE_RGX + r"(?:\s+(?:params\:\s*)?(?P<params>(?:\w+\s*=\s*['\"{]?.*?['\"}]?\s*)+))?" + COMMENT_RGX,  # Subcircuit Instance
     # (ngspice) Yxxx N1 0 N2 0 mname <LEN=LENGTH>
     # (qspice) Ynnn N+ N- <frequency1> dF=<value> Ctot=<value> [Q=<value>]
     'Y': PREFIX_AND_NODES_RGX("Y", 2, 4) + MODEL_OR_VALUE_RGX + PARAM_RGX,  # Single Lossy Transmission Line

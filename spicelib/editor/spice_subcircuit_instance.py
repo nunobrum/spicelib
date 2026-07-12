@@ -24,7 +24,7 @@ from .base_editor import BaseEditor
 from .base_subcircuit import BaseSubCircuitInstance, BaseSubCircuit
 from .primitives import VALUE_IDs, PARAMS_IDs, Component, ValueType
 from .updates import UpdateType, UpdatePermission
-from .spice_components import SpiceComponent, component_replace_regexs, _parse_params, undress_designator
+from .spice_components import SpiceComponent
 
 logger = logging.getLogger("spicelib.SpiceEditor")
 
@@ -42,20 +42,9 @@ class SpiceCircuitInstance(SpiceComponent, BaseSubCircuitInstance):
 
     def reset_attributes(self):
         """Resets the sub-circuit instance to its original state."""
-        line: str = self._obj  # pyright: ignore[reportAssignmentType]
-        new_line = re.sub(r'[\n\r]+\s*', ' ', line)  # cleans up line breaks and extra spaces and tabs
-        regex = component_replace_regexs['X']
-        match = regex.match(new_line)
-        self._attributes.clear()
-        if match:
-            ref = match.group('designator')
-            self._reference = undress_designator(ref)
-            self._set_ports(match.group('nodes').strip().split())
-            self._attributes['value'] =match.group('value').strip()
-            if match.group('params'):
-                self._attributes['params'] = _parse_params(match.group('params'))
-            # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
-            self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
+        super().reset_attributes()
+        # The instruction below might fail if the sub-circuit was not parsed in the parent netlist.
+        self._subcircuit = self._netlist.get_subcircuit_named(self.value)  # In case it isn't given, get it from the parent
 
     @property
     def subcircuit(self):
