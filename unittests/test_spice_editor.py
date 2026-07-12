@@ -67,6 +67,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt = spicelib.SpiceEditor(test_dir + "DC sweep.net")
         self.edt2 = spicelib.SpiceEditor(test_dir + "opamptest.net")
         self.edt3 = spicelib.SpiceEditor(test_dir + "/amp3/amp3.net")
+        self.edt4 = spicelib.SpiceEditor(test_dir + "Batch_Test.net")
 
     def check_update(self, editor: SpiceCircuit, name, update, value=None, index=-1):
         self.assertEqual(name, editor.netlist_updates[index].name, "Name mismatch")
@@ -185,6 +186,39 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt.set_parameter("test_param3", "{duty/freq + tstart + trise + tfall}")
         self.edt.save_netlist(temp_dir + 'test_parameter_output_2.net')
         self.equalFiles(temp_dir + 'test_parameter_output_2.net', golden_dir + 'test_parameter_output_2.net')
+
+    def test_include_subcircuit_component_editing(self):
+        self.assertEqual(self.edt4.get_component_value('XU1'), 'AD820_ALT', "Tested include-based subcircuit instance value")
+        self.assertEqual(self.edt4.get_component_value('XU1:C1'), '{Cf}', "Tested included subcircuit component value")
+        c11_params = self.edt4.get_component_parameters('XU1:C11')
+        self.assertEqual(c11_params['Rpar'], '40T', "Tested included subcircuit component parameter")
+
+        self.edt4.set_component_value('XU1:C2', '2p')
+        self.assertEqual(self.edt4.get_component_value('XU1:C2'), '2p', "Tested set/get value in included subcircuit")
+
+        self.edt4.set_component_parameters('XU1:C11', Rpar='30T')
+        c11_params = self.edt4.get_component_parameters('XU1:C11')
+        self.assertEqual(c11_params['Rpar'], '30T', "Tested set/get parameter in included subcircuit")
+
+        # testing updating parameters in the subcircuit instance
+        self.edt4['XU1'].subcircuit.set_parameters(Cf='2p')
+        self.edt4['XU1'].subcircuit.set_parameters(new_param=1234)
+
+        self.check_update(self.edt4, 'CLONE(AD820_ALT)', UpdateType.CloneSubcircuit, 'AD820_ALT', 0)
+        self.check_update(self.edt4, 'XU1', UpdateType.UpdateComponentValue, 'AD820_ALT_XU1', 1)
+        self.check_update(self.edt4, 'XU1:C2', UpdateType.UpdateComponentValue, '2p', 2)
+        self.check_update(self.edt4, 'XU1:C11:Rpar', UpdateType.UpdateComponentParameter, '30T', 3)
+        self.check_update(self.edt4, 'XU1:Cf', UpdateType.UpdateParameter, '2p', 4)
+        self.check_update(self.edt4, 'XU1:new_param', UpdateType.AddParameter, 1234, 5)
+
+        self.edt4.save_netlist(temp_dir + 'test_include_edit.net')
+        self.equalFiles(temp_dir + 'test_include_edit.net', golden_dir + 'test_include_edit.net')
+
+        # creating new parameters on the subcircuit instantiation
+        self.edt4['XU1'].subcircuit.set_parameters(Cf=None, new_param=None)  # Delete the parameter Cf from the subcircuit instance
+        self.edt4['XU1'].set_parameters(Cf='2p')
+        self.edt4.save_netlist(temp_dir + 'test_include_edit1.net')
+        self.equalFiles(temp_dir + 'test_include_edit1.net', golden_dir + 'test_include_edit1.net')
 
 
     def test_instructions(self):
