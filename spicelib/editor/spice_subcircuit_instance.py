@@ -24,7 +24,7 @@ from .base_editor import BaseEditor
 from .base_subcircuit import BaseSubCircuitInstance, BaseSubCircuit
 from .primitives import VALUE_IDs, PARAMS_IDs, Component, ValueType
 from .updates import UpdateType, UpdatePermission
-from .spice_components import SpiceComponent, component_replace_regexs, _parse_params, undress_designator
+from .spice_components import SpiceComponent
 
 logger = logging.getLogger("spicelib.SpiceEditor")
 
