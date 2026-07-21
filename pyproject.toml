@@ -18,6 +18,7 @@ scipy = "*"
 psutil = "*"
 matplotlib = "*"
 clipin = "*"
+Pillow = ">=12.3.0"
 
 [tool.poetry.scripts]
 ltsteps = "spicelib.scripts.ltsteps:main"
