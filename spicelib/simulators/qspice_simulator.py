@@ -55,9 +55,37 @@ class Qspice(Simulator):
     spice_exe = []
     process_name = None  
         
-    if sys.platform == "linux" or sys.platform == "darwin":
-        # status mid 2024: Qspice has limited support for running under linux+wine, and none for MacOS+wine
-        # TODO: when the situation gets more mature, add support for wine. See LTspice for an example.
+    if sys.platform == "linux":
+        # status mid 2026: Qspice can be run with wine.
+        # Mirrors LTspice's own linux/wine discovery logic (see LTspice class).
+
+        # Anything specified in environment variables?
+        spice_folder = os.environ.get("QSPICEFOLDER")
+        spice_executable = os.environ.get("QSPICEEXECUTABLE")
+
+        if spice_folder and spice_executable:
+            spice_exe = ["wine", os.path.join(spice_folder, spice_executable)]
+            process_name = spice_executable
+        elif spice_folder:
+            spice_exe = ["wine", os.path.join(spice_folder, "QSPICE64.exe")]
+            process_name = "QSPICE64.exe"
+        elif spice_executable:
+            default_folder = os.path.expanduser("~/.wine/drive_c/Program Files/QSPICE")
+            spice_exe = ["wine", os.path.join(default_folder, spice_executable)]
+            process_name = spice_executable
+        else:
+            # no environment variables were given. Do a search.
+            for exe in _spice_exe_win_paths:
+                if exe.startswith("~"):
+                    exe = "C:/users/" + os.path.expandvars("${USER}" + exe[1:])
+                exe = os.path.expanduser(exe.replace("C:/", "~/.wine/drive_c/"))
+                if os.path.exists(exe):
+                    spice_exe = ["wine", exe]
+                    break
+
+    elif sys.platform == "darwin": 
+        # I have no clue about MacOS
+
         spice_exe = []
         process_name = None
     else:  # Windows (well, also aix, wasi, emscripten,... where it will fail.)
@@ -175,9 +203,14 @@ class Qspice(Simulator):
         elif isinstance(cmd_line_switches, str):
             cmd_line_switches = [cmd_line_switches]
         netlist_file = Path(netlist_file).absolute()  # need absolute path, as early 2025 qspice has a strange repetition bug
-                
-        log_file = Path(netlist_file).with_suffix('.log').as_posix()
-        cmd_run = cls.spice_exe + ['-o', log_file] + [netlist_file.as_posix()] + cmd_line_switches
+
+        if sys.platform == "linux":
+            log_file = 'Z:' + Path(netlist_file).with_suffix('.log').as_posix()
+            cmd_run = cls.spice_exe + ['-o', log_file] + ['Z:' + netlist_file.as_posix()] + cmd_line_switches
+        else:
+            log_file = Path(netlist_file).with_suffix('.log').as_posix()
+            cmd_run = cls.spice_exe + ['-o', log_file] + [netlist_file.as_posix()] + cmd_line_switches
+
         # start execution
         if exe_log:
             log_exe_file = netlist_file.with_suffix('.exe.log')
