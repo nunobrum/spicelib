@@ -19,6 +19,7 @@
 # -------------------------------------------------------------------------------
 import re
 import logging
+import sys
 from pathlib import Path
 
 from .logfile_data import LogfileData, try_convert_value, split_line_into_values
@@ -124,14 +125,22 @@ class QspiceLogReader(LogfileData):
             raise RuntimeError("QSPICE not found in the usual locations. Please install it and try again.")
 
         # Get the QPOST location, which is the same as the QSPICE location
-        qpost = [Qspice.spice_exe[0].replace("QSPICE64.exe", "QPOST.exe")]
+        if sys.platform == "linux":
+            # spice_exe is ["wine", "<path>/QSPICE64.exe"] 
+            # change the filename on the actual exe path (last element), keep the "wine" prefix.
+            qpost = Qspice.spice_exe[:-1] + [Qspice.spice_exe[-1].replace("QSPICE64.exe", "QPOST.exe")]
+        else:
+            qpost = [Qspice.spice_exe[0].replace("QSPICE64.exe", "QPOST.exe")]
         # Guess the name of the .net file
         netlist = self.logname.with_suffix('.net').absolute()
         if not Path.exists(netlist):
             netlist = self.logname.with_suffix('.cir').absolute()
                     
         # Run the QPOST command
-        cmd_run = qpost + [netlist, "-o", meas_filename.absolute()]
+        if sys.platform == "linux":
+            cmd_run = qpost + ['Z:' + netlist.as_posix(), "-o", 'Z:' + meas_filename.absolute().as_posix()]
+        else:
+            cmd_run = qpost + [netlist, "-o", meas_filename.absolute()]
         _logger.debug(f"Running QPOST command: {cmd_run}")
         run_function(cmd_run)
         return meas_filename
