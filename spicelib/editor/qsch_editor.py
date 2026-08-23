@@ -960,10 +960,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                 net = self._find_net_at_position(x, y)
                 # The pins that have "¥" are behavioral pins, they are not connected to any net, they will be connected
                 # to a net later.
-                # Note: refdes is still the plain schematic label here (e.g. "A1"), not yet prefixed with the
-                # type character (that happens later, in write_spice_to_file) - so the type check must use
-                # sch_comp.attributes['type'] directly, not refdes[0].
-                if sch_comp.attributes['type'][0] in ('¥', 'Ã', '€', '£'):
+                if refdes[0] in ('¥', 'Ã', '€', '£'):
                     if (len(pin.tokens) > QSCH_SYMBOL_PIN_NET_BEHAVIORAL and
                             pin.get_attr(QSCH_SYMBOL_PIN_NET_BEHAVIORAL) == '¥'):
                         net = '¥'
@@ -973,7 +970,7 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
                         net = unconnected_pins[hash_key]
                     else:
                         _logger.info(f"Unconnected pin at {x},{y} in component {refdes}:{pin}")
-                        if sch_comp.attributes['type'][0] in ('¥', 'Ã', '€', '£'):  # Behavioral pins are not connected
+                        if refdes[0] in ('¥', 'Ã', '€', '£'):  # Behavioral pins are not connected
                             net = f'¥{behavior_pin_counter:d}'
                             behavior_pin_counter += 1
                         else:
