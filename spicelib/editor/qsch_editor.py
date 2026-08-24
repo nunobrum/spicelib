@@ -903,7 +903,6 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
         schematic, _ = QschTag.parse(stream, 4)
         self.schematic = schematic
         highest_net_number = 0
-        behavior_pin_counter = 0
         unconnected_pins = {}  # Storing the components that have floating pins
 
         for net in self.schematic.get_items('net'):  # pyright: ignore[reportOptionalMemberAccess] # Connection to ports, grounds and nets
@@ -943,7 +942,8 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             orientation : int = component.get_attr(QSCH_COMPONENT_ROTATION) # pyright: ignore[reportAssignmentType]
             sch_comp.position = Point(x, y)
             sch_comp.rotation = ERotation(orientation * 45)
-            sch_comp.attributes['type'] = symbol.get_text('type', "X")  # Assuming a sub-circuit
+            comp_type = symbol.get_text('type', "X")  # Assuming a sub-circuit
+            sch_comp.attributes['type'] = comp_type
             # a bit complicated way to detect embedded subcircuits: they are in the library tag,
             lib = symbol.get_text('library file', "-")
             if lib.startswith("|.subckt"):
@@ -956,27 +956,27 @@ class QschEditor(BaseSchematic, BaseSubCircuit):
             pins = symbol.get_items('pin')
 
             for pin in pins:
-                x, y = self._find_pin_position(position, orientation, pin)
-                net = self._find_net_at_position(x, y)
                 # The pins that have "¥" are behavioral pins, they are not connected to any net, they will be connected
                 # to a net later.
-                if refdes[0] in ('¥', 'Ã', '€', '£'):
-                    if (len(pin.tokens) > QSCH_SYMBOL_PIN_NET_BEHAVIORAL and
-                            pin.get_attr(QSCH_SYMBOL_PIN_NET_BEHAVIORAL) == '¥'):
-                        net = '¥'
-                if net is None:
-                    hash_key = (x, y)
-                    if hash_key in unconnected_pins:
-                        net = unconnected_pins[hash_key]
-                    else:
-                        _logger.info(f"Unconnected pin at {x},{y} in component {refdes}:{pin}")
-                        if refdes[0] in ('¥', 'Ã', '€', '£'):  # Behavioral pins are not connected
-                            net = f'¥{behavior_pin_counter:d}'
-                            behavior_pin_counter += 1
+                # Note: refdes is still the plain schematic label here (e.g. "A1"), not yet prefixed with the
+                # type character (that happens later, in write_spice_to_file) - so the type check must use
+                # sch_comp.attributes['type'] directly, not refdes[0].
+                if (comp_type and comp_type[0] in ('¥', 'Ã', '€', '£') and
+                        (len(pin.tokens) > QSCH_SYMBOL_PIN_NET_BEHAVIORAL) and
+                        (pin.get_attr(QSCH_SYMBOL_PIN_NET_BEHAVIORAL) == '¥')):
+                    net = '¥'
+                else:
+                    x, y = self._find_pin_position(position, orientation, pin)
+                    net = self._find_net_at_position(x, y)
+                    if net is None:
+                        hash_key = (x, y)
+                        if hash_key in unconnected_pins:
+                            net = unconnected_pins[hash_key]
                         else:
+                            _logger.info(f"Unconnected pin at {x},{y} in component {refdes}:{pin}")
                             highest_net_number += 1
                             net = f'N{highest_net_number:02d}'
-                        unconnected_pins[hash_key] = net
+                            unconnected_pins[hash_key] = net
                 ports.append(net)
 
             sch_comp.ports = ports

@@ -9,7 +9,7 @@ I1 0 N25 1µ
 L1 N12 0 4.7µ
 ×1 «N59 0 N58 0» Turns=1 1
 ¥1 VDD 0 DQ1 DQn1 N67 N66 0 CLR ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ D-FLOP
-¥2 VDD 0 DQ2 DQn2 N67 N66 ¥0 ¥1 VDD ¥ ¥ ¥ ¥ ¥ ¥ ¥ JK-FLOP
+¥2 VDD 0 DQ2 DQn2 N67 N66 N70 N71 VDD ¥ ¥ ¥ ¥ ¥ ¥ ¥ JK-FLOP
 ¥3 VDD 0 AND3_OUT AND3_OUTn DQ1 DQ2 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ AND
 Ã1 VDD 0 N69 N69 N68 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ RRopAmp Avol=100K GBW=5Meg Slew=5Meg Rload=2K Phi=60
 B2 0 N02 I=sin({2*pi*time/1000K})
@@ -51,9 +51,9 @@ R5 N19 N20 50
 V14 N18 0 PULSE 0 1 1µ 1n 1n 1m 1 1
 Q2 N34 N35 0 [0] MMBT2222A NPN
 Q3 0 N39 N38 [0] ZXTP2027F PNP
-Q4 N40 N41 N70 [0] NPN NPN
-Q5 N71 N37 N36 [0] LPNP PNP
-Q6 N72 N45 N44 [0] PNP PNP
+Q4 N40 N41 N72 [0] NPN NPN
+Q5 N73 N37 N36 [0] LPNP PNP
+Q6 N74 N45 N44 [0] PNP PNP
 B5 N24 0 V={time}
 S1 N22 0 N23 0 MySW
 S2 N21 0 0 N23 MySW
@@ -77,33 +77,33 @@ V26 N38 0 10
 V27 N39 0 PWL 0 -5 100m 5
 V28 N40 0 10
 V29 N41 0 PWL 0 -5 100m 5
-V30 N70 0 1
+V30 N72 0 1
 W1 N43 0 B5 CSW
-V31 N71 0 1
+V31 N73 0 1
 U1 N46 N47 0 urcmodel N=10
 Y1 N49 0 10Meg dF=100Hz Ctot=10pF
 V32 N42 0 1
 R11 N42 N43 1K
 V33 N44 0 10
 V34 N45 0 PWL 0 -5 100m 5
-V35 N72 0 1
+V35 N74 0 1
 V36 N46 0 PULSE 0 1 1µ 1n 1n 1m 1 1
 R1 N47 N48 50
 V37 N49 0 PULSE 0 1 1µ 1n 1n 1m 1 1
 M1 N50 N51 0 0 2N7002 NMOS
 M2 0 N53 N52 N52 PXP015-30QL PMOS
-M3 N54 N55 N73 0 NMOS NMOS
-M4 N74 N57 N56 0 PMOS PMOS
+M3 N54 N55 N75 0 NMOS NMOS
+M4 N76 N57 N56 0 PMOS PMOS
 V1 N50 0 10
 V38 N51 0 PWL 0 -5 100m 5
 V39 N52 0 10
 V40 N53 0 PWL 0 -5 100m 5
 V41 N54 0 10
 V42 N55 0 PWL 0 -5 100m 5
-V43 N73 0 1
+V43 N75 0 1
 V44 N56 0 10
 V45 N57 0 PWL 0 -5 100m 5
-V46 N74 0 1
+V46 N76 0 1
 R12 N58 0 1K
 V47 N59 0 SINE 0 10 50
 L4 N60 0 1µ
@@ -124,8 +124,8 @@ V56 N67 0 PULSE 0 5 1m 1n 1n 50µ 1m
 V101 NIBBLE 0 6
 V102 CLK 0 PULSE 0 1 0 1µ 1µ .5m 1m
 V103 PRESET 0 pulse 0 1 25m 1µ 1µ .2m 25m
-€1 ¥2 ¥3 ¥4 ¥5 ¥6 ¥7 ¥8 ¥9 ¥10 ¥11 ¥12 ¥13 ¥ ¥ ¥ ¥ ¥14 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ DAC Rdac=val
-£1 ¥15 ¥16 ¥17 ¥18 ¥19 ¥20 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ 3STATE
+€1 N77 N78 N79 N80 N81 N82 N83 N84 N85 N86 N87 N88 ¥ ¥ ¥ ¥ N89 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ DAC Rdac=val
+£1 N90 N91 N92 N93 N94 N95 ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ 3STATE
 .TRAN 100m
 .model urcmodel URC CPERL=100p RPERL=50m
 K1 L4 L5 1
