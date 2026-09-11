@@ -101,9 +101,9 @@ def PREFIX_AND_NODES_RGX(prefix: str, nodes_min: int, nodes_max: int = None, in_
         # The ¥ is for qspice
     prefix += "[§†]?" if qspice_prefix_quirk else "§?"
     if in_quotes:
-        return "^(?P<designator>" + prefix + "\\w+)(?P<nodes>\\s+«(?:\\s?[\\w+-\\.¥«´»]+){" + nodes_str + "}\\s*»)"
+        return "^(?P<designator>" + prefix + "\\w+)(?P<nodes>\\s+«(?:\\s?[\\w+-\\./¥«´»]+){" + nodes_str + "}\\s*»)"
     else:
-        return "^(?P<designator>" + prefix + "\\w+)(?P<nodes>(?:\\s+[\\w+-\\.¥«»]+){" + nodes_str + "})"
+        return "^(?P<designator>" + prefix + "\\w+)(?P<nodes>(?:\\s+[\\w+-\\./¥«»]+){" + nodes_str + "})"
 
 END_LINE_TERM = '\n'  #: This controls the end of line terminator used
 
