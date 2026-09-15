@@ -68,6 +68,7 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt2 = spicelib.SpiceEditor(test_dir + "opamptest.net")
         self.edt3 = spicelib.SpiceEditor(test_dir + "/amp3/amp3.net")
         self.edt4 = spicelib.SpiceEditor(test_dir + "Batch_Test.net")
+        self.edt5 = spicelib.SpiceEditor(test_dir + "test_kicad_nets.cir")
 
     def check_update(self, editor: SpiceCircuit, name, update, value=None, index=-1):
         self.assertEqual(name, editor.netlist_updates[index].name, "Name mismatch")
@@ -159,6 +160,26 @@ class SpiceEditor_Test(unittest.TestCase):
         self.check_update(self.edt2, 'XU1:GBW', UpdateType.UpdateComponentParameter, '1Meg')
         self.edt2.save_netlist(temp_dir + 'opamptest_output_1.net')
         self.equalFiles(temp_dir + 'opamptest_output_1.net', golden_dir + 'opamptest_output_1.net')
+
+    def test_component_editing_5(self):
+        """A KiCad Netlist smoke test"""
+        V1 = self.edt5["V1"]
+        R1 = self.edt5["R1"]
+        R2 = self.edt5["R2"]
+
+        #self.assertEqual(V1.value, '15', "Tested V1 Value")
+        self.assertEqual(self.edt2.get_component_value('V1'), '15', "Tested V1 Value")
+                
+        self.assertEqual(R1.value, '10k', "Tested R1 Value")  
+        self.assertEqual(R2.value, '{rval}', "Tested R2 Value")  
+        self.assertTrue(set(self.edt5.get_components()) == set(['V1', 'V2', 'R1', 'R2', 'XU1']), "Tested get_components")
+        self.edt5.set_component_value('R1', '22k')
+        self.assertEqual(1, len(self.edt5.netlist_updates))
+        self.check_update(self.edt5, 'R1', UpdateType.UpdateComponentValue, '22k')
+        self.edt5.set_component_value('R2', '{2*rval}')
+        self.check_update(self.edt5, 'R2', UpdateType.UpdateComponentValue, '{2*rval}')
+        self.edt5.save_netlist(temp_dir + 'test_kicad_nets_output_1.cir')
+        self.equalFiles(temp_dir + 'test_kicad_nets_output_1.cir', golden_dir + 'test_kicad_nets_output_1.cir')
 
     def test_parameter_edit(self):
         self.assertEqual(self.edt.get_all_parameter_names(), ['RES', 'TEMP'])
