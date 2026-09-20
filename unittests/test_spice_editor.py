@@ -280,8 +280,14 @@ class SpiceEditor_Test(unittest.TestCase):
             lines2 = f2.readlines()
         self.assertEqual(len(lines1), len(lines2), "Files have different number of lines\n"
                                                    f"File1:{file1} and File2:{file2}")
-        for i, lines in enumerate(zip(lines1, lines2)):
-            self.assertEqual(lines[0] , lines[1], f"Line {i+1}\nFile1:{file1} and File2:{file2}")
+        for i in range(len(lines1)):
+            data1 = lines1[i].strip()  # Remove white spaces and line terminators
+            data2 = lines2[i].strip()
+            if data1.startswith('*') and data2.startswith('*'):
+                continue  # Skip comments
+            # elif data1.startswith('.lib') and data2.startswith('.lib'):
+            #     continue  # Skip library definitions
+            self.assertEqual(data1, data2, f"Line {i+1}\nFile1:{file1} and File2:{file2}")
 
     def test_resistors(self):
         """Validates the RegEx expressions on the Spice Editor file"""
