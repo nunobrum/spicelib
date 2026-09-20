@@ -1,0 +1,16 @@
+* Simple non-functional KiCad circuit with named nets, 
+.title KiCad schematic
+.param rval=20k
+.subckt OPAMP_IDEAL 1 2 3 4 5
+E1 5 0 1 2 100k
+.ends OPAMP_IDEAL
+XU1 /sub/Vin_p /Vin_n VCC VEE /Vout OPAMP_IDEAL
+R1 /sub/Vin_p 0 22k
+R2 /Vin_n /Vout {2*rval}
+V1 VCC 0 DC 15
+V2 VEE 0 DC -15
+.control
+op
+print v(/Vout)
+.endc
+.end
