@@ -16,6 +16,8 @@
 #
 # License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+import sys
+
 import io
 import os
 import re
@@ -203,6 +205,7 @@ class SpiceCircuit(BaseSubCircuit):
                 self.netlist[-1]+=line  # Append to the last line, but remove the preceding newline and the leading '+'
             elif len(cmd) == 1 and cmd in VALID_PREFIXES:
                 # This is a component line
+                line = line.lstrip()
                 if cmd == 'X':
                     component = SpiceCircuitInstance(netlist=self, obj=line)
                 else:
@@ -1089,6 +1092,8 @@ class IncludeFile(Primitive):
         editor = None
         if m:
             lib_name = m.group('filename')
+            if sys.platform == "linux" or sys.platform == "darwin":
+                lib_name = lib_name.replace("\\", "/")
             include_file = self._netlist.find_library(lib_name)
             if include_file:
                 from .spice_editor import SpiceEditor
