@@ -37,6 +37,10 @@ jobs:
         if: always()
         run: |
           python ./unittests/sweep_iterators_unittest.py
+      - name: Test Fast Worst Case
+        if: always()
+        run: |
+          python ./unittests/test_fast_worst_case.py
       - name: Test spicelib
         if: always()
         run: |

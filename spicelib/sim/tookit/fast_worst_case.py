@@ -239,7 +239,7 @@ class FastWorstCaseAnalysis(WorstCaseAnalysis):
                 max_setting[ref] = not max_setting[ref]
                 max_value = new_value
                 # Need to restart the cycle
-                iterator = iterator(self.elements_analysed)
+                iterator = iter(self.elements_analysed)
 
             # setting it back to the maximum value
             if max_setting[ref]:
