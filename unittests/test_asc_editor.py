@@ -41,8 +41,22 @@ if not os.path.exists(temp_dir):
 
 class ASC_Editor_Test(unittest.TestCase):
 
+    def _delete_temp_files(self):
+        """Delete all files in the temp folder"""
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+
     def setUp(self):
         self.edt = spicelib.editor.asc_editor.AscEditor(test_dir + "DC sweep.asc")
+        self._delete_temp_files()
+
+    def tearDown(self):
+        self._delete_temp_files()
 
     def check_update(self, editor, name, update, value=None, index=-1):
         self.assertEqual(name, editor.netlist_updates[index].name, "Name mismatch")

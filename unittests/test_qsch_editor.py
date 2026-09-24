@@ -58,9 +58,22 @@ def equalFiles(testcase, file1, file2):
     
 
 class QschEditor_Test(unittest.TestCase):
+    def _delete_temp_files(self):
+        """Delete all files in the temp folder"""
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
 
     def setUp(self):
         self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "DC sweep.qsch")
+        self._delete_temp_files()
+
+    def tearDown(self):
+        self._delete_temp_files()
 
     def check_update(self, name, update, value=None, index=-1):
         self.assertEqual(name, self.edt.netlist_updates[index].name, "Name mismatch")

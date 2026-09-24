@@ -63,12 +63,26 @@ def check_value(test, regex, line, value, msg=None):
 
 class SpiceEditor_Test(unittest.TestCase):
 
+    def _delete_temp_files(self):
+        """Delete all files in the temp folder"""
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+
     def setUp(self):
         self.edt = spicelib.SpiceEditor(test_dir + "DC sweep.net")
         self.edt2 = spicelib.SpiceEditor(test_dir + "opamptest.net")
         self.edt3 = spicelib.SpiceEditor(test_dir + "/amp3/amp3.net")
         self.edt4 = spicelib.SpiceEditor(test_dir + "Batch_Test.net")
         self.edt5 = spicelib.SpiceEditor(test_dir + "test_kicad_nets.cir")
+        self._delete_temp_files()
+
+    def tearDown(self):
+        self._delete_temp_files()
 
     def check_update(self, editor: SpiceCircuit, name, update, value=None, index=-1):
         self.assertEqual(name, editor.netlist_updates[index].name, "Name mismatch")
