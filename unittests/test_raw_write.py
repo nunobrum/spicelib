@@ -93,6 +93,24 @@ class TestRawWrite(unittest.TestCase):
             # self.assertEqual(trace1.what_type, trace2.what_type, "Traces of the same kind")
             # self.assertListEqual(trace1.data, trace2.data, "Traces are the same")
 
+    def _delete_temp_files(self):
+        """Delete all files in the temp folder"""
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+
+    def setUp(self):
+        """Delete all files in the temp folder before each test"""
+        self._delete_temp_files()
+
+    def tearDown(self):
+        """Delete all files in the temp folder after each test"""
+        self._delete_temp_files()
+                
     def test_tran_file(self):
         LW = RawWrite(fastacces=False)
         tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))

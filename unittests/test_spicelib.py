@@ -67,10 +67,10 @@ hide_exe_print_statements = True  # set to False if you want Spice to log to con
 # ------------------------------------------------------------------------------
 if os.path.abspath(os.curdir).endswith('unittests'):
     test_dir = '../examples/testfiles/'
-    temp_dir = '../examples/testfiles/temp/'
+    temp_dir = './temp/'
 else:
     test_dir = './examples/testfiles/'
-    temp_dir = './examples/testfiles/temp/'
+    temp_dir = './unittests/temp/'
 
 print("test_dir", test_dir)
 # ------------------------------------------------------------------------------
@@ -79,6 +79,27 @@ print("test_dir", test_dir)
 class test_spicelib(unittest.TestCase):
     """Unnittesting spicelib"""
     # *****************************
+
+    def _delete_temp_files(self):
+        """Delete all files in the temp folder"""
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+
+    def setUp(self):
+        """Setup the test environment"""
+        self._delete_temp_files()
+        print("Starting test_spicelib")
+
+    def tearDown(self):
+        """Clean up after tests"""
+        self._delete_temp_files()
+        print("Completed test_spicelib")
+
     @unittest.skipIf(skip_ltspice_tests, "Skip if not in windows environment")
     def test_batch_test(self):
         """
