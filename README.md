@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.6.3_ (candidate for release)
+_current version: 1.6.3_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1138,8 +1138,10 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
     SPICE netlist writing improvements, Documentation and usability andTesting and debugging.
   * Fixing issue #308 - Editing Library Subcircuit Parameters
   * Fixing issue #309 - Support for "params:" declaration in subcircuit instances.
-  * Solving vulnerability with `pillow ~> 12.3.0`.
   * Adding AGENTS.md for AI guidance.
+  * Qspice support in linux platform
+  * Fixing issue #318 - Bug fix on the generation of Qspice netlists with ¥ ports
+  * Fixing issue #323 - Fix fast worst-case iterator restart- #326
 * Version 1.6.2
   * method get_component_value() always return a string value
 * Version 1.6.1

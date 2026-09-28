@@ -40,7 +40,7 @@ import logging
 sys.path.append(
     os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../"))  # add project root to lib search path
 
-
+from spicelib.raw.raw_classes import TraceRead, Axis
 from spicelib import RawWrite, Trace
 from spicelib import RawRead
 import numpy as np
@@ -90,9 +90,37 @@ class TestRawWrite(unittest.TestCase):
             trace1 = raw1.get_trace(trace_name)
             trace2 = raw2.get_trace(trace_name)
             self.assertEqual(trace1.numerical_type, trace2.numerical_type, "Traces of the same numerical type")
-            # self.assertEqual(trace1.what_type, trace2.what_type, "Traces of the same kind")
-            # self.assertListEqual(trace1.data, trace2.data, "Traces are the same")
+            if isinstance(trace1, TraceRead) and isinstance(trace2, TraceRead):
+                # print(f"Trace type {trace_name} is {trace1.whattype} and {trace2.whattype}")
+                self.assertEqual(trace1.whattype, trace2.whattype, "Traces of the same kind")
+                # Same length
+                self.assertEqual(len(trace1), len(trace2), f"Trace {trace_name} has the same length")
+            elif isinstance(trace1, Axis) and isinstance(trace2, Axis):
+                # Same length
+                self.assertEqual(len(trace1), len(trace2), f"Trace {trace_name} has the same length")
+            else:
+                self.fail(f"Trace {trace_name} is of different types: {type(trace1)} and {type(trace2)}")
+            #print(f"Comparing trace {trace_name} with {len(trace1)} points")
+            # self.assertListEqual(list(trace1.data), list(trace2.data), "Traces are the same")
 
+    def _delete_temp_files(self):
+        """Delete all files in the temp folder"""
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+
+    def setUp(self):
+        """Delete all files in the temp folder before each test"""
+        self._delete_temp_files()
+
+    def tearDown(self):
+        """Delete all files in the temp folder after each test"""
+        self._delete_temp_files()
+                
     def test_tran_file(self):
         LW = RawWrite(fastacces=False)
         tx = Trace('time', np.arange(0.0, 3e-3, 997E-11))
@@ -185,7 +213,7 @@ class TestRawWrite(unittest.TestCase):
         from spicelib import SpiceEditor, SimRunner
         # prepare
         editor = SpiceEditor(testfiles_dir + "Batch_Test.net")
-        runner = SimRunner(parallel_sims=4, output_folder="./output", simulator=LTspice)
+        runner = SimRunner(parallel_sims=4, output_folder="./temp", simulator=LTspice)
         editor.set_parameters(res=0, cap=100e-6)
         for r2_value in ('1k', '2k', '4k'):
             editor.set_component_value('R2', r2_value)  # Modifying the value of a resistor
@@ -229,12 +257,13 @@ class TestRawWrite(unittest.TestCase):
         from spicelib import SpiceEditor, SimRunner
         # prepare
         editor = SpiceEditor(testfiles_dir + "Batch_Test.net")
-        runner = SimRunner(parallel_sims=4, output_folder="./output", simulator=LTspice)
+        runner = SimRunner(parallel_sims=4, output_folder="./temp", simulator=LTspice)
         editor.set_parameters(res=0, cap=100e-6)
         for r2_value in ('1k', '5k', '10k'):
             editor.set_component_value('R2', r2_value)  # Modifying the value of a resistor
             runner.run(editor)
 
+        runner.wait_completion()
         runner.create_raw_file_with(temp_dir + "raw_created_from_runner.raw", ("V(out)", "I(R1)"),
                                     {'R2': ('5k', '10k')})
         self.equal_raw_files(golden_dir + "raw_created_from_runner.raw", temp_dir + "raw_created_from_runner.raw")

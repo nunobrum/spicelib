@@ -16,12 +16,16 @@
 #
 # License:     refer to the LICENSE file
 # -------------------------------------------------------------------------------
+import sys
+
 import io
 import os
 import re
 from pathlib import Path
 from typing import Any, Generator
 import logging
+
+logger = logging.getLogger("spicelib.SpiceEditor")
 
 from ..utils.float_unit import format_eng
 from .editor_errors import *
@@ -203,6 +207,7 @@ class SpiceCircuit(BaseSubCircuit):
                 self.netlist[-1]+=line  # Append to the last line, but remove the preceding newline and the leading '+'
             elif len(cmd) == 1 and cmd in VALID_PREFIXES:
                 # This is a component line
+                line = line.lstrip()
                 if cmd == 'X':
                     component = SpiceCircuitInstance(netlist=self, obj=line)
                 else:
@@ -227,10 +232,18 @@ class SpiceCircuit(BaseSubCircuit):
                 stream.write(primitive)
             elif isinstance(primitive, IncludeFile):
                 if primitive.editor is None:
-                    raise RuntimeError(
-                        f"Cannot write unresolved include file: {primitive.obj!r}"
-                    )
-                primitive.editor.write_lines(stream)
+                    # If the include file was not found, write the original include line to the stream
+                    stream.write(primitive.obj)
+                else:
+                    if primitive.editor.circuit_file.parent != self.editor.circuit_file.parent:
+                        # If the include file is in another folder, write the original include line to the stream
+                        logger.warning(f"Include file {primitive.editor.circuit_file} is in a different folder than the "
+                                       f"parent circuit {self.editor.circuit_file.parent}.\n"
+                                       "This may cause issues when running the simulation. Please add this path to the"
+                                       "include search paths (option -I<path>) or move the include file to the same folder "
+                                       "as the parent circuit.")
+                    # only if include was modified write the entire sub-circuit to the stream
+                    primitive.editor.write_lines(stream)
             elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
                 primitive.write_lines(stream)
             elif isinstance(primitive, Primitive):
@@ -1089,15 +1102,13 @@ class IncludeFile(Primitive):
         editor = None
         if m:
             lib_name = m.group('filename')
+            if sys.platform == "linux" or sys.platform == "darwin":
+                lib_name = lib_name.replace("\\", "/")
             include_file = self._netlist.find_library(lib_name)
             if include_file:
                 from .spice_editor import SpiceEditor
                 try:
-                    encoding = getattr(self._netlist, 'encoding', None)
-                    if encoding is None:
-                        parent_editor = getattr(self._netlist, 'editor', None)
-                        encoding = getattr(parent_editor, 'encoding', None)
-                    editor = SpiceEditor(include_file, encoding=encoding, include_file=True)
+                    editor = SpiceEditor(include_file, include_file=True, encoding='include')
                 except Exception as e:
                     _logger.error(f"Error loading library '{lib_name}': {e}")
             else:
