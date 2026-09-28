@@ -815,7 +815,11 @@ class SimRunner(AnyRunner):
         retval = True
 
         # Obtain a first task
-        first_task: RunTask = next(self.tasks(conditions))
+        try:
+            first_task: RunTask = next(self.tasks(conditions))
+        except StopIteration:
+            _logger.error("No tasks matching the conditions were found. Cannot create new raw file.")
+            return False
 
         # Initialize a raw file based on the contents of the first raw
         if not first_task.raw_file:
