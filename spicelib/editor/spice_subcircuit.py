@@ -1112,11 +1112,7 @@ class IncludeFile(Primitive):
             if include_file:
                 from .spice_editor import SpiceEditor
                 try:
-                    encoding = getattr(self._netlist, 'encoding', None)
-                    if encoding is None:
-                        parent_editor = getattr(self._netlist, 'editor', None)
-                        encoding = getattr(parent_editor, 'encoding', None)
-                    editor = SpiceEditor(include_file, encoding=encoding, include_file=True)
+                    editor = SpiceEditor(include_file, include_file=True)
                 except Exception as e:
                     _logger.error(f"Error loading library '{lib_name}': {e}")
             else:
