@@ -231,21 +231,17 @@ class SpiceCircuit(BaseSubCircuit):
             if isinstance(primitive, str):
                 stream.write(primitive)
             elif isinstance(primitive, IncludeFile):
-                if primitive.editor is None or primitive.editor.was_modified is False:
-                    # write the original include line to the stream if there was no modification to the sub-circuit
-                    # or if the include is in another folder.
-                    stream.write(primitive.obj)
-                elif primitive.editor.circuit_file.parent != self.editor.circuit_file.parent:
-                    # If the include file is in another folder, write the original include line to the stream
-                    logger.warning(f"Include file {primitive.editor.circuit_file} is in a different folder than the "
-                                   f"parent circuit {self.editor.circuit_file.parent}.\n"
-                                   "This may cause issues when running the simulation. Please add this path to the"
-                                   "include search paths (option -I<path>) or move the include file to the same folder "
-                                   "as the parent circuit.")
-                    # TODO: This is a temporary solution. In the future, we may want to update all references to be
-                    # absolute paths.
+                if primitive.editor is None:
+                    # If the include file was not found, write the original include line to the stream
                     stream.write(primitive.obj)
                 else:
+                    if primitive.editor.circuit_file.parent != self.editor.circuit_file.parent:
+                        # If the include file is in another folder, write the original include line to the stream
+                        logger.warning(f"Include file {primitive.editor.circuit_file} is in a different folder than the "
+                                       f"parent circuit {self.editor.circuit_file.parent}.\n"
+                                       "This may cause issues when running the simulation. Please add this path to the"
+                                       "include search paths (option -I<path>) or move the include file to the same folder "
+                                       "as the parent circuit.")
                     # only if include was modified write the entire sub-circuit to the stream
                     primitive.editor.write_lines(stream)
             elif isinstance(primitive, (SpiceComponent, SpiceCircuit, ControlEditor)):
@@ -1112,7 +1108,7 @@ class IncludeFile(Primitive):
             if include_file:
                 from .spice_editor import SpiceEditor
                 try:
-                    editor = SpiceEditor(include_file, include_file=True)
+                    editor = SpiceEditor(include_file, include_file=True, encoding='include')
                 except Exception as e:
                     _logger.error(f"Error loading library '{lib_name}': {e}")
             else:
