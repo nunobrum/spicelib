@@ -70,7 +70,6 @@ class QschEditor_Test(unittest.TestCase):
 
     def setUp(self):
         self.edt = spicelib.editor.qsch_editor.QschEditor(test_dir + "DC sweep.qsch")
-        self._delete_temp_files()
 
     def tearDown(self):
         self._delete_temp_files()

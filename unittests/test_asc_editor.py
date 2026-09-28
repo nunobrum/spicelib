@@ -53,7 +53,6 @@ class ASC_Editor_Test(unittest.TestCase):
 
     def setUp(self):
         self.edt = spicelib.editor.asc_editor.AscEditor(test_dir + "DC sweep.asc")
-        self._delete_temp_files()
 
     def tearDown(self):
         self._delete_temp_files()

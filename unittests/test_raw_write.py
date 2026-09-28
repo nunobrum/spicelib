@@ -37,12 +37,10 @@ import sys  # python path handling
 import unittest  # performs test
 import logging
 
-from spicelib.raw.raw_classes import Axis, TraceRead
-
 sys.path.append(
     os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../"))  # add project root to lib search path
 
-
+from spicelib.raw.raw_classes import TraceRead, Axis
 from spicelib import RawWrite, Trace
 from spicelib import RawRead
 import numpy as np

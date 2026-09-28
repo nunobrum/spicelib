@@ -92,7 +92,6 @@ class test_spicelib(unittest.TestCase):
 
     def setUp(self):
         """Setup the test environment"""
-        self._delete_temp_files()
         print("Starting test_spicelib")
 
     def tearDown(self):

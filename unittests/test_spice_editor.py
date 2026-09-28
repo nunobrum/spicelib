@@ -79,7 +79,6 @@ class SpiceEditor_Test(unittest.TestCase):
         self.edt3 = spicelib.SpiceEditor(test_dir + "/amp3/amp3.net")
         self.edt4 = spicelib.SpiceEditor(test_dir + "Batch_Test.net")
         self.edt5 = spicelib.SpiceEditor(test_dir + "test_kicad_nets.cir")
-        self._delete_temp_files()
 
     def tearDown(self):
         self._delete_temp_files()
