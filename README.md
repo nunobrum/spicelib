@@ -1,6 +1,6 @@
 # README <!-- omit in toc -->
 
-_current version: 1.6.3_
+_current version: 1.6.4_
 
 *spicelib* is a toolchain of python utilities design to interact with spice simulators, as for example:
 
@@ -1133,17 +1133,18 @@ For support and improvement requests please open an Issue
 in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
 
 ## History
+* Version 1.6.4
+  * Qspice support in linux platform
+  * Fixing issue #318 - Bug fix on the generation of Qspice netlists with ¥ ports
+  * Fixing issue #323 - Fix fast worst-case iterator restart- #326
+  * Fixing issue #322 - Different encoding in libraries and include files, and trailing spaces in SPICE 
+    components/directives.
 * Version 1.6.3
   * Enhancements to subcircuit and parameter editing, Unit test expansion and golden file updates,
     SPICE netlist writing improvements, Documentation and usability andTesting and debugging.
   * Fixing issue #308 - Editing Library Subcircuit Parameters
   * Fixing issue #309 - Support for "params:" declaration in subcircuit instances.
   * Adding AGENTS.md for AI guidance.
-  * Qspice support in linux platform
-  * Fixing issue #318 - Bug fix on the generation of Qspice netlists with ¥ ports
-  * Fixing issue #323 - Fix fast worst-case iterator restart- #326
-  * Fixing issue #322 - Different encoding in libraries and include files, and trailing spaces in SPICE 
-    components/directives.
 * Version 1.6.2
   * method get_component_value() always return a string value
 * Version 1.6.1

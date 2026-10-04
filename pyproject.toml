@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "spicelib"
-version = "1.6.3"
+version = "1.6.4"
 description = "A set of tools to Automate Spice simulations"
 authors = ["Nuno Brum <nuno.brum@gmail.com>"]
 readme = "README.md"
@@ -18,7 +18,6 @@ scipy = "*"
 psutil = "*"
 matplotlib = "*"
 clipin = "*"
-Pillow = ">=12.3.0"
 
 [tool.poetry.scripts]
 ltsteps = "spicelib.scripts.ltsteps:main"
