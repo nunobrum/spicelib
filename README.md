@@ -1142,6 +1142,8 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
   * Qspice support in linux platform
   * Fixing issue #318 - Bug fix on the generation of Qspice netlists with ¥ ports
   * Fixing issue #323 - Fix fast worst-case iterator restart- #326
+  * Fixing issue #322 - Different encoding in libraries and include files, and trailing spaces in SPICE 
+    components/directives.
 * Version 1.6.2
   * method get_component_value() always return a string value
 * Version 1.6.1
