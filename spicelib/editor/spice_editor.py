@@ -74,9 +74,13 @@ class SpiceEditor(SpiceFile):
             else:
                 encoding = encoding
         else:
-            if encoding == 'autodetect':
+            if encoding == 'autodetect' or encoding == 'include':
+                if encoding == 'autodetect':
+                    expected_pattern = r'^(?:\*|\.title)'  # Normally, the file will start with a '*' except for KiCad that can start with '.title'
+                else:
+                    expected_pattern = ''  # Brut force include file, no pattern expected
                 try:
-                    encoding = detect_encoding(netlist_file, r'^(?:\*|\.title)')  # Normally, the file will start with a '*' except for KiCad that can start with '.title'
+                    encoding = detect_encoding(netlist_file, expected_pattern)
                 except EncodingDetectError as err:
                     raise err
         super().__init__(netlist_file, encoding, **kwargs)
