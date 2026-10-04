@@ -65,6 +65,9 @@ class SpiceEditor_Test(unittest.TestCase):
 
     def _delete_temp_files(self):
         """Delete all files in the temp folder"""
+        if not os.path.exists(temp_dir):
+            # if the temp_dir does not exist, there is nothing to delete
+            return
         for filename in os.listdir(temp_dir):
             file_path = os.path.join(temp_dir, filename)
             try:
