@@ -1139,6 +1139,7 @@ in [GitHub spicelib issues](https://github.com/nunobrum/spicelib/issues)
   * Fixing issue #323 - Fix fast worst-case iterator restart- #326
   * Fixing issue #322 - Different encoding in libraries and include files, and trailing spaces in SPICE 
     components/directives.
+  * PR #316 - Adding support for curly braces in K components
 * Version 1.6.3
   * Enhancements to subcircuit and parameter editing, Unit test expansion and golden file updates,
     SPICE netlist writing improvements, Documentation and usability andTesting and debugging.
