@@ -49,6 +49,7 @@ J2 NC_21 NC_22 NC_23 1e-9 ic=1, 2 temp=6
 * Kxxx Lyyy Lzzz ... value
 K1 L2 L3 1e-9
 K2 L2 L3 L4 L5 L6 1e-9
+K12 L1 L2 1e-9
 
 * Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
 * Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>

@@ -49,6 +49,7 @@ J2 NC_21 NC_22 NC_23 2N3819 ic=1, 2 temp=6
 * Kxxx Lyyy Lzzz ... value
 K1 L2 L3 1
 K2 L2 L3 L4 L5 L6 0.1
+K12 L1 L2 {0.499 * (1 + yat_Lr)}
 
 * Lxxx n+ n- <value> <mname> <nt=val> <m=val> ...
 * Lxxx n+ n- L = 'expression' <tc1=value> <tc2=value>

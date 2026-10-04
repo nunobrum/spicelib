@@ -547,6 +547,7 @@ class SpiceEditor_Test(unittest.TestCase):
             #
             "K1": ["1", {}],
             "K2": ["0.1", {}],
+            "K12": ["{0.499 * (1 + yat_Lr)}", {}],
             #
             "L1": ["1", {"temp": 13}],
             "L2": ["1H", {}],
